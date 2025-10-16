@@ -1,0 +1,347 @@
+---
+description: "Implement feature with TAG blocks"
+---
+
+# /ms.implement - Implementation with Traceability
+
+Implements features with automatic TAG selection and TAG block insertion.
+
+## Overview
+
+This command performs a **3-step process**:
+
+1. **TAG Auto-Selection**: Scans tasks.md for first uncompleted TAG
+2. **Implementation**: Runs `/speckit.implement` to generate code and tests
+3. **TAG Block Insertion**: Auto-inserts traceability metadata in generated files
+
+## Usage
+
+```
+/ms.implement
+```
+
+**No arguments required** - TAG is auto-selected from tasks.md.
+
+**Manual TAG specification** (optional):
+
+```
+/ms.implement {TAG_ID}
+```
+
+Example:
+
+```
+/ms.implement AUTH-001
+```
+
+## Execution Steps
+
+### Step 0: Load Project Context
+
+**Auto-load project documents**:
+- `.specify/memory/constitution.md` (Constitution - REQUIRED)
+- `AGENTS.md` (AI instructions, coding standards - if exists)
+- `specs/[spec-id]/spec.md` (Feature specification - REQUIRED)
+- `specs/[spec-id]/plan.md` (Implementation plan - REQUIRED)
+- `specs/[spec-id]/tasks.md` (Task list with TAG IDs - REQUIRED)
+
+**IF Constitution, spec.md, plan.md, or tasks.md missing**:
+- Display error: "Required files missing. Run `/ms.init`, `/ms.specify`, `/ms.plan`, and `/ms.tasks` first."
+- Exit
+
+**Reference key sections**:
+- Constitution Section II (Simplicity-First Architecture - Files ≤500 SLOC, Functions ≤100 LOC)
+- Constitution Section V (TRUST 5 Principles - Test-First, Readable, Unified, Secured, Trackable)
+- Constitution Section IX (Project-specific constraints - **if exists**, added by `/ms.constitution`)
+- AGENTS.md (coding standards, patterns to follow - if exists)
+
+**These documents MUST guide implementation to ensure code quality and consistency.**
+
+### Step 1: TAG Auto-Selection
+
+**IF no TAG_ID provided as argument**:
+
+1. Read `tasks.md`
+2. Scan for uncompleted tasks: `[ ]` checkboxes
+3. Extract TAG ID from first uncompleted task's `**TAG**:` line
+4. Use format: `@SPEC:{TAG_ID} → @TEST:{TAG_ID} → @CODE:{TAG_ID}`
+
+**Example**:
+
+```markdown
+## Phase 3: FR-1 Authentication
+
+**TAG**: @SPEC:AUTH-001 → @TEST:AUTH-001 → @CODE:AUTH-001
+
+### Implementation
+
+-   [ ] T015 Create auth service ← First uncompleted task
+-   [x] T014 Setup database
+```
+
+**Selected TAG**: `AUTH-001`
+
+**IF TAG_ID provided as argument**:
+
+-   Use provided TAG_ID directly
+-   Skip auto-selection
+
+**IF no uncompleted tasks found**:
+
+```
+✅ All tasks completed!
+
+No pending TAGs found in tasks.md.
+All implementation tasks are complete.
+```
+
+**EXIT**: Code 0
+
+### Step 1.5: Context7 MCP - Latest Library Documentation (If Needed)
+
+**Analyze task**: Does implementation require external libraries?
+
+**Detection indicators**:
+- Task mentions library names (FastAPI, React, Stripe, etc.)
+- Integration with external services
+- New third-party dependencies
+
+**IF external library detected**:
+
+  1. **Identify library and needed features**
+  2. **Use Context7 MCP**:
+     ```python
+     lib_id = mcp__context7__resolve_library_id("fastapi")
+     docs = mcp__context7__get_library_docs(
+         context7CompatibleLibraryID=lib_id,
+         topic="background tasks",  # Feature being implemented
+         tokens=8000
+     )
+     ```
+  3. **Use latest API in implementation**
+
+**ELSE**:
+  → Skip (no external libraries)
+
+**Store library docs** for use in Step 2 implementation.
+
+### Step 2: Inject Constitution & Run Implementation
+
+Before executing `/speckit.implement`, provide AI with Constitution constraints:
+
+```
+You are implementing code that MUST follow the project Constitution.
+
+**Constitution**: .specify/memory/constitution.md
+
+**CRITICAL: Read and apply these sections**:
+
+**Section II - Simplicity-First (MANDATORY)**:
+- Files ≤500 SLOC (code files only - split if larger)
+- Functions ≤100 lines (extract helper functions if needed)
+- Complexity ≤10 per function
+- Prefer built-in tools over external dependencies
+
+**Section V - TRUST 5 Principles (MANDATORY)**:
+- **Test-First**: Write tests BEFORE implementation code
+- **Readable**: Clear naming, ≤5 parameters per function, ≤4 nesting levels
+- **Unified**: Strict typing (TypeScript strict mode, Python type hints)
+- **Secured**: Input validation, environment variables for secrets
+- **Trackable**: Code structure mirrors spec.md organization
+
+**Refer to Constitution for detailed constraints and examples.**
+
+Now implement TAG: {TAG_ID}
+```
+
+Execute `/speckit.implement {TAG_ID}` with Constitution-enhanced context.
+
+This generates the core implementation files (code, tests) following Constitution principles.
+
+### Step 3: Insert TAG Blocks
+
+Locate generated files and insert TAG metadata.
+
+#### 3.1 Scan Generated Files
+
+Scan for newly created files:
+
+-   **Code files**: `src/**/*.{ts,py}`
+-   **Test files**: `tests/**/*.{ts,py}`
+-   **Spec file**: From tasks.md TAG chain
+
+#### 3.2 Insert TAG Blocks
+
+For each generated file:
+
+**TypeScript Files**:
+
+-   Read `src/templates/tag-block.ts.tmpl`
+-   Replace placeholders:
+    -   `{TAG_ID}` → e.g., "AUTH-001"
+    -   `{SPEC_FILE_PATH}` → spec.md path
+    -   `{TEST_FILE_PATH}` → test file path
+    -   `{STATUS}` → "implemented"
+    -   `{CREATED_DATE}` → Current date
+    -   `{UPDATED_DATE}` → Current date
+-   Insert at top of file using Edit tool
+
+**Python Files**:
+
+-   Read `src/templates/tag-block.py.tmpl`
+-   Same placeholder replacement as TypeScript
+-   Insert at top of file using Edit tool
+
+### Step 4: Report Output
+
+Display summary:
+
+```json
+{
+    "tag_selected": "AUTH-001",
+    "auto_selected": true,
+    "files_created": ["src/auth/service.ts", "tests/unit/auth.test.ts"],
+    "tag_blocks_inserted": 2
+}
+```
+
+Display next steps:
+
+```
+✅ Implementation completed for TAG: AUTH-001
+
+📦 Files Created:
+- src/auth/service.ts (with @CODE:AUTH-001 block)
+- tests/unit/auth.test.ts (with @TEST:AUTH-001 block)
+
+📋 Traceability:
+@SPEC:AUTH-001 → @TEST:AUTH-001 → @CODE:AUTH-001
+
+🎯 Next Steps:
+1. Review generated code and tests
+2. Run tests: npm test (or pytest)
+3. Run `/ms.implement` again for next TAG
+4. All TAG blocks auto-generated ✅
+```
+
+## TAG Block Format
+
+**TypeScript**:
+
+```typescript
+/**
+ * @CODE:AUTH-001
+ * @SPEC: specs/001-auth-spec/spec.md
+ * @TEST: tests/unit/auth.test.ts
+ * @CHAIN: @SPEC:AUTH-001 → @TEST:AUTH-001 → @CODE:AUTH-001
+ * @STATUS: implemented
+ * @CREATED: 2025-10-09
+ * @UPDATED: 2025-10-09
+ */
+```
+
+**Python**:
+
+```python
+"""
+@CODE:AUTH-001
+@SPEC: specs/001-auth-spec/spec.md
+@TEST: tests/unit/test_auth.py
+@CHAIN: @SPEC:AUTH-001 → @TEST:AUTH-001 → @CODE:AUTH-001
+@STATUS: implemented
+@CREATED: 2025-10-09
+@UPDATED: 2025-10-09
+"""
+```
+
+## Error Handling
+
+### Error 1: No Tasks Found
+
+**Symptom**: tasks.md doesn't exist or is empty
+
+**Message**:
+
+```
+❌ Error: No tasks found
+
+Expected: specs/{SPEC_ID}/tasks.md
+
+Please run `/ms.tasks` first to generate implementation tasks.
+```
+
+**Exit**: Code 1
+
+### Error 2: No Pending TAGs
+
+**Symptom**: All tasks completed (all `[x]` checkboxes)
+
+**Message**:
+
+```
+✅ All tasks completed!
+
+No pending TAGs found in tasks.md.
+All implementation is complete.
+```
+
+**Exit**: Code 0 (success)
+
+### Error 3: TAG Not Found in tasks.md
+
+**Symptom**: Manually specified TAG doesn't exist
+
+**Message**:
+
+```
+❌ Error: TAG not found in tasks.md
+
+Specified TAG: AUTH-001
+Available TAGs: USER-001, PAY-001, CART-001
+
+Please run `/ms.tasks` to verify TAG assignments or use `/ms.implement` without arguments for auto-selection.
+```
+
+**Exit**: Code 1
+
+### Error 4: Implementation Failed
+
+**Symptom**: `/speckit.implement` returned error
+
+**Message**:
+
+```
+❌ Error: Implementation failed
+
+The base `/speckit.implement` command encountered an error.
+Please check the error message above and retry.
+```
+
+**Exit**: Code 1
+
+## Next Steps
+
+After `/ms.implement`:
+
+1. Verify TAG blocks in generated files
+2. Run tests to verify implementation
+3. Run `/ms.implement` again to implement next TAG
+4. Commit changes with TAG ID in commit message
+
+## Notes
+
+-   **Auto TAG selection**: No manual TAG specification needed (scans tasks.md)
+-   **Manual TAG option**: Can specify TAG explicitly if needed
+-   **Automatic TAG blocks**: Inserted in all generated files
+-   **100% traceability**: SPEC→TEST→CODE chain complete
+
+## Implementation Details
+
+**Contract**: [specs/001-my-spec-spec/contracts/ms-implement.json](../specs/001-my-spec-spec/contracts/ms-implement.json)
+
+**Templates**:
+
+-   `src/templates/tag-block.ts.tmpl`
+-   `src/templates/tag-block.py.tmpl`
+
+**Tools**: SlashCommand (/speckit.implement), Read, Edit, Write

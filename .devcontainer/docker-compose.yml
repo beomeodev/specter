@@ -1,0 +1,56 @@
+name: ${PROJECT_NAME}
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    image: unidev-py:3.12-${PROJECT_NAME}
+    container_name: ${PROJECT_NAME}-app
+    working_dir: /workspace/${PROJECT_NAME}
+    tty: true
+    stdin_open: true
+    env_file:
+      - ../.env
+    volumes:
+      - ../:/workspace/${PROJECT_NAME}
+      - ${HOME}/.codex:/home/dev/.codex
+      - ${HOME}/.claude:/home/dev/.claude
+      # SSH 에이전트 포워딩 (GitHub 인증용)
+      - ${SSH_AUTH_SOCK:-/dev/null}:/ssh-agent
+      # SSH 키 파일 마운트 (읽기 전용)
+      - ${HOME}/.ssh:/home/dev/.ssh:ro
+    environment:
+      - SSH_AUTH_SOCK=/ssh-agent
+    command: bash -lc "pre-commit install || true; bash"
+
+  postgres:
+    image: postgres:16
+    profiles: ["db"]
+    environment:
+      POSTGRES_USER: ${PGUSER:-app}
+      POSTGRES_PASSWORD: ${PGPASS:-app}
+      POSTGRES_DB: ${PGDB:-app}
+    ports:
+      - "${PGPORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    profiles: ["cache"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+  jupyter:
+    image: unidev-py:3.12-${PROJECT_NAME}
+    profiles: ["notebook"]
+    working_dir: /workspace/${PROJECT_NAME}
+    command: bash -lc "python -m pip install jupyterlab && jupyter lab --ip=0.0.0.0 --no-browser --NotebookApp.token=''"
+    ports:
+      - "${JUPYTER_PORT:-8888}:8888"
+    volumes:
+      - ../:/workspace/${PROJECT_NAME}
+
+volumes:
+  pgdata:
