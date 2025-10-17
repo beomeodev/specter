@@ -15,6 +15,7 @@
 
 ## 목차
 
+- [📦 설치](#-설치)
 - [🤔 SPECTER란 무엇인가?](#-specter란-무엇인가)
 - [⚡ 빠른 시작](#-빠른-시작)
 - [📚 핵심 철학](#-핵심-철학)
@@ -30,11 +31,45 @@
 
 ---
 
+## 📦 설치
+
+### 새 프로젝트에 SPECTER 설치
+
+```bash
+npx degit beomeodev/specter my-new-project
+cd my-new-project
+npm install  # 또는 uv pip install -e .
+```
+
+이 명령어는 SPECTER 템플릿을 복사하여 새 프로젝트를 생성합니다 (`.git` 히스토리 제외).
+
+**프로젝트 구조**:
+```
+my-new-project/          ← 생성됨
+├── .claude/commands/    ← 11개 슬래시 커맨드
+├── templates/           ← Constitution 템플릿
+├── src/                 ← 소스 코드
+├── AGENTS.md            ← AI 코딩 규칙
+└── README.md            ← 이 파일
+```
+
+### 설치 후 첫 단계
+
+```bash
+# 1. 프로젝트 초기화
+/ms.init
+
+# 2. 첫 기능 사양 작성
+/ms.specify my-first-feature
+```
+
+---
+
 ## 🤔 SPECTER란 무엇인가?
 
 **SPECTER**는 AI 에이전트와의 협업에서 발생하는 품질 문제를 **시스템적으로 감시하고 차단**하는 개발 프레임워크입니다.
 
-마블의 F.R.I.D.A.Y.(Female Replacement Intelligent Digital Assistant Youth)나 일론 머스크의 D.O.G.E.(Department of Government Efficiency)처럼, SPECTER는 7가지 핵심 원칙의 조합으로 탄생했습니다:
+SPECTER는 7가지 핵심 원칙의 조합으로 탄생했습니다:
 
 ```
 S - Specification-driven    사양 주도 개발
@@ -503,7 +538,7 @@ docs = mcp__context7__get_library_docs(lib_id, topic="background tasks")
 /ms.specify user-authentication
 
 # 3. 명확화 (선택)
-/ms.clarify
+/ms.clarify & /ms.checklist
 
 # 4. 구현 계획
 /ms.plan
@@ -728,6 +763,7 @@ MIT License - 자유롭게 사용 가능
 
 # 3. 워크플로우 따라가기
 /ms.clarify      # (선택) 요구사항 명확화
+/ms.checklist    # (선택) 명세 품질 체크
 /ms.plan         # 구현 계획
 /ms.constitution # 헌법 추출
 /ms.tasks        # 태스크 생성 (TAG ID)
