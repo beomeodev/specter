@@ -229,7 +229,7 @@ Display summary:
     "spec_created": "specs/001-user-authentication/spec.md",
     "constitution_referenced": true,
     "constitution_exists": true,
-    "next_step": "/ms.clarify"
+    "next_step": "/ms.clarify or /ms.checklist"
 }
 ```
 
@@ -243,8 +243,9 @@ Display next steps:
 
 🎯 Next Steps:
 1. Review spec.md for completeness
-2. Run `/ms.clarify` to clarify ambiguous requirements
-3. AI will naturally follow EARS format based on Constitution
+2. Run `/ms.clarify` to clarify ambiguous requirements (질의응답)
+3. OR run `/ms.checklist` to generate completeness checklist (체크리스트)
+4. Then proceed to `/ms.plan` for implementation planning
 
 📖 Constitution Sections Applied:
 - Section IV: EARS (5 requirement patterns)
@@ -302,10 +303,13 @@ Common issues:
 
 ## Implementation Details
 
-**Contract**: [specs/001-my-spec-spec/contracts/ms-specify.json](../../specs/001-my-spec-spec/contracts/ms-specify.json)
-
 **Tools**: SlashCommand (/speckit.specify), Read (constitution check), Edit (append Constitution section)
 
 ## Next Command
 
-After `/ms.specify`: Run `/ms.clarify` to clarify ambiguous requirements (Spec-Kit standard workflow)
+After `/ms.specify`:
+1. Run `/ms.clarify` to clarify ambiguous requirements (질의응답 방식)
+2. OR run `/ms.checklist` to generate completeness checklist (체크리스트 방식)
+3. Then proceed to `/ms.plan` for implementation planning
+
+**Workflow**: `/ms.specify` → `/ms.clarify` or `/ms.checklist` → `/ms.plan`

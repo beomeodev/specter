@@ -152,6 +152,4 @@ After `/ms.tasks`:
 
 ## Implementation Details
 
-**Contract**: [specs/001-my-spec-spec/contracts/ms-tasks.json](../specs/001-my-spec-spec/contracts/ms-tasks.json)
-
 **Tools**: SlashCommand (/speckit.tasks), Read, Edit, Bash (ripgrep)

@@ -69,12 +69,12 @@ Execute the underlying Spec-Kit checklist command with Constitution context:
 ## Workflow Position
 
 ```
-/ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.analyze
-                ↓                                        ↓
-          [/ms.checklist]                         [/ms.checklist]
-                ↓                                        ↓
-         Validate spec.md                    Validate all requirements
-         requirements quality                before implementation
+/ms.specify → /ms.clarify → /ms.plan → /ms.constitution → /ms.tasks → /ms.analyze
+                ↓                                                            ↓
+          [/ms.checklist]                                              [/ms.checklist]
+                ↓                                                            ↓
+         Validate spec.md                                        Validate all requirements
+         requirements quality                                    before implementation
 ```
 
 **When to use**:
@@ -113,5 +113,5 @@ Checklists test **REQUIREMENTS QUALITY**, not implementation:
 ## See Also
 
 - **[/speckit.checklist](.claude/commands/speckit.checklist.md)**: Full implementation details
-- **[Checklist Template](../.specify/templates/checklist-template.md)**: Canonical format
+- **[Checklist Template](../../templates/checklist-template.md)**: Canonical format
 - **Constitution Reference**: My-Spec projects automatically reference constitution constraints

@@ -260,7 +260,7 @@ Display next steps:
 
 📖 Plan includes:
 - Modular architecture (independent testable units)
-- File size limits (≤300 LOC)
+- File size limits (≤500 SLOC)
 - Function complexity limits (≤10)
 - Security considerations
 - TAG traceability design

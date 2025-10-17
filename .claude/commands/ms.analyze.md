@@ -604,6 +604,4 @@ Skip slow checks when needed:
 
 ## Implementation Details
 
-**Contract**: [specs/001-my-spec-spec/contracts/ms-analyze.json](../specs/001-my-spec-spec/contracts/ms-analyze.json)
-
 **Tools**: SlashCommand (/speckit.analyze), Bash (tests, linting, type checking, ripgrep)

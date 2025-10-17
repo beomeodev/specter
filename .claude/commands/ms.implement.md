@@ -172,25 +172,48 @@ Scan for newly created files:
 
 #### 3.2 Insert TAG Blocks
 
-For each generated file:
+Generate TAG blocks for each file:
 
-**TypeScript Files**:
+```bash
+generate_tag_block() {
+  local lang="$1"
+  local tag_id="$2"
+  local spec_path="$3"
+  local test_path="$4"
+  local date=$(date +%Y-%m-%d)
 
--   Read `src/templates/tag-block.ts.tmpl`
--   Replace placeholders:
-    -   `{TAG_ID}` → e.g., "AUTH-001"
-    -   `{SPEC_FILE_PATH}` → spec.md path
-    -   `{TEST_FILE_PATH}` → test file path
-    -   `{STATUS}` → "implemented"
-    -   `{CREATED_DATE}` → Current date
-    -   `{UPDATED_DATE}` → Current date
--   Insert at top of file using Edit tool
+  case "$lang" in
+    ts|js|tsx|jsx)
+      cat <<EOF
+/**
+ * @CODE:${tag_id}
+ * @SPEC: ${spec_path}
+ * @TEST: ${test_path}
+ * @CHAIN: @SPEC:${tag_id} → @TEST:${tag_id} → @CODE:${tag_id}
+ * @STATUS: implemented
+ * @CREATED: ${date}
+ * @UPDATED: ${date}
+ */
+EOF
+      ;;
+    py)
+      cat <<EOF
+"""
+@CODE:${tag_id}
+@SPEC: ${spec_path}
+@TEST: ${test_path}
+@CHAIN: @SPEC:${tag_id} → @TEST:${tag_id} → @CODE:${tag_id}
+@STATUS: implemented
+@CREATED: ${date}
+@UPDATED: ${date}
+"""
+EOF
+      ;;
+  esac
+}
+```
 
-**Python Files**:
-
--   Read `src/templates/tag-block.py.tmpl`
--   Same placeholder replacement as TypeScript
--   Insert at top of file using Edit tool
+For each generated file, insert TAG block at top using Edit tool.
 
 ### Step 4: Report Output
 
@@ -337,11 +360,4 @@ After `/ms.implement`:
 
 ## Implementation Details
 
-**Contract**: [specs/001-my-spec-spec/contracts/ms-implement.json](../specs/001-my-spec-spec/contracts/ms-implement.json)
-
-**Templates**:
-
--   `src/templates/tag-block.ts.tmpl`
--   `src/templates/tag-block.py.tmpl`
-
-**Tools**: SlashCommand (/speckit.implement), Read, Edit, Write
+**Tools**: SlashCommand (/speckit.implement), Read, Edit, Write, Bash

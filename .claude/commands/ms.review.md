@@ -37,7 +37,7 @@ Performs deep code quality review after `/ms.implement` completes. Focuses on co
 Run prerequisites script to get context:
 
 ```bash
-.specify/scripts/bash/check-prerequisites.sh --json --require-spec --require-plan --include-tasks
+src/lib/scripts/check-prerequisites.sh --json --require-spec --require-plan --include-tasks
 ```
 
 Parse JSON output to extract:
