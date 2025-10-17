@@ -4,6 +4,7 @@
  * Performs comprehensive quality checks:
  * - Code coverage ≥85%
  * - Complexity ≤10 per function
+ * - Circular dependency detection (madge / pydeps)
  * - Security scan (npm audit / pip-audit)
  * - TAG integrity (integrated with TAG validator)
  */
@@ -216,6 +217,110 @@ async function getComplexity(rootPath: string, projectType: string): Promise<{
 }
 
 /**
+ * Check for circular dependencies
+ */
+async function checkCircularDependencies(rootPath: string, projectType: string): Promise<{
+  success: boolean;
+  circularDeps: Array<{ cycle: string[]; description: string }>;
+  output: string;
+}> {
+  try {
+    let output: string;
+    const circularDeps: Array<{ cycle: string[]; description: string }> = [];
+
+    if (projectType === 'typescript') {
+      // Use madge to detect circular dependencies
+      try {
+        output = execSync('npx madge --circular --json src/', {
+          cwd: rootPath,
+          encoding: 'utf-8',
+          stdio: 'pipe',
+          timeout: 60000,
+        });
+
+        // Parse JSON output
+        try {
+          const cycles = JSON.parse(output);
+          if (Array.isArray(cycles) && cycles.length > 0) {
+            for (const cycle of cycles) {
+              circularDeps.push({
+                cycle: Array.isArray(cycle) ? cycle : [],
+                description: Array.isArray(cycle) ? cycle.join(' → ') : String(cycle),
+              });
+            }
+          }
+        } catch {
+          // If not JSON, check for text output
+          if (output.includes('Circular') || output.includes('cycle')) {
+            circularDeps.push({
+              cycle: [],
+              description: 'Circular dependencies detected (see output)',
+            });
+          }
+        }
+      } catch (error: any) {
+        output = error.stdout || error.stderr || error.message;
+        // Exit code 0 means no cycles, non-zero might mean cycles or error
+        if (error.status !== 0 && output.includes('circular')) {
+          circularDeps.push({
+            cycle: [],
+            description: 'Circular dependencies detected',
+          });
+        }
+      }
+    } else if (projectType === 'python') {
+      // Use pydeps to detect circular dependencies
+      try {
+        output = execSync('pydeps --show-cycles --max-bacon=3 .', {
+          cwd: rootPath,
+          encoding: 'utf-8',
+          stdio: 'pipe',
+          timeout: 60000,
+        });
+
+        // Check for cycle indicators in output
+        const cycleMatches = output.match(/\*\*\* .* \*\*\*/g);
+        if (cycleMatches && cycleMatches.length > 0) {
+          for (const match of cycleMatches) {
+            circularDeps.push({
+              cycle: [],
+              description: match.replace(/\*\*\*/g, '').trim(),
+            });
+          }
+        }
+      } catch (error: any) {
+        output = error.stdout || error.stderr || error.message;
+        // pydeps might return non-zero on cycles
+        if (output.toLowerCase().includes('cycle') || output.toLowerCase().includes('circular')) {
+          circularDeps.push({
+            cycle: [],
+            description: 'Circular dependencies detected',
+          });
+        }
+      }
+    } else {
+      return {
+        success: true,
+        circularDeps: [],
+        output: 'Circular dependency check not run (unsupported project type)',
+      };
+    }
+
+    return {
+      success: circularDeps.length === 0,
+      circularDeps,
+      output,
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      circularDeps: [],
+      output: error.message,
+    };
+  }
+}
+
+/**
  * Run security audit
  */
 async function runSecurityAudit(rootPath: string, projectType: string): Promise<{
@@ -316,9 +421,10 @@ async function runSecurityAudit(rootPath: string, projectType: string): Promise<
  * //   passed: true,
  * //   violations: [],
  * //   criticalCount: 0,
- * //   checks: { coverage: true, complexity: true, security: true, tagIntegrity: true },
+ * //   checks: { coverage: true, complexity: true, circularDeps: true, security: true, tagIntegrity: true },
  * //   coveragePercent: 92.5,
  * //   avgComplexity: 6,
+ * //   circularDepsCount: 0,
  * //   securityIssues: 0,
  * //   tagViolations: 0
  * // }
@@ -366,7 +472,19 @@ export async function runLevel3Checks(rootPath: string = '.'): Promise<Level3Res
     });
   }
 
-  // Check 3: Security audit (MEDIUM for vulnerabilities, CRITICAL for critical CVEs)
+  // Check 3: Circular dependencies (HIGH)
+  const circularResult = await checkCircularDependencies(rootPath, projectType);
+
+  for (const circularDep of circularResult.circularDeps) {
+    violations.push({
+      level: 'HIGH',
+      category: 'Architecture',
+      message: `Circular dependency detected: ${circularDep.description}`,
+      fixCommand: 'Refactor to remove circular dependency',
+    });
+  }
+
+  // Check 4: Security audit (MEDIUM for vulnerabilities, CRITICAL for critical CVEs)
   const securityResult = await runSecurityAudit(rootPath, projectType);
 
   for (const vuln of securityResult.vulnerabilities) {
@@ -380,7 +498,7 @@ export async function runLevel3Checks(rootPath: string = '.'): Promise<Level3Res
     });
   }
 
-  // Check 4: TAG integrity (CRITICAL for orphans/duplicates)
+  // Check 5: TAG integrity (CRITICAL for orphans/duplicates)
   const tagResult = await validateTAGIntegrity(rootPath);
 
   // Add TAG violations (CRITICAL and HIGH only for Level 3)
@@ -400,11 +518,13 @@ export async function runLevel3Checks(rootPath: string = '.'): Promise<Level3Res
     checks: {
       coverage: coveragePercent !== undefined && coveragePercent >= MIN_COVERAGE,
       complexity: complexityResult.violations.length === 0,
+      circularDeps: circularResult.circularDeps.length === 0,
       security: securityResult.vulnerabilities.length === 0,
       tagIntegrity: tagResult.passed,
     },
     coveragePercent,
     avgComplexity,
+    circularDepsCount: circularResult.circularDeps.length,
     securityIssues: securityResult.vulnerabilities.length,
     tagViolations: tagResult.violations.length,
     executionTime,

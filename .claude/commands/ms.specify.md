@@ -71,23 +71,61 @@ Your output (English): "WHEN user logs in with valid credentials, system SHALL i
 Now create the specification following these principles.
 ```
 
-### 2.5. Adaptive Context Analysis (AI Auto-Decision)
+### 2.5. Adaptive Context Analysis (Quantitative Decision)
 
-**Think deeply**: "Is this request complex enough to need deeper analysis?"
+**Step 1: Analyze User Request (Mandatory)**
 
-**Complexity Indicators**:
-- New feature in existing system → Need to find similar patterns
-- Integration with external service → Need dependency analysis
-- Cross-component changes → Need impact assessment
+Extract and count keywords from `$ARGUMENTS`:
 
-**Decision**:
+```bash
+# Count simple keywords
+SIMPLE_KEYWORDS=$(echo "$ARGUMENTS" | grep -iEo "\b(config|setting|constant|type|interface|util|helper|log|message)\b" | wc -l)
 
-**IF Simple Request** (예: "로그 메시지 수정", "설정값 변경"):
+# Count moderate keywords
+MODERATE_KEYWORDS=$(echo "$ARGUMENTS" | grep -iEo "\b(feature|module|component|endpoint|model|service|page|form)\b" | wc -l)
+
+# Count complex keywords
+COMPLEX_KEYWORDS=$(echo "$ARGUMENTS" | grep -iEo "\b(system|architecture|integration|external|api|realtime|workflow|migration)\b" | wc -l)
+
+# Check for existing similar specs
+SIMILAR_SPECS=$(find specs/ -name "spec.md" 2>/dev/null | wc -l)
+```
+
+**Step 2: Apply Decision Tree**
+
+Execute in priority order (stop at first match):
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ DECISION TREE (Priority Order)                              │
+├─────────────────────────────────────────────────────────────┤
+│ 1. IF COMPLEX_KEYWORDS ≥ 2                                  │
+│    → COMPLEX (system-level change)                          │
+│                                                              │
+│ 2. IF SIMPLE_KEYWORDS ≥ 2 AND COMPLEX_KEYWORDS = 0          │
+│    → SIMPLE (config/utility change)                         │
+│                                                              │
+│ 3. IF MODERATE_KEYWORDS ≥ 1 OR SIMILAR_SPECS ≥ 3            │
+│    → MODERATE (feature with patterns available)            │
+│                                                              │
+│ 4. IF SIMPLE_KEYWORDS ≥ 1 AND MODERATE_KEYWORDS = 0         │
+│    → SIMPLE                                                  │
+│                                                              │
+│ 5. FALLBACK (unable to determine)                           │
+│    → MODERATE (safe default - 2 agents)                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Step 3: Execute Sub-Agent Strategy**
+
+Based on complexity determined above:
+
+**IF SIMPLE**:
   - 0 sub-agents
   - Proceed directly to Step 3
 
-**IF Moderate Request** (예: "결제 모듈 추가", "알림 기능 구현"):
-  - Launch 2 sub-agents in PARALLEL (single message):
+**IF MODERATE**:
+  - Launch 2 sub-agents in PARALLEL (single message with 2 Task calls):
     1. **Pattern_Search_Agent**:
        ```
        Task: "Search existing codebase for similar patterns to user request '$ARGUMENTS'"
@@ -109,8 +147,8 @@ Now create the specification following these principles.
        3. Return: API usage patterns, best practices, Constitution-compatible usage
        ```
 
-**IF Complex Request** (예: "실시간 알림 시스템", "아키텍처 재설계"):
-  - Launch 3 sub-agents in PARALLEL:
+**IF COMPLEX**:
+  - Launch 3 sub-agents in PARALLEL (single message with 3 Task calls):
     1. Pattern_Search_Agent (as above)
     2. Library_Research_Agent (as above)
     3. **Dependency_Analysis_Agent**:
@@ -125,6 +163,21 @@ Now create the specification following these principles.
        ```
 
 **CRITICAL**: Always launch agents in PARALLEL (single message with multiple Task calls).
+
+**Debug Output** (for transparency):
+```json
+{
+  "complexity_metrics": {
+    "simple_keywords": 0,
+    "moderate_keywords": 1,
+    "complex_keywords": 2,
+    "similar_specs": 5
+  },
+  "decision": "COMPLEX",
+  "reason": "Rule 1: COMPLEX_KEYWORDS ≥ 2",
+  "agents_spawned": 3
+}
+```
 
 ### 2.6. Synthesize Findings
 

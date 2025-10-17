@@ -40,6 +40,101 @@ Read **BOTH** spec.md AND plan.md:
 - plan.md contains technical/architectural decisions → constraints (e.g., "files ≤300 LOC")
 - Both contribute to project rules in Section IX
 
+### 2.5. Adaptive Constraint Extraction (Always Complex)
+
+**This workflow always uses sub-agents** (constitution extraction is inherently multi-dimensional).
+
+**Step 1: Detect AGENTS.md Files**
+
+```bash
+# Check which AGENTS.md files exist
+AGENTS_ROOT=$([ -f "AGENTS.md" ] && echo "1" || echo "0")
+AGENTS_FRONTEND=$([ -f "frontend/AGENTS.md" ] && echo "1" || echo "0")
+AGENTS_BACKEND=$([ -f "backend/AGENTS.md" ] && echo "1" || echo "0")
+AGENTS_TOTAL=$((AGENTS_ROOT + AGENTS_FRONTEND + AGENTS_BACKEND))
+```
+
+**Step 2: Apply Agent Strategy**
+
+Based on existing files:
+
+**IF AGENTS_TOTAL = 0** (No AGENTS.md files):
+  - Launch 2 sub-agents in PARALLEL (single message with 2 Task calls):
+    1. **Constraint_Extraction_Agent**:
+       ```
+       Task: "Extract project-specific constraints from spec.md and plan.md for Constitution Section IX"
+
+       Workflow:
+       1. Read both spec.md and plan.md
+       2. Search for constraint keywords ("must use", "required", "forbidden", "≥", "≤")
+       3. Categorize: Technology Stack, Dependencies, Architecture, Security, Performance
+       4. Format for Section IX
+       5. Return: Structured constraints with categories
+       ```
+
+    2. **Validation_Agent**:
+       ```
+       Task: "Validate extracted constraints for conflicts and completeness"
+
+       Workflow:
+       1. Check for contradictions between spec and plan
+       2. Verify all constraints have clear criteria
+       3. Ensure EARS compliance for requirements
+       4. Flag ambiguous constraints
+       5. Return: Validation report with conflicts and warnings
+       ```
+
+**IF AGENTS_TOTAL > 0** (AGENTS.md files exist):
+  - Launch 3 sub-agents in PARALLEL (single message with 3 Task calls):
+    1. Constraint_Extraction_Agent (as above)
+    2. **AGENTS_Rules_Agent**:
+       ```
+       Task: "Generate project-specific coding rules for existing AGENTS.md files"
+
+       Workflow:
+       1. Detect which AGENTS.md files exist (root, frontend/, backend/)
+       2. Extract coding patterns from plan.md
+       3. Find concrete examples from existing code
+       4. Distribute rules appropriately:
+          - Root: Cross-cutting (API contracts, auth flow, data formats)
+          - Frontend: State management, component patterns, UI rules
+          - Backend: Database access, API implementation, external services
+       5. Ensure 300-500 tokens per file
+       6. Link all rules to source (FR-XXX/STEP-XXX)
+       7. Return: Rules per file with token counts
+       ```
+
+    3. Validation_Agent (as above)
+
+**CRITICAL**: Always launch agents in PARALLEL (single message with multiple Task calls).
+
+**Debug Output** (for transparency):
+```json
+{
+  "agents_md_detected": {
+    "root": true,
+    "frontend": true,
+    "backend": false,
+    "total": 2
+  },
+  "agents_spawned": 3,
+  "tasks": [
+    "Constraint extraction for Section IX",
+    "Rules generation for 2 AGENTS.md files",
+    "Validation of constraints and rules"
+  ]
+}
+```
+
+### 2.6. Synthesize Results
+
+**Merge findings from all agents**:
+- Constraints from Constraint_Extraction_Agent
+- Rules from AGENTS_Rules_Agent (if spawned)
+- Validation warnings from Validation_Agent
+- Resolve any conflicts identified
+- Prepare final content for Constitution Section IX and AGENTS.md files
+
 ### 3. AI-Driven Constraint Extraction
 
 **Use AI to extract constraints from anywhere in documents** (not limited to specific sections):

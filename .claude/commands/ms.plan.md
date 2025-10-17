@@ -58,23 +58,64 @@ You are creating an implementation plan that MUST follow the project Constitutio
 Now create the implementation plan following these principles.
 ```
 
-### 2.5. Adaptive Context Analysis (AI Auto-Decision)
+### 2.5. Adaptive Context Analysis (Quantitative Decision)
 
-**Think deeply**: "Is this feature complex enough to need pattern research?"
+**Step 1: Analyze Spec Complexity (Mandatory)**
 
-**Complexity Indicators**:
-- Similar feature exists → Find and reuse architecture patterns
-- Multiple components involved → Need integration analysis
-- External library integration → Need latest API research
+Read spec.md and extract metrics:
 
-**Decision**:
+```bash
+# Count functional requirements (FRs)
+FR_COUNT=$(grep -E "^#{1,3}\s+FR-[0-9]+" specs/*/spec.md | wc -l)
 
-**IF Simple Plan** (예: "단일 유틸리티 함수", "설정 파일 추가"):
+# Count components mentioned
+COMPONENT_COUNT=$(grep -iEo "\b(service|controller|model|repository|handler|middleware|component|page)\b" specs/*/spec.md | sort -u | wc -l)
+
+# Check for integration keywords
+INTEGRATION_KEYWORDS=$(grep -iEo "\b(external|api|integration|third-party|webhook|oauth)\b" specs/*/spec.md | wc -l)
+
+# Check for existing similar plans
+SIMILAR_PLANS=$(find specs/ -name "plan.md" 2>/dev/null | wc -l)
+```
+
+**Step 2: Apply Decision Tree**
+
+Execute in priority order (stop at first match):
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ DECISION TREE (Priority Order)                              │
+├─────────────────────────────────────────────────────────────┤
+│ 1. IF INTEGRATION_KEYWORDS ≥ 3                              │
+│    → COMPLEX (external integration)                         │
+│                                                              │
+│ 2. IF FR_COUNT ≤ 2 AND COMPONENT_COUNT ≤ 2                  │
+│    → SIMPLE (single utility/config)                         │
+│                                                              │
+│ 3. IF COMPONENT_COUNT ≥ 5 OR FR_COUNT ≥ 8                   │
+│    → COMPLEX (multi-component system)                       │
+│                                                              │
+│ 4. IF SIMILAR_PLANS ≥ 3                                     │
+│    → MODERATE (patterns available)                          │
+│                                                              │
+│ 5. IF COMPONENT_COUNT ≥ 2 OR FR_COUNT ≥ 3                   │
+│    → MODERATE                                                │
+│                                                              │
+│ 6. FALLBACK (unable to determine)                           │
+│    → MODERATE (safe default - 2 agents)                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Step 3: Execute Sub-Agent Strategy**
+
+Based on complexity determined above:
+
+**IF SIMPLE**:
   - 0 sub-agents
   - Proceed directly to Step 3
 
-**IF Moderate Plan** (예: "API 엔드포인트 추가", "데이터베이스 모델"):
-  - Launch 1-2 sub-agents in PARALLEL:
+**IF MODERATE**:
+  - Launch 2 sub-agents in PARALLEL (single message with 2 Task calls):
     1. **Architecture_Pattern_Agent**:
        ```
        Task: "Find similar architectural patterns in existing codebase for '$SPEC_FEATURE'"
@@ -96,8 +137,8 @@ Now create the implementation plan following these principles.
        3. Return: Current API patterns, best practices, version compatibility
        ```
 
-**IF Complex Plan** (예: "마이크로서비스 추가", "실시간 통신 시스템"):
-  - Launch 3 sub-agents in PARALLEL:
+**IF COMPLEX**:
+  - Launch 3 sub-agents in PARALLEL (single message with 3 Task calls):
     1. Architecture_Pattern_Agent (as above)
     2. Library_API_Agent (as above)
     3. **Integration_Design_Agent**:
@@ -112,6 +153,21 @@ Now create the implementation plan following these principles.
        ```
 
 **CRITICAL**: Always launch agents in PARALLEL (single message with multiple Task calls).
+
+**Debug Output** (for transparency):
+```json
+{
+  "complexity_metrics": {
+    "fr_count": 5,
+    "component_count": 4,
+    "integration_keywords": 2,
+    "similar_plans": 3
+  },
+  "decision": "MODERATE",
+  "reason": "Rule 4: SIMILAR_PLANS ≥ 3",
+  "agents_spawned": 2
+}
+```
 
 ### 2.6. Synthesize Architecture Decisions
 

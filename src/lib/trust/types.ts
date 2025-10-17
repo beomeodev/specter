@@ -63,6 +63,7 @@ export interface Level3Result extends TRUSTLevelResult {
   checks: {
     coverage: boolean;
     complexity: boolean;
+    circularDeps: boolean;
     security: boolean;
     tagIntegrity: boolean;
   };
@@ -72,6 +73,9 @@ export interface Level3Result extends TRUSTLevelResult {
 
   /** Average complexity score */
   avgComplexity?: number;
+
+  /** Circular dependencies count */
+  circularDepsCount?: number;
 
   /** Security vulnerabilities count */
   securityIssues?: number;

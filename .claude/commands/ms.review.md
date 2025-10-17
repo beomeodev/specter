@@ -102,6 +102,120 @@ find tests/ -type f \( -name "*.test.ts" -o -name "*.spec.ts" -o -name "*_test.p
 
 ---
 
+### Step 3.5: Adaptive Review Analysis (Quantitative Decision)
+
+**Step 1: Measure Review Scope (Mandatory)**
+
+```bash
+# Count changed files (from git or session context)
+CHANGED_FILES=$(git diff --name-only HEAD~1..HEAD 2>/dev/null | wc -l)
+
+# If git unavailable, count all src files
+if [ "$CHANGED_FILES" -eq 0 ]; then
+  CHANGED_FILES=$(find src/ -name "*.ts" -o -name "*.py" -o -name "*.js" 2>/dev/null | wc -l)
+fi
+
+# Count affected modules
+AFFECTED_MODULES=$(git diff --name-only HEAD~1..HEAD 2>/dev/null | cut -d'/' -f1-2 | sort -u | wc -l)
+
+# Check for cross-cutting changes
+CROSS_CUTTING=$(git diff --name-only HEAD~1..HEAD 2>/dev/null | grep -E "(shared|utils|common|lib|config)" | wc -l)
+```
+
+**Step 2: Apply Decision Tree**
+
+Execute in priority order (stop at first match):
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ DECISION TREE (Priority Order)                              │
+├─────────────────────────────────────────────────────────────┤
+│ 1. IF CROSS_CUTTING > 0                                     │
+│    → COMPLEX (affects shared code)                          │
+│                                                              │
+│ 2. IF CHANGED_FILES ≤ 3 AND AFFECTED_MODULES = 1            │
+│    → SIMPLE (focused change)                                │
+│                                                              │
+│ 3. IF CHANGED_FILES ≤ 10 AND AFFECTED_MODULES ≤ 2           │
+│    → MODERATE (feature-scoped)                              │
+│                                                              │
+│ 4. IF CHANGED_FILES > 10 OR AFFECTED_MODULES > 2            │
+│    → COMPLEX (broad impact)                                 │
+│                                                              │
+│ 5. FALLBACK (unable to determine)                           │
+│    → MODERATE (safe default)                                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Step 3: Execute Sub-Agent Strategy**
+
+Based on complexity determined above:
+
+**IF SIMPLE**:
+  - 0 sub-agents → Direct review (Steps 4-5)
+
+**IF MODERATE**:
+  - Launch 2 sub-agents in PARALLEL (single message with 2 Task calls):
+    1. **Code_Quality_Agent**:
+       ```
+       Task: "Analyze code quality for changed files"
+
+       Focus: Naming, complexity, duplication, file sizes
+       Tools: Grep, Read, jscpd, radon
+       Return: Quality violations (naming, DRY, complexity)
+       ```
+
+    2. **Security_Performance_Agent**:
+       ```
+       Task: "Analyze security and performance for changed files"
+
+       Focus: Security patterns, N+1 queries, error handling, anti-patterns
+       Tools: Grep (pattern matching), Read
+       Return: Security/performance violations
+       ```
+
+**IF COMPLEX**:
+  - Launch 3 sub-agents in PARALLEL (single message with 3 Task calls):
+    1. Code_Quality_Agent (as above)
+    2. Security_Performance_Agent (as above)
+    3. **Architecture_Pattern_Agent**:
+       ```
+       Task: "Analyze architecture consistency and systemic patterns"
+
+       Focus: Architecture violations, test quality, systemic issues (3+ files)
+       Tools: Read (multi-file), Grep, ultrathink pattern analysis
+       Return: Architecture violations, systemic patterns
+       ```
+
+**CRITICAL**: Always launch agents in PARALLEL (single message with multiple Task calls).
+
+**Debug Output** (for transparency):
+```json
+{
+  "complexity_metrics": {
+    "changed_files": 7,
+    "affected_modules": 2,
+    "cross_cutting": 0
+  },
+  "decision": "MODERATE",
+  "reason": "Rule 3: FILES ≤ 10 AND MODULES ≤ 2",
+  "agents_spawned": 2
+}
+```
+
+### Step 3.6: Synthesize Agent Findings
+
+**IF sub-agents launched**:
+- Merge findings by category (naming, security, architecture, performance)
+- Identify systemic patterns (same issue in 3+ files)
+- Prioritize CRITICAL/HIGH issues
+- Prepare context for ultrathink analysis (Step 5.5)
+
+**ELSE**:
+- Skip (simple review, proceed directly)
+
+---
+
 ### Step 4: Automated Static Analysis
 
 Run automated tools for measurable metrics (parallel execution):

@@ -2,74 +2,54 @@
 
 ---
 
-## 1. Context Management - 3-Tier Documentation System
-
-**CRITICAL**: Before any task, read relevant documentation:
-
-**Tier 1 (Foundation - Read First)**:
-- `@docs/ai-context/project-structure.md` - Tech stack, file tree (created by `/ms.constitution`)
-- `@docs/ai-context/docs-overview.md` - Documentation map (created by `/ms.constitution`)
-- `@AGENTS.md` (this file) - Coding standards
-
-**Tier 2 (Component - If working on component)**:
-- `@src/[component]/CONTEXT.md` - Component architecture
-
-**Tier 3 (Feature - If working on feature)**:
-- `@specs/[spec-id]/spec.md`, `plan.md` - Feature specification
-- `@src/[component]/src/[feature]/CONTEXT.md` - Implementation patterns
-
-**Rule**: ALWAYS read `project-structure.md` before planning changes.
-
----
-
-## 2. Core Principles
+## 1. Core Principles
 
 ### ✅ Required
 
--   **Code comments and documentation**
--   **Small units** (1-2 files only)
--   **Follow existing patterns**
--   **Explicit typing required**
--   **Tests before implementation**
--   **Update AGENTS.md when needed during project**
+- **Code comments and documentation**
+- **Small units** (1-2 files only)
+- **Follow existing patterns**
+- **Explicit typing required**
+- **Tests before implementation**
+- **Update AGENTS.md when needed during project**
 
 ### ❌ Prohibited
 
--   Modifying multiple files simultaneously
--   Ignoring existing patterns
--   Code duplication
--   Type omission (any abuse)
--   Implementation without tests
+- Modifying multiple files simultaneously
+- Ignoring existing patterns
+- Code duplication
+- Type omission (any abuse)
+- Implementation without tests
 
 ---
 
-## 3. Operational Guardrails
+## 2. Operational Guardrails
 
 ### Context Management (CRITICAL)
 
 **Rule**: Always read relevant files BEFORE planning changes
 
--   Search for similar existing features first
--   Check current implementation patterns
--   Verify types/constants already defined
--   Never guess - always verify by reading files
+- Search for similar existing features first
+- Check current implementation patterns
+- Verify types/constants already defined
+- Never guess - always verify by reading files
 
 **Anti-pattern**: Planning changes without understanding current codebase state
 
 ### Documentation Updates
 
--   Keep updates concise and on point to prevent bloat
--   Document "why" not "what"
+- Keep updates concise and on point to prevent bloat
+- Document "why" not "what"
 
 ### Development Restrictions
 
--   Do not commit to git without user approval
--   Do not run local servers - tell user to run them
--   Never use placeholders - implement complete solutions
+- Do not commit to git without user approval
+- Do not run local servers - tell user to run them
+- Never use placeholders - implement complete solutions
 
 ---
 
-## 4. Requirements Clarification (EARS Pattern)
+## 3. Requirements Clarification (EARS Pattern)
 
 **Problem**: Ambiguous requirements lead to wrong implementations
 
@@ -84,6 +64,7 @@
 | **Constraint** | `IF` | IF [condition], system SHALL [constraint] | IF password fails 3 times, SHALL lock account |
 
 **Application Example**:
+
 ```
 ❌ "Build login feature"
 
@@ -99,17 +80,17 @@
 
 ---
 
-## 5. Clean Code Core Principles
+## 4. Clean Code Core Principles
 
 ### 0. ⚠️ Zero Tolerance (Absolute Prohibition)
 
 **Never** use workarounds that avoid root causes:
 
--   `setTimeout` for state synchronization (timing hack)
--   `window.location.reload()` to fix issues
--   Fallback patterns masking real problems
--   Catching errors without handling them
--   `any` type to bypass type checking
+- `setTimeout` for state synchronization (timing hack)
+- `window.location.reload()` to fix issues
+- Fallback patterns masking real problems
+- Catching errors without handling them
+- `any` type to bypass type checking
 
 **Rule**: Always find and fix the root cause
 
@@ -121,10 +102,10 @@
 
 **Rule**: Present plan before modifying 3+ files
 
--   List of files to modify
--   Changes for each file
--   Expected risks
--   **Proceed after approval**
+- List of files to modify
+- Changes for each file
+- Expected risks
+- **Proceed after approval**
 
 ---
 
@@ -168,12 +149,14 @@ Decision sequence:
 ```
 
 **Avoid unnecessary complexity**:
--   Microservices (when monolith suffices)
--   GraphQL (when REST suffices)
--   Custom frameworks
--   Over-abstraction
+
+- Microservices (when monolith suffices)
+- GraphQL (when REST suffices)
+- Custom frameworks
+- Over-abstraction
 
 **File Size Constraints** (from Constitution):
+
 - Files ≤500 SLOC (code only, excluding comments)
 - Functions ≤100 LOC
 - Complexity ≤10 per function
@@ -187,11 +170,11 @@ Decision sequence:
 
 **Rule**: Always check existing patterns before writing code
 
--   Folder structure (where to create files)
--   Naming conventions (snake_case, camelCase, etc.)
--   Import order
--   Error handling approach
--   CRUD patterns
+- Folder structure (where to create files)
+- Naming conventions (snake_case, camelCase, etc.)
+- Import order
+- Error handling approach
+- CRUD patterns
 
 **Verify**: Find similar features and compare patterns
 
@@ -242,8 +225,9 @@ if status == STATUS_COMPLETED:
 ```
 
 **Config file locations**:
--   Backend: `backend/src/config.py`
--   Frontend: `frontend/src/config.ts`
+
+- Backend: `backend/src/config.py`
+- Frontend: `frontend/src/config.ts`
 
 ---
 
@@ -270,10 +254,11 @@ def process_user(user: User, state: State) -> ProcessedUser:
 ```
 
 **Forbidden patterns**:
--   Global variables for state
--   Direct parameter mutation
--   Hidden dependencies
--   Magic numbers/strings
+
+- Global variables for state
+- Direct parameter mutation
+- Hidden dependencies
+- Magic numbers/strings
 
 ---
 
@@ -284,16 +269,18 @@ def process_user(user: User, state: State) -> ProcessedUser:
 **Rule**: One function/component = one responsibility + extract reusable logic
 
 **File Size Guidelines**:
--   Target: Under 300-350 lines per file
--   **Maximum: 500 SLOC (hard limit from Constitution)**
--   One file = one clear responsibility
--   Prefer composition over inheritance (use inheritance only for true 'is-a' relationships)
+
+- Target: Under 300-350 lines per file
+- **Maximum: 500 SLOC (hard limit from Constitution)**
+- One file = one clear responsibility
+- Prefer composition over inheritance (use inheritance only for true 'is-a' relationships)
 
 **When file exceeds limits, extract**:
--   Utilities → `utils/` or `lib/`
--   Constants → `config.ts` or `constants.ts`
--   Types → `types/` or `models/`
--   Reusable logic → `composables/` or `hooks/`
+
+- Utilities → `utils/` or `lib/`
+- Constants → `config.ts` or `constants.ts`
+- Types → `types/` or `models/`
+- Reusable logic → `composables/` or `hooks/`
 
 ```python
 # ❌ Multiple responsibilities + duplication
@@ -325,6 +312,7 @@ def process_user(data):
 ```
 
 **Structure for reusable code**:
+
 ```
 backend/src/
   utils/              # Reusable functions
@@ -344,6 +332,7 @@ frontend/src/
 ```
 
 **Extraction criteria**:
+
 1. "Will I use this elsewhere?" → Yes = move to `utils/shared`
 2. "Copied twice already?" → Immediately move to `utils/shared`
 3. "Domain-specific only?" → No = move to `utils/shared`
@@ -357,19 +346,21 @@ frontend/src/
 **Rule**: Security from the start, not later
 
 **Required**:
--   ✅ Input validation/sanitization
--   ✅ Authentication required (except explicit public)
--   ✅ Authorization check before data access
--   ✅ Secrets in environment variables
--   ✅ SQL parameterization
--   ✅ **Structured logging with correlation IDs (JSON format)**
--   ✅ **Never log sensitive data (tokens, passwords, PII)**
+
+- ✅ Input validation/sanitization
+- ✅ Authentication required (except explicit public)
+- ✅ Authorization check before data access
+- ✅ Secrets in environment variables
+- ✅ SQL parameterization
+- ✅ **Structured logging with correlation IDs (JSON format)**
+- ✅ **Never log sensitive data (tokens, passwords, PII)**
 
 **Forbidden**:
--   ❌ Plaintext passwords
--   ❌ eval/exec with user input
--   ❌ CORS allow all
--   ❌ Disable SSL verification
+
+- ❌ Plaintext passwords
+- ❌ eval/exec with user input
+- ❌ CORS allow all
+- ❌ Disable SSL verification
 
 ---
 
@@ -404,13 +395,14 @@ except DatabaseError as e:
 
 **Write code that AI can maintain:**
 
--   **Early returns** over nested ternaries
--   **Explicit types** over implicit any
--   **Clear variable names** over abbreviations
--   **Simple patterns** over clever one-liners
--   **Comments on "why"** not "what" (explain business logic)
+- **Early returns** over nested ternaries
+- **Explicit types** over implicit any
+- **Clear variable names** over abbreviations
+- **Simple patterns** over clever one-liners
+- **Comments on "why"** not "what" (explain business logic)
 
 **Example**:
+
 ```python
 # ❌ AI struggles with this
 result = a if x else b if y else c if z else d
@@ -430,14 +422,16 @@ result = d
 
 ---
 
-## 12. MCP Server Integration
+## 5. MCP Server Integration
 
 **Context7 MCP** - Up-to-date library documentation:
+
 - Working with external libraries (React, FastAPI, Stripe, etc.)
 - Need current docs beyond AI training cutoff
 - Implementing new integrations
 
 **Usage Example**:
+
 ```python
 # Get latest library docs
 lib_id = mcp__context7__resolve_library_id("fastapi")
@@ -449,6 +443,7 @@ docs = mcp__context7__get_library_docs(
 ```
 
 **Gemini Consultation** (if enabled):
+
 - Complex architectural decisions
 - Security-critical implementations
 - Deep code reviews
@@ -457,59 +452,59 @@ docs = mcp__context7__get_library_docs(
 
 ---
 
-## 13. Permissions
+## 6. Permissions
 
 ### Auto-Approved
 
--   Reading files
--   Single file: format, lint, typecheck, test
+- Reading files
+- Single file: format, lint, typecheck, test
 
 ### Require Confirmation
 
--   Installing packages
--   Deleting/moving files
--   Git push
--   Environment config changes
--   Full build/test suite
--   DB migrations
--   **Modifying 3+ files**
+- Installing packages
+- Deleting/moving files
+- Git push
+- Environment config changes
+- Full build/test suite
+- DB migrations
+- **Modifying 3+ files**
 
 ### When Uncertain
 
--   **No guessing**
--   **Ask questions**
--   **Present options**
--   **Plan first**
+- **No guessing**
+- **Ask questions**
+- **Present options**
+- **Plan first**
 
 ---
 
 ## ✅ Pre-Work Checklist
 
 **Before starting any task**:
--   [ ] **Read `@docs/ai-context/project-structure.md` (if exists - created by `/ms.constitution`)**
--   [ ] **Read relevant Tier 2/3 CONTEXT.md files**
--   [ ] Requirements clarified in EARS format?
--   [ ] Plan to write tests first?
--   [ ] Searched for similar existing features?
--   [ ] If exists, checked and following same pattern?
--   [ ] Checked if types/constants already defined?
--   [ ] If not, define in config/types (OSOT)
--   [ ] Chosen simplest solution?
--   [ ] Extracting reusable logic to utils/shared?
--   [ ] Plan for handling edge cases?
--   [ ] Security considerations checked?
+
+- [ ] Requirements clarified in EARS format?
+- [ ] Plan to write tests first?
+- [ ] Searched for similar existing features?
+- [ ] If exists, checked and following same pattern?
+- [ ] Checked if types/constants already defined?
+- [ ] If not, define in config/types (OSOT)
+- [ ] Chosen simplest solution?
+- [ ] Extracting reusable logic to utils/shared?
+- [ ] Plan for handling edge cases?
+- [ ] Security considerations checked?
 
 ---
 
 ## 📊 Code Quality Standards
 
 **Required before merge**:
--   [ ] Linter passes (0 warnings)
--   [ ] Type checker passes
--   [ ] All tests pass
--   [ ] console.log/print removed
--   [ ] Commented code removed
--   [ ] No TODOs (or linked to issues)
+
+- [ ] Linter passes (0 warnings)
+- [ ] Type checker passes
+- [ ] All tests pass
+- [ ] console.log/print removed
+- [ ] Commented code removed
+- [ ] No TODOs (or linked to issues)
 
 ---
 

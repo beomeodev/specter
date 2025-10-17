@@ -83,11 +83,154 @@ Please update tasks.md and re-run /ms.analyze
 
 **EXIT**: Code 1 (cannot proceed to TRUST validation)
 
-**IF CONSISTENT**: Display success and proceed to Step 2
+**IF CONSISTENT**: Display success and proceed to Step 1.5
+
+### Step 1.5: Adaptive TRUST Analysis (Quantitative Decision)
+
+**Step 1: Measure Project Size (Mandatory)**
+
+```bash
+# Count source lines of code (exclude comments, blanks)
+TOTAL_SLOC=$(find src/ -name "*.ts" -o -name "*.py" -o -name "*.js" 2>/dev/null | xargs wc -l 2>/dev/null | tail -1 | awk '{print $1}')
+
+# Count source files
+FILE_COUNT=$(find src/ -name "*.ts" -o -name "*.py" -o -name "*.js" 2>/dev/null | wc -l)
+
+# Check for --report flag
+REPORT_MODE=$(echo "$ARGUMENTS" | grep -c "\-\-report")
+```
+
+**Step 2: Apply Decision Tree**
+
+Execute in priority order (stop at first match):
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ DECISION TREE (Priority Order)                              │
+├─────────────────────────────────────────────────────────────┤
+│ 1. IF REPORT_MODE = 1                                       │
+│    → COMPLEX (all 3 agents in parallel)                    │
+│                                                              │
+│ 2. IF TOTAL_SLOC < 500 OR FILE_COUNT < 10                   │
+│    → SIMPLE (sequential TRUST, current behavior)            │
+│                                                              │
+│ 3. IF TOTAL_SLOC < 2000 OR FILE_COUNT < 50                  │
+│    → MODERATE (2 agents)                                     │
+│                                                              │
+│ 4. IF TOTAL_SLOC ≥ 2000 OR FILE_COUNT ≥ 50                  │
+│    → COMPLEX (3 agents)                                      │
+│                                                              │
+│ 5. FALLBACK (unable to measure)                             │
+│    → SIMPLE (safe default, sequential)                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Step 3: Execute Sub-Agent Strategy**
+
+Based on complexity determined above:
+
+**IF SIMPLE**:
+  - 0 sub-agents → Sequential TRUST validation (current behavior)
+  - Proceed directly to Step 2
+
+**IF MODERATE**:
+  - Launch 2 sub-agents in PARALLEL (single message with 2 Task calls):
+    1. **Structure_Quality_Agent** (Level 1 + 2 combined):
+       ```
+       Task: "Run TRUST Level 1 and Level 2 checks"
+
+       Workflow:
+       1. Execute Level 1 structure checks (tests/, .gitignore, file sizes)
+       2. Execute Level 2 quality checks (tests pass, linting, type checking)
+       3. Return: Combined violations from both levels
+       ```
+
+    2. **TAG_Integrity_Agent** (Level 3 TAG only):
+       ```
+       Task: "Validate TAG integrity across project"
+
+       Workflow:
+       1. Scan for all TAG occurrences (ripgrep)
+       2. Check for orphaned TAGs, duplicates, broken chains
+       3. Return: TAG violations only
+       ```
+
+**IF COMPLEX**:
+  - Launch 3 sub-agents in PARALLEL (single message with 3 Task calls):
+    1. **Structure_Agent** (Level 1 only):
+       ```
+       Task: "Run TRUST Level 1 structure checks"
+
+       Workflow:
+       1. Check tests/ directory exists
+       2. Check .env in .gitignore
+       3. Check file sizes ≤500 SLOC
+       4. Return: Level 1 violations
+       ```
+
+    2. **Quality_Agent** (Level 2 only):
+       ```
+       Task: "Run TRUST Level 2 quality checks"
+
+       Workflow:
+       1. Detect project type (TypeScript/Python/etc)
+       2. Run tests
+       3. Run linting
+       4. Run type checking
+       5. Return: Level 2 violations
+       ```
+
+    3. **Deep_Analysis_Agent** (Level 3 full):
+       ```
+       Task: "Run TRUST Level 3 deep analysis"
+
+       Workflow:
+       1. Check code coverage ≥85%
+       2. Check complexity ≤10 per function
+       3. Check circular dependencies (madge/pydeps)
+       4. Run security scan
+       5. Validate TAG integrity
+       6. Return: Level 3 violations
+       ```
+
+**CRITICAL**: Always launch agents in PARALLEL (single message with multiple Task calls).
+
+**Debug Output** (for transparency):
+```json
+{
+  "complexity_metrics": {
+    "total_sloc": 1500,
+    "file_count": 35,
+    "report_mode": false
+  },
+  "decision": "MODERATE",
+  "reason": "Rule 3: TOTAL_SLOC < 2000",
+  "agents_spawned": 2
+}
+```
+
+### Step 1.6: Synthesize TRUST Results
+
+**IF sub-agents launched**:
+- Merge violations from all agents
+- Sort by severity (CRITICAL → HIGH → MEDIUM → LOW)
+- Count violations per level
+- Determine if implementation is blocked (any CRITICAL found)
+- Generate unified TRUST report
+
+**ELSE**:
+- Use sequential execution results
 
 ### Step 2: TRUST Validation (3 Levels)
 
 **Only runs if Step 1 (document consistency) passed.**
+
+**IF sub-agents were launched (Step 1.5)**:
+- Use synthesized results from Step 1.6
+- Skip sequential execution
+- Display unified report
+
+**ELSE** (Simple path - sequential execution):
 
 #### Level 1: Structure Checks
 
