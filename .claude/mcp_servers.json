@@ -3,7 +3,7 @@
     "cli-bridge": {
       "command": "python3",
       "args": [
-        "/workspace/my-spec/.mcp-servers/cli-bridge/server.py"
+        "${workspaceFolder}/.mcp-servers/cli-bridge/server.py"
       ],
       "env": {}
     },

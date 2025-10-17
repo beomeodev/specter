@@ -83,7 +83,7 @@ Use mcp__cli-bridge__codex_cli with prompt "Review the ms.review.md file for imp
 **Cause**: Server script not executable
 **Solution**:
 ```bash
-chmod +x /workspace/my-spec/.mcp-servers/cli-bridge/server.py
+chmod +x ${PROJECT_ROOT}/.mcp-servers/cli-bridge/server.py
 ```
 
 ---
@@ -92,13 +92,13 @@ chmod +x /workspace/my-spec/.mcp-servers/cli-bridge/server.py
 
 ### Direct Python Test
 ```bash
-cd /workspace/my-spec/.mcp-servers/cli-bridge
+cd ${PROJECT_ROOT}/.mcp-servers/cli-bridge
 python3 test_direct.py
 ```
 
 ### Manual Server Start (for debugging)
 ```bash
-python3 /workspace/my-spec/.mcp-servers/cli-bridge/server.py
+python3 ${PROJECT_ROOT}/.mcp-servers/cli-bridge/server.py
 # Should see: "Starting CLI Bridge MCP Server..."
 # Press Ctrl+C to stop
 ```
@@ -112,14 +112,14 @@ echo "What is 2+2?" | codex exec --json
 
 ## 📊 Current Configuration
 
-**File**: `/workspace/my-spec/.mcp.json`
+**File**: `.mcp.json` (project root)
 ```json
 {
   "mcpServers": {
     "cli-bridge": {
       "command": "python3",
       "args": [
-        "/workspace/my-spec/.mcp-servers/cli-bridge/server.py"
+        "${workspaceFolder}/.mcp-servers/cli-bridge/server.py"
       ],
       "env": {}
     },
