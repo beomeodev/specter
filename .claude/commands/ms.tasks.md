@@ -50,20 +50,37 @@ For each Functional Requirement (FR) in spec.md:
 
 **Extract Domain**:
 
--   Use `src/lib/tag/generator.ts::extractDomain(frTitle, frNumber)`
--   Match against domain keywords: AUTH, USER, PAY, CART, etc.
--   **Fallback**: If no keyword match, use FR number (e.g., "FR-1" → "FR1")
+```bash
+extract_domain() {
+  local fr_title="$1"
+  local fr_number="$2"
+
+  # Match domain keywords
+  echo "$fr_title" | rg -io '(auth|user|pay|cart|order|product|admin|notif|search|profile)' | head -n1 | tr '[:lower:]' '[:upper:]' \
+    || echo "FR${fr_number}"  # Fallback to FR number
+}
+```
 
 **Count Existing TAGs**:
 
--   Use `src/lib/tag/scanner.ts::countTAGsForDomain(domain)`
--   Executes: `rg '@SPEC:{domain}-' -c` to count existing TAGs
+```bash
+count_tags_for_domain() {
+  local domain="$1"
+  rg "@SPEC:${domain}-" -c src tests 2>/dev/null | awk -F: '{sum+=$2} END {print sum+0}'
+}
+```
 
 **Generate TAG ID**:
 
--   Use `src/lib/tag/generator.ts::generateNextTAGID(domain, count)`
--   Format: `{DOMAIN}-{count+1:03d}`
--   Example: `AUTH-001`, `AUTH-002`, `PAY-001`
+```bash
+generate_tag_id() {
+  local domain="$1"
+  local count=$(count_tags_for_domain "$domain")
+  printf "%s-%03d" "$domain" $((count + 1))
+}
+
+# Example: AUTH-001, AUTH-002, PAY-001
+```
 
 ### 3. Insert TAG Metadata
 
@@ -136,10 +153,5 @@ After `/ms.tasks`:
 ## Implementation Details
 
 **Contract**: [specs/001-my-spec-spec/contracts/ms-tasks.json](../specs/001-my-spec-spec/contracts/ms-tasks.json)
-
-**Libraries**:
-
--   `src/lib/tag/generator.ts` - Domain extraction, TAG ID generation
--   `src/lib/tag/scanner.ts` - ripgrep-based TAG counting
 
 **Tools**: SlashCommand (/speckit.tasks), Read, Edit, Bash (ripgrep)

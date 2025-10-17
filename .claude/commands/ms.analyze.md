@@ -234,8 +234,6 @@ Based on complexity determined above:
 
 #### Level 1: Structure Checks
 
-Use `src/lib/trust/level1.ts::runLevel1Checks()`:
-
 **Checks**:
 
 -   ✅ `tests/` directory exists (CRITICAL)
@@ -258,11 +256,17 @@ Use `src/lib/trust/level1.ts::runLevel1Checks()`:
 
 #### Level 2: Quality Checks
 
-Use `src/lib/trust/level2.ts::runLevel2Checks()`:
-
 **Project Type Detection**:
 
--   Use `detectProjectType()` to identify TypeScript/Python/JavaScript
+```bash
+detect_project_type() {
+  [ -f "package.json" ] && echo "typescript" && return
+  [ -f "pyproject.toml" ] || [ -f "requirements.txt" ] && echo "python" && return
+  [ -f "go.mod" ] && echo "go" && return
+  [ -f "Cargo.toml" ] && echo "rust" && return
+  echo "unknown"
+}
+```
 
 **Checks**:
 
@@ -307,8 +311,6 @@ Proceeding to Level 3 (TAG integrity).
 
 #### Level 3: Deep Analysis
 
-Use `src/lib/trust/level3.ts::runLevel3Checks()`:
-
 **Checks**:
 
 -   ✅ Coverage ≥85% (HIGH - warning only)
@@ -318,10 +320,16 @@ Use `src/lib/trust/level3.ts::runLevel3Checks()`:
 
 **TAG Integrity**:
 
--   Use `src/lib/tag/validator.ts::validateTAGIntegrity()`
--   Check for orphaned TAGs (no corresponding files)
--   Check for duplicate TAG IDs
--   Check for broken SPEC→TEST→CODE chains
+```bash
+validate_tag_integrity() {
+  # Find all @SPEC, @TEST, @CODE tags
+  rg '@(SPEC|TEST|CODE):[A-Z0-9]+-[0-9]{3}' -oN src tests | sort -u > .specify/tags.txt
+
+  # Check for orphaned TAGs (no corresponding files)
+  # Check for duplicate TAG IDs
+  # Check for broken SPEC→TEST→CODE chains
+}
+```
 
 **Execution** (Strict Mode):
 
@@ -340,8 +348,6 @@ Use `src/lib/trust/level3.ts::runLevel3Checks()`:
 -   **No timeout** - runs to completion with progress display
 
 ### Step 3: Summarize Results
-
-Use `src/lib/trust/reporter.ts::summarizeViolations()`:
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -600,12 +606,4 @@ Skip slow checks when needed:
 
 **Contract**: [specs/001-my-spec-spec/contracts/ms-analyze.json](../specs/001-my-spec-spec/contracts/ms-analyze.json)
 
-**Libraries**:
-
--   `src/lib/trust/level1.ts` - Structure validation
--   `src/lib/trust/level2.ts` - Quality validation
--   `src/lib/trust/level3.ts` - Deep analysis
--   `src/lib/trust/reporter.ts` - Violation summarization
--   `src/lib/tag/validator.ts` - TAG integrity checks
-
-**Tools**: SlashCommand (/speckit.analyze), Bash (tests, linting, type checking)
+**Tools**: SlashCommand (/speckit.analyze), Bash (tests, linting, type checking, ripgrep)
