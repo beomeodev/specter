@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Bash(if [ -d \"/workspace/my-spec/specs/001-my-spec-spec/checklists\" ])",
+      "Bash(then echo \"EXISTS\")",
+      "Bash(else echo \"NOT_EXISTS\")",
+      "Bash(fi)",
+      "Bash(mkdir:*)",
+      "Bash(find:*)",
+      "Bash(tree:*)",
+      "Bash(npm search @anthropics/cli-bridge-mcp)"
+    ],
+    "deny": [],
+    "ask": []
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "cli-bridge",
+    "context7"
+  ]
+}

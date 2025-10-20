@@ -10,6 +10,9 @@
 - MCP 서버 의존성 문제 해결 (mcp 패키지 설치, cli-bridge 작동 확인)
 - DevContainer 자동 의존성 설치 설정 (uv sync --all-groups)
 - Part 1 완료 리포트 및 uv 마이그레이션 가이드 작성
+- Claude MCP 연결 실패 해결 (.mcp.json에서 ${workspaceFolder} → 절대 경로 변경)
+- Claude CLI 로그인 지속성 문제 해결 (docker-compose.yml에 ~/.npm 볼륨 마운트 추가)
+- Git LFS pre-push hook 설정 확인 및 문제 진단
 
 ---
 

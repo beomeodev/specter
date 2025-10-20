@@ -8,7 +8,7 @@
 
 **First check `../AGENTS.md` for:**
 - Planning First
-- Pattern Consistency  
+- Pattern Consistency
 - Single Source of Truth (OSOT)
 - No Magic Strings/Numbers
 - Single Responsibility & Reusability
@@ -57,7 +57,7 @@ interface Props {
   isActive?: boolean  // Optional with default
 }
 
-// Events/Output types  
+// Events/Output types
 interface Events {
   onUpdate: (user: User) => void
   onDelete: (userId: number) => void
@@ -79,14 +79,14 @@ interface Events {
 const fetchUser = async (id: number): Promise<User | null> => {
   try {
     const response = await fetch(`/api/users/${id}`)
-    
+
     if (!response.ok) {
       if (response.status === 404) {
         throw new Error('User not found')
       }
       throw new Error('Server error')
     }
-    
+
     return await response.json()
   } catch (error) {
     console.error('Fetch failed:', error)
@@ -224,7 +224,7 @@ const UserStatus = {
 // Route-level
 const UserView = () => import('./views/UserView')
 
-// Component-level  
+// Component-level
 const HeavyChart = lazy(() => import('./HeavyChart'))
 ```
 
@@ -322,5 +322,5 @@ For framework-specific patterns, create `PATTERNS-{framework}.md` separately.
 
 ---
 
-**Created**: 2025-10-10  
+**Created**: 2025-10-10
 **Version**: 2.0.0

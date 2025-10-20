@@ -53,14 +53,14 @@ async def get_user(
 ) -> Optional[User]:
     """
     Retrieve user by ID.
-    
+
     Args:
         user_id: User identifier
         include_posts: Whether to include user posts
-        
+
     Returns:
         User object or None if not found
-        
+
     Raises:
         DatabaseError: On database connection failure
     """
@@ -83,18 +83,18 @@ async def update_user(user_id: int, data: dict) -> User:
     """Update user information"""
     if user_id <= 0:
         raise ValidationError("Invalid user ID")
-    
+
     if not data:
         raise ValidationError("No update data provided")
-    
+
     user = await db.get(User, user_id)
     if not user:
         raise NotFoundError("User not found")
-    
+
     # Main logic (no deep nesting)
     for key, value in data.items():
         setattr(user, key, value)
-    
+
     await db.commit()
     return user
 
@@ -309,7 +309,7 @@ async def get_user_with_posts(user_id: int):
     """Fetch user and posts in parallel"""
     user_task = db.get(User, user_id)
     posts_task = db.query(Post).filter_by(user_id=user_id).all()
-    
+
     user, posts = await asyncio.gather(user_task, posts_task)
     return {"user": user, "posts": posts}
 ```
@@ -348,10 +348,10 @@ async def list_users(
     """List users with pagination"""
     # Enforce maximum limit
     limit = min(limit, 100)
-    
+
     users = await db.query(User).offset(skip).limit(limit).all()
     total = await db.query(User).count()
-    
+
     return {
         "items": users,
         "total": total,
@@ -543,5 +543,5 @@ For framework-specific patterns, create `PATTERNS-{framework}.md` separately.
 
 ---
 
-**Created**: 2025-10-10  
+**Created**: 2025-10-10
 **Version**: 2.0.0
