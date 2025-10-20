@@ -58,21 +58,17 @@ AGENTS_TOTAL=$((AGENTS_ROOT + AGENTS_FRONTEND + AGENTS_BACKEND))
 
 Launch 3 sub-agents in PARALLEL (single message with 3 Task calls):
 
-1. **Constraint_Extraction_Agent**:
+1. **constitution-extractor agent**:
    ```
-   Task: "Extract project-specific constraints from spec.md and plan.md for Constitution Section IX"
-
-   Workflow:
-   1. Read both spec.md and plan.md
-   2. Search for constraint keywords ("must use", "required", "forbidden", "≥", "≤")
-   3. Categorize: Technology Stack, Dependencies, Architecture, Security, Performance
-   4. Format for Section IX
-   5. Return: Structured constraints with categories
+   "Extract project-specific constraints from spec.md and plan.md for Constitution Section IX"
    ```
 
-2. **AGENTS_Rules_Agent**:
+2. **AGENTS_Rules_Agent** (inline logic - no dedicated agent):
        ```
        Task: "Generate project-specific coding rules for existing AGENTS.md files"
+
+       Note: This remains as inline Task logic (not converted to agent file)
+       because it's highly specific to AGENTS.md generation workflow.
 
        Workflow:
        1. Detect which AGENTS.md files exist (root, frontend/, backend/)
@@ -87,16 +83,11 @@ Launch 3 sub-agents in PARALLEL (single message with 3 Task calls):
        7. Return: Rules per file with token counts
        ```
 
-3. **Validation_Agent**:
+3. **trust-validator agent (level 1)**:
    ```
-   Task: "Validate extracted constraints for conflicts and completeness"
+   "Validate extracted constraints for conflicts and completeness"
 
-   Workflow:
-   1. Check for contradictions between spec and plan
-   2. Verify all constraints have clear criteria
-   3. Ensure EARS compliance for requirements
-   4. Flag ambiguous constraints
-   5. Return: Validation report with conflicts and warnings
+   Note: Use level 1 for basic structure validation of Constitution constraints
    ```
 
 **CRITICAL**: Always launch agents in PARALLEL (single message with multiple Task calls).

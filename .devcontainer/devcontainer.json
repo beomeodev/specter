@@ -10,7 +10,7 @@
   },
 
   // 컨테이너 생성 후 자동 실행
-  "postCreateCommand": "bash -c 'ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null'",
+  "postCreateCommand": "bash -c 'ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null && uv sync --all-groups'",
 
   // VS Code 확장 프로그램
   "customizations": {

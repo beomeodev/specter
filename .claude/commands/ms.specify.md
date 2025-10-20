@@ -125,41 +125,32 @@ Based on complexity determined above:
   - Proceed directly to Step 3
 
 **IF MODERATE**:
-  - Launch 2 sub-agents in PARALLEL (single message with 2 Task calls):
-    1. **Pattern_Search_Agent**:
+  - Launch 2 sub-agents in PARALLEL:
+    1. **codebase-explorer agent**:
        ```
-       Task: "Search existing codebase for similar patterns to user request '$ARGUMENTS'"
-
-       Workflow:
-       1. Review existing specs (specs/**/spec.md, plan.md)
-       2. Search for similar features (e.g., if payment → find auth patterns)
-       3. Identify reusable architectural patterns
-       4. Return: Similar patterns, file references, design decisions to reuse
+       "Search existing codebase for similar patterns to user request '$ARGUMENTS'"
        ```
 
-    2. **Library_Research_Agent** (if external library needed):
+    2. **library-researcher agent** (if external library needed):
        ```
-       Task: "Research latest documentation for libraries needed for '$ARGUMENTS'"
-
-       Workflow:
-       1. Identify required external libraries
-       2. Use Context7 MCP to get latest docs
-       3. Return: API usage patterns, best practices, Constitution-compatible usage
+       "Research latest documentation for libraries needed for '$ARGUMENTS'"
        ```
 
 **IF COMPLEX**:
-  - Launch 3 sub-agents in PARALLEL (single message with 3 Task calls):
-    1. Pattern_Search_Agent (as above)
-    2. Library_Research_Agent (as above)
-    3. **Dependency_Analysis_Agent**:
+  - Launch 3 sub-agents in PARALLEL:
+    1. **codebase-explorer agent**:
        ```
-       Task: "Analyze dependencies and integration points for '$ARGUMENTS'"
+       "Search existing codebase for similar patterns to user request '$ARGUMENTS'"
+       ```
 
-       Workflow:
-       1. Map affected components
-       2. Identify integration points
-       3. Assess impact on existing code
-       4. Return: Dependency map, integration strategy, risk assessment
+    2. **library-researcher agent**:
+       ```
+       "Research latest documentation for libraries needed for '$ARGUMENTS'"
+       ```
+
+    3. **integration-designer agent**:
+       ```
+       "Analyze dependencies and integration points for '$ARGUMENTS'"
        ```
 
 **CRITICAL**: Always launch agents in PARALLEL (single message with multiple Task calls).

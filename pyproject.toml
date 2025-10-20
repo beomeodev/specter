@@ -1,0 +1,45 @@
+[project]
+name = "specter"
+version = "0.1.0"
+description = "SPECTER: Specification-driven Engineering with Context, Traceability, Execution, and Review"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [
+    { name = "SPECTER Team" }
+]
+keywords = ["specification", "traceability", "ai-coding", "myspec"]
+
+dependencies = [
+    # MCP Server support
+    "mcp>=1.18.0",
+
+    # Data processing
+    "pyyaml>=6.0.1",      # YAML parsing (spec.md front matter)
+    "regex>=2024.0.0",    # EARS/TAG pattern matching
+]
+
+[dependency-groups]
+dev = [
+    # TRUST Validation: Test-First (≥85% coverage)
+    "pytest>=8.3.0",
+    "pytest-cov>=5.0.0",
+    "pytest-mock>=3.14.0",
+
+    # TRUST Validation: Readable (complexity ≤10)
+    "radon>=6.0.0",        # Cyclomatic complexity (McCabe)
+    "pygount>=1.6.0",      # SLOC measurement (excluding comments)
+
+    # TRUST Validation: Unified (type safety)
+    "mypy>=1.11.0",        # Static type checking (strict mode)
+
+    # Code quality tools
+    "black>=24.8.0",       # Code formatter
+    "isort>=5.13.0",       # Import sorting
+    "flake8>=7.1.0",       # Linter (PEP 8)
+
+    # CLI output enhancement
+    "rich>=13.7.0",        # Terminal output formatting
+
+    # Git hooks
+    "pre-commit>=3.8.0",   # Git pre-commit automation
+]

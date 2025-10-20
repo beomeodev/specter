@@ -1,3 +1,18 @@
+# 🗓 2025-10-20 (Sun)
+
+## 📌 Focus
+- Task Tool → Sub-agent 마이그레이션 및 uv 기반 의존성 관리 전환
+
+## ✅ Done
+- 6개 재사용 가능 sub-agent 파일 생성 (.claude/agents/*.md)
+- 4개 명령 파일 업데이트 (Task Tool → agent 호출로 변경)
+- pip + requirements.txt → uv + pyproject.toml 마이그레이션 완료
+- MCP 서버 의존성 문제 해결 (mcp 패키지 설치, cli-bridge 작동 확인)
+- DevContainer 자동 의존성 설치 설정 (uv sync --all-groups)
+- Part 1 완료 리포트 및 uv 마이그레이션 가이드 작성
+
+---
+
 # 🗓 2025-10-17 (Fri)
 
 ## 📌 Focus

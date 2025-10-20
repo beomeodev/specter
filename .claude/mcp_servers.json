@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "cli-bridge": {
-      "command": "python3",
+      "command": "${workspaceFolder}/.venv/bin/python",
       "args": [
         "${workspaceFolder}/.mcp-servers/cli-bridge/server.py"
       ],

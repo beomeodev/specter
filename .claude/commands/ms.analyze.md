@@ -134,63 +134,34 @@ Based on complexity determined above:
   - Proceed directly to Step 2
 
 **IF MODERATE**:
-  - Launch 2 sub-agents in PARALLEL (single message with 2 Task calls):
-    1. **Structure_Quality_Agent** (Level 1 + 2 combined):
+  - Launch 2 sub-agents in PARALLEL:
+    1. **trust-validator agent (level 2)**:
        ```
-       Task: "Run TRUST Level 1 and Level 2 checks"
-
-       Workflow:
-       1. Execute Level 1 structure checks (tests/, .gitignore, file sizes)
-       2. Execute Level 2 quality checks (tests pass, linting, type checking)
-       3. Return: Combined violations from both levels
+       "Run TRUST Level 1 and Level 2 checks"
        ```
 
-    2. **TAG_Integrity_Agent** (Level 3 TAG only):
+    2. **tag-auditor agent**:
        ```
-       Task: "Validate TAG integrity across project"
-
-       Workflow:
-       1. Scan for all TAG occurrences (ripgrep)
-       2. Check for orphaned TAGs, duplicates, broken chains
-       3. Return: TAG violations only
+       "Validate TAG integrity across project"
        ```
 
 **IF COMPLEX**:
-  - Launch 3 sub-agents in PARALLEL (single message with 3 Task calls):
-    1. **Structure_Agent** (Level 1 only):
+  - Launch 3 sub-agents in PARALLEL:
+    1. **trust-validator agent (level 1)**:
        ```
-       Task: "Run TRUST Level 1 structure checks"
-
-       Workflow:
-       1. Check tests/ directory exists
-       2. Check .env in .gitignore
-       3. Check file sizes ≤500 SLOC
-       4. Return: Level 1 violations
+       "Run TRUST Level 1 structure checks"
        ```
 
-    2. **Quality_Agent** (Level 2 only):
+    2. **trust-validator agent (level 2)**:
        ```
-       Task: "Run TRUST Level 2 quality checks"
-
-       Workflow:
-       1. Detect project type (TypeScript/Python/etc)
-       2. Run tests
-       3. Run linting
-       4. Run type checking
-       5. Return: Level 2 violations
+       "Run TRUST Level 2 quality checks"
        ```
 
-    3. **Deep_Analysis_Agent** (Level 3 full):
+    3. **trust-validator agent (level 3)**:
        ```
-       Task: "Run TRUST Level 3 deep analysis"
+       "Run TRUST Level 3 deep analysis"
 
-       Workflow:
-       1. Check code coverage ≥85%
-       2. Check complexity ≤10 per function
-       3. Check circular dependencies (madge/pydeps)
-       4. Run security scan
-       5. Validate TAG integrity
-       6. Return: Level 3 violations
+       Note: Level 3 includes TAG validation, but can run tag-auditor separately for detailed TAG report
        ```
 
 **CRITICAL**: Always launch agents in PARALLEL (single message with multiple Task calls).

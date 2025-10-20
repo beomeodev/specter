@@ -115,41 +115,32 @@ Based on complexity determined above:
   - Proceed directly to Step 3
 
 **IF MODERATE**:
-  - Launch 2 sub-agents in PARALLEL (single message with 2 Task calls):
-    1. **Architecture_Pattern_Agent**:
+  - Launch 2 sub-agents in PARALLEL:
+    1. **codebase-explorer agent**:
        ```
-       Task: "Find similar architectural patterns in existing codebase for '$SPEC_FEATURE'"
-
-       Workflow:
-       1. Review existing specs and plans (specs/**/spec.md, plan.md)
-       2. Search existing code for similar features
-       3. Extract reusable architectural decisions
-       4. Return: File structure patterns, naming conventions, integration approaches
+       "Find similar architectural patterns in existing codebase for '$SPEC_FEATURE'"
        ```
 
-    2. **Library_API_Agent** (if external library needed):
+    2. **library-researcher agent** (if external library needed):
        ```
-       Task: "Research latest API documentation for libraries needed"
-
-       Workflow:
-       1. Identify external libraries from spec
-       2. Use Context7 MCP for latest docs
-       3. Return: Current API patterns, best practices, version compatibility
+       "Research latest API documentation for libraries needed"
        ```
 
 **IF COMPLEX**:
-  - Launch 3 sub-agents in PARALLEL (single message with 3 Task calls):
-    1. Architecture_Pattern_Agent (as above)
-    2. Library_API_Agent (as above)
-    3. **Integration_Design_Agent**:
+  - Launch 3 sub-agents in PARALLEL:
+    1. **codebase-explorer agent**:
        ```
-       Task: "Design integration strategy for complex feature"
+       "Find similar architectural patterns in existing codebase for '$SPEC_FEATURE'"
+       ```
 
-       Workflow:
-       1. Map component boundaries
-       2. Design data flow and interfaces
-       3. Identify security considerations
-       4. Return: Integration architecture, API contracts, testing strategy
+    2. **library-researcher agent**:
+       ```
+       "Research latest API documentation for libraries needed"
+       ```
+
+    3. **integration-designer agent**:
+       ```
+       "Design integration strategy for complex feature"
        ```
 
 **CRITICAL**: Always launch agents in PARALLEL (single message with multiple Task calls).
