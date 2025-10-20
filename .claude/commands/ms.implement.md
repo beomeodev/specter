@@ -215,7 +215,32 @@ EOF
 
 For each generated file, insert TAG block at top using Edit tool.
 
-### Step 4: Report Output
+### Step 4: Update tasks.md Checklist
+
+**CRITICAL**: Mark completed tasks in tasks.md after successful implementation.
+
+1. Read `specs/{SPEC_ID}/tasks.md`
+2. Find tasks associated with current TAG_ID
+3. Mark completed tasks with `[x]` checkbox
+4. Save updated tasks.md
+
+**Example**:
+
+```markdown
+## Phase 3: FR-1 Authentication
+
+**TAG**: @SPEC:AUTH-001 → @TEST:AUTH-001 → @CODE:AUTH-001
+
+### Implementation
+
+-   [x] T015 Create auth service ← Mark as completed
+-   [x] T016 Write auth tests ← Mark as completed
+-   [ ] T017 Add API endpoint ← Next task
+```
+
+**This step is MANDATORY** - Without updating tasks.md, progress tracking breaks.
+
+### Step 5: Report Output
 
 Display summary:
 
@@ -243,8 +268,9 @@ Display next steps:
 🎯 Next Steps:
 1. Review generated code and tests
 2. Run tests: npm test (or pytest)
-3. Run `/ms.implement` again for next TAG
-4. All TAG blocks auto-generated ✅
+3. **REQUIRED**: Update tasks.md checklist - mark completed tasks with [x]
+4. Run `/ms.implement` again for next TAG
+5. All TAG blocks auto-generated ✅
 ```
 
 ## TAG Block Format
@@ -348,8 +374,9 @@ After `/ms.implement`:
 
 1. Verify TAG blocks in generated files
 2. Run tests to verify implementation
-3. Run `/ms.implement` again to implement next TAG
-4. Commit changes with TAG ID in commit message
+3. **REQUIRED**: Update tasks.md checklist - mark completed tasks with [x]
+4. Run `/ms.implement` again to implement next TAG
+5. Commit changes with TAG ID in commit message
 
 ## Notes
 

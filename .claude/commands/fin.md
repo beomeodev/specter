@@ -73,19 +73,35 @@ make ci
 
 ## 3. 💾 Git 커밋 및 푸시
 
-### Makefile의 finish 로직 참고
-`.devcontainer/Makefile`의 `finish` 타겟과 동일하게 처리:
+### Pre-commit Hook 처리 전략
+
+**문제**: Pre-commit hook이나 IDE의 auto-format이 커밋 후 파일을 수정하여 git 상태가 dirty해짐
+
+**해결 방법**: 커밋 전에 pre-commit을 먼저 실행하여 포맷팅 완료
 
 ```bash
-# 1. git add
+# 1. Initial git add
 git add .
 
-# 2. git commit (커밋 메시지 생성)
+# 2. Run pre-commit hooks to format files (if .pre-commit-config.yaml exists)
+if [ -f .pre-commit-config.yaml ]; then
+  pre-commit run --all-files || true
+  # Hook may modify files, so add again
+  git add .
+fi
+
+# 3. git commit (커밋 메시지 생성)
 git commit -m "생성한_커밋_메시지"
 
-# 3. git push
+# 4. git push
 git push
 ```
+
+**Why this works**:
+- Pre-commit hooks (ruff-format, etc.) run and modify files
+- Modified files are re-staged with second `git add .`
+- Commit captures all formatting changes
+- No dirty state after commit
 
 ### 커밋 메시지 생성 규칙
 변경 사항을 분석하여 **의미 있는 커밋 메시지** 작성:

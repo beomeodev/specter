@@ -241,7 +241,7 @@ Display summary:
     "plan_created": "specs/001-user-authentication/plan.md",
     "constitution_referenced": true,
     "constitution_exists": true,
-    "next_step": "/ms.tasks"
+    "next_step": "/ms.constitution"
 }
 ```
 
@@ -255,7 +255,7 @@ Display next steps:
 
 🎯 Next Steps:
 1. Review plan.md architecture
-2. Run `/ms.tasks` to generate implementation tasks with TAG IDs
+2. Run `/ms.constitution` to extract project-specific constraints
 3. AI followed TRUST principles based on Constitution ✅
 
 📖 Plan includes:
