@@ -43,13 +43,13 @@ RUN echo '#!/bin/bash\nnpx -y https://github.com/google-gemini/gemini-cli "$@"' 
 
 WORKDIR /workspace
 
-# 개발 도구 선설치(캐시 히트)
-COPY requirements-dev.txt /tmp/requirements-dev.txt
-RUN pip install -r /tmp/requirements-dev.txt
-
-# 런타임 공통 의존성(범용) 설치
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install -r /tmp/requirements.txt
+# Python 의존성 설치 (pyproject.toml + uv)
+# 빌드 시점에만 필요하므로 임시 경로에 복사
+COPY pyproject.toml /tmp/pyproject.toml
+WORKDIR /tmp
+RUN uv pip install --system -r pyproject.toml && \
+    uv pip install --system --group dev
+WORKDIR /workspace
 
 # 비-루트 사용자 (권한 이슈 방지)
 ARG USERNAME=dev
