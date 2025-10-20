@@ -16,6 +16,7 @@ services:
       - ../:/workspace/${PROJECT_NAME}
       - ${HOME}/.codex:/home/dev/.codex
       - ${HOME}/.claude:/home/dev/.claude
+      - ${HOME}/.config/claude:/home/dev/.config/claude
       # SSH 에이전트 포워딩 (GitHub 인증용)
       - ${SSH_AUTH_SOCK:-/dev/null}:/ssh-agent
       # SSH 키 파일 마운트 (읽기 전용)
