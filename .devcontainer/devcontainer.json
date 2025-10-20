@@ -34,6 +34,8 @@
     // SSH 키 (읽기 전용)
     "source=${localEnv:HOME}/.ssh,target=/home/dev/.ssh,type=bind,consistency=cached,readonly",
     // known_hosts만 쓰기 가능 (postCreateCommand 실행을 위해)
-    "source=${localEnv:HOME}/.ssh/known_hosts,target=/home/dev/.ssh/known_hosts,type=bind,consistency=cached"
+    "source=${localEnv:HOME}/.ssh/known_hosts,target=/home/dev/.ssh/known_hosts,type=bind,consistency=cached",
+    // Claude MCP 설정 (영구 보관)
+    "source=${localEnv:HOME}/.config/claude,target=/home/dev/.config/claude,type=bind,consistency=cached"
   ]
 }
