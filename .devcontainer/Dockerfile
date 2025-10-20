@@ -24,7 +24,6 @@ RUN apt-get update \
     && git lfs install \
     && pipx ensurepath --global || true \
     && curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh \
-    && npm install -g @anthropics/cli-bridge-mcp @modelcontextprotocol/server-everything \
     && rm -rf /var/lib/apt/lists/*
 
 # AI 에이전트 CLI 별칭 설정 (NPX 방식 - 항상 최신 버전 사용)
