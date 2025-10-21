@@ -115,45 +115,79 @@ Based on complexity determined above:
   - Proceed directly to Step 3
 
 **IF MODERATE**:
-  - Launch 2 sub-agents in PARALLEL:
-    1. **codebase-explorer agent** (via Gemini):
-       ```
-       Use mcp__cli-bridge__gemini_cli:
-       "Find similar architectural patterns in existing codebase for '$SPEC_FEATURE'"
-       ```
+  - Launch 2 sub-agents in TRUE PARALLEL (background execution):
 
-    2. **library-researcher agent** (via Gemini - if external library needed):
-       ```
-       Use mcp__cli-bridge__gemini_cli:
-       "Research latest API documentation for libraries needed"
-       ```
+    **Step 1: Start all agents in background**
+    ```python
+    # Launch agent 1 in background
+    task_id_1 = mcp__cli-bridge__gemini_cli(
+        prompt="Find similar architectural patterns in existing codebase for '$SPEC_FEATURE'",
+        background=True  # Returns immediately with task_id
+    )
+
+    # Launch agent 2 in background (if external library needed)
+    task_id_2 = mcp__cli-bridge__gemini_cli(
+        prompt="Research latest API documentation for libraries needed",
+        background=True  # Returns immediately with task_id
+    )
+    ```
+
+    **Step 2: Claude continues planning while agents explore**
+    - Agents work independently in background
+    - Claude Code can analyze spec or draft plan structure
+
+    **Step 3: Retrieve results when needed**
+    ```python
+    # Get results (blocks until completion)
+    result_1 = mcp__cli-bridge__get_task_result(task_id=task_id_1, wait=True)
+    result_2 = mcp__cli-bridge__get_task_result(task_id=task_id_2, wait=True)
+    ```
 
 **IF COMPLEX**:
-  - Launch 3 sub-agents in PARALLEL:
-    1. **codebase-explorer agent** (via Gemini):
-       ```
-       Use mcp__cli-bridge__gemini_cli:
-       "Find similar architectural patterns in existing codebase for '$SPEC_FEATURE'"
-       ```
+  - Launch 3 sub-agents in TRUE PARALLEL (background execution):
 
-    2. **library-researcher agent** (via Gemini):
-       ```
-       Use mcp__cli-bridge__gemini_cli:
-       "Research latest API documentation for libraries needed"
-       ```
+    **Step 1: Start all agents in background**
+    ```python
+    # Gemini agents (background execution)
+    task_id_1 = mcp__cli-bridge__gemini_cli(
+        prompt="Find similar architectural patterns in existing codebase for '$SPEC_FEATURE'",
+        background=True
+    )
+    task_id_2 = mcp__cli-bridge__gemini_cli(
+        prompt="Research latest API documentation for libraries needed",
+        background=True
+    )
 
-    3. **integration-designer agent** (Claude Code native):
-       ```
-       Use Task tool directly:
-       "Design integration strategy for complex feature"
-       ```
+    # Claude Code Task (runs in parallel)
+    task_id_3 = Task(
+        subagent_type="integration-designer",
+        prompt="Design integration strategy for complex feature"
+    )
+    ```
+
+    **Step 2: All 3 agents work independently in parallel**
+    - Gemini explores codebase and libraries (no blocking)
+    - Claude designs integration strategy
+    - True parallel execution via Python 3.14 free-threading
+
+    **Step 3: Retrieve results when needed**
+    ```python
+    result_1 = mcp__cli-bridge__get_task_result(task_id=task_id_1, wait=True)
+    result_2 = mcp__cli-bridge__get_task_result(task_id=task_id_2, wait=True)
+    result_3 = # Task tool result
+    ```
 
 **⚠️ AGENT EXECUTION RULES**:
-- **codebase-explorer** → MUST use Gemini via `mcp__cli-bridge__gemini_cli`
-- **library-researcher** → MUST use Gemini via `mcp__cli-bridge__gemini_cli`
+- **codebase-explorer** → MUST use Gemini via `mcp__cli-bridge__gemini_cli(background=True)`
+- **library-researcher** → MUST use Gemini via `mcp__cli-bridge__gemini_cli(background=True)`
 - **integration-designer** → MUST use Claude Code Task tool (NOT MCP)
 
-**CRITICAL**: Always launch agents in PARALLEL (single message with multiple tool calls).
+**CRITICAL - TRUE PARALLEL EXECUTION**:
+1. Launch all MCP agents with `background=True` parameter
+2. Returns `TASK_STARTED:{task_id}` immediately
+3. Agents execute independently (no blocking)
+4. Use `get_task_result(task_id, wait=True)` to retrieve results
+5. Python 3.14 free-threading enables real parallelism (no GIL)
 
 **Debug Output** (for transparency):
 ```json

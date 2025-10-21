@@ -9,7 +9,8 @@
       "Bash(mkdir:*)",
       "Bash(find:*)",
       "Bash(tree:*)",
-      "Bash(npm search @anthropics/cli-bridge-mcp)"
+      "Bash(npm search @anthropics/cli-bridge-mcp)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

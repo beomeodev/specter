@@ -25,6 +25,7 @@ services:
     environment:
       - SSH_AUTH_SOCK=/ssh-agent
       - CLAUDE_CONFIG_DIR=/home/dev/.claude
+      - PYTHON_GIL=0
     command: bash -lc "pre-commit install || true; bash"
 
   postgres:

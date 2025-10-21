@@ -114,16 +114,26 @@ All implementation tasks are complete.
 **IF external library detected**:
 
   1. **Identify library and needed features**
-  2. **Delegate to Gemini via MCP cli-bridge**:
+  2. **Delegate to Gemini via MCP cli-bridge (background execution)**:
      ```python
-     # Use library-researcher agent via Gemini
-     mcp__cli-bridge__gemini_cli(
+     # Launch Gemini library research in background
+     task_id = mcp__cli-bridge__gemini_cli(
          prompt="""Research latest API documentation for:
          - Library: fastapi
          - Topic: background tasks
          - Use Context7 MCP tools
          - Return: API usage examples and best practices
-         """
+         """,
+         background=True  # Returns immediately
+     )
+
+     # Claude continues with other work while Gemini researches
+     # ... (e.g., read spec.md, plan.md, etc.)
+
+     # Retrieve results when needed for implementation
+     library_docs = mcp__cli-bridge__get_task_result(
+         task_id=task_id,
+         wait=True  # Block until completion
      )
      ```
   3. **Use latest API in implementation** (based on Gemini's research)
@@ -222,6 +232,83 @@ EOF
 ```
 
 For each generated file, insert TAG block at top using Edit tool.
+
+### Step 3.5: Update CHANGELOG.md (Codex)
+
+**⚠️ CRITICAL: CHANGELOG update MUST be delegated to Codex CLI**
+
+After implementation is complete, update the project changelog with detailed change history.
+
+**When to update**:
+- New features added
+- Existing functionality changed
+- Bugs fixed
+- Breaking changes introduced
+
+**Delegate to Codex via MCP cli-bridge (background execution)**:
+
+```python
+# Analyze what was implemented
+implemented_changes = """
+- Files created: [list all new files]
+- Files modified: [list all modified files]
+- Features added: [describe new capabilities]
+- Changes made: [describe modifications]
+- Technical details: [function names, classes, patterns used]
+- Rationale: [why these changes were made]
+"""
+
+# Update CHANGELOG via Codex (background execution)
+changelog_task_id = mcp__cli-bridge__codex_cli(
+    prompt=f"""Update docs/CHANGELOG.md with the following implementation:
+
+{implemented_changes}
+
+Requirements:
+1. Follow Keep a Changelog format (https://keepachangelog.com/)
+2. Add to [Unreleased] section
+3. Use appropriate categories:
+   - Added: New features
+   - Changed: Changes to existing functionality
+   - Deprecated: Soon-to-be removed features
+   - Removed: Removed features
+   - Fixed: Bug fixes
+   - Security: Security improvements
+4. Be specific and detailed:
+   - Include file paths and function names
+   - Explain WHAT changed and WHY
+   - Note any breaking changes
+5. Use technical language - this is for developers
+
+Example format:
+## [Unreleased] - {{date}}
+
+### Added
+- New `UserService.authenticate()` method in `src/auth/service.py`
+  - Implements JWT-based authentication
+  - Replaces legacy session-based auth for better scalability
+
+### Changed
+- Updated `DatabaseConnection` to use connection pooling
+  - Improves performance under high load
+  - Reduces connection overhead by 40%
+""",
+    background=True  # Returns immediately
+)
+
+# Claude continues with other tasks (e.g., TAG block insertion)
+# Codex updates CHANGELOG independently in background
+
+# Wait for CHANGELOG update completion before finishing
+changelog_result = mcp__cli-bridge__get_task_result(
+    task_id=changelog_task_id,
+    wait=True
+)
+```
+
+**CHANGELOG vs README difference**:
+- **CHANGELOG**: Historical record of ALL changes (detailed, technical)
+- **README**: Current state only (no change history, user-friendly)
 
 ### Step 4: Update tasks.md Checklist
 

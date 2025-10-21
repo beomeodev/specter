@@ -50,6 +50,142 @@ description: "Quick finish: update daily log → commit & push (NO CI checks)"
 
 ---
 
+## 1.5. 📄 README.md 자동 최신화
+
+### 분석 항목
+
+변경된 파일 중 주요 기능 변경사항이 있는지 확인:
+
+**주요 변경사항 감지 대상**:
+- `.claude/agents/*` - 에이전트 구조 변경
+- `.claude/commands/*` - 워크플로우 변경
+- `.devcontainer/Makefile` - 개발 명령어 변경
+- `pyproject.toml` - 의존성/기술스택 변경
+- `.mcp.json` - MCP 서버 설정 변경
+
+### 업데이트 판단 기준
+
+다음 변경사항이 있을 경우 **README.md 업데이트 필수**:
+- ✅ 새로운 주요 기능 추가 (agents, commands, workflows)
+- ✅ 프로젝트 구조 변경 (디렉토리, 핵심 파일)
+- ✅ 설치/실행 방법 변경 (Makefile 타겟, 환경변수)
+- ✅ 기술 스택 변경 (의존성 관리 방식, MCP 서버)
+
+**업데이트 건너뛰기**:
+- ❌ 문서만 수정 (`docs/*.md`)
+- ❌ 설정 파일 미세 조정
+- ❌ 버그 수정 (기능 변경 없음)
+
+### 업데이트 원칙 (CRITICAL)
+
+**❌ 절대 금지 - 변경 이력 추적**:
+```markdown
+❌ "변경됨", "추가됨", "업데이트됨" 같은 메타 정보
+❌ 변경 날짜나 버전 정보
+❌ 과거 상태 언급 ("이전에는 X였으나 이제 Y")
+❌ "(2025-10-21 추가)", "(최근 변경)" 같은 타임스탬프
+```
+
+**✅ 필수 사항 - 현재 상태만 기술**:
+```markdown
+✅ 프로젝트를 처음 보는 사람 관점으로 작성
+✅ 지금 당장 사용 가능한 기능/방법만 나열
+✅ 현재 상태를 명확하고 간결하게 설명
+✅ 시제: 현재형만 사용 ("provides", "uses", "supports")
+```
+
+### 잘못된 예시 vs 올바른 예시
+
+**❌ 잘못된 업데이트 (변경 이력 추적)**:
+```markdown
+## Features
+- User authentication (추가됨: 2025-10-20)
+- Agent system (변경됨: 2025-10-21)
+  - 이전에는 Claude만 사용했으나 이제 Gemini/Codex 분담 구조로 개선
+- MCP server support (최근 추가)
+
+## Changes
+- 2025-10-21: Agent system updated to use Gemini/Codex
+- 2025-10-20: Added MCP server support
+```
+
+**✅ 올바른 업데이트 (현재 상태만)**:
+```markdown
+## Features
+- User authentication
+- Multi-AI agent system
+  - Gemini: Fast codebase exploration and library research
+  - Claude: Integration design and orchestration
+  - Codex: Deep code analysis and validation
+- MCP server integration (Context7, CLI-bridge)
+
+## Quick Start
+```bash
+make sptcc  # Clone + container + Claude Code
+```
+
+## Project Structure
+```
+.claude/
+  agents/     # 6 specialized agents
+  commands/   # Workflow automation
+```
+```
+
+### 구현 로직
+
+```python
+# 1. 변경사항 분석
+changed_files = git_status()
+
+# 2. 주요 변경사항 감지
+major_change_patterns = [
+    ".claude/agents/",
+    ".claude/commands/",
+    ".devcontainer/Makefile",
+    "pyproject.toml",
+    ".mcp.json"
+]
+
+has_major_changes = any(
+    pattern in file for file in changed_files
+    for pattern in major_change_patterns
+)
+
+# 3. README.md 업데이트 (주요 변경사항 있을 경우만)
+if has_major_changes:
+    # Read current README.md
+    readme_content = read_file("README.md")
+
+    # Update sections to reflect current state
+    # NO mentions of "changed", "added", "updated"
+    # NO timestamps or version info
+    # ONLY describe what exists NOW
+
+    updated_readme = update_to_current_state(
+        readme_content,
+        changed_files
+    )
+
+    write_file("README.md", updated_readme)
+
+    print("✅ README.md updated to reflect current state")
+else:
+    print("⏭️  No major changes - README.md update skipped")
+```
+
+### 업데이트 체크리스트
+
+업데이트 전 확인:
+- [ ] 변경 이력 언급 제거 ("추가됨", "변경됨" 등)
+- [ ] 날짜/버전 정보 제거
+- [ ] 과거 상태 비교 제거 ("이전에는...")
+- [ ] 현재형 시제 사용 ("provides", "uses")
+- [ ] 처음 보는 사람도 이해 가능한 설명
+- [ ] 실제 사용 가능한 명령어/방법만 기재
+
+---
+
 ## 2. 💾 Git 커밋 및 푸시 (CI 체크 생략)
 
 ### Pre-commit Hook 처리 전략

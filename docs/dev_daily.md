@@ -1,7 +1,7 @@
 # 🗓 2025-10-21 (Tue)
 
 ## 📌 Focus
-- 멀티 AI 에이전트 분담 구조 확립 및 워크플로우 개선
+- Python 3.14 Free-Threading 기반 MCP 서버 비동기 실행 시스템 구축
 
 ## ✅ Done
 - Claude CLI 로그인 지속성 완전 해결 (CLAUDE_CONFIG_DIR 환경변수 추가)
@@ -11,6 +11,12 @@
 - ms.implement/plan/specify 워크플로우에 에이전트 실행 규칙 추가
 - requirements.txt 제거 및 pyproject.toml 의존성 관리로 완전 전환
 - 불필요한 파일 정리 (frontend/compare.md, main.py 삭제)
+- Python 3.14 background task 패턴 적용 (asyncio.create_task + set + add_done_callback)
+- MCP server에 background 실행 기능 추가 (gemini_cli, codex_cli)
+- get_task_result 도구 구현 (wait=True/False 지원)
+- ms.specify/plan/implement에 진정한 병렬 실행 패턴 추가
+- PYTHON_GIL=0 환경변수 설정 (Free-Threading 활성화)
+- MCP server 사용 가이드 및 테스트 예제 문서화
 
 ---
 
