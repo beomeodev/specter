@@ -10,7 +10,10 @@
       "Bash(find:*)",
       "Bash(tree:*)",
       "Bash(npm search @anthropics/cli-bridge-mcp)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(if [ -f .pre-commit-config.yaml ])",
+      "Bash(then)",
+      "Bash(pre-commit run:*)"
     ],
     "deny": [],
     "ask": []

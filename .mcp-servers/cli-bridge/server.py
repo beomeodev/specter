@@ -124,7 +124,7 @@ async def handle_list_tools() -> ListToolsResult:
 
 async def execute_gemini_cli(prompt: str, files: list[str] | None = None) -> str:
     """Execute Gemini CLI command"""
-    cmd = ["gemini", "--yolo", "--telemetry", "false"]
+    cmd = ["gemini", "--yolo"]
 
     # Add file arguments if provided
     if files:

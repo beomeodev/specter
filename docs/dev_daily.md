@@ -17,6 +17,10 @@
 - ms.specify/plan/implement에 진정한 병렬 실행 패턴 추가
 - PYTHON_GIL=0 환경변수 설정 (Free-Threading 활성화)
 - MCP server 사용 가이드 및 테스트 예제 문서화
+- Python 3.12 → 3.13 업그레이드 (Free-Threading 실제 지원)
+- MCP server 접근성 검증 (Python client로 직접 테스트 성공)
+- Gemini CLI 플래그 수정 (--telemetry 제거)
+- test_mcp_client.py 작성 (background task 동작 검증)
 
 ---
 
