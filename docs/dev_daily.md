@@ -10,6 +10,7 @@
 - 6개 에이전트 실행 제약사항 명시 (Gemini: 1,2 / Claude: 3 / Codex: 4,5,6)
 - ms.implement/plan/specify 워크플로우에 에이전트 실행 규칙 추가
 - requirements.txt 제거 및 pyproject.toml 의존성 관리로 완전 전환
+- 불필요한 파일 정리 (frontend/compare.md, main.py 삭제)
 
 ---
 
