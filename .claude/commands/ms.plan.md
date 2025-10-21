@@ -116,34 +116,44 @@ Based on complexity determined above:
 
 **IF MODERATE**:
   - Launch 2 sub-agents in PARALLEL:
-    1. **codebase-explorer agent**:
+    1. **codebase-explorer agent** (via Gemini):
        ```
+       Use mcp__cli-bridge__gemini_cli:
        "Find similar architectural patterns in existing codebase for '$SPEC_FEATURE'"
        ```
 
-    2. **library-researcher agent** (if external library needed):
+    2. **library-researcher agent** (via Gemini - if external library needed):
        ```
+       Use mcp__cli-bridge__gemini_cli:
        "Research latest API documentation for libraries needed"
        ```
 
 **IF COMPLEX**:
   - Launch 3 sub-agents in PARALLEL:
-    1. **codebase-explorer agent**:
+    1. **codebase-explorer agent** (via Gemini):
        ```
+       Use mcp__cli-bridge__gemini_cli:
        "Find similar architectural patterns in existing codebase for '$SPEC_FEATURE'"
        ```
 
-    2. **library-researcher agent**:
+    2. **library-researcher agent** (via Gemini):
        ```
+       Use mcp__cli-bridge__gemini_cli:
        "Research latest API documentation for libraries needed"
        ```
 
-    3. **integration-designer agent**:
+    3. **integration-designer agent** (Claude Code native):
        ```
+       Use Task tool directly:
        "Design integration strategy for complex feature"
        ```
 
-**CRITICAL**: Always launch agents in PARALLEL (single message with multiple Task calls).
+**⚠️ AGENT EXECUTION RULES**:
+- **codebase-explorer** → MUST use Gemini via `mcp__cli-bridge__gemini_cli`
+- **library-researcher** → MUST use Gemini via `mcp__cli-bridge__gemini_cli`
+- **integration-designer** → MUST use Claude Code Task tool (NOT MCP)
+
+**CRITICAL**: Always launch agents in PARALLEL (single message with multiple tool calls).
 
 **Debug Output** (for transparency):
 ```json

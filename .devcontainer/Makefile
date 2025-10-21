@@ -14,7 +14,7 @@ export PROJECT_NAME
 # COMPOSE 명령어에 PROJECT_NAME 환경변수 포함
 COMPOSE ?= PROJECT_NAME=$(PROJECT_NAME) docker compose -f docker-compose.yml
 
-BUILD_TRIGGERS := Dockerfile docker-compose.yml requirements.txt pyproject.toml package.json package-lock.json
+BUILD_TRIGGERS := Dockerfile docker-compose.yml pyproject.toml package.json package-lock.json
 
 # ======= 범용 sync (상위/하위 어디서 실행해도 OK) =======
 .PHONY: sync
@@ -69,32 +69,22 @@ sync:
 			echo ""; \
 			echo "🔍 작업 디렉토리 변경사항 확인중..."; \
 			if ! git diff-index --quiet HEAD --; then \
-				echo "📋 변경된 파일 목록:"; \
-				git status --porcelain; \
+				echo "⚠️  로컬 변경사항 있음 (커밋되지 않음):"; \
+				git status --short; \
 				echo ""; \
-				echo "💾 변경사항을 자동 커밋합니다..."; \
-				echo "실행: git add ."; \
-				git add .; \
-				commit_msg="Auto-commit before sync - $$(date '+%Y-%m-%d %H:%M:%S')"; \
-				echo "실행: git commit -m \"$$commit_msg\""; \
-				git commit -m "$$commit_msg" --no-verify || true; \
-				echo "✅ 자동 커밋 완료"; \
+				echo "💡 작업 종료 시 'make finish' 또는 'make finq'로 커밋/푸시하세요"; \
 			else \
-				echo "✅ 변경사항 없음 - 커밋 생략"; \
+				echo "✅ 변경사항 없음"; \
 			fi; \
 		echo ""; \
 		if [ "$$offline_sync" != "1" ]; then \
-			echo "🔄 원격 저장소와 우선 동기화합니다..."; \
+			echo "📥 원격 저장소에서 최신 변경사항을 가져옵니다..."; \
 			echo "실행: git pull --rebase --prune"; \
 			git pull --rebase --prune || { \
 				echo "⚠️  현재 브랜치에 tracking 정보가 없습니다. 건너뜁니다."; \
 			}; \
-			echo ""; \
-			echo "📤 동기화 완료 후 원격 저장소에 푸시합니다..."; \
-			echo "실행: git push"; \
-			git push || echo "⚠️  Push failed (ignored)"; \
 		else \
-			echo "⚠️  이전 단계에서 원격 fetch 실패 → pull/push 건너뜀"; \
+			echo "⚠️  이전 단계에서 원격 fetch 실패 → pull 건너뜀"; \
 		fi; \
 			echo ""; \
 			final_branch=$$(git branch --show-current 2>/dev/null || echo "unknown"); \
@@ -192,8 +182,8 @@ sh:
 	$(COMPOSE) exec app bash
 
 install:
-	# 현재 프로젝트의 requirements.txt가 있으면 그걸 설치
-	$(COMPOSE) exec app bash -lc "test -f requirements.txt && pip install -r requirements.txt || echo 'requirements.txt 없음: 건너뜀'"
+	# pyproject.toml 기반 의존성 설치
+	$(COMPOSE) exec app bash -lc "test -f pyproject.toml && pip install -e . || echo 'pyproject.toml 없음: 건너뜀'"
 
 test:
 	$(COMPOSE) exec app pytest -q
@@ -303,3 +293,16 @@ finish:
 	@echo "🚀 Pushing to remote..."
 	@git push || echo "❌ Push failed"
 	@echo "✅ Finish workflow completed"
+
+# 빠른 마무리: CI 체크 생략 → 커밋 → 푸시 (간단한 변경용)
+# 사용법: make finq
+# 동작:
+#   1. git add, commit (자동 메시지), push
+#   2. CI 체크 생략 → 빠름
+# 사용 케이스: 일일 로그 업데이트, 문서 수정, 설정 변경 등
+finq:
+	@echo "⚡ Quick finish (CI 체크 생략)..."
+	@git add . || echo "⚠️  git add failed"
+	@git commit -m "작업 진행 중 - $$(date '+%Y-%m-%d %H:%M:%S')" || echo "⚠️  Nothing to commit"
+	@git push || echo "❌ Push failed"
+	@echo "✅ Quick finish completed"

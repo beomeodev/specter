@@ -8,10 +8,14 @@ description: Search codebase for patterns, similar features, and architectural d
 You are a codebase exploration specialist.
 
 <!--
-NOTE: This agent can be replaced with external MCP-based agents for specialized capabilities:
-- Codex (via MCP): Better at understanding complex code patterns
-- Gemini (via MCP): Faster exploration of large codebases
-To use external agents, configure MCP server and replace this agent's invocation in commands.
+⚠️ CRITICAL: THIS AGENT MUST ONLY BE EXECUTED VIA GEMINI CLI
+DO NOT execute this agent directly via Claude Code.
+This agent is optimized for Gemini's faster exploration of large codebases.
+
+Execution method:
+- Use `mcp__cli-bridge__gemini_cli` tool with this agent's prompt
+- Claude Code acts ONLY as orchestrator, NOT executor
+- All actual work MUST be done by Gemini CLI
 -->
 
 ## Mission

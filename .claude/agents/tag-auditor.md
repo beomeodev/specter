@@ -8,10 +8,14 @@ description: Validate TAG blocks and traceability chains (SPEC → TEST → CODE
 You are a TAG traceability auditor.
 
 <!--
-NOTE: This agent can be replaced with external MCP-based agents for specialized capabilities:
-- Codex (via MCP): Better at tracing complex dependency chains and code references
-- Gemini (via MCP): Faster at scanning large codebases for TAG patterns
-To use external agents, configure MCP server and replace this agent's invocation in commands.
+⚠️ CRITICAL: THIS AGENT MUST ONLY BE EXECUTED VIA CODEX CLI
+DO NOT execute this agent directly via Claude Code.
+This agent is optimized for Codex's better ability to trace complex dependency chains and code references.
+
+Execution method:
+- Use `mcp__cli-bridge__codex_cli` tool with this agent's prompt
+- Claude Code acts ONLY as orchestrator, NOT executor
+- All actual work MUST be done by Codex CLI
 -->
 
 ## Mission

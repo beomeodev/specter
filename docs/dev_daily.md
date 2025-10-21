@@ -1,3 +1,18 @@
+# 🗓 2025-10-21 (Tue)
+
+## 📌 Focus
+- 멀티 AI 에이전트 분담 구조 확립 및 워크플로우 개선
+
+## ✅ Done
+- Claude CLI 로그인 지속성 완전 해결 (CLAUDE_CONFIG_DIR 환경변수 추가)
+- Makefile sync 워크플로우 개선 (시작 시 pull만, 종료 시 commit/push)
+- make finq 타겟 추가 (CI 생략 빠른 커밋)
+- 6개 에이전트 실행 제약사항 명시 (Gemini: 1,2 / Claude: 3 / Codex: 4,5,6)
+- ms.implement/plan/specify 워크플로우에 에이전트 실행 규칙 추가
+- requirements.txt 제거 및 pyproject.toml 의존성 관리로 완전 전환
+
+---
+
 # 🗓 2025-10-20 (Sun)
 
 ## 📌 Focus

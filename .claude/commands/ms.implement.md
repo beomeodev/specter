@@ -99,6 +99,11 @@ All implementation tasks are complete.
 
 ### Step 1.5: Context7 MCP - Latest Library Documentation (If Needed)
 
+**⚠️ CRITICAL: Library research MUST be delegated to Gemini CLI**
+- Use `mcp__cli-bridge__gemini_cli` tool
+- Gemini processes documentation faster than Claude
+- Claude Code orchestrates, Gemini executes
+
 **Analyze task**: Does implementation require external libraries?
 
 **Detection indicators**:
@@ -109,16 +114,19 @@ All implementation tasks are complete.
 **IF external library detected**:
 
   1. **Identify library and needed features**
-  2. **Use Context7 MCP**:
+  2. **Delegate to Gemini via MCP cli-bridge**:
      ```python
-     lib_id = mcp__context7__resolve_library_id("fastapi")
-     docs = mcp__context7__get_library_docs(
-         context7CompatibleLibraryID=lib_id,
-         topic="background tasks",  # Feature being implemented
-         tokens=8000
+     # Use library-researcher agent via Gemini
+     mcp__cli-bridge__gemini_cli(
+         prompt="""Research latest API documentation for:
+         - Library: fastapi
+         - Topic: background tasks
+         - Use Context7 MCP tools
+         - Return: API usage examples and best practices
+         """
      )
      ```
-  3. **Use latest API in implementation**
+  3. **Use latest API in implementation** (based on Gemini's research)
 
 **ELSE**:
   → Skip (no external libraries)
