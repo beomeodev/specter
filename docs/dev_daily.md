@@ -1,3 +1,20 @@
+# 🗓 2025-10-22 (Wed)
+
+## 📌 Focus
+- MCP CLI-Bridge 서버 보안 강화 및 Python 3.13 Free-Threading 빌드 완성
+
+## ✅ Done
+- MCP CLI-Bridge 서버 보안 취약점 분석 (Command Injection, 메모리 누수, Timeout 우회)
+- Input validation 구현 (파일 경로 검증, 프롬프트 길이 제한 5MB)
+- Task metadata LRU 캐시 구현 (50개 제한, 메모리 누수 방지)
+- Process timeout 강제 종료 로직 추가 (30분 타임아웃, zombie process 방지)
+- Python 3.13 Free-Threading Dockerfile 작성 (멀티스테이지 빌드, --disable-gil)
+- Docker 이미지 리빌드 및 Free-Threading 검증 (GIL disabled, cp313t ABI 확인)
+- 모든 의존성 Free-Threading 호환 테스트 (mcp, pyyaml, regex)
+- MCP 서버 보안 기능 통합 테스트 완료
+
+---
+
 # 🗓 2025-10-21 (Tue)
 
 ## 📌 Focus

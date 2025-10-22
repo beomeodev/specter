@@ -7,14 +7,22 @@ Python 3.14 Free-Threading Support:
 - Background task execution using asyncio.create_task()
 - Task lifecycle management with set() + add_done_callback() pattern
 - Safe concurrent execution without GIL blocking
+
+Security Features (Personal Use):
+- Input validation for file paths and prompts
+- LRU cache for task metadata (prevents memory leaks)
+- Forced process termination on timeout
 """
 
 import asyncio
 import json
 import logging
+import re
 import sys
 import uuid
+from collections import OrderedDict
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 try:
@@ -33,6 +41,101 @@ logger = logging.getLogger("cli-bridge")
 app = Server("cli-bridge")
 
 # ============================================================================
+# Security Configuration (Personal Use)
+# ============================================================================
+
+# Maximum prompt length (5MB - allows large code context)
+MAX_PROMPT_LENGTH = 5_000_000
+
+# Maximum task metadata history (LRU cache to prevent memory leaks)
+MAX_TASK_HISTORY = 50
+
+# Allowed base directories for file access (workspace + home)
+ALLOWED_BASE_DIRS = [
+    Path("/workspace"),
+    Path.home(),
+]
+
+# Process execution timeout (30 minutes for long tasks)
+PROCESS_TIMEOUT = 1800
+
+
+# ============================================================================
+# Input Validation Functions
+# ============================================================================
+
+
+def validate_file_path(file_path: str) -> str:
+    """
+    Validate file path for security.
+
+    Security checks:
+    1. Resolve to absolute path (handle symlinks, .., .)
+    2. Verify path is within allowed directories
+    3. Block shell metacharacters
+
+    Args:
+        file_path: Path to validate
+
+    Returns:
+        Validated absolute path string
+
+    Raises:
+        ValueError: If path is invalid or outside allowed directories
+    """
+    try:
+        # Resolve to absolute path (handles symlinks, .., .)
+        resolved_path = Path(file_path).resolve()
+    except (OSError, RuntimeError) as e:
+        raise ValueError(f"Invalid file path: {e}")
+
+    # Check if path is within allowed directories
+    is_allowed = any(
+        resolved_path.is_relative_to(base_dir) for base_dir in ALLOWED_BASE_DIRS
+    )
+
+    if not is_allowed:
+        allowed_str = ", ".join(str(d) for d in ALLOWED_BASE_DIRS)
+        raise ValueError(
+            f"File path outside allowed directories: {resolved_path}\n"
+            f"Allowed: {allowed_str}"
+        )
+
+    # Block shell metacharacters to prevent injection
+    dangerous_chars = r'[;&|`$()<>]'
+    if re.search(dangerous_chars, str(resolved_path)):
+        raise ValueError(
+            f"File path contains dangerous characters: {resolved_path}"
+        )
+
+    return str(resolved_path)
+
+
+def validate_prompt(prompt: str) -> str:
+    """
+    Validate prompt for security.
+
+    Security checks:
+    1. Length limit to prevent resource exhaustion
+
+    Args:
+        prompt: Prompt to validate
+
+    Returns:
+        Validated prompt
+
+    Raises:
+        ValueError: If prompt is invalid
+    """
+    if len(prompt) > MAX_PROMPT_LENGTH:
+        raise ValueError(
+            f"Prompt too long: {len(prompt)} bytes > {MAX_PROMPT_LENGTH} bytes"
+        )
+
+    return prompt
+
+
+# ============================================================================
 # Background Task Management (Python 3.14 Official Pattern)
 # Reference: https://docs.python.org/3.14/library/asyncio-task.html
 # ============================================================================
@@ -41,9 +144,26 @@ app = Server("cli-bridge")
 # Pattern: background_tasks.add(task) + task.add_done_callback(background_tasks.discard)
 background_tasks: set[asyncio.Task] = set()
 
-# Task metadata storage
+# Task metadata storage with LRU cache (prevents memory leaks)
 # task_id -> {status, started_at, completed_at, cli, result, error}
-task_metadata: dict[str, dict[str, Any]] = {}
+task_metadata: OrderedDict[str, dict[str, Any]] = OrderedDict()
+
+
+def store_task_metadata(task_id: str, metadata: dict[str, Any]) -> None:
+    """
+    Store task metadata with automatic LRU eviction.
+
+    Args:
+        task_id: Unique task identifier
+        metadata: Task metadata dictionary
+    """
+    task_metadata[task_id] = metadata
+
+    # Evict oldest entries if cache exceeds limit
+    while len(task_metadata) > MAX_TASK_HISTORY:
+        oldest_id = next(iter(task_metadata))
+        logger.info(f"Evicting old task metadata: {oldest_id}")
+        task_metadata.pop(oldest_id)
 
 
 @app.list_tools()
@@ -123,16 +243,35 @@ async def handle_list_tools() -> ListToolsResult:
 
 
 async def execute_gemini_cli(prompt: str, files: list[str] | None = None) -> str:
-    """Execute Gemini CLI command"""
+    """
+    Execute Gemini CLI command with security validation.
+
+    Args:
+        prompt: User prompt (validated for length)
+        files: Optional file paths (validated for safety)
+
+    Returns:
+        CLI output or error message
+
+    Security:
+        - Validates prompt length
+        - Validates file paths
+        - Enforces process timeout with forced termination
+    """
+    # Validate prompt
+    prompt = validate_prompt(prompt)
+
     cmd = ["gemini", "--yolo"]
 
-    # Add file arguments if provided
+    # Add file arguments if provided (with validation)
     if files:
         for file in files:
-            cmd.extend(["--file", file])
+            validated_file = validate_file_path(file)
+            cmd.extend(["--file", validated_file])
 
     logger.info(f"Executing: {' '.join(cmd[:3])}... (with prompt)")
 
+    proc = None
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
@@ -143,7 +282,7 @@ async def execute_gemini_cli(prompt: str, files: list[str] | None = None) -> str
 
         stdout, stderr = await asyncio.wait_for(
             proc.communicate(prompt.encode("utf-8")),
-            timeout=600,  # 10 minute timeout
+            timeout=PROCESS_TIMEOUT,
         )
 
         if proc.returncode != 0:
@@ -156,22 +295,47 @@ async def execute_gemini_cli(prompt: str, files: list[str] | None = None) -> str
         return stdout.decode("utf-8", errors="replace")
 
     except asyncio.TimeoutError:
-        logger.error("Gemini CLI timed out")
-        return "ERROR: Gemini CLI execution timed out after 10 minutes"
+        # Force kill process on timeout
+        if proc:
+            logger.warning(f"Gemini CLI timed out, killing process (PID: {proc.pid})")
+            proc.kill()
+            await proc.wait()
+        logger.error(f"Gemini CLI timed out after {PROCESS_TIMEOUT}s")
+        return f"ERROR: Gemini CLI execution timed out after {PROCESS_TIMEOUT}s"
     except FileNotFoundError:
         logger.error("Gemini CLI not found in PATH")
         return "ERROR: 'gemini' command not found. Install: npm install -g @google/gemini-cli"
+    except ValueError as e:
+        # Validation errors (file path, prompt length)
+        logger.error(f"Validation error: {e}")
+        return f"ERROR: {str(e)}"
     except Exception as e:
         logger.error(f"Gemini CLI execution failed: {e}")
         return f"ERROR: {str(e)}"
 
 
 async def execute_codex_cli(prompt: str) -> str:
-    """Execute Codex CLI command"""
+    """
+    Execute Codex CLI command with security validation.
+
+    Args:
+        prompt: User prompt (validated for length)
+
+    Returns:
+        CLI output or error message
+
+    Security:
+        - Validates prompt length
+        - Enforces process timeout with forced termination
+    """
+    # Validate prompt
+    prompt = validate_prompt(prompt)
+
     cmd = ["codex", "exec", "--full-auto"]
 
     logger.info("Executing: codex exec --full-auto (with prompt)")
 
+    proc = None
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
@@ -182,7 +346,7 @@ async def execute_codex_cli(prompt: str) -> str:
 
         stdout, stderr = await asyncio.wait_for(
             proc.communicate(prompt.encode("utf-8")),
-            timeout=600,  # 10 minute timeout
+            timeout=PROCESS_TIMEOUT,
         )
 
         if proc.returncode != 0:
@@ -197,11 +361,20 @@ async def execute_codex_cli(prompt: str) -> str:
         return output
 
     except asyncio.TimeoutError:
-        logger.error("Codex CLI timed out")
-        return "ERROR: Codex CLI execution timed out after 10 minutes"
+        # Force kill process on timeout
+        if proc:
+            logger.warning(f"Codex CLI timed out, killing process (PID: {proc.pid})")
+            proc.kill()
+            await proc.wait()
+        logger.error(f"Codex CLI timed out after {PROCESS_TIMEOUT}s")
+        return f"ERROR: Codex CLI execution timed out after {PROCESS_TIMEOUT}s"
     except FileNotFoundError:
         logger.error("Codex CLI not found in PATH")
         return "ERROR: 'codex' command not found. Check installation and login status"
+    except ValueError as e:
+        # Validation errors (prompt length)
+        logger.error(f"Validation error: {e}")
+        return f"ERROR: {str(e)}"
     except Exception as e:
         logger.error(f"Codex CLI execution failed: {e}")
         return f"ERROR: {str(e)}"
@@ -252,14 +425,17 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
             background_tasks.add(task)
             task.add_done_callback(background_tasks.discard)
 
-            # Store metadata
-            task_metadata[task_id] = {
-                "status": "RUNNING",
-                "started_at": datetime.now().isoformat(),
-                "cli": "gemini",
-                "prompt_length": len(prompt),
-                "files_count": len(files) if files else 0,
-            }
+            # Store metadata with LRU eviction
+            store_task_metadata(
+                task_id,
+                {
+                    "status": "RUNNING",
+                    "started_at": datetime.now().isoformat(),
+                    "cli": "gemini",
+                    "prompt_length": len(prompt),
+                    "files_count": len(files) if files else 0,
+                },
+            )
 
             logger.info(f"Background task started: {task_id} (Gemini)")
             return [TextContent(type="text", text=f"TASK_STARTED:{task_id}")]
@@ -297,13 +473,16 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
             background_tasks.add(task)
             task.add_done_callback(background_tasks.discard)
 
-            # Store metadata
-            task_metadata[task_id] = {
-                "status": "RUNNING",
-                "started_at": datetime.now().isoformat(),
-                "cli": "codex",
-                "prompt_length": len(prompt),
-            }
+            # Store metadata with LRU eviction
+            store_task_metadata(
+                task_id,
+                {
+                    "status": "RUNNING",
+                    "started_at": datetime.now().isoformat(),
+                    "cli": "codex",
+                    "prompt_length": len(prompt),
+                },
+            )
 
             logger.info(f"Background task started: {task_id} (Codex)")
             return [TextContent(type="text", text=f"TASK_STARTED:{task_id}")]

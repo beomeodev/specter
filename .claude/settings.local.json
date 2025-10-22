@@ -13,7 +13,10 @@
       "Bash(git add:*)",
       "Bash(if [ -f .pre-commit-config.yaml ])",
       "Bash(then)",
-      "Bash(pre-commit run:*)"
+      "Bash(pre-commit run:*)",
+      "Read(//tmp/**)",
+      "Bash(docker compose:*)",
+      "Bash(tee:*)"
     ],
     "deny": [],
     "ask": []

@@ -670,6 +670,25 @@ specter/
 - **Git**: 버전 관리
 - **uv**: Spec-Kit 설치 (Python 패키지 매니저)
 
+### 개발 환경
+
+**Python 3.13 Free-Threading Build**:
+- GIL-free 병렬 실행 (--disable-gil)
+- 멀티스테이지 Dockerfile (Debian bookworm)
+- MCP 서버 진정한 병렬 처리
+
+**MCP 서버 통합**:
+- CLI Bridge: Gemini/Codex CLI 통합
+  - Input validation (파일 경로, 프롬프트 검증)
+  - LRU 캐시 (메모리 누수 방지)
+  - Process timeout 강제 종료
+- Context7: 최신 라이브러리 문서
+
+**컨테이너 환경**:
+- Docker Compose 기반 DevContainer
+- Node.js LTS + npm (AI CLI 도구)
+- Git LFS 지원
+
 ### 선택적 도구 (언어별)
 
 **TypeScript/JavaScript**:
