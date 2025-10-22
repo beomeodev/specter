@@ -16,7 +16,10 @@
       "Bash(pre-commit run:*)",
       "Read(//tmp/**)",
       "Bash(docker compose:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.facefusion.io)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "deny": [],
     "ask": []

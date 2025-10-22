@@ -12,6 +12,9 @@
 - Docker 이미지 리빌드 및 Free-Threading 검증 (GIL disabled, cp313t ABI 확인)
 - 모든 의존성 Free-Threading 호환 테스트 (mcp, pyyaml, regex)
 - MCP 서버 보안 기능 통합 테스트 완료
+- GitHub 레포지토리 분석 및 한글 마크다운 문서 작성 (dots.ocr, MobileAgent, unsloth)
+- NSFW 콘텐츠 생성 가능성 분석 (unsloth 파인튜닝 도구 기술적 검증)
+- test_mcp_client.py 삭제 (불필요한 테스트 파일 정리)
 
 ---
 
