@@ -19,7 +19,10 @@
       "Bash(tee:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.facefusion.io)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(git config --global push.autoSetupRemote true)",
+      "WebSearch",
+      "Bash(then pre-commit run --all-files)"
     ],
     "deny": [],
     "ask": []

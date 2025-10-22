@@ -15,6 +15,9 @@
 - GitHub 레포지토리 분석 및 한글 마크다운 문서 작성 (dots.ocr, MobileAgent, unsloth)
 - NSFW 콘텐츠 생성 가능성 분석 (unsloth 파인튜닝 도구 기술적 검증)
 - test_mcp_client.py 삭제 (불필요한 테스트 파일 정리)
+- .claude/settings.local.json 병합 충돌 해결 (HEAD + 86389a3 변경사항 통합)
+- Anthropic Skills 리포지토리 전면 분석 (구조, 기능, 카테고리 파악)
+- My-Spec Commands와 Skills 통합 기회 분석 (6단계 로드맵 작성)
 
 ---
 
