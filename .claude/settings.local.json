@@ -26,7 +26,13 @@
       "Bash(git diff:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(git rebase:*)"
+      "Bash(git rebase:*)",
+      "Bash(git clone:*)",
+      "Bash(for f in /workspace/specter/.claude/commands/ms.*.md)",
+      "Bash(done)",
+      "Bash(git pull:*)",
+      "Bash(git reset:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []
