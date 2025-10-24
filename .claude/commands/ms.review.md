@@ -77,6 +77,22 @@ Read: spec.md, plan.md, constitution.md (once, cached in memory)
 
 ---
 
+### Step 1.5: Tool Availability Check (NEW)
+
+Review relies on several external binaries. Check for them upfront and fall back gracefully when unavailable:
+
+```bash
+command -v jq >/dev/null    || echo "⚠️ jq missing → JSON aggregation steps will be skipped"
+command -v rg >/dev/null    || { echo "❌ ripgrep required for pattern scan"; exit 1; }
+command -v npx >/dev/null   || echo "⚠️ npx missing → eslint/jscpd checks will be skipped"
+command -v radon >/dev/null || echo "⚠️ radon missing → Python complexity scan skipped"
+command -v jscpd >/dev/null || echo "⚠️ jscpd missing → duplicate detection skipped"
+```
+
+Store availability flags (e.g., `HAS_JQ=1`) for later conditionals so that each static-analysis phase can short-circuit instead of failing mid-run.
+
+---
+
 ### Step 2.5: Intent & Focus Charter (NEW)
 
 Compile a succinct charter that anchors the review:
@@ -342,6 +358,7 @@ REPORT_FILE="docs/review/review_${AGENT_NAME}_$(date +%y%m%d-%H%M%S).md"
 Report structure (console + file):
 
 - Summary: CRITICAL/HIGH/MEDIUM/LOW counts, overall score
+- Intent & Focus Charter (inline copy of Step 2.5 so report is self-contained)
 - Production Risks, Strategic Unlocks, Quick Wins
 - Coverage Checklist
 - Hidden LOW issues count (show with `--verbose`)
@@ -363,8 +380,21 @@ Report structure (console + file):
 Remove analysis artifacts and save state for `/fin` integration:
 
 ```bash
-# Remove temporary analysis files
-rm -f .specify/review-*.json
+REVIEW_CACHE_DIR=".specify"
+REVIEW_TMP_FILES=(
+  "$REVIEW_CACHE_DIR/review-rg.ndjson"
+  "$REVIEW_CACHE_DIR/review-patterns.json"
+  "$REVIEW_CACHE_DIR/review/jscpd.json"
+  "$REVIEW_CACHE_DIR/review/eslint.json"
+  "$REVIEW_CACHE_DIR/review/radon.json"
+  "$REVIEW_CACHE_DIR/review-changed-by-hash.txt"
+  "$REVIEW_CACHE_DIR/review-hash.now"
+)
+
+# Remove temporary analysis files (keep review-hash.cache to speed up next run)
+for file in "${REVIEW_TMP_FILES[@]}"; do
+  rm -f "$file"
+done
 
 # Save state for /fin integration (NEW)
 if [ $HIGH_COUNT -gt 0 ]; then
@@ -375,6 +405,11 @@ fi
 ```
 
 **Keep warnings in memory**: Store HIGH/CRITICAL issues for `/fin` command to check
+
+- **Artifact Policy**
+  - Persists: `.specify/review-hash.cache` (used for hash-based diffing on the next run)
+  - Removed: `.specify/review/*.json`, `.specify/review-rg.ndjson`, transient hash files
+  - Reports: `docs/review/review_{agent}_{timestamp}.md` kept for audit trail
 
 ---
 

@@ -1,3 +1,17 @@
+# 🗓 2025-10-25 (Sat)
+
+## 📌 Focus
+- ms.review 워크플로우 개선 및 불필요한 설계 문서 정리
+
+## ✅ Done
+- ms.review.md에 도구 가용성 체크 로직 추가 (jq, rg, npx, radon, jscpd)
+- ms.review.md 리포트 구조 개선 (Intent & Focus Charter 추가)
+- ms.review.md 정리 단계 개선 (상세 임시 파일 목록 및 보존 정책 명시)
+- .specify/design/review-optimization-plan.md 삭제 (구현 완료된 설계 문서)
+- docs/todo.md 업데이트 (MoAI/Skills 통합 작업 계획)
+
+---
+
 # 🗓 2025-10-24 (Thu)
 
 ## 📌 Focus
