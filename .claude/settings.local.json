@@ -32,7 +32,9 @@
       "Bash(done)",
       "Bash(git pull:*)",
       "Bash(git reset:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(git rm:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

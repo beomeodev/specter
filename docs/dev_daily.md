@@ -1,3 +1,16 @@
+# 🗓 2025-10-24 (Thu)
+
+## 📌 Focus
+- Claude Code Skills 및 MoAI-ADK 분석 문서 작성
+
+## ✅ Done
+- SKILLS.md 작성 (Claude Code Skills와 My-Spec workflow 통합 전략 분석)
+- MoAI-ADK Living Docs 및 Sub-Agents 분석 문서 작성
+- MoAI-ADK Skills 시스템 분석 문서 작성
+- docs/references/moai-adk/ 및 docs/references/skills/ 디렉토리 생성 및 분석 자료 정리
+
+---
+
 # 🗓 2025-10-22 (Wed)
 
 ## 📌 Focus
