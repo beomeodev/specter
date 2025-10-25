@@ -22,6 +22,7 @@
 - [🎯 SPECTER의 7가지 원칙](#-specter의-7가지-원칙)
 - [✨ 핵심 특징](#-핵심-특징)
 - [🔧 명령어 참조](#-명령어-참조)
+- [🏗️ 워크플로우 아키텍처](#️-워크플로우-아키텍처)
 - [📁 프로젝트 구조](#-프로젝트-구조)
 - [💡 언제 사용하나요?](#-언제-사용하나요)
 - [🆚 기존 방식과의 비교](#-기존-방식과의-비교)
@@ -524,7 +525,7 @@ docs = mcp__context7__get_library_docs(lib_id, topic="background tasks")
 | `/ms.clarify` | 요구사항 명확화 (구조화된 질의응답) | `/ms.specify` 후, `/ms.plan` 전 |
 | `/ms.checklist` | 요구사항 완전성 체크리스트 생성 ("영어 단위 테스트") | `/ms.specify` 후, `/ms.plan` 전 |
 | `/ms.review` | 코드 리뷰 (ultrathink 패턴 분석) | `/ms.implement` 후 |
-| `/ms.update-docs` | Living Docs 업데이트 | 수동 수정 후 |
+| `/ms.up-docs` | Living Docs 업데이트 | 수동 수정 후 |
 | `/fin` | 완료 (커밋+푸시) | 모든 작업 완료 후 |
 | `/finq` | 빠른 완료 (CI 없음) | 개발 중 |
 
@@ -561,6 +562,148 @@ docs = mcp__context7__get_library_docs(lib_id, topic="background tasks")
 # 10. 완료
 /fin
 ```
+
+---
+
+## 🏗️ 워크플로우 아키텍처
+
+### Agent와 Skills의 관계
+
+SPECTER는 **2단계 실행 모델**을 사용합니다:
+
+```
+Main Agent (Sonnet/Haiku)
+    ↓ 호출
+Sub-Agent (Task tool) 또는 Skill (자동 트리거)
+    ↓ 내부 모델
+Haiku/Sonnet/Opus (복잡도에 따라 선택)
+```
+
+**핵심 개념**:
+- **Main Agent**: 명령어를 실행하는 주체 (Claude Code)
+- **Sub-Agent**: Task tool로 명시적 호출 (복잡한 작업)
+- **Skill**: 자동 트리거 (패턴 검증, 문서화)
+- **Model**: 각 Agent/Skill이 사용하는 Claude 모델
+  - **Haiku** = 빠름, 비용 효율
+  - **Sonnet** = 깊은 추론, 복잡한 코드
+  - **Opus** = 최고 수준 아키텍처 설계
+
+---
+
+### 전체 워크플로우 매핑
+
+| 단계 | 명령어 | 역할 | Main Agent | Sub-Agent | Skills 사용 | 생성 파일 |
+|------|--------|------|-----------|-----------|------------|----------|
+| **0** | `/ms.init` | 프로젝트 초기화, Constitution 설치 | Sonnet | - | - | `.specify/memory/constitution.md`, `AGENTS.md` |
+| **1** | `/ms.specify` | EARS 기반 사양 작성 | Sonnet | **spec-builder** (Sonnet) | **ms-foundation-ears** (Haiku) | `specs/001-{feature}/spec.md` |
+| **2** | `/ms.clarify` | 요구사항 명확화 (구조화된 질의응답) | Sonnet | - | **ms-foundation-ears** (Haiku) | `spec.md` 업데이트 |
+| **3** | `/ms.checklist` | 요구사항 완전성 체크리스트 생성 | Haiku | - | **ms-foundation-ears** (Haiku) | `specs/{id}/checklist.md` |
+| **4** | `/ms.plan` | 구현 계획 (아키텍처 설계) | Opus | **implementation-planner** (Opus)<br>**library-researcher** (Haiku)<br>**codebase-explorer** (Haiku) | **ms-foundation-constitution** (Haiku) | `specs/{id}/plan.md` |
+| **5** | `/ms.constitution` | spec.md/plan.md → Constitution IX 추출 | Haiku | **constitution-extractor** (Haiku) | - | `.specify/memory/constitution.md` Section IX |
+| **6** | `/ms.tasks` | TAG ID 생성, 태스크 분해 | Sonnet | - | **ms-workflow-tag-manager** (Haiku) | `specs/{id}/tasks.md` |
+| **7** | `/ms.analyze` | TRUST 3단계 검증 | Haiku | **tag-auditor** (Haiku)<br>**trust-validator** (Haiku) | **ms-foundation-trust** (Haiku)<br>**ms-foundation-constitution** (Haiku) | `.specify/warnings.log` |
+| **8** | `/ms.implement` | TDD 구현, TAG 자동 삽입 | Sonnet | **tdd-implementer** (Sonnet) | **ms-workflow-tag-manager** (Haiku)<br>**ms-lang-{language}** (Haiku) | 코드 + TAG 블록 |
+| **9** | `/ms.review` | 코드 품질 리뷰 (ultrathink 패턴) | Opus | **integration-designer** (Opus) | **ms-foundation-constitution** (Haiku)<br>**ms-domain-{domain}** (Haiku) | `docs/review/{timestamp}.md` |
+| **10** | `/ms.up-docs` | Living Document 동기화 | Haiku | **doc-updater** (Haiku) | **ms-workflow-living-docs** (Haiku) | `docs/dev_daily.md`, `docs/api/*.md`, `README.md` |
+| **11** | `/fin`<br>`/finq` | 완료 (`/fin`: CI 포함, `/finq`: CI 생략) | Sonnet<br>(Haiku) | **quality-gate** (Haiku) - `/fin`만<br>**doc-updater** (Haiku) - 공통 | - | `docs/dev_daily.md` + Git commit + push |
+
+---
+
+### Model 선택 기준
+
+| Agent/Skill | Model | 이유 |
+|------------|-------|------|
+| **integration-designer** | **Opus** | 복잡한 통합 전략, 시스템적 이슈 탐지 (ultrathink), 아키텍처 설계 |
+| **implementation-planner** | **Opus** | 최고 수준 아키텍처 설계, 트레이드오프 판단 |
+| **spec-builder** | Sonnet | 깊은 도메인 이해 + EARS 패턴 적용 |
+| **tdd-implementer** | Sonnet | 복잡한 코드 작성 + 리팩토링 |
+| **debug-helper** | Sonnet | 에러 추론, 근본 원인 분석 |
+| **codebase-explorer** | Haiku | Glob/Grep 패턴 검색 |
+| **constitution-extractor** | Haiku | 키워드 추출 (EARS, TRUST 패턴) |
+| **tag-auditor** | Haiku | 정규식 기반 TAG 체인 검증 |
+| **trust-validator** | Haiku | 규칙 기반 코드 품질 검증 |
+| **library-researcher** | Haiku | Context7 MCP 호출 + 문서 요약 |
+| **doc-updater** | Haiku | Git diff 분석 + 템플릿 문서 생성 |
+| **quality-gate** | Haiku | 메트릭 기반 품질 검증 |
+
+---
+
+### Skills 자동 트리거 규칙
+
+| Skill | 트리거 조건 | 역할 | Model |
+|-------|-----------|------|-------|
+| **ms-foundation-constitution** | 코드 검토 요청 시 | Constitution 위반 검증 (파일 크기, EARS, TRUST) | Haiku |
+| **ms-foundation-trust** | `/ms.analyze` 시 | TRUST 5원칙 자동 검증 | Haiku |
+| **ms-foundation-ears** | SPEC 작성 시 | EARS 패턴 검증, 금지 문구 탐지 | Haiku |
+| **ms-workflow-tag-manager** | 코드 생성 시 | TAG 블록 자동 삽입/업데이트 | Haiku |
+| **ms-workflow-living-docs** | 코드 수정 시 | API 문서 자동 업데이트 | Haiku |
+| **ms-lang-typescript** | TypeScript 코드 작성 시 | Best practices, strict mode, ESLint | Haiku |
+| **ms-lang-python** | Python 코드 작성 시 | mypy, black, pytest 가이드 | Haiku |
+| **ms-domain-backend** | Backend 코드 시 | API 설계, DB 패턴, 인증 | Haiku |
+| **ms-domain-security** | 보안 검토 시 | OWASP Top 10, 입력 검증 | Haiku |
+
+---
+
+### 예시: `/ms.implement` 실행 흐름
+
+```
+1. Main Agent (Sonnet) 시작
+   ↓
+2. Task tool 호출: tdd-implementer (Sonnet)
+   ↓
+3. tdd-implementer 내부:
+   ├─ Skill 자동 트리거: ms-workflow-tag-manager (Haiku)
+   │  → TAG ID 검증 및 블록 삽입
+   ├─ Skill 자동 트리거: ms-lang-typescript (Haiku)
+   │  → TypeScript best practices 적용
+   └─ Skill 자동 트리거: ms-foundation-constitution (Haiku)
+      → Constitution 위반 검증
+   ↓
+4. 코드 생성 (TAG 블록 포함)
+```
+
+**A != B 예시**:
+- Main Agent A = **Sonnet** (복잡한 TDD 구현)
+- Skill B = **Haiku** (TAG 검증, 패턴 체크)
+
+---
+
+### 예시: `/ms.review` 실행 흐름
+
+```
+1. Main Agent (Opus) 시작
+   ↓
+2. Task tool 호출: integration-designer (Opus)
+   ↓
+3. integration-designer 내부:
+   ├─ ultrathink 패턴 분석 (시스템적 이슈 탐지)
+   ├─ 5-WHY 근본 원인 분석
+   ├─ Batch Fix 기회 탐지 + ROI 계산
+   └─ Skill 자동 트리거: ms-foundation-constitution (Haiku)
+      → Constitution 위반 검증
+   ↓
+4. 리뷰 리포트 생성
+```
+
+**A != B 예시**:
+- Main Agent A = **Opus** (복잡한 시스템 분석)
+- Skill B = **Haiku** (규칙 기반 검증)
+
+---
+
+### 비용 효율 최적화
+
+**Model 분배 비율** (총 12개 Sub-agents):
+- **Haiku**: 7개 (58%) - 검증, 분석, 문서화
+- **Sonnet**: 3개 (25%) - SPEC 작성, TDD 구현, 디버깅
+- **Opus**: 2개 (17%) - 아키텍처 설계, 통합 전략
+
+**예상 비용 절감** (Opus 5배, Sonnet 1배, Haiku 0.2배 가정):
+- 기존 (모두 Sonnet): 12 × 1 = **$12**
+- 최적화: (7 × 0.2) + (3 × 1) + (2 × 5) = 1.4 + 3 + 10 = **$14.4**
+- 품질 개선: Opus 사용으로 아키텍처 품질 향상 (버그 예방)
+
+**전략**: 비용은 20% 증가하나, 아키텍처 품질 향상으로 장기적 ROI 극대화
 
 ---
 

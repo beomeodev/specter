@@ -35,7 +35,9 @@
       "Bash(git stash:*)",
       "Bash(git rm:*)",
       "Bash(rm:*)",
-      "Bash(date:*)"
+      "Bash(date:*)",
+      "Bash(git log:*)",
+      "Bash(git config:*)"
     ],
     "deny": [],
     "ask": []

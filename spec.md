@@ -11,17 +11,7 @@
 
 ## Executive Summary
 
-본 명세서는 **MoAI-ADK**의 4가지 핵심 기능을 **My-Spec 워크플로우**에 통합하기 위한 전략과 실행 계획을 제시합니다.
-
-### 핵심 목표
-
-| 목표 | 현재 상태 | 목표 상태 | 개선율 |
-|------|---------|---------|--------|
-| **문서 동기화** | 수동 (30분/회) | 자동 (2분/회) | 93% ↓ |
-| **TAG 검증** | 수동 (/ms.analyze) | 실시간 자동 | 98% ↓ |
-| **Constitution 준수** | 70% (수동) | 95% (자동) | 25% ↑ |
-| **개발자 인지 부하** | 높음 (11개 명령 숙지) | 낮음 (AI 자동 처리) | 60% ↓ |
-| **안전성** | 수동 백업 | 자동 체크포인트 | 98% ↑ |
+본 명세서는 **MoAI-ADK**의 4가지 핵심 기능을 **My-Spec 워크플로우**에 최적화하여 성공적으로 통합하기 위한 명세서를 인간이 작성하여, spec-kit의 /specify에 전달하기 위해 작성되었습니다.
 
 ### 통합 대상 4대 기능
 
@@ -29,18 +19,6 @@
 2. **Skills** (재사용 가능 지식) - 자동화 지식 캡슐
 3. **Living-Docs** (CODE-FIRST 문서) - 문서-코드 동기화
 4. **Sub-Agents** (전문 AI 팀) - 역할 분산 및 협업
-
-### 주요 변경사항 (v2.0.0)
-
-- ✅ Phase 1.0 추가: 기존 hooks 마이그레이션 전략 (constitution-injector.sh, tag-enforcer.ts)
-- ✅ Test-First 원칙 적용: 모든 Phase에 RED → GREEN → REFACTOR 추가
-- ✅ Small units 준수: Phase 2 Skills 7개 → 3단계 분할 (2-3개씩)
-- ✅ settings.json → settings.local.json 수정 (Claude Code 우선순위 반영)
-- ✅ 경로 매핑 규칙 추가 (.moai → .specify)
-- ✅ Python 환경 요구사항 명시 (Python ≥3.8, pytest)
-- ✅ Progressive Disclosure 구현 전략 추가
-- ✅ 에러 핸들링 정책 명시 (Fail-open)
-- ✅ 통합 일정 재조정 (10주 → 12주, Test-First 반영)
 
 ---
 
@@ -70,7 +48,7 @@ Phase 3: 구현
 
 Phase 4: 품질 관리
 ├─ /ms.review                  # 코드 품질 리뷰
-└─ /ms.update-docs             # Living Document 수동 업데이트 (→ ms.sync로 대체 예정)
+└─ /ms.up-docs                 # Living Document 자동 업데이트 (통합 문서 동기화)
 ```
 
 ### 1.2. 기존 Hooks 현황 분석
@@ -129,7 +107,7 @@ Phase 4: 품질 관리
 ┌──────────────────────────────────────────────────────┐
 │ Layer 2: SUB-AGENTS (전문 AI 팀, 19개)               │
 │ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
-│ spec-builder, code-builder, doc-syncer, tag-agent, ..│
+│ spec-builder, code-builder, doc-updater, tag-agent, ..│
 │ → My-Spec 도입: 핵심 8개 우선 (점진적 확장)           │
 └──────────────────────────────────────────────────────┘
               ↓
@@ -217,7 +195,7 @@ Phase 4: 품질 관리
 
 #### Python 환경 요구사항
 
-**Python 버전**: ≥3.13 (typing, pathlib,GIL 해제 지원)
+**Python 버전**: ≥3.13 (typing, pathlib,Free-Threading 지원)
 
 **필수 패키지**: 없음 (표준 라이브러리만 사용)
 
@@ -281,7 +259,7 @@ tier: foundation
 description: Constitution 자동 검증 (파일 크기, EARS, TRUST)
 triggers: ["코드 검토 요청", "파일 수정"]
 size: ~400 LOC
-model: haiku  # 빠른 검증
+model: haiku  # Claude Code 내부 모델 (빠른 검증)
 ---
 ```
 
@@ -310,6 +288,8 @@ model: haiku  # 빠른 검증
 #### My-Spec 도입 계획
 
 **Phase 1: Foundation Skills (5개)**
+
+**참고**: 모든 Sub-Agents는 Skills로 구현되어 Claude Code 내부에서 실행됩니다. Model 컬럼은 각 Skill이 사용할 Claude 모델(Haiku/Sonnet)을 지정합니다.
 
 | Skill 명 | 트리거 조건 | 기능 | 파일 크기 | Model |
 |---------|-----------|------|---------|-------|
@@ -403,17 +383,17 @@ Tier:
 
 #### My-Spec 통합 방안
 
-**1. /ms.sync 명령어 추가 (Universal Document Sync)**
+**1. /ms.up-docs 명령어 추가 (Universal Document Sync)**
 ```markdown
 ---
 description: "Universal document synchronization (Living Document)"
 ---
 
-# /ms.sync - Universal Document Synchronization
+# /ms.up-docs - Universal Document Synchronization
 
 통합 문서 동기화 시스템 (기존 ms.update-docs 대체)
 
-Delegates to `doc-syncer` agent:
+Delegates to `doc-updater` agent:
 1. Git 변경 파일 확인
 2. 문서 타입별 동기화 (병렬 실행):
    - API Docs (TAG 기반): docs/api/{TAG}.md
@@ -423,24 +403,24 @@ Delegates to `doc-syncer` agent:
 4. 동기화 보고서 생성
 
 Usage:
-/ms.sync               # 현재 세션 변경분 (기본)
-/ms.sync AUTH-001      # 특정 TAG만
-/ms.sync --docs=api    # API 문서만
-/ms.sync --docs=dev    # 개발 일지만
-/ms.sync --docs=readme # README만
-/ms.sync --all         # 전체 재생성
+/ms.up-docs               # 현재 세션 변경분 (기본)
+/ms.up-docs AUTH-001      # 특정 TAG만
+/ms.up-docs --docs=api    # API 문서만
+/ms.up-docs --docs=dev    # 개발 일지만
+/ms.up-docs --docs=readme # README만
+/ms.up-docs --all         # 전체 재생성
 ```
 
 **통합 효과**:
 - ✅ 중복 제거: 기존 ms.update-docs, fin, finq의 문서 업데이트 로직 통합
-- ✅ 단일 진입점: 모든 문서 동기화 → /ms.sync
+- ✅ 단일 진입점: 모든 문서 동기화 → /ms.up-docs
 - ✅ 유지보수: 문서 로직이 1곳에 집중
 - ✅ 확장성: 새 문서 타입 추가 용이
 
-**2. doc-syncer Sub-Agent 구현**
+**2. doc-updater Sub-Agent 구현**
 ```yaml
 ---
-name: doc-syncer
+name: doc-updater
 description: "Universal document sync - CODE-FIRST 원칙 기반"
 tools: Read, Write, Edit, Grep, Glob
 model: haiku  # 빠른 문서 처리
@@ -462,29 +442,36 @@ Phase 3: 품질 검증 (3-5분)
 - 동기화 보고서 생성
 ```
 
-**3. fin/finq 워크플로우 통합**
+**3. fin/finq 워크플로우**
+
+**fin과 finq는 동일한 완료 단계의 옵션입니다**:
+
 ```bash
-# fin: 문서 동기화 → CI 체크 → 커밋 & 푸시
+# fin: dev_daily.md 업데이트 → CI 체크 → 커밋 & 푸시
 /fin
   ↓
-ms.sync(docs="all")  # api + dev + readme 모두 업데이트
+dev_daily.md 업데이트 (Git diff 분석 → AI 요약)
   ↓
-make ci              # CI 체크
+make ci              # CI 체크 (black, ruff, pytest)
   ↓
 git commit && push
 
-# finq: 문서 동기화 → 커밋 & 푸시 (CI 생략)
+# finq: dev_daily.md 업데이트 → 커밋 & 푸시 (CI 생략)
 /finq
   ↓
-ms.sync(docs="all")  # api + dev + readme 모두 업데이트
+dev_daily.md 업데이트 (Git diff 분석 → AI 요약)
   ↓
-git commit && push   # CI 생략
+git commit && push   # CI 생략 (시간 절약)
 ```
 
-**변경 사항**:
-- ✅ `/ms.update-docs` 제거 → `/ms.sync`로 완전 대체
-- ✅ `/fin`, `/finq` 리팩토링 → 문서 로직 제거, ms.sync 호출로 단순화
-- ✅ 중복 코드 90% 감소 (Git diff 분석 3회 → 1회)
+**차이점**:
+- **공통**: `docs/dev_daily.md` 자동 업데이트
+- **fin**: CI 체크 포함 (품질 보장)
+- **finq**: CI 생략 (빠른 커밋)
+
+**역할 구분**:
+- `/ms.up-docs`: API 문서, README 동기화 (선택적 수동 실행)
+- `/fin`, `/finq`: dev_daily.md 자동 업데이트 + Git 완료 작업 (필수)
 
 **4. TAG 체인 통합**
 ```
@@ -524,12 +511,12 @@ git commit && push   # CI 생략
 
 | Agent | Model | 역할 | 위임 명령어 | 상태 |
 |-------|-------|------|-----------|------|
-| **codebase-explorer** 🔍 | Gemini CLI | 코드베이스 패턴 탐색, 유사 기능 찾기 | /ms.plan 보조 | ✅ 구현 완료 |
-| **constitution-extractor** 📜 | Codex CLI | spec.md/plan.md → Constitution IX 추출 | /ms.constitution | ✅ 구현 완료 |
-| **integration-designer** 🔗 | Claude Code | 복잡한 기능 통합 전략 설계 | /ms.plan 보조 | ✅ 구현 완료 |
-| **tag-auditor** 🏷️ | Codex CLI | TAG 추적성 검증 (SPEC→TEST→CODE) | /ms.analyze | ✅ 구현 완료 |
-| **trust-validator** ✅ | Codex CLI | TRUST 5 원칙 검증 (Level 1-3) | /ms.analyze | ✅ 구현 완료 |
-| **library-researcher** 📚 | Gemini CLI | Context7 MCP로 최신 라이브러리 문서 조사 | /ms.plan 보조 | ✅ 구현 완료 |
+| **codebase-explorer** 🔍 | Haiku | 코드베이스 패턴 탐색, 유사 기능 찾기 | /ms.plan 보조 | ✅ 구현 완료 |
+| **constitution-extractor** 📜 | Haiku | spec.md/plan.md → Constitution IX 추출 | /ms.constitution | ✅ 구현 완료 |
+| **integration-designer** 🔗 | Opus | 복잡한 기능 통합 전략 설계 | /ms.plan 보조 | ✅ 구현 완료 |
+| **tag-auditor** 🏷️ | Haiku | TAG 추적성 검증 (SPEC→TEST→CODE) | /ms.analyze | ✅ 구현 완료 |
+| **trust-validator** ✅ | Haiku | TRUST 5 원칙 검증 (Level 1-3) | /ms.analyze | ✅ 구현 완료 |
+| **library-researcher** 📚 | Haiku | Context7 MCP로 최신 라이브러리 문서 조사 | /ms.plan 보조 | ✅ 구현 완료 |
 
 **Phase 1: 핵심 Agents (신규 개발 필요)**
 
@@ -541,9 +528,9 @@ git commit && push   # CI 생략
 
 | Agent | Model | 역할 | 위임 명령어 | 개발 주차 |
 |-------|-------|------|-----------|---------|
-| **implementation-planner** 📋 | Sonnet | 구현 전략, 라이브러리 선택 | /ms.plan | Week 10 |
+| **implementation-planner** 📋 | Opus | 구현 전략, 라이브러리 선택 | /ms.plan | Week 10 |
 | **tdd-implementer** 💎 | Sonnet | RED → GREEN → REFACTOR | /ms.implement | Week 10-11 |
-| **doc-syncer** 📖 | Haiku | Living Document 동기화 | /ms.sync (신규) | Week 7-8 |
+| **doc-updater** 📖 | Haiku | Living Document 동기화 | /ms.up-docs (신규) | Week 7-8 |
 
 **Phase 3: 고급 Agents (신규 개발 필요)**
 
@@ -554,19 +541,31 @@ git commit && push   # CI 생략
 
 **총 에이전트 수**: 기존 6개 + 신규 5개 = **11개**
 
-#### 모델 선택 가이드
+#### Model 선택 가이드
 
-| Model | 사용 사례 | 대표 Sub-agents | 선택 이유 |
-|-------|---------|---------------|---------|
-| **Haiku** | 문서 동기화, TAG 검증, 패턴 기반 작업 | doc-syncer, tag-auditor, quality-gate, Skills | 빠른 처리, 패턴 기반 작업 |
-| **Sonnet** | SPEC 작성, 구현 계획, 디버깅, 통합 설계 | spec-builder, implementation-planner, tdd-implementer, debug-helper | 깊은 추론, 창의적 문제 해결 |
-| **Gemini CLI** | 코드베이스 탐색, 라이브러리 조사 | codebase-explorer, library-researcher | 빠른 검색, Context7 MCP |
-| **Codex CLI** | Constitution 추출, TAG 검증, TRUST 검증 | constitution-extractor, tag-auditor, trust-validator | 코드 분석, 정적 검증 |
+**중요**: 모든 Sub-Agents는 **Skills**로 구현되어 Claude Code 내부에서 실행됩니다. Model 컬럼은 각 Skill이 사용할 Claude 모델을 지정합니다.
+
+| Model | 특성 | 담당 역할 | 대표 Sub-agents |
+|-------|------|----------|----------------|
+| **Haiku** | 빠른 처리, 패턴 매칭, 비용 효율 | 검증, 분석, 문서화, 패턴 기반 작업 | codebase-explorer, constitution-extractor, tag-auditor, trust-validator, library-researcher, doc-updater, quality-gate |
+| **Sonnet** | 깊은 추론, 복잡한 코드 작성 | SPEC 작성, TDD 구현, 디버깅 | spec-builder, tdd-implementer, debug-helper |
+| **Opus** | 최고 수준 추론, 복잡한 아키텍처 설계 | 통합 전략, 구현 계획, 아키텍처 설계 | integration-designer, implementation-planner |
+
+**Skills 기반 통합 아키텍처 장점**:
+- ✅ 일관성: 모든 Agent가 Skills 메커니즘 사용 (MCP CLI 제거)
+- ✅ Progressive Disclosure: Context 효율성 극대화
+- ✅ 단순성: 하나의 실행 환경 (Claude Code)
+- ✅ 비용 효율: Haiku(58%) + Sonnet(25%) + Opus(17%) 최적 분배
+
+**MoAI-ADK와의 차이점**:
+- ✅ MoAI-ADK: Task tool + MCP CLI 혼용
+- ✅ My-Spec: Skills 기반 통합 (모든 Agent를 Skills로 구현)
+- ✅ 이유: 일관성 있는 아키텍처, Progressive Disclosure 활용
 
 #### Agent Persona 패턴 예시
 
 ```yaml
-## 🎭 Agent Persona (doc-syncer)
+## 🎭 Agent Persona (doc-updater)
 
 Icon: 📖
 Job: Technical Writer
@@ -589,27 +588,27 @@ User: /ms.implement
 My-Spec Orchestrator (Claude) →
     ↓
 ┌──────────────────────────────────────────┐
-│ Phase 1: library-researcher (Gemini CLI)│
+│ Phase 1: library-researcher (Haiku)      │
 │ - Context7 MCP 최신 라이브러리 문서 조사  │
 │ - API 패턴 추출                          │
 ├──────────────────────────────────────────┤
-│ Phase 2: implementation-planner (Sonnet) │
+│ Phase 2: implementation-planner (Sonnet)      │
 │ - Read SPEC                              │
 │ - Analyze requirements                   │
 │ - Select libraries (library-researcher 참고) │
 │ - Design TAG chain                       │
 ├──────────────────────────────────────────┤
-│ Phase 3: tdd-implementer (Sonnet)        │
+│ Phase 3: tdd-implementer (Sonnet)               │
 │ - RED: Write failing test (@TEST:ID)     │
 │ - GREEN: Implement code (@CODE:ID)       │
 │ - REFACTOR: Improve quality              │
 │ - Step 3: TAG 블록 자동 삽입 (기존 기능)  │
 ├──────────────────────────────────────────┤
-│ Auto-invoked: tag-auditor (Codex CLI)    │
+│ Auto-invoked: tag-auditor (Haiku)           │
 │ - Scan TAG blocks                        │
 │ - Verify chain integrity (SPEC→TEST→CODE)│
 ├──────────────────────────────────────────┤
-│ Auto-invoked: trust-validator (Codex CLI)│
+│ Auto-invoked: trust-validator (Haiku)   │
 │ - TRUST 5 principles (Level 2)           │
 │ - Coverage ≥85%                          │
 └──────────────────────────────────────────┘
@@ -622,6 +621,89 @@ My-Spec Orchestrator (Claude) →
 
 ---
 
+### 🚨 통합 구현 원칙 (CRITICAL)
+
+**MoAI-ADK 기능을 이식할 때 반드시 준수해야 할 원칙**:
+
+#### 1. **My-Spec 워크플로우 우선 (Workflow-First)**
+- ✅ **DO**: My-Spec의 11단계 워크플로우에 맞춰 기능 조정
+- ❌ **DON'T**: MoAI-ADK 워크플로우를 그대로 복사
+
+**예시**:
+```
+❌ Bad: MoAI의 .moai/config.json을 그대로 가져오기
+✅ Good: .specify/memory/constitution.md (기존 구조) 활용
+```
+
+#### 2. **경로 매핑 철저히 (Path Mapping)**
+- ✅ **DO**: `.moai/*` → `.specify/*` 경로 변환 규칙 적용
+- ❌ **DON'T**: 하드코딩된 `.moai` 경로 방치
+
+**체크리스트**:
+```python
+# ❌ Bad
+checkpoint_path = ".moai/checkpoints.log"
+
+# ✅ Good  
+checkpoint_path = ".specify/checkpoints.log"
+```
+
+#### 3. **기존 기능과 충돌 방지 (Conflict Avoidance)**
+- ✅ **DO**: 기존 기능 우선 활용 (예: TAG 블록 자동 삽입은 /ms.implement에 이미 존재)
+- ❌ **DON'T**: 동일 기능 중복 구현
+
+**확인 사항**:
+- [ ] 기존 /ms.implement의 TAG 삽입 기능 확인
+- [ ] 기존 constitution-injector.sh 기능 확인
+- [ ] 중복 제거 또는 통합 방안 수립
+
+#### 4. **Skills 기반 통합 (Skills-First)**
+- ✅ **DO**: 모든 Sub-Agents를 Skills로 구현
+- ❌ **DON'T**: MCP CLI 혼용 (Gemini CLI, Codex CLI 제거)
+
+**이유**: 일관성, Progressive Disclosure, 단순성
+
+#### 5. **Test-First 개발 (TDD)**
+- ✅ **DO**: RED → GREEN → REFACTOR 순서 준수
+- ❌ **DON'T**: 테스트 없이 구현
+
+**모든 Phase에 필수**:
+```bash
+# 1. 테스트 작성 (RED)
+tests/hooks/test_session_hooks.py
+
+# 2. 최소 구현 (GREEN)
+.claude/hooks/ms/ms_hooks.py
+
+# 3. 리팩토링 (REFACTOR)
+```
+
+#### 6. **점진적 마이그레이션 (Incremental)**
+- ✅ **DO**: 기존 hooks와 병행 운영 후 검증
+- ❌ **DON'T**: 기존 hooks 즉시 삭제
+
+**전략**:
+```
+Week 1-2: MoAI hooks 구현
+Week 3: 병행 운영 (기존 + 신규)
+Week 4: 기존 hooks 제거 (검증 완료 후)
+```
+
+---
+
+### ⚠️ 흔한 실수 방지
+
+| 실수 | 결과 | 올바른 방법 |
+|------|------|------------|
+| MoAI 경로 그대로 사용 | 파일 못 찾음 | `.moai` → `.specify` 변환 |
+| MoAI 워크플로우 그대로 복사 | My-Spec과 충돌 | My-Spec 11단계에 맞춰 조정 |
+| 기존 기능 무시하고 재구현 | 중복, 충돌 | 기존 기능 재사용 또는 통합 |
+| Task tool + MCP CLI 혼용 | 복잡도 증가 | 100% Skills 기반 |
+| 테스트 없이 구현 | 품질 저하 | TDD 철저히 준수 |
+
+---
+
+
 ## 4. 통합 순서 및 전략
 
 ### 4.1. 의존성 분석
@@ -633,7 +715,7 @@ Skills (Layer 3) ← Hooks와 독립적
     ↓
 Sub-Agents (Layer 2) ← Skills 활용
     ↓
-Living-Docs ← Sub-agents(doc-syncer) 필요
+Living-Docs ← Sub-agents(doc-updater) 필요
 ```
 
 ### 4.2. 추천 통합 순서 (순차적, Test-First)
@@ -650,7 +732,7 @@ Living-Docs ← Sub-agents(doc-syncer) 필요
   - [ ] tag-enforcer.ts 기능 파악 (@IMMUTABLE 보호, TAG 체인 검증)
   - [ ] notify.sh 사용 여부 확인 (미사용 시 제거)
 - [ ] Python 환경 설정
-  - [ ] Python 버전 ≥3.8 확인
+  - [ ] Python 버전 ≥3.13 확인
   - [ ] pytest, pytest-cov 설치
   - [ ] `.claude/hooks/ms/` 디렉토리 생성
 - [ ] 경로 매핑 규칙 문서화
@@ -934,27 +1016,27 @@ Living-Docs ← Sub-agents(doc-syncer) 필요
 
 **목표**: 통합 문서 동기화 시스템 구축 (Test-First)
 
-##### **Phase 3.1: /ms.sync 명령어 구현 (Week 7, TDD)**
+##### **Phase 3.1: /ms.up-docs 명령어 구현 (Week 7, TDD)**
 
 **구현 항목**:
 - [ ] **RED** (2-3시간)
   - [ ] `tests/commands/test_ms_sync.py` 작성
     ```python
     def test_sync_api_docs():
-        result = run_command("/ms.sync --docs=api")
+        result = run_command("/ms.up-docs --docs=api")
         assert "docs/api/AUTH-001.md" in result["files_updated"]
 
     def test_sync_dev_daily():
-        result = run_command("/ms.sync --docs=dev")
+        result = run_command("/ms.up-docs --docs=dev")
         assert "docs/dev_daily.md" in result["files_updated"]
 
     def test_sync_all():
-        result = run_command("/ms.sync --all")
+        result = run_command("/ms.up-docs --all")
         assert len(result["files_updated"]) >= 3  # api + dev + readme
     ```
 - [ ] **GREEN** (3-4시간)
-  - [ ] `.claude/commands/ms.sync.md` 작성
-  - [ ] doc-syncer Agent 호출 로직
+  - [ ] `.claude/commands/ms.up-docs.md` 작성
+  - [ ] doc-updater Agent 호출 로직
 - [ ] **REFACTOR** (1시간)
   - [ ] 에러 핸들링 개선
 
@@ -962,13 +1044,13 @@ Living-Docs ← Sub-agents(doc-syncer) 필요
 
 ---
 
-##### **Phase 3.2: doc-syncer Agent 구현 (Week 7-8, TDD)**
+##### **Phase 3.2: doc-updater Agent 구현 (Week 7-8, TDD)**
 
 **구현 항목**:
 - [ ] **RED** (2-3시간)
   - [ ] `tests/agents/test_doc_syncer.py` 작성
 - [ ] **GREEN** (5-7시간)
-  - [ ] `.claude/agents/doc-syncer.md` 작성
+  - [ ] `.claude/agents/doc-updater.md` 작성
   - [ ] Phase 1: Git diff 분석
   - [ ] Phase 2: 병렬 문서 동기화 (api, dev, readme)
   - [ ] Phase 3: TAG 체인 검증
@@ -984,10 +1066,10 @@ Living-Docs ← Sub-agents(doc-syncer) 필요
 **구현 항목**:
 - [ ] `/fin` 리팩토링 (1-2시간)
   - [ ] 문서 로직 제거
-  - [ ] ms.sync(docs="all") 호출 추가
+  - [ ] ms.up-docs(docs="all") 호출 추가
 - [ ] `/finq` 리팩토링 (1-2시간)
   - [ ] 문서 로직 제거
-  - [ ] ms.sync(docs="all") 호출 추가
+  - [ ] ms.up-docs(docs="all") 호출 추가
 - [ ] **테스트** (1시간)
   - [ ] `/fin` 실행 확인 (문서 동기화 → CI → 커밋)
   - [ ] `/finq` 실행 확인 (문서 동기화 → 커밋)
@@ -1010,9 +1092,9 @@ Living-Docs ← Sub-agents(doc-syncer) 필요
 **Phase 3 총 예상 시간**: 19-27시간 (기존 12-15시간에서 증가)
 
 **Phase 3 완료 기준**:
-- [ ] /ms.sync --docs=api → TAG 기반 문서 생성
-- [ ] /ms.sync --docs=dev → dev_daily.md 업데이트
-- [ ] /ms.sync --docs=readme → README.md 업데이트
+- [ ] /ms.up-docs --docs=api → TAG 기반 문서 생성
+- [ ] /ms.up-docs --docs=dev → dev_daily.md 업데이트
+- [ ] /ms.up-docs --docs=readme → README.md 업데이트
 - [ ] /fin 실행 시 모든 문서 자동 동기화 (CI 포함)
 - [ ] /finq 실행 시 모든 문서 자동 동기화 (CI 생략)
 - [ ] TAG 체인 무결성 100%
@@ -1161,7 +1243,7 @@ Living-Docs ← Sub-agents(doc-syncer) 필요
 - [ ] 마이그레이션 전략 선택 (점진적 대체 vs 병행)
 
 **Python 환경**:
-- [ ] Python 버전 ≥3.8 확인
+- [ ] Python 버전 ≥3.13 확인
 - [ ] pytest 설치: `pip install pytest pytest-cov`
 - [ ] ms_hooks.py 실행 권한 부여: `chmod +x .claude/hooks/ms/ms_hooks.py`
 
@@ -1203,7 +1285,7 @@ Developer B: Skills 구현 (Week 4-6)
 
 ```
 Track A 완료 후:
-→ Phase 3: Living-Docs 구현 (doc-syncer Agent, ms.sync)
+→ Phase 3: Living-Docs 구현 (doc-updater Agent, ms.up-docs)
 ```
 
 #### **Track C: AI 팀 (Week 9-12)** 👤 순차 개발
@@ -1314,10 +1396,10 @@ Track B 완료 후:
   - [ ] Foundation Workflow (2개)
   - [ ] Language Packs (2개)
 - ✅ Living-Docs 시스템 가동 (문서 정확도 100%)
-  - [ ] /ms.sync 정상 작동
+  - [ ] /ms.up-docs 정상 작동
   - [ ] fin/finq 통합 완료
 - ✅ 기존 6개 Agents 활용 (tag-auditor, trust-validator, library-researcher 등)
-- ✅ 신규 2개 Agent 운영 (spec-builder, doc-syncer)
+- ✅ 신규 2개 Agent 운영 (spec-builder, doc-updater)
 - ✅ 개발자 피드백 긍정적 (학습 곡선 수용 가능)
 
 ### 7.2. 6개월 후 달성 목표
@@ -1351,8 +1433,8 @@ Phase 2: Skills (Week 4-6)          🔴 CRITICAL
          └─→ Phase 2.3: Language Packs (2 Skills, TDD)
 
 Phase 3: Living-Docs (Week 7-8)     🔴 CRITICAL
-         ├─→ Phase 3.1: /ms.sync 구현 (TDD)
-         ├─→ Phase 3.2: doc-syncer Agent (TDD)
+         ├─→ Phase 3.1: /ms.up-docs 구현 (TDD)
+         ├─→ Phase 3.2: doc-updater Agent (TDD)
          ├─→ Phase 3.3: fin/finq 리팩토링
          └─→ Phase 3.4: ms.update-docs 제거
 
@@ -1436,22 +1518,3 @@ pytest tests/hooks/ -v
   - tag-enforcer.ts (PreToolUse, @IMMUTABLE 보호)
 
 ---
-
-**문서 버전**: 2.0.0
-**최종 업데이트**: 2025-10-25
-**작성자**: Claude Sonnet 4.5
-**상태**: Ready for Implementation
-**다음 단계**: Phase 1.0 (기존 hooks 마이그레이션 준비) 시작
-
-**주요 변경사항 (v1.0.0 → v2.0.0)**:
-- ✅ 기존 hooks 마이그레이션 전략 추가 (Phase 1.0)
-- ✅ Test-First 원칙 전면 적용 (RED → GREEN → REFACTOR)
-- ✅ Small units 준수 (Phase 2 세분화)
-- ✅ settings.json → settings.local.json 수정
-- ✅ 경로 매핑 규칙 추가 (.moai → .specify)
-- ✅ Python 환경 요구사항 명시
-- ✅ Progressive Disclosure 구현 전략
-- ✅ 에러 핸들링 정책 (Fail-open)
-- ✅ 모델 선택 가이드 추가
-- ✅ 통합 일정 재조정 (10주 → 12주)
-- ✅ 위험 완화 체크리스트 추가

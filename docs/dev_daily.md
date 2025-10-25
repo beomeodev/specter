@@ -19,6 +19,9 @@
   - Progressive Disclosure 구현 전략 추가
   - 에러 핸들링 정책 명시 (Fail-open)
   - 통합 일정 재조정 (10주 → 12주)
+- .claude/settings.local.json 업데이트 (Bash 권한에 git config 추가)
+- README.md 업데이트 (현재 상태 반영)
+- docs/todo.md 업데이트 (My-Spec 초기화 워크플로우 진행 중)
 
 ---
 
