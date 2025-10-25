@@ -217,7 +217,7 @@ Phase 4: 품질 관리
 
 #### Python 환경 요구사항
 
-**Python 버전**: ≥3.8 (typing, pathlib 지원)
+**Python 버전**: ≥3.13 (typing, pathlib,GIL 해제 지원)
 
 **필수 패키지**: 없음 (표준 라이브러리만 사용)
 
