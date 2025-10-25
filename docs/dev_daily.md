@@ -9,6 +9,16 @@
 - ms.review.md 정리 단계 개선 (상세 임시 파일 목록 및 보존 정책 명시)
 - .specify/design/review-optimization-plan.md 삭제 (구현 완료된 설계 문서)
 - docs/todo.md 업데이트 (MoAI/Skills 통합 작업 계획)
+- spec.md v2.0.0 전면 업데이트 (MoAI-ADK 통합 전략 완전 재작성)
+  - Phase 1.0 추가: 기존 hooks 마이그레이션 전략 (constitution-injector.sh, tag-enforcer.ts)
+  - Test-First 원칙 전면 적용 (모든 Phase에 RED → GREEN → REFACTOR)
+  - Small units 준수: Phase 2 Skills 7개 → 3단계 분할
+  - settings.json → settings.local.json 수정
+  - 경로 매핑 규칙 추가 (.moai → .specify)
+  - Python 환경 요구사항 명시 (Python ≥3.8, pytest)
+  - Progressive Disclosure 구현 전략 추가
+  - 에러 핸들링 정책 명시 (Fail-open)
+  - 통합 일정 재조정 (10주 → 12주)
 
 ---
 
