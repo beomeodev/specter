@@ -197,7 +197,7 @@ Based on complexity determined above:
 2. Returns `TASK_STARTED:{task_id}` immediately
 3. Agents execute independently (no blocking)
 4. Use `get_task_result(task_id, wait=True)` to retrieve results
-5. Python 3.14 free-threading enables real parallelism (no GIL)
+5. Python 3.13+ free-threading (optional) enables real parallelism; otherwise uses asyncio tasks
 
 **Debug Output** (for transparency):
 ```json
@@ -233,6 +233,8 @@ Execute `/speckit.specify` with Constitution-enhanced context:
 ```
 /speckit.specify $ARGUMENTS
 ```
+
+**Agent Delegation**: This internally uses the **spec-builder** agent (Sonnet model) for EARS pattern conversion and SPEC document generation.
 
 This creates the specification in `specs/{SPEC_ID}/spec.md` with AI automatically following EARS and TRUST principles.
 

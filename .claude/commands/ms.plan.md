@@ -168,7 +168,7 @@ Based on complexity determined above:
     **Step 2: All 3 agents work independently in parallel**
     - Gemini explores codebase and libraries (no blocking)
     - Claude designs integration strategy
-    - True parallel execution via Python 3.14 free-threading
+    - True parallel execution via Python 3.13+ free-threading (optional) or asyncio tasks
 
     **Step 3: Retrieve results when needed**
     ```python
@@ -187,7 +187,7 @@ Based on complexity determined above:
 2. Returns `TASK_STARTED:{task_id}` immediately
 3. Agents execute independently (no blocking)
 4. Use `get_task_result(task_id, wait=True)` to retrieve results
-5. Python 3.14 free-threading enables real parallelism (no GIL)
+5. Python 3.13+ free-threading (optional) enables real parallelism; otherwise uses asyncio tasks
 
 **Debug Output** (for transparency):
 ```json
@@ -223,6 +223,10 @@ Execute `/speckit.plan` with Constitution-enhanced context:
 ```
 /speckit.plan
 ```
+
+**Agent Delegation**: This internally uses the **implementation-planner** agent (Opus model) for architectural design, library selection, and TAG chain planning. For complex features, it also delegates to:
+- **library-researcher** (Haiku) - Latest library documentation via Context7 MCP
+- **codebase-explorer** (Haiku) - Existing patterns and architecture analysis
 
 This creates the implementation plan in `specs/{SPEC_ID}/plan.md` with AI automatically following architectural principles.
 

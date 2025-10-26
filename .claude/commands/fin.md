@@ -1,12 +1,50 @@
 ---
-description: "Finish workflow: update daily log → CI checks → commit & push"
+description: "Finish workflow: sync docs → update daily log → CI checks → commit & push"
 ---
 
 다음 작업을 순서대로 실행하세요:
 
-## 1. 📝 일일 작업 로그 업데이트
+## 1. 📄 Living Documents 동기화 (/ms.up-docs)
 
-현재 세션의 작업 내용을 분석하여 `docs/dev_daily.md`를 업데이트하세요:
+**NEW**: 코드 변경사항을 Living Documents에 반영합니다.
+
+### 실행
+
+```bash
+/ms.up-docs --docs=dev
+```
+
+**동작**:
+- **Git 변경사항 분석**: `git diff --cached` (staged files only)
+- **dev_daily.md 자동 업데이트**: Git diff 요약을 타임스탬프와 함께 추가
+- **TAG 체인 검증**: @SPEC → @TEST → @CODE 무결성 확인
+- **API 문서 동기화** (staged changes 포함 시): `docs/api/{TAG}.md` 생성/업데이트
+
+**출력 예시**:
+```
+✅ Document sync complete
+
+📦 Files Updated:
+- docs/dev_daily.md (appended)
+- docs/api/AUTH-001.md (updated)
+
+📋 TAG Integrity: 95.0% (23/24 complete chains)
+
+⏱️ Duration: 3.2 seconds
+```
+
+**에러 처리**:
+- **No staged changes**: ⚠️ 경고 출력 후 다음 단계 진행 (dev_daily.md 수동 업데이트로 fallback)
+- **TAG 무결성 낮음** (<80%): ⚠️ 경고 출력하지만 워크플로우 계속 진행
+
+---
+
+## 2. 📝 일일 작업 로그 검토 (fallback)
+
+**Note**: Step 1의 `/ms.up-docs`가 dev_daily.md를 이미 업데이트했습니다.
+이 단계는 `/ms.up-docs` 실패 시 fallback으로만 사용됩니다.
+
+현재 세션의 작업 내용을 분석하여 `docs/dev_daily.md`를 검토하세요:
 
 ### 분석 항목
 - 변경된 파일 목록 확인 (git status 또는 대화 내용 기반)
@@ -50,7 +88,14 @@ description: "Finish workflow: update daily log → CI checks → commit & push"
 
 ---
 
-## 2. 🚀 CI 체크 실행
+## 3. 🚀 CI 체크 실행
+
+**Agent Delegation**: This step uses the **quality-gate** agent (Haiku model) to perform TRUST validation before committing:
+- Test coverage ≥85% (MANDATORY)
+- All tests passing
+- Zero type errors
+- Zero lint warnings
+- TAG integrity validation
 
 다음 명령어를 실행하여 코드 품질 검증:
 
@@ -63,7 +108,7 @@ make ci
 - `isort --check-only .` (import 정렬)
 - `ruff check .` (린트)
 - `mypy src/` (타입 체크)
-- `pytest -v --cov=src` (테스트)
+- `pytest -v --cov=src` (테스트 ≥85% coverage)
 
 **결과 처리**:
 - ✅ **통과**: 다음 단계 진행
@@ -71,7 +116,7 @@ make ci
 
 ---
 
-## 3. 💾 Git 커밋 및 푸시
+## 4. 💾 Git 커밋 및 푸시
 
 ### Pre-commit Hook 처리 전략
 
@@ -136,13 +181,14 @@ feat(strategy): MACD 기반 기술적 분석 추가
 
 ---
 
-## 4. ✅ 완료 메시지
+## 5. ✅ 완료 메시지
 
 모든 단계 완료 후 출력:
 
 ```
 ✅ /fin 완료!
 
+📄 Living Documents 동기화 완료 (/ms.up-docs)
 📝 dev_daily.md 업데이트 완료
 🚀 CI 체크 통과
 💾 커밋: [생성한 메시지]
@@ -153,17 +199,34 @@ feat(strategy): MACD 기반 기술적 분석 추가
 
 ## ⚠️ 주의사항
 
-1. **dev_daily.md 업데이트 시**:
+1. **/ms.up-docs 통합**:
+   - **NEW**: Step 1에서 `/ms.up-docs --docs=dev` 자동 실행
+   - dev_daily.md가 자동으로 업데이트됨 (Git diff 기반)
+   - TAG 체인 무결성 자동 검증
+   - Staged changes 없으면 경고 후 계속 진행 (fallback to manual update)
+
+2. **dev_daily.md 업데이트 시** (fallback only):
    - 기존 내용을 절대 삭제하지 마세요
    - 오늘 날짜 섹션에 내용 추가만
    - Focus는 오늘 날짜 섹션이 처음 생성될 때만 작성
 
-2. **CI 실패 시**:
+3. **CI 실패 시**:
    - 즉시 중단
    - 어떤 체크가 실패했는지 명확히 출력
    - 커밋/푸시 하지 않음
 
-3. **Git 동작**:
+4. **Git 동작**:
    - Makefile의 finish 타겟과 동일하게 처리
    - 커밋 실패 시에도 에러 메시지만 출력하고 계속 진행
    - Push 실패 시에도 에러 메시지만 출력하고 워크플로우 완료
+
+5. **워크플로우 순서 (UPDATED)**:
+   ```
+   /ms.up-docs --docs=dev  # Step 1: Living Docs 동기화
+   ↓
+   (dev_daily.md 검토)     # Step 2: Fallback only
+   ↓
+   make ci                 # Step 3: CI 체크
+   ↓
+   git commit && push      # Step 4: 커밋 및 푸시
+   ```

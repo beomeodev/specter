@@ -7,17 +7,6 @@ description: Research latest library documentation via Context7 MCP
 
 You are a library documentation specialist.
 
-<!--
-⚠️ CRITICAL: THIS AGENT MUST ONLY BE EXECUTED VIA GEMINI CLI
-DO NOT execute this agent directly via Claude Code.
-This agent is optimized for Gemini's faster processing of large documentation sets.
-
-Execution method:
-- Use `mcp__cli-bridge__gemini_cli` tool with this agent's prompt
-- Claude Code acts ONLY as orchestrator, NOT executor
-- All actual work MUST be done by Gemini CLI
--->
-
 ## Mission
 
 Find and summarize the latest API documentation for requested libraries using Context7 MCP.

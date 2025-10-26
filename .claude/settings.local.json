@@ -1,43 +1,19 @@
 {
   "permissions": {
     "allow": [
+      "SlashCommand(/speckit.tasks)",
       "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
-      "Bash(if [ -d \"/workspace/my-spec/specs/001-my-spec-spec/checklists\" ])",
-      "Bash(then echo \"EXISTS\")",
-      "Bash(else echo \"NOT_EXISTS\")",
-      "Bash(fi)",
+      "Bash(awk:*)",
+      "SlashCommand(/speckit.analyze)",
+      "Bash(git --version:*)",
       "Bash(mkdir:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(python3:*)",
+      "Bash(rg:*)",
+      "Bash(pytest:*)",
       "Bash(find:*)",
-      "Bash(tree:*)",
-      "Bash(npm search @anthropics/cli-bridge-mcp)",
-      "Bash(git add:*)",
-      "Bash(if [ -f .pre-commit-config.yaml ])",
-      "Bash(then)",
-      "Bash(pre-commit run:*)",
-      "Read(//tmp/**)",
-      "Bash(docker compose:*)",
-      "Bash(tee:*)",
-      "WebFetch(domain:github.com)",
-      "WebFetch(domain:docs.facefusion.io)",
-      "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(git config --global push.autoSetupRemote true)",
-      "WebSearch",
-      "Bash(then pre-commit run --all-files)",
-      "Bash(git diff:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)",
-      "Bash(git rebase:*)",
-      "Bash(git clone:*)",
-      "Bash(for f in /workspace/specter/.claude/commands/ms.*.md)",
-      "Bash(done)",
-      "Bash(git pull:*)",
-      "Bash(git reset:*)",
-      "Bash(git stash:*)",
-      "Bash(git rm:*)",
-      "Bash(rm:*)",
-      "Bash(date:*)",
-      "Bash(git log:*)",
-      "Bash(git config:*)"
+      "Bash(cat:*)",
+      "Bash(xargs:*)"
     ],
     "deny": [],
     "ask": []
@@ -46,5 +22,57 @@
   "enabledMcpjsonServers": [
     "cli-bridge",
     "context7"
-  ]
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/ms/ms_hooks.py SessionStart"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/ms/ms_hooks.py SessionEnd"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/ms/ms_hooks.py UserPromptSubmit"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/ms/ms_hooks.py PreToolUse"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/ms/ms_hooks.py PostToolUse"
+          }
+        ]
+      }
+    ]
+  }
 }

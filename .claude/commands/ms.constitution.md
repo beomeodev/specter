@@ -1,5 +1,5 @@
 ---
-description: "Extract project constraints to constitution Section IX"
+description: "Extract project constraints from `plan.md` to constitution `Section IX`"
 ---
 
 # /ms.constitution - Extract Project Constraints & Rules
@@ -360,9 +360,13 @@ Replace or create Section IX with merged constraints:
 - TypeScript with strict mode
 - Vitest for testing
 
-❌ **Forbidden**:
-- AST parsers (use regex instead)
-- Complex frameworks without justification
+⚠️ **Use with Caution**:
+- Custom AST parsers (prefer established tools: ESLint, TSC API, ast stdlib)
+- Complex frameworks (require justification in plan.md)
+
+✅ **Safe AST Usage**:
+- Read-only analysis (ESLint, complexity metrics)
+- Approved tools: @typescript-eslint/parser, ast (Python), esprima
 
 ### Dependencies
 
@@ -399,30 +403,34 @@ Replace or create Section IX with merged constraints:
 
 **Update root AGENTS.md** (must exist):
 
-1. **Search for Section 14 header**:
+1. **Search for PROJECT_RULES slot**:
    ```bash
-   grep -n "^## 14\. Project-Specific Rules" AGENTS.md
+   grep -n "PROJECT_RULES_START" AGENTS.md
    ```
 
-2. **IF Section 14 found**:
+2. **IF PROJECT_RULES slot found** (expected case):
    - Read AGENTS.md
-   - Find Section 14 start: `## 14. Project-Specific Rules (Section IX)`
-   - Find Section 14 end: Next `## 13.` line or `---` separator
-   - **Replace content** between start and end with updated {SECTION_IX_CONTENT}
-   - Use Edit tool with old_string (entire Section 14) → new_string (updated Section 14)
-
-3. **IF Section 14 NOT found**:
-   - Read AGENTS.md
-   - Find insertion point: Before final `---` separator or before Section 13
-   - **Insert new Section 14**:
+   - Find slot start: `<!-- PROJECT_RULES_START -->`
+   - Find slot end: `<!-- PROJECT_RULES_END -->`
+   - **Replace content** between markers with updated {SECTION_IX_CONTENT}
+   - Use Edit tool with old_string (entire block including comments) → new_string (updated block)
+   - Example:
      ```markdown
-     ## 14. Project-Specific Rules (Section IX)
-
-     [This section is auto-populated by `/ms.constitution` from Constitution Section IX]
-
+     <!-- PROJECT_RULES_START -->
      {SECTION_IX_CONTENT}
+     <!-- PROJECT_RULES_END -->
+     ```
 
-     ---
+3. **IF PROJECT_RULES slot NOT found** (legacy fallback):
+   - Read AGENTS.md
+   - Find insertion point: Before final `---` separator
+   - **Insert new PROJECT_RULES slot**:
+     ```markdown
+     <!-- PROJECT_RULES_START -->
+     <!-- This section is auto-populated by /ms.constitution with project-specific rules -->
+     <!-- DO NOT manually edit this section -->
+     {SECTION_IX_CONTENT}
+     <!-- PROJECT_RULES_END -->
      ```
    - Use Edit tool to insert at appropriate location
 

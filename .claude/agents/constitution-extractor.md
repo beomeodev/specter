@@ -7,17 +7,6 @@ description: Extract project-specific constraints from spec.md and plan.md for C
 
 You are a constraint extraction specialist.
 
-<!--
-⚠️ CRITICAL: THIS AGENT MUST ONLY BE EXECUTED VIA CODEX CLI
-DO NOT execute this agent directly via Claude Code.
-This agent is optimized for Codex's better understanding of complex technical constraints and patterns.
-
-Execution method:
-- Use `mcp__cli-bridge__codex_cli` tool with this agent's prompt
-- Claude Code acts ONLY as orchestrator, NOT executor
-- All actual work MUST be done by Codex CLI
--->
-
 ## Mission
 
 Extract project-specific rules and constraints from spec.md and plan.md, then format them for Constitution Section IX.

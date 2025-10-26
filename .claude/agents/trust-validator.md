@@ -7,17 +7,6 @@ description: Validate code against TRUST 5 principles (Test-First, Readable, Uni
 
 You are a TRUST principles validation specialist.
 
-<!--
-⚠️ CRITICAL: THIS AGENT MUST ONLY BE EXECUTED VIA CODEX CLI
-DO NOT execute this agent directly via Claude Code.
-This agent is optimized for Codex's better deep code analysis and security scanning capabilities.
-
-Execution method:
-- Use `mcp__cli-bridge__codex_cli` tool with this agent's prompt
-- Claude Code acts ONLY as orchestrator, NOT executor
-- All actual work MUST be done by Codex CLI
--->
-
 ## Mission
 
 Validate code against the TRUST 5 principles at different thoroughness levels.

@@ -1,12 +1,54 @@
 ---
-description: "Quick finish: update daily log → commit & push (NO CI checks)"
+description: "Quick finish: sync docs → update daily log → commit & push (NO CI checks)"
 ---
 
 다음 작업을 순서대로 실행하세요:
 
-## 1. 📝 일일 작업 로그 업데이트
+## 1. 📄 Living Documents 동기화 (/ms.up-docs)
 
-현재 세션의 작업 내용을 분석하여 `docs/dev_daily.md`를 업데이트하세요:
+**NEW**: 코드 변경사항을 Living Documents에 빠르게 반영합니다.
+
+### 실행
+
+```bash
+/ms.up-docs --docs=dev
+```
+
+**동작**:
+- **Git 변경사항 분석**: `git diff --cached` (staged files only)
+- **dev_daily.md 자동 업데이트**: Git diff 요약을 타임스탬프와 함께 추가
+- **TAG 체인 검증**: @SPEC → @TEST → @CODE 무결성 확인 (빠른 스캔)
+- **API 문서 동기화** (staged changes 포함 시): `docs/api/{TAG}.md` 생성/업데이트
+
+**Quick mode 최적화**:
+- Staged changes만 처리 (전체 스캔 없음)
+- TAG 검증은 기본만 수행 (상세 검증 생략)
+- API 문서는 변경된 파일만 업데이트
+
+**출력 예시**:
+```
+✅ Document sync complete (Quick mode)
+
+📦 Files Updated:
+- docs/dev_daily.md (appended)
+
+📋 TAG Integrity: 95.0% (quick scan)
+
+⏱️ Duration: 1.8 seconds
+```
+
+**에러 처리**:
+- **No staged changes**: ⚠️ 경고 출력 후 다음 단계 진행 (dev_daily.md 수동 업데이트로 fallback)
+- **TAG 무결성 낮음** (<80%): ⚠️ 경고 출력하지만 워크플로우 계속 진행 (나중에 /fin으로 검증)
+
+---
+
+## 2. 📝 일일 작업 로그 검토 (fallback)
+
+**Note**: Step 1의 `/ms.up-docs`가 dev_daily.md를 이미 업데이트했습니다.
+이 단계는 `/ms.up-docs` 실패 시 fallback으로만 사용됩니다.
+
+현재 세션의 작업 내용을 분석하여 `docs/dev_daily.md`를 검토하세요:
 
 ### 분석 항목
 - 변경된 파일 목록 확인 (git status 또는 대화 내용 기반)
@@ -50,7 +92,7 @@ description: "Quick finish: update daily log → commit & push (NO CI checks)"
 
 ---
 
-## 1.5. 📄 README.md 자동 최신화
+## 2.5. 📄 README.md 자동 최신화 (Optional)
 
 ### 분석 항목
 
@@ -186,7 +228,7 @@ else:
 
 ---
 
-## 2. 💾 Git 커밋 및 푸시 (CI 체크 생략)
+## 3. 💾 Git 커밋 및 푸시 (CI 체크 생략)
 
 ### Pre-commit Hook 처리 전략
 
@@ -252,13 +294,14 @@ wip(strategy): MACD 신호 생성 로직 작업 중
 
 ---
 
-## 3. ✅ 완료 메시지
+## 4. ✅ 완료 메시지
 
 모든 단계 완료 후 출력:
 
 ```
 ✅ /finq 완료! (Quick mode - CI 생략)
 
+📄 Living Documents 동기화 완료 (/ms.up-docs)
 📝 dev_daily.md 업데이트 완료
 💾 커밋: [생성한 메시지]
 🚀 Push 완료 (또는 실패 시 에러 메시지)
@@ -270,23 +313,47 @@ wip(strategy): MACD 신호 생성 로직 작업 중
 
 ## ⚠️ 주의사항
 
-1. **dev_daily.md 업데이트 시**:
+1. **/ms.up-docs 통합 (Quick mode)**:
+   - **NEW**: Step 1에서 `/ms.up-docs --docs=dev` 자동 실행
+   - dev_daily.md가 자동으로 업데이트됨 (Git diff 기반)
+   - TAG 체인 무결성 빠른 검증 (상세 검증은 /fin에서 수행)
+   - Staged changes 없으면 경고 후 계속 진행 (fallback to manual update)
+   - **Performance**: Staged changes만 처리하여 속도 최적화 (~2초)
+
+2. **dev_daily.md 업데이트 시** (fallback only):
    - 기존 내용을 절대 삭제하지 마세요
    - 오늘 날짜 섹션에 내용 추가만
    - Focus는 오늘 날짜 섹션이 처음 생성될 때만 작성
 
-2. **CI 생략됨**:
+3. **CI 생략됨**:
    - 이 명령어는 빠른 커밋을 위해 CI 체크를 건너뜁니다
    - 코드 품질 검증은 나중에 `/fin` 또는 `make ci`로 수행하세요
    - 작업 중(WIP) 커밋에 적합합니다
 
-3. **Git 동작**:
+4. **Git 동작**:
    - Makefile의 finish 타겟과 동일하게 처리 (CI 제외)
    - 커밋 실패 시에도 에러 메시지만 출력하고 계속 진행
    - Push 실패 시에도 에러 메시지만 출력하고 워크플로우 완료
 
-4. **사용 시나리오**:
+5. **사용 시나리오**:
    - 작업 중간 백업 목적
    - 빠르게 원격에 올려야 할 때
    - 문서만 수정했을 때
    - 실험적인 코드 커밋
+
+6. **워크플로우 순서 (UPDATED)**:
+   ```
+   /ms.up-docs --docs=dev  # Step 1: Living Docs 동기화 (Quick)
+   ↓
+   (dev_daily.md 검토)     # Step 2: Fallback only
+   ↓
+   (README.md 업데이트)    # Step 2.5: Optional
+   ↓
+   git commit && push      # Step 3: 커밋 및 푸시 (CI 생략)
+   ```
+
+7. **/fin vs /finq 차이점**:
+   - `/fin`: **Full** - /ms.up-docs → CI → commit → push
+   - `/finq`: **Quick** - /ms.up-docs (staged only) → commit → push (CI 생략)
+   - TAG 검증: /fin은 상세, /finq는 빠른 스캔
+   - API 문서: /fin은 전체 동기화 가능, /finq는 staged changes만

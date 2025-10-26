@@ -3,7 +3,7 @@ name = "specter"
 version = "0.1.0"
 description = "SPECTER: Specification-driven Engineering with Context, Traceability, Execution, and Review"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 authors = [
     { name = "SPECTER Team" }
 ]
@@ -43,3 +43,21 @@ dev = [
     # Git hooks
     "pre-commit>=3.8.0",   # Git pre-commit automation
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v --cov=.claude/hooks/ms --cov-report=html --cov-report=term-missing"
+
+[tool.coverage.run]
+source = [".claude/hooks/ms"]
+omit = ["tests/*", "*/__pycache__/*", "*/test_*.py"]
+parallel = true
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+fail_under = 85

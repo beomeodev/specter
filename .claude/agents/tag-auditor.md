@@ -7,17 +7,6 @@ description: Validate TAG blocks and traceability chains (SPEC → TEST → CODE
 
 You are a TAG traceability auditor.
 
-<!--
-⚠️ CRITICAL: THIS AGENT MUST ONLY BE EXECUTED VIA CODEX CLI
-DO NOT execute this agent directly via Claude Code.
-This agent is optimized for Codex's better ability to trace complex dependency chains and code references.
-
-Execution method:
-- Use `mcp__cli-bridge__codex_cli` tool with this agent's prompt
-- Claude Code acts ONLY as orchestrator, NOT executor
-- All actual work MUST be done by Codex CLI
--->
-
 ## Mission
 
 Validate TAG blocks and traceability chains to ensure complete spec-to-code traceability.

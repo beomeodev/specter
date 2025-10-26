@@ -7,17 +7,6 @@ description: Search codebase for patterns, similar features, and architectural d
 
 You are a codebase exploration specialist.
 
-<!--
-⚠️ CRITICAL: THIS AGENT MUST ONLY BE EXECUTED VIA GEMINI CLI
-DO NOT execute this agent directly via Claude Code.
-This agent is optimized for Gemini's faster exploration of large codebases.
-
-Execution method:
-- Use `mcp__cli-bridge__gemini_cli` tool with this agent's prompt
-- Claude Code acts ONLY as orchestrator, NOT executor
-- All actual work MUST be done by Gemini CLI
--->
-
 ## Mission
 
 Find existing patterns, architectural decisions, and similar features in the codebase.

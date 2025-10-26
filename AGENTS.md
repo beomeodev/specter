@@ -226,8 +226,11 @@ if status == STATUS_COMPLETED:
 
 **Config file locations**:
 
-- Backend: `backend/src/config.py`
-- Frontend: `frontend/src/config.ts`
+- **Simple projects**: `src/config.{py,ts}`
+- **Backend**: `backend/src/config.py`
+- **Frontend**: `frontend/src/config.ts`
+
+**Note**: TAG utilities and CI scripts scan all of: `src/`, `backend/src/`, `frontend/src/`, `tests/`, `backend/tests/`, `frontend/tests/`
 
 ---
 

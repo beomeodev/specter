@@ -66,7 +66,7 @@ extract_domain() {
 ```bash
 count_tags_for_domain() {
   local domain="$1"
-  rg "@SPEC:${domain}-" -c src tests 2>/dev/null | awk -F: '{sum+=$2} END {print sum+0}'
+  rg "@SPEC:${domain}-" -c src tests backend/src frontend/src 2>/dev/null | awk -F: '{sum+=$2} END {print sum+0}'
 }
 ```
 

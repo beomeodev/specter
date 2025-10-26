@@ -174,6 +174,12 @@ Now implement TAG: {TAG_ID}
 
 Execute `/speckit.implement {TAG_ID}` with Constitution-enhanced context.
 
+**Agent Delegation**: This internally uses the **tdd-implementer** agent (Sonnet model) for:
+- RED: Writing failing tests first
+- GREEN: Implementing minimum code to pass tests
+- REFACTOR: Improving code quality while keeping tests green
+- Auto-inserting TAG blocks via **ms-workflow-tag-manager** skill
+
 This generates the core implementation files (code, tests) following Constitution principles.
 
 ### Step 3: Insert TAG Blocks
@@ -184,8 +190,8 @@ Locate generated files and insert TAG metadata.
 
 Scan for newly created files:
 
--   **Code files**: `src/**/*.{ts,py}`
--   **Test files**: `tests/**/*.{ts,py}`
+-   **Code files**: `src/**/*.{ts,py}`, `backend/src/**/*.{ts,py}`, `frontend/src/**/*.{ts,py,vue}`
+-   **Test files**: `tests/**/*.{ts,py}`, `backend/tests/**/*.{ts,py}`, `frontend/tests/**/*.{ts,py}`
 -   **Spec file**: From tasks.md TAG chain
 
 #### 3.2 Insert TAG Blocks
