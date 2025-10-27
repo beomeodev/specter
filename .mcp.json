@@ -1,12 +1,5 @@
 {
   "mcpServers": {
-    "cli-bridge": {
-      "command": "python3",
-      "args": [
-        "/workspace/specter/.mcp-servers/cli-bridge/server.py"
-      ],
-      "env": {}
-    },
     "context7": {
       "command": "npx",
       "args": [

@@ -820,15 +820,14 @@ specter/
 - **Context7 MCP**: 최신 라이브러리 문서 조회
   - library-researcher 에이전트에서 사용
   - resolve-library-id, get-library-docs tools
-  - 실시간 공식 문서 접근
+  - 실시간 공식 문서 접근 (FastAPI, React, Next.js 등)
 
 **Multi-Agent System**:
 - **Claude Code 내장 에이전트** (Task tool 사용):
-  - **Opus 4**: implementation-planner (전략적 아키텍처 설계)
-  - **Sonnet 3.5**: tdd-implementer, spec-builder (TDD 구현, 사양 작성)
-  - **Haiku 3.5**: codebase-explorer, library-researcher, doc-updater (탐색, 문서화)
-- 진정한 병렬 실행 (SINGLE message, MULTIPLE Task calls)
-- 비용 최적화 (고가 모델은 전략적 작업에만 사용)
+  - **Opus 4**: implementation-planner (전략적 아키텍처 설계), integration-designer (코드 리뷰 + ultrathink)
+  - **Sonnet 3.5**: spec-builder (EARS 사양 작성), tdd-implementer (TDD 구현), debug-helper (에러 진단)
+  - **Haiku 3.5**: library-researcher, codebase-explorer, constitution-extractor, tag-auditor, trust-validator, doc-updater, quality-gate
+- 비용 최적화 (고가 모델은 전략적 작업에만 사용: Haiku 58%, Sonnet 25%, Opus 17%)
 
 **컨테이너 환경**:
 - Docker Compose 기반 DevContainer
@@ -857,39 +856,38 @@ specter/
 
 ---
 
-## 🚀 MoAI-ADK Integration
+## 🚀 Core Architecture
 
-SPECTER integrates Mo AI-ADK's 4 core features for enhanced automation and quality enforcement:
+SPECTER combines 4 core systems for automated quality enforcement:
 
 ### Core Features
 
-1. **Hooks** (Python 3.13+)
-   - **SessionStart**: Project status card (language, Git, SPEC progress, TAG integrity)
-   - **PreToolUse**: **@IMMUTABLE protection** (blocks edits to protected files, Git checkpoints, audit logging)
+1. **Hooks System** (Python 3.13+)
+   - **SessionStart**: Project status display (language, Git branch, changes)
+   - **SessionEnd**: Session cleanup
+   - **PreToolUse**: Git checkpoints before risky operations
    - **PostToolUse**: Auto-formatting (Prettier, Black)
    - **UserPromptSubmit**: Constitution context injection for sub-agents
-   - **SessionEnd**: Unlock registry cleanup (session-scoped security)
    - **Fail-Open Principle**: All hook errors exit with code 0 (never block workflows)
 
-2. **Skills** (11 Skills Complete, Progressive Disclosure)
-   - **Foundation** (5): constitution, trust, ears, tag-manager, living-docs
+2. **Skills System** (9 Skills, Auto-Triggered)
+   - **Foundation** (3): constitution, trust, ears
    - **Language** (2): typescript, python
-   - **Essentials** (2): **debug** (new), **review** (new)
+   - **Essentials** (2): debug, review
    - **Workflow** (2): tag-manager, living-docs
 
-3. **Living-Docs** (CODE-FIRST)
+3. **Living Documentation** (CODE-FIRST)
    - `/ms.up-docs`: Universal document synchronization
    - Auto-generated API docs from @CODE tags
    - Auto-updated dev daily from Git diffs
-   - **TAG integrity scan includes .md files** (ripgrep --type-add)
-   - **SPEC progress parsing from Markdown metadata** (not YAML)
-   - 30min → 2min (93% reduction)
+   - TAG integrity validation (ripgrep-based)
+   - Performance: 30min → 2min (93% reduction)
 
-4. **Sub-Agents** (11 total: 6 existing + 5 new)
-   - spec-builder, **implementation-planner** (delegation support)
-   - tdd-implementer, doc-updater, debug-helper
-   - **quality-gate** (new: TRUST validation + TAG auditing)
-   - Model distribution: Haiku 58%, Sonnet 25%, Opus 17%
+4. **Sub-Agents System** (12 agents with model optimization)
+   - **Opus (2, 17%)**: implementation-planner, integration-designer
+   - **Sonnet (3, 25%)**: spec-builder, tdd-implementer, debug-helper
+   - **Haiku (7, 58%)**: library-researcher, codebase-explorer, constitution-extractor, tag-auditor, trust-validator, doc-updater, quality-gate
+   - Cost-optimized: High-value models for strategic tasks only
 
 ### Quick Start
 
@@ -907,7 +905,7 @@ claude code .
 /ms.implement
 
 # Sync all docs (Living-Docs)
-/ms.up-docs --all
+/ms.up-docs --docs=dev
 
 # Finish with quality gate
 /fin
@@ -922,13 +920,43 @@ claude code .
 | **Constitution compliance** | 70% | 95% | 25% improvement |
 | **Context usage** | 100% | 60% | 40% reduction |
 
-### Documentation
+---
 
-- [Migration Guide](docs/migration/moai-integration-guide.md) - Setup, timeline, rollback
-- [Hooks Guide](docs/guides/hooks-guide.md) - 4 events, examples
-- [Skills Guide](docs/guides/skills-guide.md) - Progressive Disclosure, 11 Skills
-- [Living-Docs Guide](docs/guides/living-docs-guide.md) - /ms.up-docs usage
-- [Agents Guide](docs/guides/agents-guide.md) - 11 agents, collaboration patterns
+## 🔄 Recent Updates (2025-10-27)
+
+### Architecture Refactoring (Completed ✅)
+
+**MCP CLI-Bridge Migration**:
+- Removed dependency on custom MCP CLI-Bridge
+- Full transition to Claude Code's built-in Task tool
+- All 12 sub-agents now use native Claude Code agent system
+- Improved reliability and reduced external dependencies
+
+**SessionStart Hook Optimization**:
+- Simplified project status display
+- Removed SPEC progress counter (focusing on Git changes)
+- Streamlined output for faster session initialization
+
+**Pre-commit Hook Logging**:
+- Added error/warning logging to `docs/log/pre-commit/`
+- Timestamped log files: `pre-commit-YYYYMMDD-HHMMSS.log`
+- Only logs on errors (keeps directory clean)
+- Full context capture for troubleshooting
+
+### Known Limitations
+
+**Sub-Agent Execution**:
+- Current: Sub-agents run sequentially within single Task call
+- Future: True parallel execution via multiple Task calls in development
+
+**Language Support**:
+- Primary: English (EARS requirements, documentation)
+- Korean: Infrastructure planned, partial implementation
+- Translation: Korean input → English EARS in spec-builder agent
+
+**File Organization**:
+- `korean/` command directories planned but not yet created
+- Backend/frontend AGENTS.md structure defined, examples pending
 
 ---
 

@@ -1,5 +1,5 @@
 ---
-description: "Code quality review after implementation (post-implement step)"
+description: "Code quality review after implementation"
 ---
 
 # /ms.review - Code Quality Review
@@ -576,28 +576,5 @@ Install with: npm install -g jscpd
 
 Review will continue with remaining checks.
 ```
-
----
-
-## Performance Optimization
-
-**Phase 1-3 Optimizations (IMPLEMENTED)**:
-
-1. **Changed files priority** (git diff) - 98% file reduction → 3-10x faster
-2. **Single-pass ripgrep** - 10 calls → 1 call → 70% I/O reduction
-3. **Parallel execution** - jscpd + eslint + radon + rg concurrently → 60% faster
-4. **File hash caching** (SHA1) - Skip unchanged files on re-run → 80% reduction
-5. **Conditional tools** - jscpd only if files >200 LOC, comment review only if complexity >7
-6. **Real-time pattern aggregation** - Incremental counting during Step 5 → 80% reduction
-7. **Context document caching** - Load spec.md/plan.md once → 85% I/O reduction
-
-**Expected Runtime**:
-
-| Scenario | Before | After | Improvement |
-|----------|--------|-------|-------------|
-| Small PR (5 files) | 30s | **5s** | 83% ↓ |
-| Medium PR (20 files) | 60s | **12s** | 80% ↓ |
-| Large PR (100 files) | 120s | **32s** | 73% ↓ |
-| Re-run (cache hit) | 60s | **10s** | 83% ↓ |
 
 ---

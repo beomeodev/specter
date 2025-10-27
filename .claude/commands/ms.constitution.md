@@ -40,11 +40,11 @@ Read **BOTH** spec.md AND plan.md:
 - plan.md contains technical/architectural decisions → constraints (e.g., "files ≤500 SLOC")
 - Both contribute to project rules in Section IX
 
-### 2.5. Adaptive Constraint Extraction (Always Complex)
+### 3. Extract Constraints with Parallel Agents
 
-**This workflow always uses sub-agents** (constitution extraction is inherently multi-dimensional).
+**This workflow always uses 3 parallel agents** (constitution extraction is inherently multi-dimensional).
 
-**Step 1: Detect AGENTS.md Files**
+#### Step 1: Detect AGENTS.md Files
 
 ```bash
 # Check which AGENTS.md files exist
@@ -54,78 +54,14 @@ AGENTS_BACKEND=$([ -f "backend/AGENTS.md" ] && echo "1" || echo "0")
 AGENTS_TOTAL=$((AGENTS_ROOT + AGENTS_FRONTEND + AGENTS_BACKEND))
 ```
 
-**Step 2: Apply Agent Strategy**
+#### Step 2: Launch 3 Agents in PARALLEL
 
-Launch 3 sub-agents in PARALLEL (single message with 3 Task calls):
+**CRITICAL**: Use single message with 3 Task calls (not sequential).
 
-1. **constitution-extractor agent**:
-   ```
-   "Extract project-specific constraints from spec.md and plan.md for Constitution Section IX"
-   ```
+**Agent 1: constitution-extractor** (subagent_type="constitution-extractor")
 
-2. **AGENTS_Rules_Agent** (inline logic - no dedicated agent):
-       ```
-       Task: "Generate project-specific coding rules for existing AGENTS.md files"
-
-       Note: This remains as inline Task logic (not converted to agent file)
-       because it's highly specific to AGENTS.md generation workflow.
-
-       Workflow:
-       1. Detect which AGENTS.md files exist (root, frontend/, backend/)
-       2. Extract coding patterns from plan.md
-       3. Find concrete examples from existing code
-       4. Distribute rules appropriately:
-          - Root: Cross-cutting (API contracts, auth flow, data formats)
-          - Frontend: State management, component patterns, UI rules
-          - Backend: Database access, API implementation, external services
-       5. Ensure 300-500 tokens per file
-       6. Link all rules to source (FR-XXX/STEP-XXX)
-       7. Return: Rules per file with token counts
-       ```
-
-3. **trust-validator agent (level 1)**:
-   ```
-   "Validate extracted constraints for conflicts and completeness"
-
-   Note: Use level 1 for basic structure validation of Constitution constraints
-   ```
-
-**CRITICAL**: Always launch agents in PARALLEL (single message with multiple Task calls).
-
-**Debug Output** (for transparency):
-```json
-{
-  "agents_md_detected": {
-    "root": true,
-    "frontend": true,
-    "backend": false,
-    "total": 2
-  },
-  "agents_spawned": 3,
-  "tasks": [
-    "Constraint extraction for Section IX",
-    "Rules generation for 2 AGENTS.md files",
-    "Validation of constraints and rules"
-  ]
-}
 ```
-
-### 2.6. Synthesize Results
-
-**Merge findings from all agents**:
-- Constraints from Constraint_Extraction_Agent
-- Rules from AGENTS_Rules_Agent (if spawned)
-- Validation warnings from Validation_Agent
-- Resolve any conflicts identified
-- Prepare final content for Constitution Section IX and AGENTS.md files
-
-### 3. AI-Driven Constraint Extraction
-
-**Use AI to extract constraints from anywhere in documents** (not limited to specific sections):
-
-Prompt for AI:
-```
-Read the following documents and extract project-specific constraints for Constitution Section IX.
+Extract project-specific constraints from spec.md and plan.md for Constitution Section IX.
 
 **spec.md**:
 {spec_content}
@@ -183,6 +119,62 @@ Output format:
 ...
 ```
 ```
+
+**Agent 2: AGENTS.md Rules Generator** (subagent_type="general-purpose")
+
+```
+Generate project-specific coding rules for existing AGENTS.md files.
+
+Note: This uses general-purpose agent (not dedicated agent file)
+because it's highly specific to AGENTS.md generation workflow.
+
+Workflow:
+1. Detect which AGENTS.md files exist (root, frontend/, backend/)
+2. Extract coding patterns from plan.md
+3. Find concrete examples from existing code
+4. Distribute rules appropriately:
+   - Root: Cross-cutting (API contracts, auth flow, data formats)
+   - Frontend: State management, component patterns, UI rules
+   - Backend: Database access, API implementation, external services
+5. Ensure 300-500 tokens per file
+6. Link all rules to source (FR-XXX/STEP-XXX)
+7. Return: Rules per file with token counts
+```
+
+**Agent 3: trust-validator** (subagent_type="trust-validator", level=1)
+
+```
+Validate extracted constraints for conflicts and completeness (level 1).
+
+Note: Use level 1 for basic structure validation of Constitution constraints.
+```
+
+**Debug Output** (for transparency):
+```json
+{
+  "agents_md_detected": {
+    "root": true,
+    "frontend": true,
+    "backend": false,
+    "total": 2
+  },
+  "agents_spawned": 3,
+  "tasks": [
+    "Constraint extraction for Section IX",
+    "Rules generation for 2 AGENTS.md files",
+    "Validation of constraints and rules"
+  ]
+}
+```
+
+#### Step 3: Synthesize Results
+
+**Merge findings from all agents**:
+- Constraints from constitution-extractor agent
+- Rules from AGENTS.md Rules Generator (if AGENTS.md files exist)
+- Validation warnings from trust-validator agent
+- Resolve any conflicts identified
+- Prepare final content for Constitution Section IX and AGENTS.md files
 
 ### 4. Merge with Existing Section IX
 
@@ -587,37 +579,3 @@ After `/ms.constitution`:
 4. Constitution + Agent Rules now complete ✅
 
 **Note**: `/ms.constitution` must run AFTER `/ms.plan` (plan.md is required for constraint extraction)
-
-## Notes
-
-### Constitution (Section IX)
-- **AI-driven extraction**: No rigid section structure required
-- **Sources**: spec.md + plan.md
-- **Merge strategy**: Preserves manual additions, deduplicates, keeps newer
-- **Scope**: Project-specific constraints (Sections I-XIII are universal)
-
-### AGENTS.md (Project-Specific Rules)
-- **Multi-file support**: Root, frontend/, backend/ (auto-detect)
-- **Token budget**: 300-500 per file (strictly enforced)
-- **Content**: Coding patterns only (no business logic)
-- **Source tracking**: All rules linked to FR-XXX/STEP-XXX
-- **Update strategy**: Replace "🎯 Project-Specific Rules" section (idempotent)
-- **No file creation**: Only update existing AGENTS.md files
-
-## Implementation Details
-
-**Tools**:
-- Read: spec.md, plan.md, constitution.md, AGENTS.md (root, frontend/, backend/)
-- Edit: constitution.md (Section IX), AGENTS.md files (Project-Specific Rules section)
-
-**File Size Targets**:
-- Constitution Section IX: ≤200 lines (base template excluded)
-- Each AGENTS.md Project Rules: 300-500 tokens (≈60-100 lines)
-
-**Processing Order**:
-1. Extract Constitution constraints (Section IX)
-2. Auto-detect existing AGENTS.md files
-3. Extract rules for each detected file
-4. Update Constitution
-5. Update AGENTS.md files
-6. Report combined results

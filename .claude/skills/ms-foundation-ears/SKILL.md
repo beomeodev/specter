@@ -1,11 +1,6 @@
 ---
 name: ms-foundation-ears
-description: Validates requirements using EARS syntax (5 patterns). Use when writing or reviewing specifications to ensure clarity and testability.
-allowed-tools:
-  - Read
-  - Grep
-version: 1.0.0
-created: 2025-10-26
+description: Requirements validation skill that enforces EARS syntax (Ubiquitous SHALL, Event-driven WHEN, State-driven WHILE, Optional WHERE, Constraints IF patterns), detects ambiguous forbidden phrases (fast, secure, user-friendly), ensures measurability and testability with clear pass/fail criteria, and provides concrete rewrite suggestions for non-compliant requirements
 ---
 
 # Foundation: EARS Requirements Validation

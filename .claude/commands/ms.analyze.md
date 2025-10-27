@@ -2,25 +2,41 @@
 description: "Document consistency + TRUST validation (2-step process)"
 ---
 
-# /ms.analyze - Document Consistency + TRUST Validation
+# /ms.analyze - Spec-Kit + TRUST Comprehensive Validation
 
-Validates that tasks match spec requirements, then performs progressive 3-level TRUST quality checks.
+**Wrapper command** that adds My-Spec's TRUST validation on top of Spec-Kit's document consistency checks.
 
 ## Overview
 
-This command performs a **2-step validation process**:
+This command is a **wrapper** that enhances `/speckit.analyze` with TRUST code-level validation.
 
-**Step 1: Document Consistency** (via `/speckit.analyze`)
+**Pipeline**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│ /ms.analyze = /speckit.analyze + TRUST 3-Level Validation  │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  Step 1: Spec-Kit Foundation (via /speckit.analyze)        │
+│  ├─ Document consistency (spec↔plan↔tasks)                  │
+│  ├─ Constitution alignment                                   │
+│  ├─ Coverage gaps, ambiguity, duplication                    │
+│  └─ EXIT if CRITICAL issues found                           │
+│                                                              │
+│  Step 2: My-Spec Enhancement (TRUST Validation)            │
+│  ├─ Level 1: Structure (tests/, .gitignore, file sizes)     │
+│  ├─ Level 2: Quality (tests run, lint, typecheck)           │
+│  ├─ Level 3: Deep (coverage, complexity, security, TAGs)    │
+│  └─ EXIT if CRITICAL issues found (at each level)           │
+│                                                              │
+│  Step 3: Unified Report                                     │
+│  └─ Merge both analyses into single comprehensive report    │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
 
--   Validates tasks.md faithfully implements all spec.md requirements
--   Checks for missing requirements, inconsistencies, orphaned tasks
--   **BLOCKS if inconsistencies found**
-
-**Step 2: TRUST 3-Level Validation** (My-Spec addition)
-
--   **Level 1**: Structure checks - BLOCKS if CRITICAL
--   **Level 2**: Quality checks - BLOCKS if CRITICAL
--   **Level 3**: Deep analysis - WARNS only
+**Key Difference from `/speckit.analyze`**:
+- `/speckit.analyze`: Document-level analysis (WHAT to build correctly)
+- `/ms.analyze`: Code-level validation (HOW to build with quality)
 
 **Execution Modes**:
 
@@ -29,63 +45,62 @@ This command performs a **2-step validation process**:
 
 ## Execution Steps
 
-### Step 0: Load Project Context
+### Step 1: Spec-Kit Foundation (Document Consistency)
 
-**Auto-load project documents**:
-- `.specify/memory/constitution.md` (Constitution - REQUIRED)
-- `AGENTS.md` (AI instructions, coding standards - if exists)
-- `specs/[spec-id]/spec.md` (Feature specification - REQUIRED)
-- `specs/[spec-id]/tasks.md` (Task list - REQUIRED)
+Execute `/speckit.analyze` for comprehensive document analysis:
 
-**IF Constitution, spec.md, or tasks.md missing**:
-- Display error: "Required files missing. Run `/ms.init`, `/ms.specify`, and `/ms.tasks` first."
-- Exit
-
-**Reference for analysis**:
-- Constitution Section II (Simplicity-First - file size limits: ≤500 SLOC)
-- Constitution Section V (TRUST Principles - test coverage ≥85%, security, readability)
-- Constitution Section IX (Project-specific constraints - **if exists**, added by `/ms.constitution`)
-- AGENTS.md (coding standards, complexity limits ≤10 - if exists)
-
-**These documents guide TRUST validation to apply project-specific rules.**
-
-### Step 1: Document Consistency Check
-
-Execute `/speckit.analyze` for spec-tasks consistency:
-
-```
+```bash
 /speckit.analyze
 ```
 
-This validates:
+This validates **(Spec-Kit scope)**:
+- ✅ All spec.md functional requirements (FR) have corresponding tasks
+- ✅ No orphaned tasks (tasks without spec requirements)
+- ✅ Task descriptions accurately reflect spec requirements
+- ✅ Constitution alignment (all sections, including Section IX project constraints)
+- ✅ No ambiguity, duplication, underspecification
+- ✅ Implementation order follows dependencies
 
--   All spec.md functional requirements (FR) have corresponding tasks
--   No orphaned tasks (tasks without spec requirements)
--   Task descriptions accurately reflect spec requirements
--   Implementation order follows dependencies
-
-**IF INCONSISTENCIES FOUND**:
+**IF CRITICAL ISSUES FOUND**:
 
 ```
-❌ Document Consistency Failed
+❌ /speckit.analyze Failed
 
-Tasks.md does not fully implement spec.md requirements.
+CRITICAL issues detected:
+- Constitution violation: Missing test coverage requirement in plan.md
+- Coverage gap: FR-3 (Password reset) has no tasks
+- Ambiguity: "fast response" in NFR-5 not measurable
 
-Missing requirements:
-- FR-3: Password reset functionality
-- FR-7: Rate limiting
+BLOCKING: Cannot proceed to TRUST validation until resolved.
 
-Orphaned tasks:
-- T023: Add Redis caching (no corresponding FR)
-
-Please update tasks.md and re-run /ms.analyze
+Fix these issues:
+1. Add tasks for FR-3 in tasks.md
+2. Define "fast" as "< 200ms p95" in spec.md
+3. Update plan.md to include test coverage strategy
+4. Run /ms.analyze again to verify
 ```
 
 **EXIT**: Code 1 (cannot proceed to TRUST validation)
 
-**IF CONSISTENT**: Display success and proceed to Step 1.5
+**IF PASSED**:
+
+```
+✅ /speckit.analyze PASSED
+
+Document Consistency: ✅
+- All requirements covered
+- Constitution aligned
+- Zero ambiguities
+- Zero coverage gaps
+
+Proceeding to TRUST code-level validation...
+```
+
+Proceed to Step 1.5 (My-Spec TRUST validation)
 
 ### Step 1.5: Adaptive TRUST Analysis (Quantitative Decision)
+
+**This is My-Spec's enhancement** - adds code-level quality validation on top of Spec-Kit's document analysis.
 
 **Step 1: Measure Project Size (Mandatory)**
 
@@ -318,24 +333,33 @@ validate_tag_integrity() {
 -   **HIGH/MEDIUM/LOW violations**: Display warnings, continue
 -   **No timeout** - runs to completion with progress display
 
-### Step 3: Summarize Results
+### Step 3: Generate Unified Report
+
+Merge findings from both analyses:
 
 ```
-┌─────────────────────────────────────────────┐
-│ TRUST Validation Report                     │
-├─────────────────────────────────────────────┤
-│ Level Reached: 3/3                          │
-│ Implementation: ✅ ALLOWED                  │
-├─────────────────────────────────────────────┤
-│ CRITICAL: 0                                 │
-│ HIGH:     2 ⚠️                              │
-│ MEDIUM:   3 ℹ️                              │
-│ LOW:      1 ℹ️                              │
-├─────────────────────────────────────────────┤
-│ High Priority Issues:                       │
-│ • Coverage 78% < 85% (add tests)            │
-│ • Function complexity 12 > 10 (refactor)    │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ /ms.analyze - Comprehensive Quality Report                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│ ✅ Spec-Kit Analysis (Document Consistency)                │
+│    - All requirements covered                               │
+│    - Constitution aligned                                   │
+│    - Zero ambiguities                                       │
+│    - Zero coverage gaps                                     │
+│                                                              │
+│ ✅ TRUST Validation (Code Quality)                         │
+│    - Level 1: Structure ✅                                  │
+│    - Level 2: Quality ✅                                    │
+│    - Level 3: Deep ⚠️ (2 HIGH warnings)                    │
+│                                                              │
+│ Implementation: ✅ ALLOWED                                  │
+│                                                              │
+│ ⚠️ High Priority Issues:                                   │
+│ • Coverage 78% < 85% (add tests)                            │
+│ • Function complexity 12 > 10 (refactor auth.ts:45)         │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### Step 4: Report Output
@@ -366,27 +390,28 @@ validate_tag_integrity() {
 **Display to user**:
 
 ```
-✅ Document Consistency: PASSED
-   All spec.md requirements reflected in tasks.md
-
-✅ TRUST Validation: LEVEL 3 REACHED
-   Implementation: ALLOWED
-
-┌─────────────────────────────────────────────┐
-│ TRUST Validation Report                     │
-├─────────────────────────────────────────────┤
-│ Level Reached: 3/3                          │
-│ Implementation: ✅ ALLOWED                  │
-├─────────────────────────────────────────────┤
-│ CRITICAL: 0                                 │
-│ HIGH:     2 ⚠️                              │
-│ MEDIUM:   3 ℹ️                              │
-│ LOW:      1 ℹ️                              │
-├─────────────────────────────────────────────┤
-│ High Priority Issues:                       │
-│ • Coverage 78% < 85% (add tests)            │
-│ • Function complexity 12 > 10 (refactor)    │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ /ms.analyze - Comprehensive Quality Report                  │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│ ✅ Spec-Kit Analysis (Document Consistency)                │
+│    - All requirements covered                               │
+│    - Constitution aligned                                   │
+│    - Zero ambiguities                                       │
+│    - Zero coverage gaps                                     │
+│                                                              │
+│ ✅ TRUST Validation (Code Quality)                         │
+│    - Level 1: Structure ✅                                  │
+│    - Level 2: Quality ✅                                    │
+│    - Level 3: Deep ⚠️ (2 HIGH warnings)                    │
+│                                                              │
+│ Implementation: ✅ ALLOWED                                  │
+│                                                              │
+│ ⚠️ High Priority Issues:                                   │
+│ • Coverage 78% < 85% (add tests)                            │
+│ • Function complexity 12 > 10 (refactor auth.ts:45)         │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
 
 🎯 Next Step: /ms.implement (to start implementation with TAG auto-selection)
 ```
@@ -521,58 +546,132 @@ Skip slow checks when needed:
 
 ## Error Handling
 
--   **LEVEL1_CRITICAL**: Structure violations found
+### Error 1: Spec-Kit Analysis Failed (Document Level)
 
-    -   Example: "tests/ directory missing"
-    -   Fix: `mkdir tests`
+**Symptom**: `/speckit.analyze` detected CRITICAL issues
 
--   **LEVEL2_CRITICAL**: Quality violations found
+**Message**:
+```
+❌ /speckit.analyze Failed
 
-    -   Example: "Linting failed with 5 warnings"
-    -   Fix: `npm run lint --fix`
+CRITICAL issues detected:
+- Constitution violation: Missing test coverage requirement in plan.md
+- Coverage gap: FR-3 (Password reset) has no tasks
+- Ambiguity: "fast response" in NFR-5 not measurable
 
--   **LEVEL3_WARNINGS**: Deep analysis issues
+BLOCKING: Cannot proceed to TRUST validation until resolved.
 
-    -   Example: "Coverage 78% < 85%"
-    -   Suggestion: "Add tests for uncovered code"
+Fix these issues:
+1. Add tasks for FR-3 in tasks.md
+2. Define "fast" as "< 200ms p95" in spec.md
+3. Update plan.md to include test coverage strategy
+4. Run /ms.analyze again to verify
+```
 
--   **PROJECT_TYPE_NOT_DETECTED**: Cannot determine language
-    -   Severity: MEDIUM
-    -   Action: Skip Level 2, continue to Level 3
+**Action**: Fix document-level issues, then retry `/ms.analyze`
+
+---
+
+### Error 2: TRUST Level 1 Failed (Structure)
+
+**Symptom**: `/speckit.analyze` passed, but structure checks failed
+
+**Message**:
+```
+✅ Spec-Kit Analysis: PASSED
+❌ TRUST Level 1: FAILED
+
+CRITICAL issues:
+- tests/ directory missing
+- .env not in .gitignore
+
+Fix:
+1. mkdir tests
+2. echo ".env" >> .gitignore
+3. Re-run /ms.analyze
+```
+
+**Action**: Fix structure, then retry `/ms.analyze`
+
+---
+
+### Error 3: TRUST Level 2 Failed (Quality)
+
+**Symptom**: Structure passed, but quality checks failed
+
+**Message**:
+```
+✅ Spec-Kit Analysis: PASSED
+✅ TRUST Level 1: PASSED
+❌ TRUST Level 2: FAILED
+
+CRITICAL issues:
+- Linting failed with 5 warnings
+- Type checking failed with 3 errors
+
+Fix:
+1. npm run lint --fix
+2. Fix type errors in src/auth.ts:45, src/user.ts:120
+3. Re-run /ms.analyze
+```
+
+**Action**: Fix quality issues, then retry `/ms.analyze`
+
+---
+
+### Error 4: Project Type Not Detected
+
+**Symptom**: Cannot determine language for Level 2 checks
+
+**Message**:
+```
+⚠️ MEDIUM: Project type could not be detected
+
+No language-specific config found:
+- package.json (TypeScript/JavaScript)
+- pyproject.toml or requirements.txt (Python)
+- go.mod (Go)
+- Cargo.toml (Rust)
+
+Skipping Level 2 quality checks (tests, linting, type checking).
+Proceeding to Level 3 (TAG integrity, coverage, security).
+```
+
+**Action**: Acceptable - continues to Level 3
 
 ## Next Steps
 
-**If both Step 1 and Step 2 pass**:
+**If both Spec-Kit and TRUST pass**:
 
-1. Run `/ms.implement` to start implementation (auto-selects first pending TAG)
+1. ✅ Run `/ms.implement` to start implementation (auto-selects first pending TAG)
 2. All quality gates are green ✅
 
-**If Step 1 (document consistency) fails**:
+**If Spec-Kit analysis fails**:
 
-1. Update tasks.md to include missing spec requirements
-2. Remove orphaned tasks
-3. Re-run `/ms.analyze` to verify fixes
-4. Cannot proceed until spec-tasks consistency achieved
+1. Fix document-level issues (spec.md, plan.md, tasks.md)
+2. Address Constitution violations
+3. Resolve coverage gaps, ambiguities, duplications
+4. Re-run `/ms.analyze` to verify fixes
+5. **Cannot proceed to TRUST validation** until Spec-Kit passes
 
-**If Step 2 (TRUST validation) has CRITICAL violations**:
+**If TRUST validation has CRITICAL violations**:
 
 1. Fix violations using provided commands
 2. Re-run `/ms.analyze` to verify fixes
-3. Cannot proceed to `/ms.implement` until CRITICAL issues resolved
+3. **Cannot proceed to `/ms.implement`** until all CRITICAL issues resolved
 
-## Notes
+## Relationship to Other Commands
 
--   **2-step process**: Document consistency FIRST, then TRUST validation
--   **Step 1 is mandatory**: Must pass before TRUST validation runs
--   **Progressive execution**: TRUST levels only run if earlier levels pass (strict mode)
--   **No timeouts**: Runs to completion with progress display every 5 seconds
--   **Execution modes**: Strict (default, early termination) or Report (see all issues)
--   **Blocking behavior**: CRITICAL = cannot proceed, HIGH/MEDIUM = warnings only
--   **Fix guidance**: Each violation includes specific fix command
--   **Warning tracking**: HIGH warnings logged to `.specify/warnings.log`
--   **TAG integrity**: Critical for traceability, enforced in TRUST Level 3
--   **User control**: `--skip-tests`, `--skip-coverage`, `--fast` options available
+**Command Hierarchy**:
+```
+/speckit.analyze  (Foundation - Document level)
+    ↓
+/ms.analyze       (Wrapper - Document + Code level)
+    ↓
+/ms.implement     (Execution - Implementation with TAGs)
+```
 
-## Implementation Details
-
-**Tools**: SlashCommand (/speckit.analyze), Bash (tests, linting, type checking, ripgrep)
+**When to use each**:
+- `/speckit.analyze` only: Quick document consistency check (before `/ms.analyze`)
+- `/ms.analyze`: Full validation before implementation (recommended)
+- `/ms.implement`: After `/ms.analyze` passes

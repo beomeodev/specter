@@ -1,3 +1,7 @@
+---
+description: "Synchronizes Documents"
+---
+
 # /ms.up-docs - Universal Document Synchronization
 
 Synchronizes Living Documents with code changes based on Git staging area or specific document types.
@@ -389,8 +393,6 @@ CHANGELOG.md           # Change history (manual, updated by /fin)
 
 ## Notes
 
-- **No agent delegation**: /ms.up-docs is a direct command (no doc-updater agent in Phase 3.1)
-- **Phase 3.2 will add agent**: doc-updater agent for complex sync logic
 - **Fail-open**: Continues even if some docs fail to sync (logs warnings)
 - **Git-aware**: Respects .gitignore and doesn't sync ignored files
 

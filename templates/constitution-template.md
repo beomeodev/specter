@@ -1,8 +1,5 @@
 # Project Constitution: {PROJECT_NAME}
 
-**Version**: 1.0.0
-**Type**: Universal Standard
-
 ---
 
 ## Preamble
@@ -90,27 +87,27 @@ Does a mature, well-maintained tool exist?
 
 **Allowed Use Cases**:
 
-1️⃣ **Read-only Mode (분석 전용)**
+1️⃣ **Read-only Mode**
 
 -   Code analysis, metrics extraction, complexity measurement
 -   Example: ESLint complexity rules, code navigation
 -   Safety: No code modification, no side effects
 
-2️⃣ **Sandboxed Transformation (격리된 수정)**
+2️⃣ **Sandboxed Transformation**
 
 -   Parse → Clone AST → Modify clone → Generate new code
 -   Original code untouched, transformation isolated
 -   Example: Code refactoring, auto-formatting
 -   Safety: Original preserved, changes reviewable before applying
 
-3️⃣ **Sandbox AST Execution (제한된 eval)**
+3️⃣ **Sandbox AST Execution**
 
 -   Execute AST in restricted environment with no built-ins
 -   No access to file system, network, or external functions
 -   Example: Safe expression evaluation, config validation
 -   Safety: Isolated VM, no escape to host system
 
-4️⃣ **AST Diffing (비교 전용)**
+4️⃣ **AST Diffing**
 
 -   Compare two AST versions to detect structural changes
 -   Example: Code review automation, test change detection
@@ -407,7 +404,7 @@ Every requirement must clearly answer:
 
 ---
 
-#### T - Test First (테스트 우선)
+#### T - Test First
 
 **SPEC → Test → Code Cycle**:
 
@@ -432,7 +429,7 @@ Every requirement must clearly answer:
 
 ---
 
-#### R - Readable (가독성)
+#### R - Readable
 
 **Size Constraints**:
 
@@ -472,7 +469,7 @@ Every requirement must clearly answer:
 
 ---
 
-#### U - Unified (통합성)
+#### U - Unified
 
 **SPEC-Driven Architecture**:
 
@@ -502,7 +499,7 @@ Every requirement must clearly answer:
 
 ---
 
-#### S - Secured (보안)
+#### S - Secured
 
 **Input Validation**:
 
@@ -539,7 +536,7 @@ Every requirement must clearly answer:
 
 ---
 
-#### T - Trackable (추적성)
+#### T - Trackable
 
 **@TAG System (CODE-FIRST Principle)**:
 

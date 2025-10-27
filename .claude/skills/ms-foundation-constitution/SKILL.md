@@ -1,12 +1,6 @@
 ---
 name: ms-foundation-constitution
-description: Validates file size (≤500 SLOC) and complexity (≤10 per function) against Constitution Section II. Use when checking code quality constraints.
-allowed-tools:
-  - Read
-  - Bash
-  - Grep
-version: 1.0.0
-created: 2025-10-26
+description: Constitution Section II compliance validator for Simplicity-First Architecture that checks file size limits (≤500 SLOC excluding comments), function complexity using McCabe metrics (≤10 cyclomatic complexity), function length constraints (≤100 LOC), and provides actionable refactoring suggestions with split strategies when violations detected
 ---
 
 # Foundation: Constitution Compliance

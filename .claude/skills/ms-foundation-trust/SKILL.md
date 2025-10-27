@@ -1,12 +1,6 @@
 ---
 name: ms-foundation-trust
-description: Validates TRUST 5-principles (Test ≥85%, Readable, Unified, Secured, Trackable) for My-Spec workflow. Use when checking overall code quality.
-allowed-tools:
-  - Read
-  - Bash
-  - Grep
-version: 1.0.0
-created: 2025-10-26
+description: Comprehensive code quality validator enforcing TRUST 5 principles - Test-First (≥85% coverage with pytest/vitest), Readable (≤500 SLOC files, ≤10 complexity), Unified (strict type checking with mypy/tsc), Secured (vulnerability scanning with trivy/bandit, no hardcoded secrets), Trackable (complete TAG chain integrity SPEC→TEST→CODE→DOC) with detailed compliance reports and remediation guidance
 ---
 
 # Foundation: TRUST 5 Validation

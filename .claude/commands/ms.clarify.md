@@ -1,5 +1,5 @@
 ---
-description: "Clarify ambiguous requirements (Spec-Kit standard)"
+description: "Clarify ambiguous requirements"
 ---
 
 # /ms.clarify - Clarify Requirements
@@ -158,22 +158,6 @@ Please check the error message above and retry.
 ```
 
 **Exit**: Code 1
-
-## Notes
-
--   **Constitution injected BEFORE clarification**: AI receives EARS principles upfront
--   **Korean user interaction**: Questions and options in Korean, spec.md in English
--   **Natural EARS compliance**: Constitution guides AI behavior, not enforced by code
--   **No forced conversion**: AI applies EARS naturally during clarification
--   **Language policy alignment**: Matches Constitution Section IV (documents=English, interaction=Korean)
-
-## Implementation Details
-
-**Base Command**: `/speckit.clarify`
-
-**Extensions**: None (pure Spec-Kit command)
-
-**Tools**: SlashCommand (/speckit.clarify)
 
 ## Next Command
 

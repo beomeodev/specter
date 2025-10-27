@@ -1,13 +1,6 @@
 ---
 name: ms-lang-python
-description: Python 3.13+ best practices with pytest 8.4.2, ruff 0.13.1, mypy 1.8.0 for My-Spec workflow. Use when writing or reviewing Python code.
-allowed-tools:
-  - Read
-  - Bash
-  - Grep
-version: 1.0.0
-created: 2025-10-26
-keywords: ['python', 'testing', 'pytest', 'mypy', 'ruff', 'async', 'fastapi', 'pydantic']
+description: Python 3.13+ development expertise with cutting-edge toolchain - pytest 8.4.2 for powerful testing with fixtures and async support, ruff 0.13.1 for unified linting and formatting (100x faster than pylint), mypy 1.8.0 strict type checking, Pydantic 2.7 runtime validation, uv 0.9.3 package manager (10x faster than pip), modern async patterns with TaskGroup and context variables, PEP 695/701/698 features (type parameters, f-strings, override decorator), FastAPI integration, Constitution compliance (≤500 SLOC, ≤10 complexity), and comprehensive TDD workflow with TAG block integration
 ---
 
 # Language: Python 3.13+ Expert

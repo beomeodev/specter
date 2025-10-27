@@ -278,14 +278,6 @@ This will set up Spec-Kit templates AND create the Constitution.
 
 **Exit**: Code 1
 
-## Notes
-
--   **Constitution injected BEFORE spec creation**: AI receives principles upfront, not after
--   **Natural compliance**: AI applies EARS/TRUST during writing, not via post-processing
--   **English output**: All specs written in English (Korean input → English EARS output)
--   **No forced conversion**: Constitution guides AI behavior, not enforced by code
--   **Workflow improvement**: This approach ensures higher quality specs from the start
-
 ## Next Command
 
 After `/ms.specify`:

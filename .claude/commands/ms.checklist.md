@@ -1,5 +1,5 @@
 ---
-description: "Generate a custom checklist for the current feature (My-Spec wrapper)"
+description: "Generate a custom checklist for the current feature"
 ---
 
 # /ms.checklist - Generate Feature Checklist
@@ -75,14 +75,6 @@ Execute the underlying Spec-Kit checklist command with Constitution context:
 2. **After `/ms.plan`**: Check that technical requirements and constraints are well-defined
 3. **After `/ms.tasks`**: Ensure all implementation tasks map to clear requirements
 4. **Any time**: Generate focused checklists for specific quality aspects (UX, API, security, etc.)
-
-## Notes
-
-- **Wrapper only**: All logic handled by `/speckit.checklist`
-- **Naming consistency**: Use `/ms.checklist` for uniform My-Spec command experience
-- **Full features**: No functionality difference from underlying command
-- **Multiple runs**: Each execution can create a new checklist file (e.g., `ux.md`, `api.md`)
-
 ## See Also
 
 - **[/speckit.checklist](.claude/commands/speckit.checklist.md)**: Full implementation details

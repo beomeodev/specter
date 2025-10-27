@@ -1,16 +1,6 @@
 ---
 name: ms-essentials-review
-version: 1.0.0
-created: 2025-10-26
-updated: 2025-10-26
-status: active
-description: Automated code review with TRUST 5 principles, Constitution compliance, and language-specific best practices
-keywords: ['code-review', 'trust', 'quality', 'best-practices', 'constitution']
-allowed-tools:
-  - Read
-  - Bash
-  - Grep
-  - Glob
+description: Automated code review and quality assurance skill that validates TRUST 5 principles (Test-First, Readable, Unified, Secured, Trackable), enforces Constitution compliance (file size, complexity limits), and applies language-specific best practices for production-ready code
 ---
 
 # MS Essentials Review v1.0

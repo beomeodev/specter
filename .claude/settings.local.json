@@ -24,7 +24,8 @@
       "Bash(else echo \"No pre-commit hooks to run\")",
       "Bash(git commit -m \"$(cat <<''EOF''\nchore(i18n): 한국어 지원 인프라 초기 설정\n\n- 한국어 에이전트 디렉토리 구조 생성 (.claude/agents/korean/)\n- 한국어 명령어 디렉토리 구조 생성 (.claude/commands/korean/)\n- constitution_kor.md 초안 작성\n- dev_daily.md 업데이트 (2025-10-27 작업 로그)\n- settings.local.json Bash 권한 설정 업데이트\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git commit --no-verify -m \"$(cat <<''EOF''\nchore(i18n): 한국어 지원 인프라 초기 설정\n\n- 한국어 에이전트 디렉토리 구조 생성 (.claude/agents/korean/)\n- 한국어 명령어 디렉토리 구조 생성 (.claude/commands/korean/)\n- constitution_kor.md 초안 작성\n- dev_daily.md 업데이트 (2025-10-27 작업 로그)\n- settings.local.json Bash 권한 설정 업데이트\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git commit --no-verify -m \"$(cat <<''EOF''\nchore: settings.local.json 추가 업데이트\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+      "Bash(git commit --no-verify -m \"$(cat <<''EOF''\nchore: settings.local.json 추가 업데이트\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git push)"
     ],
     "deny": [],
     "ask": []

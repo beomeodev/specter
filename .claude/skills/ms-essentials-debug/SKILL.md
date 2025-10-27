@@ -1,14 +1,6 @@
 ---
 name: ms-essentials-debug
-description: Advanced debugging with stack trace analysis, error pattern detection, and fix suggestions for My-Spec workflow
-allowed-tools:
-  - Read
-  - Bash
-  - Write
-  - Edit
-  - TodoWrite
-  - Grep
-  - Glob
+description: Advanced debugging skill for runtime errors with systematic stack trace analysis, error pattern recognition (NoneType, undefined, async issues), root cause identification using 5-Whys methodology, and test-first debugging workflow that follows TDD RED-GREEN-REFACTOR cycle to provide actionable fix suggestions
 ---
 
 # MS Essentials Debug v1.0

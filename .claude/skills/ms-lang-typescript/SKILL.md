@@ -1,13 +1,6 @@
 ---
 name: ms-lang-typescript
-description: TypeScript 5.7+ best practices with Vitest 2.1, Biome 1.9, strict typing for My-Spec workflow. Use when writing or reviewing TypeScript code.
-allowed-tools:
-  - Read
-  - Bash
-  - Grep
-version: 1.0.0
-created: 2025-10-26
-keywords: ['typescript', 'testing', 'vitest', 'biome', 'types', 'react', 'nextjs']
+description: TypeScript 5.7+ development expertise with modern toolchain - Vitest 2.1 for 10x faster testing with native ESM support, Biome 1.9 for unified linting and formatting (75x faster than ESLint), strict type checking with advanced patterns (const type parameters, satisfies operator), React 19 and Next.js 15 integration, Zod runtime validation, Constitution compliance (≤500 SLOC, ≤10 complexity), and comprehensive TDD workflow with TAG block integration
 ---
 
 # Language: TypeScript 5.7+ Expert

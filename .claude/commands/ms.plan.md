@@ -458,29 +458,6 @@ Please check the error message above and retry.
 
 **Exit**: Code 1
 
-## Notes
-
--   **Guidelines over Execution**: `/ms.plan` provides Constitution reading guidelines to `/speckit.plan`, avoiding redundant file operations
--   **Tiered Agent Model**: Uses Opus for strategic architecture, Haiku for research/exploration (cost optimization)
--   **Modular design focus**: Architecture respects TRUST and Simplicity-First principles
--   **No code enforcement**: Constitution serves as AI's guide, not enforced by code
--   **Next command**: `/ms.analyze` validates plan-spec consistency + TRUST compliance
-
-## Implementation Details
-
-**Base Command**: `/speckit.plan` (handles Constitution reading internally)
-
-**Extensions**:
-- Constitution reading guidelines (Step 2)
-- Constitution reference footer (Step 5)
-- Adaptive context analysis with parallel agents (Step 3)
-
-**Tools**:
-- SlashCommand (`/speckit.plan`)
-- Bash (verify prerequisites)
-- Edit (append Constitution reference section)
-- Task (launch parallel agents: codebase-explorer, library-researcher, integration-designer)
-
 ## Next Command
 
 After `/ms.plan`: Run `/ms.constitution` to extract project-specific constraints from spec.md and plan.md

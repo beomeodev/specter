@@ -2,30 +2,30 @@
 description: "Quick finish: sync docs → update daily log → commit & push (NO CI checks)"
 ---
 
-다음 작업을 순서대로 실행하세요:
+Execute the following tasks in order:
 
-## 1. 📄 Living Documents 동기화 (/ms.up-docs)
+## 1. 📄 Sync Living Documents (/ms.up-docs)
 
-**NEW**: 코드 변경사항을 Living Documents에 빠르게 반영합니다.
+**NEW**: Quickly sync code changes to Living Documents.
 
-### 실행
+### Execution
 
 ```bash
 /ms.up-docs --docs=dev
 ```
 
-**동작**:
-- **Git 변경사항 분석**: `git diff --cached` (staged files only)
-- **dev_daily.md 자동 업데이트**: Git diff 요약을 타임스탬프와 함께 추가
-- **TAG 체인 검증**: @SPEC → @TEST → @CODE 무결성 확인 (빠른 스캔)
-- **API 문서 동기화** (staged changes 포함 시): `docs/api/{TAG}.md` 생성/업데이트
+**Operations**:
+- **Analyze Git changes**: `git diff --cached` (staged files only)
+- **Auto-update dev_daily.md**: Append Git diff summary with timestamp
+- **Validate TAG chains**: Verify @SPEC → @TEST → @CODE integrity (quick scan)
+- **Sync API docs** (if staged changes exist): Generate/update `docs/api/{TAG}.md`
 
-**Quick mode 최적화**:
-- Staged changes만 처리 (전체 스캔 없음)
-- TAG 검증은 기본만 수행 (상세 검증 생략)
-- API 문서는 변경된 파일만 업데이트
+**Quick mode optimizations**:
+- Process only staged changes (no full scan)
+- Perform basic TAG validation only (skip detailed validation)
+- Update only API docs for changed files
 
-**출력 예시**:
+**Example output**:
 ```
 ✅ Document sync complete (Quick mode)
 
@@ -37,30 +37,30 @@ description: "Quick finish: sync docs → update daily log → commit & push (NO
 ⏱️ Duration: 1.8 seconds
 ```
 
-**에러 처리**:
-- **No staged changes**: ⚠️ 경고 출력 후 다음 단계 진행 (dev_daily.md 수동 업데이트로 fallback)
-- **TAG 무결성 낮음** (<80%): ⚠️ 경고 출력하지만 워크플로우 계속 진행 (나중에 /fin으로 검증)
+**Error handling**:
+- **No staged changes**: ⚠️ Show warning and proceed (fallback to manual dev_daily.md update)
+- **Low TAG integrity** (<80%): ⚠️ Show warning but continue workflow (validate later with /fin)
 
 ---
 
-## 2. 📝 일일 작업 로그 검토 (fallback)
+## 2. 📝 Review Daily Work Log (fallback)
 
-**Note**: Step 1의 `/ms.up-docs`가 dev_daily.md를 이미 업데이트했습니다.
-이 단계는 `/ms.up-docs` 실패 시 fallback으로만 사용됩니다.
+**Note**: Step 1's `/ms.up-docs` already updated dev_daily.md.
+This step is only used as fallback when `/ms.up-docs` fails.
 
-현재 세션의 작업 내용을 분석하여 `docs/dev_daily.md`를 검토하세요:
+Analyze current session's work and review `docs/dev_daily.md`:
 
-### 분석 항목
-- 변경된 파일 목록 확인 (git status 또는 대화 내용 기반)
-- 주요 작업 내용 파악
-- 추가/수정/삭제된 기능
+### Analysis items
+- Check list of changed files (from git status or conversation context)
+- Identify major tasks completed
+- Note added/modified/deleted features
 
-### 업데이트 규칙
-1. **오늘 날짜 섹션 확인**:
-   - 오늘 날짜(YYYY-MM-DD)의 섹션이 있으면 → 해당 섹션의 Done에 추가
-   - 없으면 → 파일 최상단에 새 섹션 추가
+### Update rules
+1. **Check today's date section**:
+   - If today's date (YYYY-MM-DD) section exists → Add to Done in that section
+   - If not exists → Create new section at file top
 
-2. **작성 형식** (기존 양식 유지):
+2. **Format** (maintain existing format):
    ```markdown
    # 🗓 YYYY-MM-DD (Day)
 
@@ -92,35 +92,35 @@ description: "Quick finish: sync docs → update daily log → commit & push (NO
 
 ---
 
-## 2.5. 📄 README.md 자동 최신화 (Optional)
+## 2.5. 📄 Auto-update README.md (Optional)
 
-### 분석 항목
+### Analysis items
 
-변경된 파일 중 주요 기능 변경사항이 있는지 확인:
+Check if changed files include major feature changes:
 
-**주요 변경사항 감지 대상**:
-- `.claude/agents/*` - 에이전트 구조 변경
-- `.claude/commands/*` - 워크플로우 변경
-- `.devcontainer/Makefile` - 개발 명령어 변경
-- `pyproject.toml` - 의존성/기술스택 변경
-- `.mcp.json` - MCP 서버 설정 변경
+**Major change detection targets**:
+- `.claude/agents/*` - Agent structure changes
+- `.claude/commands/*` - Workflow changes
+- `.devcontainer/Makefile` - Development command changes
+- `pyproject.toml` - Dependency/tech stack changes
+- `.mcp.json` - MCP server configuration changes
 
-### 업데이트 판단 기준
+### Update decision criteria
 
-다음 변경사항이 있을 경우 **README.md 업데이트 필수**:
-- ✅ 새로운 주요 기능 추가 (agents, commands, workflows)
-- ✅ 프로젝트 구조 변경 (디렉토리, 핵심 파일)
-- ✅ 설치/실행 방법 변경 (Makefile 타겟, 환경변수)
-- ✅ 기술 스택 변경 (의존성 관리 방식, MCP 서버)
+**README.md update REQUIRED** if following changes exist:
+- ✅ New major features added (agents, commands, workflows)
+- ✅ Project structure changes (directories, core files)
+- ✅ Installation/execution method changes (Makefile targets, environment variables)
+- ✅ Tech stack changes (dependency management, MCP servers)
 
-**업데이트 건너뛰기**:
-- ❌ 문서만 수정 (`docs/*.md`)
-- ❌ 설정 파일 미세 조정
-- ❌ 버그 수정 (기능 변경 없음)
+**Skip update**:
+- ❌ Documentation-only changes (`docs/*.md`)
+- ❌ Minor configuration file adjustments
+- ❌ Bug fixes (no functionality changes)
 
-### 업데이트 원칙 (CRITICAL)
+### Update principles (CRITICAL)
 
-**❌ 절대 금지 - 변경 이력 추적**:
+**❌ ABSOLUTELY FORBIDDEN - Change history tracking**:
 ```markdown
 ❌ "변경됨", "추가됨", "업데이트됨" 같은 메타 정보
 ❌ 변경 날짜나 버전 정보
@@ -151,7 +151,7 @@ description: "Quick finish: sync docs → update daily log → commit & push (NO
 - 2025-10-20: Added MCP server support
 ```
 
-**✅ 올바른 업데이트 (현재 상태만)**:
+**✅ Correct update (current state only)**:
 ```markdown
 ## Features
 - User authentication
@@ -174,13 +174,13 @@ make sptcc  # Clone + container + Claude Code
 ```
 ```
 
-### 구현 로직
+### Implementation logic
 
 ```python
-# 1. 변경사항 분석
+# 1. Analyze changes
 changed_files = git_status()
 
-# 2. 주요 변경사항 감지
+# 2. Detect major changes
 major_change_patterns = [
     ".claude/agents/",
     ".claude/commands/",
@@ -194,7 +194,7 @@ has_major_changes = any(
     for pattern in major_change_patterns
 )
 
-# 3. README.md 업데이트 (주요 변경사항 있을 경우만)
+# 3. Update README.md (only if major changes exist)
 if has_major_changes:
     # Read current README.md
     readme_content = read_file("README.md")
@@ -228,13 +228,13 @@ else:
 
 ---
 
-## 3. 💾 Git 커밋 및 푸시 (CI 체크 생략)
+## 3. 💾 Git Commit and Push (Skip CI checks)
 
-### Pre-commit Hook 처리 전략
+### Pre-commit Hook handling strategy
 
-**문제**: Pre-commit hook이나 IDE의 auto-format이 커밋 후 파일을 수정하여 git 상태가 dirty해짐
+**Problem**: Pre-commit hooks or IDE auto-format modify files after commit, making git state dirty
 
-**해결 방법**: 커밋 전에 pre-commit을 먼저 실행하여 포맷팅 완료
+**Solution**: Run pre-commit first before committing to complete formatting, with error/warning logging
 
 ```bash
 # 1. Initial git add
@@ -242,7 +242,39 @@ git add .
 
 # 2. Run pre-commit hooks to format files (if .pre-commit-config.yaml exists)
 if [ -f .pre-commit-config.yaml ]; then
-  pre-commit run --all-files || true
+  # Create log directory if not exists
+  mkdir -p docs/log/pre-commit
+
+  # Run pre-commit and capture output
+  PRE_COMMIT_OUTPUT=$(pre-commit run --all-files 2>&1)
+  PRE_COMMIT_EXIT_CODE=$?
+
+  # Check for errors or warnings (exit code != 0 or output contains ERROR/WARNING)
+  if [ $PRE_COMMIT_EXIT_CODE -ne 0 ] || echo "$PRE_COMMIT_OUTPUT" | grep -iE "(error|warning|fail)" > /dev/null; then
+    # Generate log filename with timestamp
+    LOG_FILE="docs/log/pre-commit/pre-commit-$(date +%Y%m%d-%H%M%S).log"
+
+    # Write detailed log
+    cat > "$LOG_FILE" << EOF
+# Pre-commit Hook Log
+Date: $(date '+%Y-%m-%d %H:%M:%S')
+Exit Code: $PRE_COMMIT_EXIT_CODE
+Command: /finq
+
+## Output:
+$PRE_COMMIT_OUTPUT
+
+## Environment:
+Branch: $(git branch --show-current)
+Commit: $(git rev-parse --short HEAD)
+EOF
+
+    # Show minimal user notification
+    echo "⚠️  Pre-commit hooks reported issues"
+    echo "📝 Detailed log saved: $LOG_FILE"
+    echo ""
+  fi
+
   # Hook may modify files, so add again
   git add .
 fi
@@ -259,11 +291,18 @@ git push
 - Modified files are re-staged with second `git add .`
 - Commit captures all formatting changes
 - No dirty state after commit
+- **Errors/warnings logged to `docs/log/pre-commit/` for later review**
 
-### 커밋 메시지 생성 규칙
-변경 사항을 분석하여 **의미 있는 커밋 메시지** 작성:
+**Logging behavior**:
+- ✅ Only logs when errors/warnings occur (non-zero exit code or ERROR/WARNING in output)
+- ✅ One log file per run with timestamp: `pre-commit-YYYYMMDD-HHMMSS.log`
+- ✅ Includes full output, exit code, git context for troubleshooting
+- ✅ User sees minimal notification, full details in log file
 
-**형식**:
+### Commit message generation rules
+Analyze changes and write **meaningful commit message**:
+
+**Format**:
 ```
 타입(범위): 제목
 
@@ -271,16 +310,16 @@ git push
 - 상세 내용 2
 ```
 
-**타입**:
-- `feat`: 새 기능
-- `fix`: 버그 수정
-- `refactor`: 리팩토링
-- `docs`: 문서 수정
-- `test`: 테스트 추가
-- `chore`: 빌드, 설정 변경
-- `wip`: 작업 중 (Work In Progress)
+**Type**:
+- `feat`: New feature
+- `fix`: Bug fix
+- `refactor`: Refactoring
+- `docs`: Documentation
+- `test`: Add tests
+- `chore`: Build, configuration changes
+- `wip`: Work In Progress
 
-**예시**:
+**Example**:
 ```
 wip(strategy): MACD 신호 생성 로직 작업 중
 
@@ -288,15 +327,15 @@ wip(strategy): MACD 신호 생성 로직 작업 중
 - 테스트 작성 필요
 ```
 
-### 에러 처리
-- **커밋할 내용이 없을 때**: `⚠️ Nothing to commit` 메시지 출력 후 계속 진행
-- **Push 실패 시**: `❌ Push failed` 메시지 출력 (에러 내용 포함)
+### Error handling
+- **When nothing to commit**: Display `⚠️ Nothing to commit` and proceed
+- **When push fails**: Display `❌ Push failed` (with error details)
 
 ---
 
-## 4. ✅ 완료 메시지
+## 4. ✅ Completion Message
 
-모든 단계 완료 후 출력:
+Output after all steps complete:
 
 ```
 ✅ /finq 완료! (Quick mode - CI 생략)
@@ -311,49 +350,49 @@ wip(strategy): MACD 신호 생성 로직 작업 중
 
 ---
 
-## ⚠️ 주의사항
+## ⚠️ Important Notes
 
-1. **/ms.up-docs 통합 (Quick mode)**:
-   - **NEW**: Step 1에서 `/ms.up-docs --docs=dev` 자동 실행
-   - dev_daily.md가 자동으로 업데이트됨 (Git diff 기반)
-   - TAG 체인 무결성 빠른 검증 (상세 검증은 /fin에서 수행)
-   - Staged changes 없으면 경고 후 계속 진행 (fallback to manual update)
-   - **Performance**: Staged changes만 처리하여 속도 최적화 (~2초)
+1. **/ms.up-docs integration (Quick mode)**:
+   - **NEW**: Step 1 auto-runs `/ms.up-docs --docs=dev`
+   - dev_daily.md auto-updates (based on Git diff)
+   - Quick TAG chain integrity validation (detailed validation in /fin)
+   - If no staged changes, show warning and proceed (fallback to manual update)
+   - **Performance**: Process only staged changes for speed optimization (~2 seconds)
 
-2. **dev_daily.md 업데이트 시** (fallback only):
-   - 기존 내용을 절대 삭제하지 마세요
-   - 오늘 날짜 섹션에 내용 추가만
-   - Focus는 오늘 날짜 섹션이 처음 생성될 때만 작성
+2. **When updating dev_daily.md** (fallback only):
+   - Never delete existing content
+   - Only append to today's date section
+   - Write Focus only when creating today's section for first time
 
-3. **CI 생략됨**:
-   - 이 명령어는 빠른 커밋을 위해 CI 체크를 건너뜁니다
-   - 코드 품질 검증은 나중에 `/fin` 또는 `make ci`로 수행하세요
-   - 작업 중(WIP) 커밋에 적합합니다
+3. **CI skipped**:
+   - This command skips CI checks for fast commits
+   - Perform code quality validation later with `/fin` or `make ci`
+   - Suitable for Work In Progress (WIP) commits
 
-4. **Git 동작**:
-   - Makefile의 finish 타겟과 동일하게 처리 (CI 제외)
-   - 커밋 실패 시에도 에러 메시지만 출력하고 계속 진행
-   - Push 실패 시에도 에러 메시지만 출력하고 워크플로우 완료
+4. **Git behavior**:
+   - Handles same as Makefile's finish target (except CI)
+   - On commit failure, only show error message and proceed
+   - On push failure, only show error message and complete workflow
 
-5. **사용 시나리오**:
-   - 작업 중간 백업 목적
-   - 빠르게 원격에 올려야 할 때
-   - 문서만 수정했을 때
-   - 실험적인 코드 커밋
+5. **Use cases**:
+   - Backup during work
+   - When need to push quickly to remote
+   - When only documentation changed
+   - Experimental code commits
 
-6. **워크플로우 순서 (UPDATED)**:
+6. **Workflow sequence (UPDATED)**:
    ```
-   /ms.up-docs --docs=dev  # Step 1: Living Docs 동기화 (Quick)
+   /ms.up-docs --docs=dev  # Step 1: Sync Living Docs (Quick)
    ↓
-   (dev_daily.md 검토)     # Step 2: Fallback only
+   (Review dev_daily.md)   # Step 2: Fallback only
    ↓
-   (README.md 업데이트)    # Step 2.5: Optional
+   (Update README.md)      # Step 2.5: Optional
    ↓
-   git commit && push      # Step 3: 커밋 및 푸시 (CI 생략)
+   git commit && push      # Step 3: Commit & push (Skip CI)
    ```
 
-7. **/fin vs /finq 차이점**:
+7. **/fin vs /finq differences**:
    - `/fin`: **Full** - /ms.up-docs → CI → commit → push
-   - `/finq`: **Quick** - /ms.up-docs (staged only) → commit → push (CI 생략)
-   - TAG 검증: /fin은 상세, /finq는 빠른 스캔
-   - API 문서: /fin은 전체 동기화 가능, /finq는 staged changes만
+   - `/finq`: **Quick** - /ms.up-docs (staged only) → commit → push (skip CI)
+   - TAG validation: /fin is detailed, /finq is quick scan
+   - API docs: /fin can sync all, /finq only staged changes

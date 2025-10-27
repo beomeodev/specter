@@ -39,8 +39,6 @@ def handle_session_start(payload: HookPayload) -> HookResult:
            Language: {language}
            Git Branch: {branch} ({commit hash})
            Changes: {Number of Changed Files}
-           SPEC Progress: {Complete}/{Total} ({percent}%)
-           TAG Integrity: {percentage}%
 
     Note:
         - Claude Code processes SessionStart in several stages (clear → compact)
@@ -75,8 +73,6 @@ def handle_session_start(payload: HookPayload) -> HookResult:
             f"   Language: {language}",
             f"   Git Branch: {branch} ({commit})",
             f"   Changes: {changes}",
-            f"   SPEC Progress: {spec_progress} ({specs['percentage']}%)",
-            f"   TAG Integrity: {tag_integrity:.1f}%",
         ]
 
         system_message = "\n".join(lines)

@@ -2,23 +2,56 @@
 
 ## 📌 Focus
 - MCP CLI-Bridge 제거 및 Claude Code 내장 에이전트 시스템 완전 전환
+- Korean 디렉토리 정리 및 프로젝트 구조 개선
+- README.md 현행화 작업
 
 ## ✅ Done
-- 한국어 지원 에이전트 및 명령어 구조 추가:
+- SessionStart hook 최적화:
+  - SPEC Progress 표시 라인 제거 (session.py:78-79)
+  - TAG Integrity 표시 라인 제거
+  - 간소화된 프로젝트 상태 카드 (언어, Git 브랜치, 변경사항만 표시)
+- Korean 디렉토리 구조 전면 정리:
+  - .claude/agents/korean/ 디렉토리 12개 파일 삭제
+  - .claude/commands/korean/ 디렉토리 20개 파일 삭제
+  - .claude/skills/korean/ 디렉토리 16개 파일 삭제
+  - constitution_kor.md 삭제
+  - 총 48개 한국어 인프라 파일 제거 (계획만 있고 구현 없음)
+- MoAI-ADK 레거시 파일 대량 정리:
+  - docs/references/moai-adk/ 전체 디렉토리 삭제 (400+ 파일)
+  - docs/migration/ 디렉토리 삭제 (통합 가이드, 분석 문서)
+  - docs/guides/ 디렉토리 삭제 (hooks, skills, living-docs, agents 가이드)
+  - SKILLS.md 삭제 (MoAI 통합 분석 문서)
+- Spec-Kit deprecated 파일 정리:
+  - .specify/ 디렉토리 전체 제거 (scripts, templates, checkpoints)
+  - .claude/commands/speckit.*.md 8개 파일 삭제
+- MCP CLI-Bridge 완전 제거:
+  - .mcp-servers/cli-bridge/ 디렉토리 삭제
+  - .mcp.json에서 cli-bridge 설정 제거
+  - .coverage 파일 삭제
+- README.md 전면 업데이트:
+  - "MoAI-ADK Integration" 섹션 → "Core Architecture" 섹션으로 재작성
+  - SessionStart hook 설명 업데이트 (실제 출력 반영)
+  - 기술 스택 섹션 수정 (12개 에이전트 명시, 모델 분포 추가)
+  - "Recent Updates (2025-10-27)" 섹션 추가:
+    - MCP CLI-Bridge 마이그레이션 완료 문서화
+    - SessionStart hook 최적화 설명
+    - Pre-commit hook 로깅 시스템 문서화
+    - Known Limitations 섹션 추가 (병렬 실행, 언어 지원 상태)
+- 한국어 지원 에이전트 및 명령어 구조 추가 (이전):
   - 한국어 에이전트 디렉토리 생성 (.claude/agents/korean/)
   - 한국어 명령어 디렉토리 생성 (.claude/commands/korean/)
   - constitution_kor.md 초안 작성 (.claude/commands/)
-- MCP CLI-Bridge 의존성 완전 제거:
+- MCP CLI-Bridge 의존성 완전 제거 (이전):
   - ms.specify.md: 첨부 문서 시나리오 브랜치 명명 규칙 추가
   - ms.plan.md: Gemini CLI → Claude Code Task tool 전환 (codebase-explorer, library-researcher, integration-designer)
   - ms.plan.md: Guidelines over Execution 패턴 적용 (Constitution 읽기 가이드라인 제공)
   - ms.plan.md: Tiered Agent Model 명시 (Opus 4: 전략적 아키텍처, Haiku 3.5: 정보 수집)
   - ms.implement.md: Gemini/Codex CLI → Claude Code 에이전트 전환 (library-researcher, doc-updater)
   - ms.implement.md: CHANGELOG → Living Documentation sync 패턴 변경
-- Wrapper 역할 명확화:
+- Wrapper 역할 명확화 (이전):
   - ms.tasks.md: /speckit.tasks wrapper 역할 및 TAG 기능 강화 명시
   - ms.implement.md: Multi-Agent Orchestration 구조 문서화 (tdd-implementer, library-researcher, doc-updater)
-- 비용 최적화 전략 문서화:
+- 비용 최적화 전략 문서화 (이전):
   - Opus: 장기적 영향이 큰 아키텍처 결정 (ms.plan의 implementation-planner)
   - Sonnet: TDD 추론 및 테스트 전략 (ms.implement의 tdd-implementer)
   - Haiku: 문서 조회, 패턴 탐색, Living Docs 동기화 (library-researcher, codebase-explorer, doc-updater)

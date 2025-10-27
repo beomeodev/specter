@@ -13,10 +13,12 @@ Extends `/speckit.tasks` to generate implementation tasks with automatic TAG ID 
 **Base Command**: `/speckit.tasks` - Generates implementation tasks from spec.md and plan.md
 
 **Additional Features** (provided by `/ms.tasks`):
+- Library documentation research via `library-researcher` agent (Haiku + Context7 MCP)
 - Automatic TAG ID generation for each Functional Requirement
 - Domain extraction from FR titles (AUTH, USER, PAY, etc.)
 - TAG chain insertion (@SPEC → @TEST → @CODE) for traceability
 - Constitution-aware task breakdown (respects file size limits)
+- Library-informed task structure (tasks reflect actual implementation patterns)
 
 **Purpose**: Creates a detailed task breakdown with full traceability support, ensuring each User Story has a unique TAG ID for the My-Spec workflow.
 
@@ -44,11 +46,57 @@ Extends `/speckit.tasks` to generate implementation tasks with automatic TAG ID 
 - Break down tasks according to file size limits
 - Apply project-specific task organization patterns
 
-### 1. Run Base Command
+### 1. Library Documentation Research (If Needed)
+
+**Analyze plan.md**: Does implementation require external libraries or integrations?
+
+**Detection indicators**:
+- plan.md mentions library names (FastAPI, React, Stripe, Next.js, etc.)
+- Integration with external services (OAuth, payment gateways, APIs)
+- New third-party dependencies in technology stack
+
+**IF external libraries detected**:
+
+  1. **Identify required libraries and their use cases**
+  2. **Launch library-researcher agent (background execution)**:
+     ```python
+     # Launch library research agent
+     Task(
+         subagent_type="library-researcher",
+         description="Research library docs",
+         prompt="""Research latest library documentation for: '$REQUIRED_LIBRARIES'
+
+         Use Context7 MCP to fetch:
+         - Latest API usage examples
+         - Best practices from official docs
+         - Version compatibility notes
+         - Breaking changes
+         - Common implementation patterns
+
+         Focus on:
+         - Task breakdown guidance (how features are typically implemented)
+         - File/module organization recommendations
+         - Testing strategies for this library
+         - Common pitfalls and edge cases
+
+         Return: Libraries researched, implementation patterns, task breakdown guidance, testing strategies"""
+     )
+
+     # Agent runs independently while Claude continues with task generation
+     # Results available when agent completes
+     ```
+  3. **Use library patterns to inform task breakdown** (more accurate estimation and structure)
+
+**ELSE**:
+  → Skip (no external libraries)
+
+**Store library patterns** for use in Step 2 task generation.
+
+### 2. Run Base Command
 
 **IMPORTANT**: `/ms.tasks` delegates core task generation to `/speckit.tasks`.
 
-Execute `/speckit.tasks` to generate base task structure:
+Execute `/speckit.tasks` to generate base task structure with library research context:
 
 ```
 /speckit.tasks $ARGUMENTS
@@ -59,10 +107,11 @@ Execute `/speckit.tasks` to generate base task structure:
 - Generates task breakdown with phases
 - Creates dependency graph
 - Produces tasks.md file
+- **Enhanced with library research**: Tasks reflect actual library implementation patterns
 
 **Output**: `specs/[spec-id]/tasks.md` with complete task structure (without TAG IDs yet)
 
-### 2. TAG ID Generation (My-Spec Enhancement)
+### 3. TAG ID Generation (My-Spec Enhancement)
 
 **This step is UNIQUE to `/ms.tasks`** - not provided by `/speckit.tasks`.
 
@@ -102,7 +151,7 @@ generate_tag_id() {
 # Example: AUTH-001, AUTH-002, PAY-001
 ```
 
-### 3. Insert TAG Metadata (My-Spec Enhancement)
+### 4. Insert TAG Metadata (My-Spec Enhancement)
 
 **This step is UNIQUE to `/ms.tasks`** - not provided by `/speckit.tasks`.
 
@@ -122,7 +171,7 @@ Add TAG chains to tasks.md for each User Story:
 -   [ ] T016 Add login endpoint...
 ```
 
-### 4. Report Output
+### 5. Report Output
 
 ```json
 {
@@ -163,41 +212,3 @@ After `/ms.tasks`:
 
 1. Review tasks.md with TAG assignments
 2. Run `/ms.analyze` to validate spec-tasks consistency and TRUST compliance
-3. TAG IDs are now assigned ✅
-
-## Notes
-
--   **Wrapper Design**: `/ms.tasks` wraps `/speckit.tasks` and adds TAG functionality
--   **Base Command**: All core task generation is handled by `/speckit.tasks`
--   **Enhancement Layer**: TAG ID generation, domain extraction, and metadata insertion are My-Spec additions
--   Requires ripgrep for TAG counting
--   TAG IDs are unique across the project
--   Domain extraction uses keyword matching with FR number fallback
--   Tasks.md becomes the implementation roadmap with full traceability
-
-## Implementation Details
-
-**Architecture**: Wrapper pattern with feature enhancement
-
-**Delegation**:
-- **Core task generation** → `/speckit.tasks` (base command)
-- **TAG ID management** → `/ms.tasks` (enhancement layer)
-
-**Tools**:
-- SlashCommand (`/speckit.tasks`) - Delegates task generation
-- Read (spec.md, plan.md) - Extract FR information
-- Edit (tasks.md) - Insert TAG metadata
-- Bash (ripgrep) - Count existing TAGs and extract domains
-
-**Workflow**:
-```
-User → /ms.tasks
-  ↓
-  1. /speckit.tasks (generates tasks.md)
-  ↓
-  2. TAG ID generation (My-Spec logic)
-  ↓
-  3. Insert TAG chains (My-Spec logic)
-  ↓
-  Output: tasks.md with TAG traceability
-```
