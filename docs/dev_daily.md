@@ -1,3 +1,16 @@
+# 🗓 2025-10-27 (Mon)
+
+## 📌 Focus
+- 한국어 지원 에이전트 및 명령어 구조 추가
+
+## ✅ Done
+- 한국어 에이전트 디렉토리 생성 (.claude/agents/korean/)
+- 한국어 명령어 디렉토리 생성 (.claude/commands/korean/)
+- constitution_kor.md 초안 작성 (.claude/commands/)
+- settings.local.json 업데이트 (Bash 권한 설정)
+
+---
+
 # 🗓 2025-10-26 (Sun)
 
 ## 📌 Focus

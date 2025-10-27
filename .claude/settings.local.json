@@ -13,7 +13,15 @@
       "Bash(pytest:*)",
       "Bash(find:*)",
       "Bash(cat:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "SlashCommand(/ms.up-docs --docs=dev)",
+      "Bash(if [ -f .pre-commit-config.yaml ])",
+      "Bash(then echo \"Pre-commit config exists\")",
+      "Bash(else echo \"No pre-commit config found\")",
+      "Bash(fi)",
+      "Bash(git add:*)",
+      "Bash(then pre-commit run --all-files)",
+      "Bash(else echo \"No pre-commit hooks to run\")"
     ],
     "deny": [],
     "ask": []
