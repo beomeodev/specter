@@ -1,6 +1,7 @@
 ---
 name: tag-auditor
 description: Validate TAG blocks and traceability chains (SPEC → TEST → CODE)
+model: haiku
 ---
 
 # TAG Auditor Agent

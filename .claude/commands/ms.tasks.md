@@ -8,7 +8,17 @@ Extends `/speckit.tasks` to generate implementation tasks with automatic TAG ID 
 
 ## Overview
 
-This command creates a detailed task breakdown and automatically assigns unique TAG IDs to each User Story for complete traceability (SPEC→TEST→CODE).
+**This command is a wrapper around `/speckit.tasks` with enhanced functionality.**
+
+**Base Command**: `/speckit.tasks` - Generates implementation tasks from spec.md and plan.md
+
+**Additional Features** (provided by `/ms.tasks`):
+- Automatic TAG ID generation for each Functional Requirement
+- Domain extraction from FR titles (AUTH, USER, PAY, etc.)
+- TAG chain insertion (@SPEC → @TEST → @CODE) for traceability
+- Constitution-aware task breakdown (respects file size limits)
+
+**Purpose**: Creates a detailed task breakdown with full traceability support, ensuring each User Story has a unique TAG ID for the My-Spec workflow.
 
 ## Execution Steps
 
@@ -36,15 +46,25 @@ This command creates a detailed task breakdown and automatically assigns unique 
 
 ### 1. Run Base Command
 
+**IMPORTANT**: `/ms.tasks` delegates core task generation to `/speckit.tasks`.
+
 Execute `/speckit.tasks` to generate base task structure:
 
 ```
 /speckit.tasks $ARGUMENTS
 ```
 
-This creates tasks.md with phases, dependencies, and task details.
+**What `/speckit.tasks` does** (base functionality):
+- Analyzes spec.md and plan.md
+- Generates task breakdown with phases
+- Creates dependency graph
+- Produces tasks.md file
 
-### 2. TAG ID Generation
+**Output**: `specs/[spec-id]/tasks.md` with complete task structure (without TAG IDs yet)
+
+### 2. TAG ID Generation (My-Spec Enhancement)
+
+**This step is UNIQUE to `/ms.tasks`** - not provided by `/speckit.tasks`.
 
 For each Functional Requirement (FR) in spec.md:
 
@@ -82,7 +102,9 @@ generate_tag_id() {
 # Example: AUTH-001, AUTH-002, PAY-001
 ```
 
-### 3. Insert TAG Metadata
+### 3. Insert TAG Metadata (My-Spec Enhancement)
+
+**This step is UNIQUE to `/ms.tasks`** - not provided by `/speckit.tasks`.
 
 Add TAG chains to tasks.md for each User Story:
 
@@ -145,6 +167,9 @@ After `/ms.tasks`:
 
 ## Notes
 
+-   **Wrapper Design**: `/ms.tasks` wraps `/speckit.tasks` and adds TAG functionality
+-   **Base Command**: All core task generation is handled by `/speckit.tasks`
+-   **Enhancement Layer**: TAG ID generation, domain extraction, and metadata insertion are My-Spec additions
 -   Requires ripgrep for TAG counting
 -   TAG IDs are unique across the project
 -   Domain extraction uses keyword matching with FR number fallback
@@ -152,4 +177,27 @@ After `/ms.tasks`:
 
 ## Implementation Details
 
-**Tools**: SlashCommand (/speckit.tasks), Read, Edit, Bash (ripgrep)
+**Architecture**: Wrapper pattern with feature enhancement
+
+**Delegation**:
+- **Core task generation** → `/speckit.tasks` (base command)
+- **TAG ID management** → `/ms.tasks` (enhancement layer)
+
+**Tools**:
+- SlashCommand (`/speckit.tasks`) - Delegates task generation
+- Read (spec.md, plan.md) - Extract FR information
+- Edit (tasks.md) - Insert TAG metadata
+- Bash (ripgrep) - Count existing TAGs and extract domains
+
+**Workflow**:
+```
+User → /ms.tasks
+  ↓
+  1. /speckit.tasks (generates tasks.md)
+  ↓
+  2. TAG ID generation (My-Spec logic)
+  ↓
+  3. Insert TAG chains (My-Spec logic)
+  ↓
+  Output: tasks.md with TAG traceability
+```

@@ -18,47 +18,67 @@ This command extends `/speckit.plan` to include explicit Constitution references
 
 ## Execution Steps
 
-### 1. Load Project Context
+### 1. Verify Prerequisites
 
-**Auto-load project documents**:
+**Check required files exist**:
 - `.specify/memory/constitution.md` (Constitution - REQUIRED)
-- `AGENTS.md` (AI instructions, coding standards - if exists)
 - `specs/[spec-id]/spec.md` (Feature specification - REQUIRED)
 
 **IF Constitution or spec.md missing**:
 - Display error: "Required files missing. Run `/ms.init` and `/ms.specify` first."
 - Exit
 
-**IF AGENTS.md missing**:
-- Display notice: "AGENTS.md not found (will be created by `/ms.constitution`)"
-- Continue
+### 2. Provide Constitution Guidelines to `/speckit.plan`
 
-**Reference key sections**:
-- Constitution Section II (Simplicity-First Architecture)
-- Constitution Section III (Modular Design)
-- Constitution Section V (TRUST Principles)
-- Constitution Section IX (Project-specific constraints - **if exists**, added by `/ms.constitution`)
+**IMPORTANT**: `/speckit.plan` will read `constitution.md` internally. `/ms.plan`'s role is to provide **reading guidelines**, not to read it ourselves.
 
-### 2. Inject Constitution Context into AI Prompt
-
-Before running `/speckit.plan`, provide AI with Constitution reference:
+**Before executing `/speckit.plan`**, instruct it to follow these guidelines when reading Constitution:
 
 ```
-You are creating an implementation plan that MUST follow the project Constitution.
+When executing /speckit.plan, the agent must read and strictly adhere to constitution.md before proceeding.:
 
-**Constitution**: .specify/memory/constitution.md
+**Constitution Reading Guidelines**:
 
-**Read and apply these sections**:
-- **Section II**: Simplicity-First Architecture - Prefer built-in tools, files ≤500 SLOC, functions ≤100 LOC
-- **Section III**: Modular Design - Independent modules, clear interfaces, dependency injection
-- **Section V**: TRUST 5 Principles - Test-First (TDD, ≥85% coverage), Readable, Unified, Secured, Trackable
+1. **Focus on Architecture Sections** (Priority Order):
+   - **Section II**: Simplicity-First Architecture
+     → Prefer built-in tools over external dependencies
+     → Files ≤500 SLOC, functions ≤100 LOC
+     → Choose simplest solution first
 
-**Refer to Constitution for detailed architectural principles and constraints.**
+   - **Section III**: Modular Design
+     → Independent modules with clear interfaces
+     → Dependency injection over hardcoded dependencies
+     → Separation of concerns
 
-Now create the implementation plan following these principles.
+   - **Section V**: TRUST 5 Principles
+     → Test-First: TDD with ≥85% coverage
+     → Readable: Clear naming, minimal complexity
+     → Unified: Consistent patterns across codebase
+     → Secured: Security by default
+     → Trackable: TAG traceability (SPEC → TEST → CODE)
+
+2. **Apply Project-Specific Constraints** (if exists):
+   - **Section IX**: Project-specific rules from `/ms.constitution`
+   → Technology stack constraints
+   → Team conventions
+   → Domain-specific requirements
+
+3. **Translate Principles to Architecture Decisions**:
+   - Use Constitution principles to guide:
+     → Component structure
+     → Library selection
+     → Testing strategy
+     → Security measures
+     → Traceability design
+
+**Expected Behavior**:
+- Read constitution.md when /speckit.plan starts
+- Apply principles naturally during planning
+- Document how principles influenced design choices
+- Ensure plan respects all Constitution constraints
 ```
 
-### 2.5. Adaptive Context Analysis (Quantitative Decision)
+### 3. Adaptive Context Analysis (Quantitative Decision)
 
 **Step 1: Analyze Spec Complexity (Mandatory)**
 
@@ -112,82 +132,143 @@ Based on complexity determined above:
 
 **IF SIMPLE**:
   - 0 sub-agents
-  - Proceed directly to Step 3
+  - Proceed directly to Step 4
 
 **IF MODERATE**:
-  - Launch 2 sub-agents in TRUE PARALLEL (background execution):
+  - Launch 2 sub-agents in TRUE PARALLEL (using Claude Code Task tool):
 
-    **Step 1: Start all agents in background**
+    **Step 1: Launch agents in parallel with single message**
     ```python
-    # Launch agent 1 in background
-    task_id_1 = mcp__cli-bridge__gemini_cli(
-        prompt="Find similar architectural patterns in existing codebase for '$SPEC_FEATURE'",
-        background=True  # Returns immediately with task_id
+    # IMPORTANT: Send SINGLE message with MULTIPLE Task tool calls
+    # This enables true parallel execution
+
+    # Agent 1: Explore codebase for patterns
+    Task(
+        subagent_type="codebase-explorer",
+        description="Find similar patterns",
+        prompt="""Search existing codebase for similar patterns to feature: '$SPEC_FEATURE'
+
+        Focus on:
+        - Similar architectural implementations
+        - Existing folder structure and naming conventions
+        - Reusable components and utilities
+        - Integration patterns
+
+        Return: Similar features, architectural patterns, reusable components, integration approach"""
     )
 
-    # Launch agent 2 in background (if external library needed)
-    task_id_2 = mcp__cli-bridge__gemini_cli(
-        prompt="Research latest API documentation for libraries needed",
-        background=True  # Returns immediately with task_id
+    # Agent 2: Research library documentation (if needed)
+    Task(
+        subagent_type="library-researcher",
+        description="Research library docs",
+        prompt="""Research latest library documentation for: '$REQUIRED_LIBRARIES'
+
+        Use Context7 MCP to fetch:
+        - Latest API usage examples
+        - Best practices from official docs
+        - Version compatibility notes
+        - Breaking changes
+
+        Return: Libraries researched, API examples, best practices, compatibility notes"""
     )
     ```
 
-    **Step 2: Claude continues planning while agents explore**
-    - Agents work independently in background
-    - Claude Code can analyze spec or draft plan structure
+    **Step 2: Agents execute in parallel**
+    - Both agents run simultaneously in separate threads
+    - No blocking - agents work independently
+    - Claude Code orchestrates parallel execution automatically
 
-    **Step 3: Retrieve results when needed**
-    ```python
-    # Get results (blocks until completion)
-    result_1 = mcp__cli-bridge__get_task_result(task_id=task_id_1, wait=True)
-    result_2 = mcp__cli-bridge__get_task_result(task_id=task_id_2, wait=True)
-    ```
+    **Step 3: Results returned when complete**
+    - Task tool returns results automatically when agents finish
+    - Results available in same conversation context
 
 **IF COMPLEX**:
-  - Launch 3 sub-agents in TRUE PARALLEL (background execution):
+  - Launch 3 sub-agents in TRUE PARALLEL (using Claude Code Task tool):
 
-    **Step 1: Start all agents in background**
+    **Step 1: Launch all agents in parallel with single message**
     ```python
-    # Gemini agents (background execution)
-    task_id_1 = mcp__cli-bridge__gemini_cli(
-        prompt="Find similar architectural patterns in existing codebase for '$SPEC_FEATURE'",
-        background=True
-    )
-    task_id_2 = mcp__cli-bridge__gemini_cli(
-        prompt="Research latest API documentation for libraries needed",
-        background=True
+    # CRITICAL: Send SINGLE message with THREE Task tool calls
+    # This enables true parallel execution of all agents
+
+    # Agent 1: Explore codebase for patterns
+    Task(
+        subagent_type="codebase-explorer",
+        description="Find similar patterns",
+        prompt="""Search existing codebase for similar patterns to feature: '$SPEC_FEATURE'
+
+        Focus on:
+        - Similar architectural implementations
+        - Existing folder structure and naming conventions
+        - Reusable components and utilities
+        - Integration patterns
+
+        Return: Similar features, architectural patterns, reusable components, integration approach"""
     )
 
-    # Claude Code Task (runs in parallel)
-    task_id_3 = Task(
+    # Agent 2: Research library documentation
+    Task(
+        subagent_type="library-researcher",
+        description="Research library docs",
+        prompt="""Research latest library documentation for: '$REQUIRED_LIBRARIES'
+
+        Use Context7 MCP to fetch:
+        - Latest API usage examples
+        - Best practices from official docs
+        - Version compatibility notes
+        - Breaking changes
+
+        Return: Libraries researched, API examples, best practices, compatibility notes"""
+    )
+
+    # Agent 3: Design integration strategy
+    Task(
         subagent_type="integration-designer",
-        prompt="Design integration strategy for complex feature"
+        description="Design integration",
+        prompt="""Design integration strategy for complex feature: '$SPEC_FEATURE'
+
+        Analyze:
+        - System architecture and dependencies
+        - Integration points and interfaces
+        - Data flow and communication patterns
+        - Security and performance considerations
+
+        Return: Integration architecture, API design, data flow, risk assessment"""
     )
     ```
 
     **Step 2: All 3 agents work independently in parallel**
-    - Gemini explores codebase and libraries (no blocking)
-    - Claude designs integration strategy
-    - True parallel execution via Python 3.13+ free-threading (optional) or asyncio tasks
+    - Codebase explorer finds existing patterns
+    - Library researcher fetches latest docs via Context7 MCP
+    - Integration designer plans architecture
+    - True parallel execution - all agents run simultaneously
 
-    **Step 3: Retrieve results when needed**
-    ```python
-    result_1 = mcp__cli-bridge__get_task_result(task_id=task_id_1, wait=True)
-    result_2 = mcp__cli-bridge__get_task_result(task_id=task_id_2, wait=True)
-    result_3 = # Task tool result
-    ```
+    **Step 3: Results returned when complete**
+    - Task tool returns all results automatically
+    - Results available in same conversation context
+    - Synthesize findings in Step 3.1
 
 **⚠️ AGENT EXECUTION RULES**:
-- **codebase-explorer** → MUST use Gemini via `mcp__cli-bridge__gemini_cli(background=True)`
-- **library-researcher** → MUST use Gemini via `mcp__cli-bridge__gemini_cli(background=True)`
-- **integration-designer** → MUST use Claude Code Task tool (NOT MCP)
+- **codebase-explorer** → Uses Claude Code Task tool (searches codebase with Glob/Grep/Read)
+- **library-researcher** → Uses Claude Code Task tool (fetches docs via Context7 MCP)
+- **integration-designer** → Uses Claude Code Task tool (designs integration architecture)
 
 **CRITICAL - TRUE PARALLEL EXECUTION**:
-1. Launch all MCP agents with `background=True` parameter
-2. Returns `TASK_STARTED:{task_id}` immediately
-3. Agents execute independently (no blocking)
-4. Use `get_task_result(task_id, wait=True)` to retrieve results
-5. Python 3.13+ free-threading (optional) enables real parallelism; otherwise uses asyncio tasks
+1. **MUST send SINGLE message** with multiple Task tool calls
+2. All agents launch simultaneously in separate threads
+3. No blocking - agents execute independently
+4. Results returned automatically when complete
+5. Example of parallel launch:
+   ```python
+   # CORRECT: Single message, multiple Task calls
+   Task(subagent_type="codebase-explorer", ...)
+   Task(subagent_type="library-researcher", ...)
+   Task(subagent_type="integration-designer", ...)
+
+   # WRONG: Sequential messages (blocks between calls)
+   # Message 1: Task(subagent_type="codebase-explorer", ...)
+   # (wait for result)
+   # Message 2: Task(subagent_type="library-researcher", ...)
+   ```
 
 **Debug Output** (for transparency):
 ```json
@@ -204,9 +285,9 @@ Based on complexity determined above:
 }
 ```
 
-### 2.6. Synthesize Architecture Decisions
+### 3.1. Synthesize Architecture Decisions
 
-**IF sub-agents launched** (Step 2.5):
+**IF sub-agents launched** (Step 3):
 - Combine architectural insights
 - Reuse existing patterns for consistency
 - Apply latest library best practices
@@ -216,7 +297,7 @@ Based on complexity determined above:
 **ELSE**:
 - Skip (simple plan)
 
-### 3. Run Base Plan Command
+### 4. Run Base Plan Command
 
 Execute `/speckit.plan` with Constitution-enhanced context:
 
@@ -224,13 +305,40 @@ Execute `/speckit.plan` with Constitution-enhanced context:
 /speckit.plan
 ```
 
-**Agent Delegation**: This internally uses the **implementation-planner** agent (Opus model) for architectural design, library selection, and TAG chain planning. For complex features, it also delegates to:
-- **library-researcher** (Haiku) - Latest library documentation via Context7 MCP
-- **codebase-explorer** (Haiku) - Existing patterns and architecture analysis
+**Agent Delegation Strategy**:
+
+`/speckit.plan` uses a **tiered agent model** to optimize cost and performance:
+
+**Primary Agent** (High-Value Work):
+- **implementation-planner** (Opus 4 model)
+  - Architectural design and system structure
+  - Critical technology stack decisions
+  - TAG chain planning and traceability design
+  - Integration strategy for complex features
+  - **WHY Opus**: Architecture decisions have long-term impact; require deep reasoning
+
+**Supporting Agents** (Research & Exploration):
+- **library-researcher** (Haiku 3.5 model)
+  - Fetch latest library documentation via Context7 MCP
+  - Extract API usage examples and best practices
+  - Check version compatibility and breaking changes
+  - **WHY Haiku**: Documentation lookup is straightforward; doesn't require deep reasoning
+
+- **codebase-explorer** (Haiku 3.5 model)
+  - Search existing codebase for similar patterns
+  - Identify reusable components and utilities
+  - Document current architectural conventions
+  - **WHY Haiku**: Pattern matching and code search are well-defined tasks
+
+**Cost Optimization**:
+```
+Opus (expensive) → Strategic architecture decisions only
+Haiku (economical) → Information gathering and pattern matching
+```
 
 This creates the implementation plan in `specs/{SPEC_ID}/plan.md` with AI automatically following architectural principles.
 
-### 4. Add Constitution Reference Footer
+### 5. Add Constitution Reference Footer
 
 After plan.md is created, append Constitution reference section to document:
 
@@ -250,7 +358,7 @@ This plan follows the project [Constitution](.specify/memory/constitution.md).
 _Auto-added by `/ms.plan`_
 ```
 
-### 3. Verify Constitution Exists
+### 6. Verify Constitution Exists
 
 Check if `.specify/memory/constitution.md` exists:
 
@@ -271,7 +379,7 @@ Constitution defines architectural principles for this project.
 Continuing with plan creation, but Constitution reference will be broken.
 ```
 
-### 4. Report Success
+### 7. Report Success
 
 Display summary:
 
@@ -352,18 +460,26 @@ Please check the error message above and retry.
 
 ## Notes
 
--   **Automatic Constitution following**: AI reads Constitution and applies principles naturally
--   **Modular design focus**: Architecture respects TRUST and Simplicity-First
+-   **Guidelines over Execution**: `/ms.plan` provides Constitution reading guidelines to `/speckit.plan`, avoiding redundant file operations
+-   **Tiered Agent Model**: Uses Opus for strategic architecture, Haiku for research/exploration (cost optimization)
+-   **Modular design focus**: Architecture respects TRUST and Simplicity-First principles
 -   **No code enforcement**: Constitution serves as AI's guide, not enforced by code
 -   **Next command**: `/ms.analyze` validates plan-spec consistency + TRUST compliance
 
 ## Implementation Details
 
-**Base Command**: `/speckit.plan`
+**Base Command**: `/speckit.plan` (handles Constitution reading internally)
 
-**Extensions**: Constitution reference section
+**Extensions**:
+- Constitution reading guidelines (Step 2)
+- Constitution reference footer (Step 5)
+- Adaptive context analysis with parallel agents (Step 3)
 
-**Tools**: SlashCommand (/speckit.plan), Read (constitution check), Edit (append Constitution section)
+**Tools**:
+- SlashCommand (`/speckit.plan`)
+- Bash (verify prerequisites)
+- Edit (append Constitution reference section)
+- Task (launch parallel agents: codebase-explorer, library-researcher, integration-designer)
 
 ## Next Command
 

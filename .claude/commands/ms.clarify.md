@@ -177,4 +177,4 @@ Please check the error message above and retry.
 
 ## Next Command
 
-After `/ms.clarify`: Run `/ms.plan` to create implementation plan based on clarified requirements
+After `/ms.clarify`: Run `/ms.plan` to create implementation plan based on clarified requirements, OR run `/ms.checklist` to generate completeness checklist.

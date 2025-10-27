@@ -1,6 +1,7 @@
 ---
 name: constitution-extractor
 description: Extract project-specific constraints from spec.md and plan.md for Constitution Section IX
+model: haiku
 ---
 
 # Constitution Extractor Agent
@@ -53,7 +54,7 @@ _This section is auto-generated from spec.md and plan.md by `/ms.constitution`._
 
 ### Backend
 - **Framework**: FastAPI 0.104+
-- **Language**: Python 3.11+
+- **Language**: Python 3.13+
 - **Database**: PostgreSQL 15+ with SQLAlchemy ORM
 - **Authentication**: JWT tokens with refresh token rotation
 

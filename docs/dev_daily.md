@@ -1,12 +1,27 @@
 # 🗓 2025-10-27 (Mon)
 
 ## 📌 Focus
-- 한국어 지원 에이전트 및 명령어 구조 추가
+- MCP CLI-Bridge 제거 및 Claude Code 내장 에이전트 시스템 완전 전환
 
 ## ✅ Done
-- 한국어 에이전트 디렉토리 생성 (.claude/agents/korean/)
-- 한국어 명령어 디렉토리 생성 (.claude/commands/korean/)
-- constitution_kor.md 초안 작성 (.claude/commands/)
+- 한국어 지원 에이전트 및 명령어 구조 추가:
+  - 한국어 에이전트 디렉토리 생성 (.claude/agents/korean/)
+  - 한국어 명령어 디렉토리 생성 (.claude/commands/korean/)
+  - constitution_kor.md 초안 작성 (.claude/commands/)
+- MCP CLI-Bridge 의존성 완전 제거:
+  - ms.specify.md: 첨부 문서 시나리오 브랜치 명명 규칙 추가
+  - ms.plan.md: Gemini CLI → Claude Code Task tool 전환 (codebase-explorer, library-researcher, integration-designer)
+  - ms.plan.md: Guidelines over Execution 패턴 적용 (Constitution 읽기 가이드라인 제공)
+  - ms.plan.md: Tiered Agent Model 명시 (Opus 4: 전략적 아키텍처, Haiku 3.5: 정보 수집)
+  - ms.implement.md: Gemini/Codex CLI → Claude Code 에이전트 전환 (library-researcher, doc-updater)
+  - ms.implement.md: CHANGELOG → Living Documentation sync 패턴 변경
+- Wrapper 역할 명확화:
+  - ms.tasks.md: /speckit.tasks wrapper 역할 및 TAG 기능 강화 명시
+  - ms.implement.md: Multi-Agent Orchestration 구조 문서화 (tdd-implementer, library-researcher, doc-updater)
+- 비용 최적화 전략 문서화:
+  - Opus: 장기적 영향이 큰 아키텍처 결정 (ms.plan의 implementation-planner)
+  - Sonnet: TDD 추론 및 테스트 전략 (ms.implement의 tdd-implementer)
+  - Haiku: 문서 조회, 패턴 탐색, Living Docs 동기화 (library-researcher, codebase-explorer, doc-updater)
 - settings.local.json 업데이트 (Bash 권한 설정)
 
 ---

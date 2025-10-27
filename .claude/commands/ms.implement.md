@@ -8,11 +8,18 @@ Implements features with automatic TAG selection and TAG block insertion.
 
 ## Overview
 
-This command performs a **3-step process**:
+**This command is a wrapper around `/speckit.implement` with enhanced functionality.**
 
-1. **TAG Auto-Selection**: Scans tasks.md for first uncompleted TAG
-2. **Implementation**: Runs `/speckit.implement` to generate code and tests
-3. **TAG Block Insertion**: Auto-inserts traceability metadata in generated files
+**Base Command**: `/speckit.implement` - TDD implementation (RED-GREEN-REFACTOR)
+
+**Additional Features** (provided by `/ms.implement`):
+- TAG auto-selection from tasks.md (first uncompleted task)
+- Library documentation research via `library-researcher` agent (Haiku + Context7 MCP)
+- TAG block insertion for traceability (@SPEC → @TEST → @CODE chains)
+- Living Documentation sync via `doc-updater` agent (Haiku)
+- tasks.md checklist auto-update
+
+**Purpose**: Implements features with complete traceability and automatic documentation synchronization, ensuring each implementation has full TAG chain coverage and up-to-date docs.
 
 ## Usage
 
@@ -97,12 +104,7 @@ All implementation tasks are complete.
 
 **EXIT**: Code 0
 
-### Step 1.5: Context7 MCP - Latest Library Documentation (If Needed)
-
-**⚠️ CRITICAL: Library research MUST be delegated to Gemini CLI**
-- Use `mcp__cli-bridge__gemini_cli` tool
-- Gemini processes documentation faster than Claude
-- Claude Code orchestrates, Gemini executes
+### Step 1.5: Latest Library Documentation Research (If Needed)
 
 **Analyze task**: Does implementation require external libraries?
 
@@ -114,29 +116,27 @@ All implementation tasks are complete.
 **IF external library detected**:
 
   1. **Identify library and needed features**
-  2. **Delegate to Gemini via MCP cli-bridge (background execution)**:
+  2. **Launch library-researcher agent (background execution)**:
      ```python
-     # Launch Gemini library research in background
-     task_id = mcp__cli-bridge__gemini_cli(
-         prompt="""Research latest API documentation for:
-         - Library: fastapi
-         - Topic: background tasks
-         - Use Context7 MCP tools
-         - Return: API usage examples and best practices
-         """,
-         background=True  # Returns immediately
+     # Launch library research agent
+     Task(
+         subagent_type="library-researcher",
+         description="Research library docs",
+         prompt="""Research latest library documentation for: '$REQUIRED_LIBRARIES'
+
+         Use Context7 MCP to fetch:
+         - Latest API usage examples
+         - Best practices from official docs
+         - Version compatibility notes
+         - Breaking changes
+
+         Return: Libraries researched, API examples, best practices, compatibility notes"""
      )
 
-     # Claude continues with other work while Gemini researches
-     # ... (e.g., read spec.md, plan.md, etc.)
-
-     # Retrieve results when needed for implementation
-     library_docs = mcp__cli-bridge__get_task_result(
-         task_id=task_id,
-         wait=True  # Block until completion
-     )
+     # Agent runs independently while Claude continues with other work
+     # Results available when agent completes
      ```
-  3. **Use latest API in implementation** (based on Gemini's research)
+  3. **Use latest API in implementation** (based on agent's research)
 
 **ELSE**:
   → Skip (no external libraries)
@@ -174,13 +174,23 @@ Now implement TAG: {TAG_ID}
 
 Execute `/speckit.implement {TAG_ID}` with Constitution-enhanced context.
 
-**Agent Delegation**: This internally uses the **tdd-implementer** agent (Sonnet model) for:
-- RED: Writing failing tests first
-- GREEN: Implementing minimum code to pass tests
-- REFACTOR: Improving code quality while keeping tests green
-- Auto-inserting TAG blocks via **ms-workflow-tag-manager** skill
+**Agent Delegation Strategy**:
 
-This generates the core implementation files (code, tests) following Constitution principles.
+`/speckit.implement` uses the **tdd-implementer** agent (Sonnet 3.5 model) for core TDD workflow:
+
+**Primary Agent** (High-Value Work):
+- **tdd-implementer** (Sonnet 3.5 model)
+  - RED: Write failing tests first (test-driven approach)
+  - GREEN: Implement minimum code to pass tests
+  - REFACTOR: Improve code quality while keeping tests green
+  - Auto-insert TAG blocks via `ms-workflow-tag-manager` skill
+  - **WHY Sonnet**: TDD requires reasoning about test cases, edge cases, and refactoring strategies
+
+**Supporting Agents** (Research & Documentation):
+- **library-researcher** (Haiku 3.5) - Already completed in Step 1.5 if needed
+- **doc-updater** (Haiku 3.5) - Will run in Step 3.5 for documentation sync
+
+This generates the core implementation files (code, tests) following Constitution principles and TDD best practices.
 
 ### Step 3: Insert TAG Blocks
 
@@ -239,82 +249,67 @@ EOF
 
 For each generated file, insert TAG block at top using Edit tool.
 
-### Step 3.5: Update CHANGELOG.md (Codex)
+### Step 3.5: Update Documentation (Living Docs)
 
-**⚠️ CRITICAL: CHANGELOG update MUST be delegated to Codex CLI**
+**After implementation is complete**, update project documentation to reflect code changes.
 
-After implementation is complete, update the project changelog with detailed change history.
+**Documentation to update**:
+- **dev_daily.md**: Append implementation summary with TAG IDs
+- **API docs**: Auto-generate/update `docs/api/{TAG_ID}.md` if public APIs added
+- **README.md**: Update if major feature completed (conditional)
 
-**When to update**:
-- New features added
-- Existing functionality changed
-- Bugs fixed
-- Breaking changes introduced
-
-**Delegate to Codex via MCP cli-bridge (background execution)**:
+**Use doc-updater agent** (delegated to `/ms.up-docs` internally):
 
 ```python
-# Analyze what was implemented
-implemented_changes = """
-- Files created: [list all new files]
-- Files modified: [list all modified files]
-- Features added: [describe new capabilities]
-- Changes made: [describe modifications]
-- Technical details: [function names, classes, patterns used]
-- Rationale: [why these changes were made]
-"""
+# Launch doc-updater agent for Living Documentation sync
+Task(
+    subagent_type="doc-updater",
+    description="Sync Living Documents",
+    prompt="""Update Living Documentation based on recent implementation:
 
-# Update CHANGELOG via Codex (background execution)
-changelog_task_id = mcp__cli-bridge__codex_cli(
-    prompt=f"""Update docs/CHANGELOG.md with the following implementation:
+    Changes:
+    - Files created: {list all new files}
+    - Files modified: {list all modified files}
+    - TAG implemented: {TAG_ID}
+    - Features added: {describe new capabilities}
 
-{implemented_changes}
+    Tasks:
+    1. Append to docs/dev_daily.md:
+       - Implementation summary with TAG ID
+       - Files changed and rationale
+       - Current date/time
 
-Requirements:
-1. Follow Keep a Changelog format (https://keepachangelog.com/)
-2. Add to [Unreleased] section
-3. Use appropriate categories:
-   - Added: New features
-   - Changed: Changes to existing functionality
-   - Deprecated: Soon-to-be removed features
-   - Removed: Removed features
-   - Fixed: Bug fixes
-   - Security: Security improvements
-4. Be specific and detailed:
-   - Include file paths and function names
-   - Explain WHAT changed and WHY
-   - Note any breaking changes
-5. Use technical language - this is for developers
+    2. Generate/update API docs (if public APIs added):
+       - Create docs/api/{TAG_ID}.md
+       - Extract function signatures and docstrings
+       - Include TAG chain traceability
 
-Example format:
-## [Unreleased] - {{date}}
+    3. Update README.md (if major feature):
+       - Update feature list progress
+       - Add to completed features section
 
-### Added
-- New `UserService.authenticate()` method in `src/auth/service.py`
-  - Implements JWT-based authentication
-  - Replaces legacy session-based auth for better scalability
+    Follow CODE-FIRST principle:
+    - Extract documentation from code comments/docstrings
+    - Maintain TAG chain integrity
+    - Use auto-generated markers to preserve manual content
 
-### Changed
-- Updated `DatabaseConnection` to use connection pooling
-  - Improves performance under high load
-  - Reduces connection overhead by 40%
-""",
-    background=True  # Returns immediately
+    Return: List of docs updated, TAG integrity report"""
 )
 
-# Claude continues with other tasks (e.g., TAG block insertion)
-# Codex updates CHANGELOG independently in background
-
-# Wait for CHANGELOG update completion before finishing
-changelog_result = mcp__cli-bridge__get_task_result(
-    task_id=changelog_task_id,
-    wait=True
-)
+# Agent runs independently (Haiku model for speed)
+# Results available when agent completes
 ```
 
-**CHANGELOG vs README difference**:
-- **CHANGELOG**: Historical record of ALL changes (detailed, technical)
-- **README**: Current state only (no change history, user-friendly)
+**Documentation Principles** (from `doc-updater` agent):
+- **CODE-FIRST**: Documentation generated from code, not maintained separately
+- **Living Docs**: Real-time sync between code and documentation
+- **TAG Traceability**: @SPEC → @TEST → @CODE → @DOC chain complete
+
+**Notes**:
+- **dev_daily.md**: Always updated (implementation log)
+- **API docs**: Only if public APIs added/modified
+- **README.md**: Only if major feature completed
+- **CHANGELOG.md**: Manual updates only (not auto-generated)
 
 ### Step 4: Update tasks.md Checklist
 
@@ -481,11 +476,33 @@ After `/ms.implement`:
 
 ## Notes
 
+-   **Wrapper Design**: `/ms.implement` wraps `/speckit.implement` and adds TAG + documentation features
+-   **Multi-Agent Orchestration**: Coordinates tdd-implementer (Sonnet), library-researcher (Haiku), doc-updater (Haiku)
 -   **Auto TAG selection**: No manual TAG specification needed (scans tasks.md)
 -   **Manual TAG option**: Can specify TAG explicitly if needed
 -   **Automatic TAG blocks**: Inserted in all generated files
--   **100% traceability**: SPEC→TEST→CODE chain complete
+-   **Living Documentation**: Auto-syncs code changes to docs via doc-updater agent
+-   **100% traceability**: SPEC→TEST→CODE→DOC chain complete
 
 ## Implementation Details
 
-**Tools**: SlashCommand (/speckit.implement), Read, Edit, Write, Bash
+**Architecture**: Wrapper pattern with feature enhancements
+
+**Delegation**:
+- **Core implementation** → `/speckit.implement` (TDD workflow with tdd-implementer agent)
+- **Library research** → `library-researcher` agent (Context7 MCP, Haiku model)
+- **Documentation sync** → `doc-updater` agent (Living Docs, Haiku model)
+- **TAG block insertion** → `/ms.implement` (enhancement layer)
+
+**Agent Usage**:
+- **tdd-implementer** (Sonnet) - RED-GREEN-REFACTOR TDD cycle, core implementation
+- **library-researcher** (Haiku) - Latest library docs via Context7 MCP
+- **doc-updater** (Haiku) - Living Documentation synchronization
+
+**Tools**:
+- SlashCommand (`/speckit.implement`) - Delegates TDD implementation
+- Task (launch agents: library-researcher, doc-updater)
+- Read (tasks.md, spec.md) - TAG auto-selection and context
+- Edit (generated files) - Insert TAG blocks
+- Write (TAG metadata) - Create traceability chains
+- Bash (ripgrep) - Scan for existing TAGs

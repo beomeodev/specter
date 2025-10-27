@@ -28,13 +28,6 @@ Generate a custom requirements quality checklist ("Unit Tests for English") for 
 
 This command wraps `/speckit.checklist` to maintain naming consistency with other My-Spec commands (`/ms.specify`, `/ms.plan`, `/ms.implement`, etc.).
 
-**All functionality is identical to `/speckit.checklist`**, including:
-- Requirements quality validation (NOT implementation testing)
-- Dynamic clarifying questions based on context
-- Multiple checklist types (ux.md, api.md, security.md, etc.)
-- "Unit Tests for English" approach
-- Traceability to spec.md sections
-
 ## Execution Steps
 
 ### Step 0: Load Project Context
@@ -82,26 +75,6 @@ Execute the underlying Spec-Kit checklist command with Constitution context:
 2. **After `/ms.plan`**: Check that technical requirements and constraints are well-defined
 3. **After `/ms.tasks`**: Ensure all implementation tasks map to clear requirements
 4. **Any time**: Generate focused checklists for specific quality aspects (UX, API, security, etc.)
-
-## Key Concept: "Unit Tests for English"
-
-Checklists test **REQUIREMENTS QUALITY**, not implementation:
-
-❌ **WRONG** (Testing implementation):
-- "Verify landing page displays 3 episode cards"
-- "Test hover states work correctly"
-
-✅ **CORRECT** (Testing requirements):
-- "Are the number and layout of featured episodes explicitly specified? [Completeness, Spec §FR-001]"
-- "Are hover state requirements consistently defined for all interactive elements? [Consistency]"
-
-## Example Checklist Types
-
-- **`ux.md`**: Visual hierarchy, interaction states, accessibility requirements
-- **`api.md`**: Error responses, rate limiting, authentication requirements
-- **`security.md`**: Threat model, data protection, authentication requirements
-- **`performance.md`**: Performance metrics, load conditions, degradation requirements
-- **`requirements.md`**: General completeness, clarity, consistency review
 
 ## Notes
 

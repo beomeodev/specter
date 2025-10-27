@@ -1,6 +1,7 @@
 ---
 name: trust-validator
 description: Validate code against TRUST 5 principles (Test-First, Readable, Unified, Secured, Trackable)
+model: sonnet
 ---
 
 # TRUST Validator Agent

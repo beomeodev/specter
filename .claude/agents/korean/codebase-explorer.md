@@ -1,6 +1,7 @@
 ---
 name: codebase-explorer
 description: 코드베이스에서 패턴, 유사 기능 및 아키텍처 결정을 검색합니다.
+model: sonnet
 ---
 
 # 코드베이스 탐색기 에이전트

@@ -116,117 +116,85 @@ Execute in priority order (stop at first match):
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Step 3: Execute Sub-Agent Strategy**
+### 3. Run Base Specify Command
 
-Based on complexity determined above:
+#### 3.1. Handle Attached Document Scenarios
 
-**IF SIMPLE**:
-  - 0 sub-agents
-  - Proceed directly to Step 3
+**BEFORE executing `/speckit.specify`**, check if user provided feature requirements via attached document instead of inline `$ARGUMENTS`:
 
-**IF MODERATE**:
-  - Launch 2 sub-agents in TRUE PARALLEL (background execution):
+**Detection**:
+- User message contains file attachments (e.g., `.md`, `.txt`, `.pdf`)
+- User refers to "attached document", "see the file", or similar phrases
+- `$ARGUMENTS` is empty or only contains file reference
 
-    **Step 1: Start all agents in background**
-    ```python
-    # Launch agent 1 in background
-    task_id_1 = mcp__cli-bridge__gemini_cli(
-        prompt="Search existing codebase for similar patterns to user request '$ARGUMENTS'",
-        background=True  # Returns immediately with task_id
-    )
+**When attached document detected**:
 
-    # Launch agent 2 in background (if external library needed)
-    task_id_2 = mcp__cli-bridge__gemini_cli(
-        prompt="Research latest documentation for libraries needed for '$ARGUMENTS'",
-        background=True  # Returns immediately with task_id
-    )
-    ```
+1. **Read the attached document** to understand feature requirements
+2. **Analyze document content** for context and intent
+3. **Generate branch name** (2-4 words) based on document CONTENT, NOT filename
 
-    **Step 2: Claude continues its own work while agents run**
-    - Agents execute independently in background
-    - Claude Code can do other tasks without blocking
+**Branch Naming Rules**:
 
-    **Step 3: Retrieve results when needed**
-    ```python
-    # Get results (blocks until completion)
-    result_1 = mcp__cli-bridge__get_task_result(task_id=task_id_1, wait=True)
-    result_2 = mcp__cli-bridge__get_task_result(task_id=task_id_2, wait=True)
-    ```
+```
+❌ BAD: Using filename as branch name
+- Filename: "feature-requirements-draft-v3-final.md"
+- Branch: "feature-requirements-draft-v3-final" (meaningless)
 
-**IF COMPLEX**:
-  - Launch 3 sub-agents in TRUE PARALLEL (background execution):
-
-    **Step 1: Start all agents in background**
-    ```python
-    # Gemini agents (background execution)
-    task_id_1 = mcp__cli-bridge__gemini_cli(
-        prompt="Search existing codebase for similar patterns to user request '$ARGUMENTS'",
-        background=True
-    )
-    task_id_2 = mcp__cli-bridge__gemini_cli(
-        prompt="Research latest documentation for libraries needed for '$ARGUMENTS'",
-        background=True
-    )
-
-    # Claude Code Task (runs in parallel)
-    task_id_3 = Task(
-        subagent_type="integration-designer",
-        prompt="Analyze dependencies and integration points for '$ARGUMENTS'"
-    )
-    ```
-
-    **Step 2: All 3 agents work independently in parallel**
-    - Gemini agents run in background via MCP server
-    - Claude agent runs in separate thread
-    - No blocking, true parallel execution
-
-    **Step 3: Retrieve results when needed**
-    ```python
-    result_1 = mcp__cli-bridge__get_task_result(task_id=task_id_1, wait=True)
-    result_2 = mcp__cli-bridge__get_task_result(task_id=task_id_2, wait=True)
-    result_3 = # Task tool result
-    ```
-
-**⚠️ AGENT EXECUTION RULES**:
-- **codebase-explorer** → MUST use Gemini via `mcp__cli-bridge__gemini_cli(background=True)`
-- **library-researcher** → MUST use Gemini via `mcp__cli-bridge__gemini_cli(background=True)`
-- **integration-designer** → MUST use Claude Code Task tool (NOT MCP)
-
-**CRITICAL - TRUE PARALLEL EXECUTION**:
-1. Launch all MCP agents with `background=True` parameter
-2. Returns `TASK_STARTED:{task_id}` immediately
-3. Agents execute independently (no blocking)
-4. Use `get_task_result(task_id, wait=True)` to retrieve results
-5. Python 3.13+ free-threading (optional) enables real parallelism; otherwise uses asyncio tasks
-
-**Debug Output** (for transparency):
-```json
-{
-  "complexity_metrics": {
-    "simple_keywords": 0,
-    "moderate_keywords": 1,
-    "complex_keywords": 2,
-    "similar_specs": 5
-  },
-  "decision": "COMPLEX",
-  "reason": "Rule 1: COMPLEX_KEYWORDS ≥ 2",
-  "agents_spawned": 3
-}
+✅ GOOD: Deriving branch name from content
+- Document describes: "Implement user authentication with OAuth2 and JWT"
+- Branch: "oauth-jwt-auth" (concise, descriptive)
 ```
 
-### 2.6. Synthesize Findings
+**Process**:
 
-**IF sub-agents launched** (Step 2.5):
-- Combine results from all agents
-- Identify existing patterns to reuse
-- Note latest library APIs
-- Map integration points
-- Document Constitution compliance considerations
+```python
+# Step 1: Detect attached document
+if user_attached_file and not $ARGUMENTS:
+    # Step 2: Read document
+    document_content = Read(attached_file_path)
 
-**ELSE**:
-- Skip (simple request)
+    # Step 3: Extract feature intent from content
+    # Look for: title, main requirements, key features
+    feature_intent = extract_main_feature(document_content)
 
-### 3. Run Base Specify Command
+    # Step 4: Generate concise branch name (2-4 words)
+    # - Focus on WHAT the feature does, not the document name
+    # - Use kebab-case
+    # - Keep it short and descriptive
+    branch_name = generate_branch_name(feature_intent)
+
+    # Step 5: Use content as $ARGUMENTS for /speckit.specify
+    $ARGUMENTS = document_content
+```
+
+**Example**:
+
+```
+User: "I've attached a document describing the feature I want to implement"
+Attached: "project-planning-notes-2024.md"
+
+Document content:
+---
+# Real-time Notification System
+Implement WebSocket-based real-time notifications for user events...
+---
+
+AI Processing:
+1. Reads document ✓
+2. Identifies main feature: "Real-time notification system via WebSocket"
+3. Generates branch name: "realtime-websocket-notifications"
+4. Passes full document content to /speckit.specify
+```
+
+**Common Pitfalls to Avoid**:
+
+| Anti-Pattern | Why It's Wrong | Correct Approach |
+|-------------|----------------|------------------|
+| Use filename directly | Filenames often contain metadata, not intent | Parse document content for feature description |
+| Skip reading document | Loses context and requirements | Always read and analyze document first |
+| Generate generic names | "feature-123", "new-feature" | Extract specific feature purpose from content |
+
+#### 3.2. Execute Speckit Specify
 
 Execute `/speckit.specify` with Constitution-enhanced context:
 
@@ -310,26 +278,6 @@ This will set up Spec-Kit templates AND create the Constitution.
 
 **Exit**: Code 1
 
-### Error 2: Base Command Failed
-
-**Symptom**: `/speckit.specify` returned error
-
-**Message**:
-
-```
-❌ Error: Spec creation failed
-
-The base `/speckit.specify` command encountered an error.
-Please check the error message above and retry.
-
-Common issues:
-- Spec ID already exists
-- Invalid directory structure
-- Missing permissions
-```
-
-**Exit**: Code 1
-
 ## Notes
 
 -   **Constitution injected BEFORE spec creation**: AI receives principles upfront, not after
@@ -338,15 +286,9 @@ Common issues:
 -   **No forced conversion**: Constitution guides AI behavior, not enforced by code
 -   **Workflow improvement**: This approach ensures higher quality specs from the start
 
-## Implementation Details
-
-**Tools**: SlashCommand (/speckit.specify), Read (constitution check), Edit (append Constitution section)
-
 ## Next Command
 
 After `/ms.specify`:
 1. Run `/ms.clarify` to clarify ambiguous requirements (질의응답 방식)
 2. OR run `/ms.checklist` to generate completeness checklist (체크리스트 방식)
 3. Then proceed to `/ms.plan` for implementation planning
-
-**Workflow**: `/ms.specify` → `/ms.clarify` or `/ms.checklist` → `/ms.plan`

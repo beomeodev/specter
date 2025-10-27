@@ -1,6 +1,7 @@
 ---
 name: codebase-explorer
 description: Search codebase for patterns, similar features, and architectural decisions
+model: sonnet
 ---
 
 # Codebase Explorer Agent

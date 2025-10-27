@@ -815,17 +815,20 @@ specter/
 
 **Python Requirements**:
 - **Minimum**: Python 3.13+ (required, pyproject.toml)
-- **Recommended**: Python 3.13+ free-threading build for true parallel MCP execution
-  - GIL-free 병렬 실행 (--disable-gil)
-  - 멀티스테이지 Dockerfile (Debian bookworm)
-  - Without free-threading: asyncio tasks provide concurrency
 
 **MCP 서버 통합**:
-- CLI Bridge: Gemini/Codex CLI 통합
-  - Input validation (파일 경로, 프롬프트 검증)
-  - LRU 캐시 (메모리 누수 방지)
-  - Process timeout 강제 종료
-- Context7: 최신 라이브러리 문서
+- **Context7 MCP**: 최신 라이브러리 문서 조회
+  - library-researcher 에이전트에서 사용
+  - resolve-library-id, get-library-docs tools
+  - 실시간 공식 문서 접근
+
+**Multi-Agent System**:
+- **Claude Code 내장 에이전트** (Task tool 사용):
+  - **Opus 4**: implementation-planner (전략적 아키텍처 설계)
+  - **Sonnet 3.5**: tdd-implementer, spec-builder (TDD 구현, 사양 작성)
+  - **Haiku 3.5**: codebase-explorer, library-researcher, doc-updater (탐색, 문서화)
+- 진정한 병렬 실행 (SINGLE message, MULTIPLE Task calls)
+- 비용 최적화 (고가 모델은 전략적 작업에만 사용)
 
 **컨테이너 환경**:
 - Docker Compose 기반 DevContainer

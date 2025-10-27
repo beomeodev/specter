@@ -1,6 +1,7 @@
 ---
 name: constitution-extractor
 description: spec.md 및 plan.md에서 헌법 섹션 IX에 대한 프로젝트별 제약 조건을 추출합니다.
+model: haiku
 ---
 
 # 헌법 추출기 에이전트

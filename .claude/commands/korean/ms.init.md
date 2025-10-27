@@ -118,15 +118,6 @@ ls -la .claude/hooks/
 5. /ms.tasks - 구현 작업 생성
 6. /ms.analyze - TRUST 준수 확인
 7. /ms.implement - 구현 시작
-
-📖 헌법 읽기: .specify/memory/constitution.md
-
-💡 문서:
-- 워크플로 문서(spec.md, plan.md, tasks.md) → /ms.* 명령으로 생성됨
-- 살아있는 문서(docs/api/[TAG-ID].md) → /ms.implement에 의해 자동 생성됨
-- AGENTS.md → /ms.constitution에 의해 생성됨
-
-💡 팁: 바닐라 Spec-Kit 워크플로에 대해 /speckit.* 명령을 직접 사용할 수 있습니다.
 ```
 
 ## 오류 처리
@@ -155,52 +146,6 @@ ls -la .claude/hooks/
 ```
 
 **종료**: 코드 1
-
-### 오류 2: 헌법 템플릿 누락
-
-**증상**: `templates/constitution-template.md`를 찾을 수 없음
-
-**메시지**:
-
-```
-❌ 오류: 헌법 템플릿을 찾을 수 없습니다.
-
-예상 위치: templates/constitution-template.md
-
-이는 리포지토리 구조 문제입니다.
-my-spec 리포지토리 무결성을 확인하십시오.
-```
-
-**종료**: 코드 1
-
-### 오류 3: 쓰기 권한 거부됨
-
-**증상**: `.specify/memory/constitution.md`에 쓸 수 없음
-
-**메시지**:
-
-```
-❌ 오류: 헌법 파일을 쓸 수 없습니다.
-
-권한 거부됨: .specify/memory/constitution.md
-
-다음을 확인하십시오:
-1. .specify/memory/에 대한 디렉토리 권한
-2. constitution.md가 이미 있는 경우 파일 권한
-3. 디스크 공간 가용성
-```
-
-**종료**: 코드 1
-
-## 사용된 도구
-
--   **Bash**: Spec-Kit 설치 실행, 디렉토리 확인, 디렉토리 생성, 파일 삭제
--   **Read**: 헌법 템플릿 로드
--   **Write**: constitution.md 생성(템플릿의 정확한 사본)
-
-## 계약 참조
-
-사양: [specs/001-my-spec-spec/spec.md](../../specs/001-my-spec-spec/spec.md)
 
 ## 다음 명령
 
