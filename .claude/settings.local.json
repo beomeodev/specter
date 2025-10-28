@@ -27,7 +27,8 @@
       "Bash(git commit --no-verify -m \"$(cat <<''EOF''\nchore: settings.local.json 추가 업데이트\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git push)",
       "Bash(cp:*)",
-      "Bash(date:*)"
+      "Bash(date:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
@@ -43,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /workspace/specter/.claude/hooks/ms/ms_hooks.py SessionStart",
+            "command": "python3 .claude/hooks/ms/ms_hooks.py SessionStart",
             "timeout": 5
           }
         ]
@@ -54,7 +55,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /workspace/specter/.claude/hooks/ms/ms_hooks.py PreToolUse",
+            "command": "python3 .claude/hooks/ms/ms_hooks.py PreToolUse",
             "timeout": 5
           }
         ]
@@ -65,7 +66,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /workspace/specter/.claude/hooks/ms/ms_hooks.py PostToolUse",
+            "command": "python3 .claude/hooks/ms/ms_hooks.py PostToolUse",
             "timeout": 5
           }
         ]
@@ -76,7 +77,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 /workspace/specter/.claude/hooks/ms/ms_hooks.py UserPromptSubmit",
+            "command": "python3 .claude/hooks/ms/ms_hooks.py UserPromptSubmit",
             "timeout": 5
           }
         ]
