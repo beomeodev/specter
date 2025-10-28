@@ -1,0 +1,39 @@
+{
+  "name": "My-Spec Development",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "dev",
+  "workspaceFolder": "/workspace/my-spec",
+
+  // SSH 에이전트 포워딩 (VS Code 내장 기능)
+  "remoteEnv": {
+    "SSH_AUTH_SOCK": "${localEnv:SSH_AUTH_SOCK}"
+  },
+
+  // 컨테이너 생성 후 자동 실행
+  "postCreateCommand": "bash -c 'ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null && uv sync --all-groups'",
+
+  // VS Code 확장 프로그램
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+
+  // 포트 포워딩 (필요 시)
+  "forwardPorts": [],
+
+  // 컨테이너 생성 시 마운트
+  "mounts": [
+    // SSH 키 (읽기 전용)
+    "source=${localEnv:HOME}/.ssh,target=/home/dev/.ssh,type=bind,consistency=cached,readonly",
+    // known_hosts만 쓰기 가능 (postCreateCommand 실행을 위해)
+    "source=${localEnv:HOME}/.ssh/known_hosts,target=/home/dev/.ssh/known_hosts,type=bind,consistency=cached"
+  ]
+}
