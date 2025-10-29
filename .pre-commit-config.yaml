@@ -1,3 +1,6 @@
+default_language_version:
+  python: python3
+
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.2
@@ -22,8 +25,5 @@ repos:
     rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
-        language_version: python3.13
       - id: trailing-whitespace
-        language_version: python3.13
       - id: check-merge-conflict
-        language_version: python3.13
