@@ -1,6 +1,6 @@
 ---
 name: ms-essentials-debug
-description: Advanced debugging skill for runtime errors with systematic stack trace analysis, error pattern recognition (NoneType, undefined, async issues), root cause identification using 5-Whys methodology, and test-first debugging workflow that follows TDD RED-GREEN-REFACTOR cycle to provide actionable fix suggestions
+description: Advanced debugging skill for runtime errors with systematic stack trace analysis, error pattern recognition (NoneType, undefined, async issues, memory leaks, performance bottlenecks), root cause identification using 5-Whys methodology, memory profiling with tracemalloc, N+1 query detection, and test-first debugging workflow that follows TDD RED-GREEN-REFACTOR cycle to provide actionable fix suggestions
 ---
 
 # MS Essentials Debug v1.0
@@ -336,6 +336,206 @@ async function fetchData(url: string): Promise<Data> {
   }
 }
 ```
+
+### Example 4: Memory Leak Debugging (Python)
+
+**Symptom**: Memory usage grows unbounded over time (e.g., 100MB → 2GB in production)
+
+**Debugging steps**:
+1. Use `tracemalloc` to identify leak source
+2. Check for circular references
+3. Profile with `memory_profiler` decorator
+4. Verify cleanup in `__del__` or context managers
+
+**Investigation with tracemalloc**:
+```python
+import tracemalloc
+
+# Start tracing
+tracemalloc.start()
+
+# Run your code
+run_application()
+
+# Get top memory consumers
+snapshot = tracemalloc.take_snapshot()
+top_stats = snapshot.statistics('lineno')
+
+print("[ Top 10 memory consumers ]")
+for stat in top_stats[:10]:
+    print(stat)
+```
+
+**Common memory leak patterns**:
+```python
+# ❌ LEAK: Class variable accumulates instances
+class Cache:
+    _instances = []  # Never cleared!
+
+    def __init__(self, data):
+        self.data = data
+        self._instances.append(self)  # Memory leak
+
+# ✅ FIX: Use weak references
+import weakref
+
+class Cache:
+    _instances = weakref.WeakSet()  # Auto-cleanup when no strong refs
+
+    def __init__(self, data):
+        self.data = data
+        self._instances.add(self)
+
+
+# ❌ LEAK: Circular reference
+class Node:
+    def __init__(self, value):
+        self.value = value
+        self.parent = None
+        self.children = []
+
+    def add_child(self, child):
+        child.parent = self  # Circular reference: parent ↔ child
+        self.children.append(child)
+
+# ✅ FIX: Use weak references for back-pointers
+import weakref
+
+class Node:
+    def __init__(self, value):
+        self.value = value
+        self.parent = None  # Will be weakref
+        self.children = []
+
+    def add_child(self, child):
+        child.parent = weakref.ref(self)  # Weak reference
+        self.children.append(child)
+
+
+# ❌ LEAK: Global cache never expires
+_cache = {}
+
+def get_data(key):
+    if key not in _cache:
+        _cache[key] = expensive_operation(key)  # Grows indefinitely
+    return _cache[key]
+
+# ✅ FIX: Use LRU cache with size limit
+from functools import lru_cache
+
+@lru_cache(maxsize=128)  # Automatically evicts oldest entries
+def get_data(key):
+    return expensive_operation(key)
+```
+
+**Memory profiling decorator**:
+```python
+from memory_profiler import profile
+
+@profile
+def memory_intensive_function():
+    data = [i for i in range(1000000)]  # 8MB list
+    return sum(data)
+
+# Run with: python -m memory_profiler script.py
+```
+
+### Example 5: N+1 Query Problem (Performance Debugging)
+
+**Symptom**: API endpoint takes >5 seconds to respond (should be <500ms)
+
+**Debugging steps**:
+1. Use `console.time()` / `time.time()` to measure sections
+2. Check database query logs for repeated queries
+3. Use ORM query debugging (SQLAlchemy `echo=True`, Django Debug Toolbar)
+4. Profile with `cProfile` (Python) or Chrome DevTools (TypeScript)
+
+**Identifying N+1 queries (Python/SQLAlchemy)**:
+```python
+# ❌ N+1 QUERY PROBLEM (1 + N queries)
+def get_users_with_posts():
+    users = db.query(User).all()  # 1 query: SELECT * FROM users
+    for user in users:
+        # N queries: SELECT * FROM posts WHERE user_id = ?
+        posts = db.query(Post).filter(Post.user_id == user.id).all()
+        user.posts = posts
+    return users
+
+# Queries executed:
+# SELECT * FROM users;  (returns 100 users)
+# SELECT * FROM posts WHERE user_id = 1;
+# SELECT * FROM posts WHERE user_id = 2;
+# ... (100 more queries)
+# Total: 101 queries!
+
+
+# ✅ FIX: Use JOIN to fetch in single query
+def get_users_with_posts():
+    return (
+        db.query(User)
+        .options(joinedload(User.posts))  # Eager loading with JOIN
+        .all()
+    )
+
+# Queries executed:
+# SELECT users.*, posts.*
+# FROM users
+# LEFT JOIN posts ON users.id = posts.user_id;
+# Total: 1 query!
+```
+
+**TypeScript/Prisma example**:
+```typescript
+// ❌ N+1 QUERY PROBLEM
+async function getUsersWithPosts() {
+  const users = await prisma.user.findMany();  // 1 query
+
+  for (const user of users) {
+    user.posts = await prisma.post.findMany({  // N queries
+      where: { userId: user.id }
+    });
+  }
+
+  return users;
+}
+
+
+// ✅ FIX: Use include for eager loading
+async function getUsersWithPosts() {
+  return prisma.user.findMany({
+    include: {
+      posts: true  // Single query with JOIN
+    }
+  });
+}
+```
+
+**Measuring query performance**:
+```python
+import time
+import logging
+
+# Enable SQLAlchemy query logging
+logging.basicConfig()
+logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+
+# Measure execution time
+start = time.time()
+users = get_users_with_posts()
+duration = time.time() - start
+
+print(f"Query took {duration:.2f}s")
+# Before: Query took 5.32s (101 queries)
+# After: Query took 0.12s (1 query)
+```
+
+**General performance debugging checklist**:
+- [ ] **Database queries**: Check for N+1, missing indexes
+- [ ] **Memory**: Profile with `tracemalloc`, `memory_profiler`
+- [ ] **CPU**: Profile with `cProfile`, Chrome DevTools
+- [ ] **Network**: Check for redundant API calls
+- [ ] **Caching**: Add memoization for expensive operations
+- [ ] **Async**: Use concurrent execution where possible
 
 ---
 

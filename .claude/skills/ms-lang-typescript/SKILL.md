@@ -1,6 +1,6 @@
 ---
 name: ms-lang-typescript
-description: TypeScript 5.7+ development expertise with modern toolchain - Vitest 2.1 for 10x faster testing with native ESM support, Biome 1.9 for unified linting and formatting (75x faster than ESLint), strict type checking with advanced patterns (const type parameters, satisfies operator), React 19 and Next.js 15 integration, Zod runtime validation, Constitution compliance (≤500 SLOC, ≤10 complexity), and comprehensive TDD workflow with TAG block integration
+description: TypeScript 5.7+ development expertise with modern toolchain - Vitest 2.1 for 10x faster testing with native ESM support, Biome 1.9 for unified linting and formatting (75x faster than ESLint), strict type checking with advanced patterns (const type parameters, satisfies operator), React 19 and Next.js 15 integration with Error Boundaries and Suspense patterns, Zod runtime validation, type-safe environment variables, Constitution compliance (≤500 SLOC, ≤10 complexity), and comprehensive TDD workflow with TAG block integration
 ---
 
 # Language: TypeScript 5.7+ Expert
@@ -330,6 +330,284 @@ const envSchema = z.object({
 });
 
 export const env = envSchema.parse(process.env);
+```
+
+### 7. React Error Boundaries (Production Must-Have)
+
+**Why Error Boundaries?**
+- ✅ **Catch runtime errors** in React component tree
+- ✅ **Prevent app crash** from a single component error
+- ✅ **Show fallback UI** instead of blank page
+- ✅ **Log errors** to monitoring services (Sentry, DataDog)
+
+**Error Boundary Class Component**:
+```typescript
+// src/components/ErrorBoundary.tsx
+import { Component, type ReactNode } from 'react';
+
+interface Props {
+  children: ReactNode;
+  fallback?: ReactNode;
+  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+}
+
+interface State {
+  hasError: boolean;
+  error?: Error;
+}
+
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error): State {
+    // Update state so next render shows fallback UI
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Log error to error tracking service
+    console.error('ErrorBoundary caught:', error, errorInfo);
+
+    // Call custom error handler
+    this.props.onError?.(error, errorInfo);
+
+    // Example: Send to Sentry
+    // Sentry.captureException(error, { extra: errorInfo });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      // Render fallback UI
+      return (
+        this.props.fallback ?? (
+          <div className="error-container">
+            <h1>Something went wrong</h1>
+            <p>{this.state.error?.message}</p>
+            <button onClick={() => this.setState({ hasError: false })}>
+              Try again
+            </button>
+          </div>
+        )
+      );
+    }
+
+    return this.props.children;
+  }
+}
+```
+
+**Usage in App**:
+```typescript
+// app/layout.tsx (Next.js App Router)
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en">
+      <body>
+        <ErrorBoundary fallback={<ErrorFallback />}>
+          {children}
+        </ErrorBoundary>
+      </body>
+    </html>
+  );
+}
+
+// Custom fallback component
+function ErrorFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold">Oops! Something went wrong</h1>
+        <p className="mt-4">We're working on fixing this issue.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-6 px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          Reload page
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+**Multiple Error Boundaries** (granular error handling):
+```typescript
+// app/dashboard/page.tsx
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+export default function DashboardPage() {
+  return (
+    <div>
+      <h1>Dashboard</h1>
+
+      {/* Separate error boundary for each section */}
+      <ErrorBoundary fallback={<div>Failed to load stats</div>}>
+        <StatsWidget />
+      </ErrorBoundary>
+
+      <ErrorBoundary fallback={<div>Failed to load chart</div>}>
+        <ChartWidget />
+      </ErrorBoundary>
+
+      <ErrorBoundary fallback={<div>Failed to load table</div>}>
+        <DataTable />
+      </ErrorBoundary>
+    </div>
+  );
+}
+```
+
+**Next.js 15 App Router Alternative** (error.tsx):
+```typescript
+// app/error.tsx
+'use client'; // Error components must be Client Components
+
+import { useEffect } from 'react';
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  useEffect(() => {
+    // Log error to error reporting service
+    console.error('App error:', error);
+  }, [error]);
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <h2 className="text-2xl font-bold">Something went wrong!</h2>
+      <p className="mt-2 text-gray-600">{error.message}</p>
+      <button
+        onClick={reset}
+        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+      >
+        Try again
+      </button>
+    </div>
+  );
+}
+```
+
+**Global error handler** (app/global-error.tsx):
+```typescript
+// app/global-error.tsx
+'use client';
+
+export default function GlobalError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  return (
+    <html>
+      <body>
+        <h2>Global Error: Something went wrong!</h2>
+        <button onClick={reset}>Try again</button>
+      </body>
+    </html>
+  );
+}
+```
+
+**Testing Error Boundaries**:
+```typescript
+// tests/unit/ErrorBoundary.test.tsx
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+function ThrowError() {
+  throw new Error('Test error');
+}
+
+describe('ErrorBoundary', () => {
+  it('should catch errors and show fallback', () => {
+    // Suppress console.error for this test
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    render(
+      <ErrorBoundary fallback={<div>Error occurred</div>}>
+        <ThrowError />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByText('Error occurred')).toBeDefined();
+
+    consoleSpy.mockRestore();
+  });
+
+  it('should call onError handler', () => {
+    const onError = vi.fn();
+
+    render(
+      <ErrorBoundary onError={onError}>
+        <ThrowError />
+      </ErrorBoundary>
+    );
+
+    expect(onError).toHaveBeenCalled();
+  });
+
+  it('should recover after error', async () => {
+    const { rerender } = render(
+      <ErrorBoundary>
+        <ThrowError />
+      </ErrorBoundary>
+    );
+
+    expect(screen.getByText('Something went wrong')).toBeDefined();
+
+    // Rerender with valid component
+    rerender(
+      <ErrorBoundary>
+        <div>Success</div>
+      </ErrorBoundary>
+    );
+
+    // Error boundary should reset
+    expect(screen.getByText('Success')).toBeDefined();
+  });
+});
+```
+
+**Integration with Error Monitoring** (Sentry example):
+```typescript
+// src/lib/error-tracking.ts
+import * as Sentry from '@sentry/nextjs';
+
+export function initErrorTracking() {
+  Sentry.init({
+    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    environment: process.env.NODE_ENV,
+    tracesSampleRate: 1.0,
+  });
+}
+
+// src/components/ErrorBoundary.tsx (enhanced)
+export class ErrorBoundary extends Component<Props, State> {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Send to Sentry with additional context
+    Sentry.captureException(error, {
+      contexts: {
+        react: {
+          componentStack: errorInfo.componentStack,
+        },
+      },
+    });
+
+    this.props.onError?.(error, errorInfo);
+  }
+}
 ```
 
 ## TypeScript 5.7 New Features
