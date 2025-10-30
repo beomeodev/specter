@@ -178,6 +178,7 @@ from .immutable_protection import (  # noqa: E402
     scan_immutable_marker,
     unlock_file,
 )
+from .skill_activator import MatchedSkill, SkillActivator  # noqa: E402
 
 __all__ = [
     "HookPayload",
@@ -187,4 +188,6 @@ __all__ = [
     "is_file_unlocked",
     "scan_immutable_marker",
     "unlock_file",
+    "SkillActivator",
+    "MatchedSkill",
 ]

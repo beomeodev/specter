@@ -1,0 +1,345 @@
+{
+  "version": "1.0.0",
+  "description": "SPECTER Skill Auto-Activation Rules - Automatically suggests relevant skills based on user prompts and file context",
+  "lastUpdated": "2025-10-30",
+  "skills": {
+    "ms-foundation-constitution": {
+      "type": "guardrail",
+      "priority": "critical",
+      "enforcement": "suggest",
+      "description": "Constitution compliance validator (≤500 SLOC, ≤10 complexity)",
+      "promptTriggers": {
+        "keywords": [
+          "file size",
+          "complexity",
+          "SLOC",
+          "constitution",
+          "file too large",
+          "refactor large file",
+          "split file"
+        ],
+        "intentPatterns": [
+          "(check|verify|validate).*?constitution",
+          "file.*?(too|very).*?(large|big)",
+          "(reduce|lower).*?complexity",
+          "McCabe.*?complexity"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": [],
+        "contentPatterns": []
+      }
+    },
+    "ms-foundation-ears": {
+      "type": "guardrail",
+      "priority": "high",
+      "enforcement": "suggest",
+      "description": "EARS requirements validation (SHALL, WHEN, WHILE, WHERE, IF patterns)",
+      "promptTriggers": {
+        "keywords": [
+          "requirement",
+          "specification",
+          "EARS",
+          "SHALL",
+          "WHEN",
+          "WHILE",
+          "ambiguous requirement"
+        ],
+        "intentPatterns": [
+          "(write|create|validate).*?(requirement|spec)",
+          "(clarify|rewrite).*?requirement",
+          "EARS.*?(pattern|syntax)"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": ["**/specs/**/*.md", "**/*spec.md", "**/*specification.md"],
+        "contentPatterns": []
+      }
+    },
+    "ms-foundation-trust": {
+      "type": "guardrail",
+      "priority": "high",
+      "enforcement": "suggest",
+      "description": "TRUST 5 principles validator (Test-First, Readable, Unified, Secured, Trackable)",
+      "promptTriggers": {
+        "keywords": [
+          "TRUST",
+          "code quality",
+          "test coverage",
+          "type checking",
+          "security scan",
+          "traceability"
+        ],
+        "intentPatterns": [
+          "(check|verify|validate).*?(quality|TRUST)",
+          "(test|coverage).*?(check|report)",
+          "security.*?(scan|check)"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": [],
+        "contentPatterns": []
+      }
+    },
+    "ms-lang-python": {
+      "type": "domain",
+      "priority": "high",
+      "enforcement": "suggest",
+      "description": "Python 3.13+ expertise (pytest, ruff, mypy, FastAPI, async patterns)",
+      "promptTriggers": {
+        "keywords": [
+          "python",
+          "pytest",
+          "FastAPI",
+          "Pydantic",
+          "async",
+          "asyncio",
+          "mypy",
+          "ruff",
+          "type hint"
+        ],
+        "intentPatterns": [
+          "(write|create|implement).*?python",
+          "(test|unittest).*?python",
+          "async.*?(pattern|function|await)",
+          "FastAPI.*?(route|endpoint|dependency)",
+          "Pydantic.*?(model|validation)"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": ["**/*.py"],
+        "contentPatterns": [
+          "import pytest",
+          "from fastapi import",
+          "from pydantic import",
+          "async def",
+          "import asyncio"
+        ]
+      }
+    },
+    "ms-lang-typescript": {
+      "type": "domain",
+      "priority": "high",
+      "enforcement": "suggest",
+      "description": "TypeScript 5.7+ expertise (Vitest, Biome, React 19, Zod)",
+      "promptTriggers": {
+        "keywords": [
+          "typescript",
+          "react",
+          "vitest",
+          "biome",
+          "zod",
+          "next.js",
+          "tsx",
+          "type guard"
+        ],
+        "intentPatterns": [
+          "(write|create|implement).*?(typescript|tsx|ts)",
+          "(test|vitest).*?(react|component)",
+          "React.*?(hook|component|state)",
+          "Zod.*?(schema|validation)"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": ["**/*.ts", "**/*.tsx"],
+        "contentPatterns": [
+          "import.*?from.*?react",
+          "describe\\(",
+          "import { z } from",
+          "vitest"
+        ]
+      }
+    },
+    "ms-workflow-tag-manager": {
+      "type": "workflow",
+      "priority": "medium",
+      "enforcement": "suggest",
+      "description": "TAG block generation and traceability management",
+      "promptTriggers": {
+        "keywords": [
+          "TAG block",
+          "TAG chain",
+          "traceability",
+          "@CODE",
+          "@TEST",
+          "@SPEC",
+          "TAG ID",
+          "add TAG"
+        ],
+        "intentPatterns": [
+          "(add|insert|create|generate).*?TAG",
+          "TAG.*?(block|chain|traceability)",
+          "(trace|track).*?(requirement|code|test)",
+          "@(CODE|TEST|SPEC).*?chain"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": [],
+        "contentPatterns": [
+          "@CODE:",
+          "@TEST:",
+          "@SPEC:",
+          "@CHAIN:"
+        ]
+      }
+    },
+    "ms-workflow-living-docs": {
+      "type": "workflow",
+      "priority": "medium",
+      "enforcement": "suggest",
+      "description": "Living Documentation automation (sync docs with code changes)",
+      "promptTriggers": {
+        "keywords": [
+          "documentation",
+          "sync docs",
+          "update docs",
+          "dev_daily",
+          "living docs",
+          "API docs"
+        ],
+        "intentPatterns": [
+          "(sync|update|generate).*?doc",
+          "documentation.*?(update|sync|automation)",
+          "dev_daily.*?update"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": ["**/docs/**/*.md", "**/dev_daily.md"],
+        "contentPatterns": []
+      }
+    },
+    "ms-essentials-debug": {
+      "type": "essential",
+      "priority": "high",
+      "enforcement": "suggest",
+      "description": "Advanced debugging with stack trace analysis and error pattern recognition",
+      "promptTriggers": {
+        "keywords": [
+          "error",
+          "bug",
+          "debug",
+          "exception",
+          "traceback",
+          "stack trace",
+          "crash",
+          "failure"
+        ],
+        "intentPatterns": [
+          "(debug|fix|solve).*?(error|bug|issue)",
+          "(why|what).*?(error|exception|crash)",
+          "stack.*?trace.*?analysis",
+          "(NoneType|undefined|null).*?error"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": [],
+        "contentPatterns": []
+      }
+    },
+    "ms-essentials-review": {
+      "type": "essential",
+      "priority": "medium",
+      "enforcement": "suggest",
+      "description": "Code review and quality assurance (TRUST 5 validation)",
+      "promptTriggers": {
+        "keywords": [
+          "code review",
+          "review code",
+          "quality check",
+          "best practice",
+          "code smell"
+        ],
+        "intentPatterns": [
+          "(review|check|validate).*?code",
+          "code.*?(quality|review|smell)",
+          "(find|detect).*?(issue|problem|anti-pattern)"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": [],
+        "contentPatterns": []
+      }
+    },
+    "api-testing-patterns": {
+      "type": "domain",
+      "priority": "medium",
+      "enforcement": "suggest",
+      "description": "API testing patterns (REST, GraphQL, auth testing)",
+      "promptTriggers": {
+        "keywords": [
+          "API test",
+          "endpoint test",
+          "REST test",
+          "GraphQL test",
+          "auth test",
+          "integration test"
+        ],
+        "intentPatterns": [
+          "(test|verify).*?(API|endpoint|route)",
+          "(integration|e2e).*?test",
+          "test.*?(authentication|authorization)"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": ["**/tests/**/test_api*.py", "**/tests/**/*api*.test.ts"],
+        "contentPatterns": [
+          "client.get\\(",
+          "client.post\\(",
+          "request\\(",
+          "supertest"
+        ]
+      }
+    },
+    "ci-cd-optimization": {
+      "type": "domain",
+      "priority": "low",
+      "enforcement": "suggest",
+      "description": "CI/CD pipeline optimization and troubleshooting",
+      "promptTriggers": {
+        "keywords": [
+          "CI/CD",
+          "github actions",
+          "pipeline",
+          "workflow",
+          "deployment",
+          "build optimization"
+        ],
+        "intentPatterns": [
+          "(optimize|improve|speed up).*?(CI|pipeline|build)",
+          "(github|gitlab).*?(action|pipeline|workflow)",
+          "deployment.*?(automation|pipeline)"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": [".github/workflows/**/*.yml", ".gitlab-ci.yml", "Jenkinsfile"],
+        "contentPatterns": []
+      }
+    },
+    "cross-cutting-concerns": {
+      "type": "domain",
+      "priority": "medium",
+      "enforcement": "suggest",
+      "description": "Cross-cutting concerns (logging, monitoring, caching, security)",
+      "promptTriggers": {
+        "keywords": [
+          "logging",
+          "monitoring",
+          "caching",
+          "security",
+          "middleware",
+          "authentication",
+          "authorization"
+        ],
+        "intentPatterns": [
+          "(implement|add|setup).*?(logging|monitoring|caching)",
+          "(security|auth).*?(pattern|middleware)",
+          "cross-cutting.*?concern"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": ["**/middleware/**/*.py", "**/middleware/**/*.ts"],
+        "contentPatterns": []
+      }
+    }
+  }
+}
