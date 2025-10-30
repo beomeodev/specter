@@ -1,0 +1,515 @@
+# Pre-commit Hook Log
+Date: 2025-10-30 10:10:08
+Exit Code: 3
+Command: /finq
+
+## Output:
+[INFO] Initializing environment for https://github.com/astral-sh/ruff-pre-commit.
+[INFO] Initializing environment for https://github.com/pre-commit/mirrors-mypy.
+[INFO] Initializing environment for https://github.com/pre-commit/mirrors-mypy:types-requests.
+[INFO] Initializing environment for https://github.com/PyCQA/bandit.
+[INFO] Initializing environment for https://github.com/pre-commit/pre-commit-hooks.
+[INFO] Installing environment for https://github.com/astral-sh/ruff-pre-commit.
+[INFO] Once installed this environment will be reused.
+[INFO] This may take a few minutes...
+[INFO] Installing environment for https://github.com/pre-commit/mirrors-mypy.
+[INFO] Once installed this environment will be reused.
+[INFO] This may take a few minutes...
+[INFO] Installing environment for https://github.com/PyCQA/bandit.
+[INFO] Once installed this environment will be reused.
+[INFO] This may take a few minutes...
+[INFO] Installing environment for https://github.com/pre-commit/pre-commit-hooks.
+[INFO] Once installed this environment will be reused.
+[INFO] This may take a few minutes...
+An unexpected error has occurred: CalledProcessError: command: ('/home/dev/.cache/pre-commit/repokhm2pzf1/py_env-python3.13/bin/python', '-mpip', 'install', '.')
+return code: 1
+stdout:
+    Processing /home/dev/.cache/pre-commit/repokhm2pzf1
+      Installing build dependencies: started
+      Installing build dependencies: finished with status 'done'
+      Getting requirements to build wheel: started
+      Getting requirements to build wheel: finished with status 'done'
+      Preparing metadata (pyproject.toml): started
+      Preparing metadata (pyproject.toml): finished with status 'done'
+    Collecting ruamel.yaml>=0.15 (from pre_commit_hooks==6.0.0)
+      Downloading ruamel.yaml-0.18.16-py3-none-any.whl.metadata (25 kB)
+    Collecting ruamel.yaml.clib>=0.2.7 (from ruamel.yaml>=0.15->pre_commit_hooks==6.0.0)
+      Downloading ruamel.yaml.clib-0.2.14.tar.gz (225 kB)
+      Installing build dependencies: started
+      Installing build dependencies: finished with status 'done'
+      Getting requirements to build wheel: started
+      Getting requirements to build wheel: finished with status 'done'
+      Preparing metadata (pyproject.toml): started
+      Preparing metadata (pyproject.toml): finished with status 'done'
+    Downloading ruamel.yaml-0.18.16-py3-none-any.whl (119 kB)
+    Building wheels for collected packages: pre_commit_hooks, ruamel.yaml.clib
+      Building wheel for pre_commit_hooks (pyproject.toml): started
+      Building wheel for pre_commit_hooks (pyproject.toml): finished with status 'done'
+      Created wheel for pre_commit_hooks: filename=pre_commit_hooks-6.0.0-py2.py3-none-any.whl size=39204 sha256=a8954e10f508007ece3a10e1a0bef32fd7af17bf1443d573ec165f2d3f4dd952
+      Stored in directory: /tmp/pip-ephem-wheel-cache-t79h5iva/wheels/5e/fd/57/febbb5d6750f8f80d95c26ee28f5643fe496ec03e2272e8922
+      Building wheel for ruamel.yaml.clib (pyproject.toml): started
+      Building wheel for ruamel.yaml.clib (pyproject.toml): finished with status 'error'
+    Successfully built pre_commit_hooks
+    Failed to build ruamel.yaml.clib
+stderr:
+      error: subprocess-exited-with-error
+      
+      × Building wheel for ruamel.yaml.clib (pyproject.toml) did not run successfully.
+      │ exit code: 1
+      ╰─> [443 lines of output]
+          /tmp/pip-build-env-iiw35d_m/overlay/lib/python3.13t/site-packages/setuptools/dist.py:759: SetuptoolsDeprecationWarning: License classifiers are deprecated.
+          !!
+          
+                  ********************************************************************************
+                  Please consider removing the following classifiers in favor of a SPDX license expression:
+          
+                  License :: OSI Approved :: MIT License
+          
+                  See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
+                  ********************************************************************************
+          
+          !!
+            self._finalize_license_expression()
+          running bdist_wheel
+          running build
+          running build_py
+          creating build/lib.linux-x86_64-cpython-313t/ruamel/yaml/clib
+          copying ./__init__.py -> build/lib.linux-x86_64-cpython-313t/ruamel/yaml/clib
+          copying ./setup.py -> build/lib.linux-x86_64-cpython-313t/ruamel/yaml/clib
+          copying ./LICENSE -> build/lib.linux-x86_64-cpython-313t/ruamel/yaml/clib
+          warning: build_py: byte-compiling is disabled, skipping.
+          
+          running build_ext
+          building '_ruamel_yaml' extension
+          creating build/temp.linux-x86_64-cpython-313t
+          gcc -fno-strict-overflow -Wsign-compare -DNDEBUG -g -O3 -Wall -fPIC -I/home/dev/.cache/pre-commit/repokhm2pzf1/py_env-python3.13/include -I/opt/python-3.13.1-ft/include/python3.13t -c _ruamel_yaml.c -o build/temp.linux-x86_64-cpython-313t/_ruamel_yaml.o
+          In file included from _ruamel_yaml.c:1222:
+          _ruamel_yaml.h:10: warning: "PyString_CheckExact" redefined
+             10 | #define PyString_CheckExact PyBytes_CheckExact
+                |
+          _ruamel_yaml.c:1062: note: this is the location of the previous definition
+           1062 |   #define PyString_CheckExact          PyUnicode_CheckExact
+                |
+          _ruamel_yaml.c:2162:80: error: unknown type name ‘__pyx_vectorcallfunc’; did you mean ‘vectorcallfunc’?
+           2162 | static CYTHON_INLINE PyObject *__Pyx_PyVectorcall_FastCallDict(PyObject *func, __pyx_vectorcallfunc vc, PyObject *const *args, size_t nargs, PyObject *kw);
+                |                                                                                ^~~~~~~~~~~~~~~~~~~~
+                |                                                                                vectorcallfunc
+          _ruamel_yaml.c: In function ‘__pyx_pf_6ruamel_4yaml_4clib_12_ruamel_yaml_get_version_string’:
+          _ruamel_yaml.c:4089:17: warning: assignment discards ‘const’ qualifier from pointer target type [-Wdiscarded-qualifiers]
+           4089 |   __pyx_v_value = yaml_get_version_string();
+                |                 ^
+          In file included from /opt/python-3.13.1-ft/include/python3.13t/bytesobject.h:59,
+                           from /opt/python-3.13.1-ft/include/python3.13t/Python.h:78,
+                           from _ruamel_yaml.c:16:
+          _ruamel_yaml.c: In function ‘__pyx_pf_6ruamel_4yaml_4clib_12_ruamel_yaml_7CParser___init__’:
+          /opt/python-3.13.1-ft/include/python3.13t/cpython/bytesobject.h:27:31: warning: pointer targets in passing argument 2 of ‘yaml_parser_set_input_string’ differ in signedness [-Wpointer-sign]
+             27 | #define PyBytes_AS_STRING(op) PyBytes_AS_STRING(_PyObject_CAST(op))
+                |                               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                |                               |
+                |                               char *
+          _ruamel_yaml.h:11:29: note: in expansion of macro ‘PyBytes_AS_STRING’
+             11 | #define PyString_AS_STRING  PyBytes_AS_STRING
+                |                             ^~~~~~~~~~~~~~~~~
+          _ruamel_yaml.c:6117:59: note: in expansion of macro ‘PyString_AS_STRING’
+           6117 |     yaml_parser_set_input_string((&__pyx_v_self->parser), PyString_AS_STRING(__pyx_v_stream), PyString_GET_SIZE(__pyx_v_stream));
+                |                                                           ^~~~~~~~~~~~~~~~~~
+          In file included from _ruamel_yaml.h:2:
+          yaml.h:1344:30: note: expected ‘const unsigned char *’ but argument is of type ‘char *’
+           1344 |         const unsigned char *input, size_t size);
+                |         ~~~~~~~~~~~~~~~~~~~~~^~~~~
+          _ruamel_yaml.c: In function ‘__pyx_f_6ruamel_4yaml_4clib_12_ruamel_yaml_7CParser__token_to_object’:
+          _ruamel_yaml.c:7809:71: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+           7809 |     __pyx_t_2 = PyUnicode_FromString(__pyx_v_token->data.tag_directive.handle); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 416, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+                |                                                                       |
+                |                                                                       yaml_char_t * {aka unsigned char *}
+          In file included from /opt/python-3.13.1-ft/include/python3.13t/Python.h:79:
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:7821:71: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+           7821 |     __pyx_t_2 = PyUnicode_FromString(__pyx_v_token->data.tag_directive.prefix); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 417, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+                |                                                                       |
+                |                                                                       yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:8494:63: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+           8494 |     __pyx_t_2 = PyUnicode_FromString(__pyx_v_token->data.alias.value); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 447, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                |                                                               |
+                |                                                               yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:8552:64: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+           8552 |     __pyx_t_2 = PyUnicode_FromString(__pyx_v_token->data.anchor.value); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 450, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                |                                                                |
+                |                                                                yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:8610:61: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+           8610 |     __pyx_t_2 = PyUnicode_FromString(__pyx_v_token->data.tag.handle); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 453, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+                |                                                             |
+                |                                                             yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:8622:61: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+           8622 |     __pyx_t_2 = PyUnicode_FromString(__pyx_v_token->data.tag.suffix); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 454, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+                |                                                             |
+                |                                                             yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:8719:64: warning: pointer targets in passing argument 1 of ‘PyUnicode_DecodeUTF8’ differ in signedness [-Wpointer-sign]
+           8719 |     __pyx_t_2 = PyUnicode_DecodeUTF8(__pyx_v_token->data.scalar.value, __pyx_v_token->data.scalar.length, ((char const *)"strict")); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 459, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                |                                                                |
+                |                                                                yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:430:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            430 |     const char *string,         /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^~~~~~
+          _ruamel_yaml.c: In function ‘__pyx_f_6ruamel_4yaml_4clib_12_ruamel_yaml_7CParser__event_to_object’:
+          _ruamel_yaml.c:10429:63: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          10429 |         __pyx_t_4 = PyUnicode_FromString(__pyx_v_tag_directive->handle); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 573, __pyx_L1_error)
+                |                                          ~~~~~~~~~~~~~~~~~~~~~^~~~~~~~
+                |                                                               |
+                |                                                               yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:10441:63: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          10441 |         __pyx_t_4 = PyUnicode_FromString(__pyx_v_tag_directive->prefix); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 574, __pyx_L1_error)
+                |                                          ~~~~~~~~~~~~~~~~~~~~~^~~~~~~~
+                |                                                               |
+                |                                                               yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:10624:63: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          10624 |     __pyx_t_4 = PyUnicode_FromString(__pyx_v_event->data.alias.anchor); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 585, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+                |                                                               |
+                |                                                               yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:10702:66: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          10702 |       __pyx_t_4 = PyUnicode_FromString(__pyx_v_event->data.scalar.anchor); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 590, __pyx_L1_error)
+                |                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+                |                                                                  |
+                |                                                                  yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:10743:66: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          10743 |       __pyx_t_4 = PyUnicode_FromString(__pyx_v_event->data.scalar.tag); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 593, __pyx_L1_error)
+                |                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~
+                |                                                                  |
+                |                                                                  yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:10764:64: warning: pointer targets in passing argument 1 of ‘PyUnicode_DecodeUTF8’ differ in signedness [-Wpointer-sign]
+          10764 |     __pyx_t_4 = PyUnicode_DecodeUTF8(__pyx_v_event->data.scalar.value, __pyx_v_event->data.scalar.length, ((char const *)"strict")); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 594, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                |                                                                |
+                |                                                                yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:430:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            430 |     const char *string,         /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^~~~~~
+          _ruamel_yaml.c:11066:74: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          11066 |       __pyx_t_4 = PyUnicode_FromString(__pyx_v_event->data.sequence_start.anchor); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 619, __pyx_L1_error)
+                |                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+                |                                                                          |
+                |                                                                          yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:11107:74: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          11107 |       __pyx_t_4 = PyUnicode_FromString(__pyx_v_event->data.sequence_start.tag); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 622, __pyx_L1_error)
+                |                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~
+                |                                                                          |
+                |                                                                          yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:11303:73: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          11303 |       __pyx_t_4 = PyUnicode_FromString(__pyx_v_event->data.mapping_start.anchor); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 636, __pyx_L1_error)
+                |                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+                |                                                                         |
+                |                                                                         yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:11344:73: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          11344 |       __pyx_t_4 = PyUnicode_FromString(__pyx_v_event->data.mapping_start.tag); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 639, __pyx_L1_error)
+                |                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~
+                |                                                                         |
+                |                                                                         yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c: In function ‘__pyx_f_6ruamel_4yaml_4clib_12_ruamel_yaml_7CParser__compose_node’:
+          _ruamel_yaml.c:13047:75: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          13047 |     __pyx_t_3 = PyUnicode_FromString(__pyx_v_self->parsed_event.data.alias.anchor); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 733, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+                |                                                                           |
+                |                                                                           yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:13308:76: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          13308 |     __pyx_t_5 = PyUnicode_FromString(__pyx_v_self->parsed_event.data.scalar.anchor); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 749, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+                |                                                                            |
+                |                                                                            yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:13364:84: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          13364 |     __pyx_t_5 = PyUnicode_FromString(__pyx_v_self->parsed_event.data.sequence_start.anchor); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 752, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+                |                                                                                    |
+                |                                                                                    yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c:13420:83: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          13420 |     __pyx_t_5 = PyUnicode_FromString(__pyx_v_self->parsed_event.data.mapping_start.anchor); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 755, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+                |                                                                                   |
+                |                                                                                   yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c: In function ‘__pyx_f_6ruamel_4yaml_4clib_12_ruamel_yaml_7CParser__compose_scalar_node’:
+          _ruamel_yaml.c:14002:74: warning: pointer targets in passing argument 1 of ‘PyUnicode_DecodeUTF8’ differ in signedness [-Wpointer-sign]
+          14002 |   __pyx_t_2 = PyUnicode_DecodeUTF8(__pyx_v_self->parsed_event.data.scalar.value, __pyx_v_self->parsed_event.data.scalar.length, ((char const *)"strict")); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 790, __pyx_L1_error)
+                |                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~
+                |                                                                          |
+                |                                                                          yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:430:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            430 |     const char *string,         /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^~~~~~
+          _ruamel_yaml.c:14197:76: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          14197 |     __pyx_t_2 = PyUnicode_FromString(__pyx_v_self->parsed_event.data.scalar.tag); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 803, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~
+                |                                                                            |
+                |                                                                            yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c: In function ‘__pyx_f_6ruamel_4yaml_4clib_12_ruamel_yaml_7CParser__compose_sequence_node’:
+          _ruamel_yaml.c:14677:84: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          14677 |     __pyx_t_3 = PyUnicode_FromString(__pyx_v_self->parsed_event.data.sequence_start.tag); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 836, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~
+                |                                                                                    |
+                |                                                                                    yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c: In function ‘__pyx_f_6ruamel_4yaml_4clib_12_ruamel_yaml_7CParser__compose_mapping_node’:
+          _ruamel_yaml.c:15243:83: warning: pointer targets in passing argument 1 of ‘PyUnicode_FromString’ differ in signedness [-Wpointer-sign]
+          15243 |     __pyx_t_3 = PyUnicode_FromString(__pyx_v_self->parsed_event.data.mapping_start.tag); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 875, __pyx_L1_error)
+                |                                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~
+                |                                                                                   |
+                |                                                                                   yaml_char_t * {aka unsigned char *}
+          /opt/python-3.13.1-ft/include/python3.13t/unicodeobject.h:130:17: note: expected ‘const char *’ but argument is of type ‘yaml_char_t *’ {aka ‘unsigned char *’}
+            130 |     const char *u              /* UTF-8 encoded string */
+                |     ~~~~~~~~~~~~^
+          _ruamel_yaml.c: In function ‘__pyx_f_6ruamel_4yaml_4clib_12_ruamel_yaml_input_handler’:
+          _ruamel_yaml.c:16140:86: warning: comparison of integer expressions of different signedness: ‘int’ and ‘size_t’ {aka ‘long unsigned int’} [-Wsign-compare]
+          16140 |   __pyx_t_2 = ((__pyx_v_parser->stream_cache_len - __pyx_v_parser->stream_cache_pos) < __pyx_v_size);
+                |                                                                                      ^
+          _ruamel_yaml.c: In function ‘__pyx_f_6ruamel_4yaml_4clib_12_ruamel_yaml_8CEmitter__object_to_event’:
+          _ruamel_yaml.c:18098:44: warning: pointer targets in assignment from ‘char *’ to ‘yaml_char_t *’ {aka ‘unsigned char *’} differ in signedness [-Wpointer-sign]
+          18098 |         __pyx_v_tag_directives_end->handle = PyString_AS_STRING(__pyx_v_handle);
+                |                                            ^
+          _ruamel_yaml.c:18213:44: warning: pointer targets in assignment from ‘char *’ to ‘yaml_char_t *’ {aka ‘unsigned char *’} differ in signedness [-Wpointer-sign]
+          18213 |         __pyx_v_tag_directives_end->prefix = PyString_AS_STRING(__pyx_v_prefix);
+                |                                            ^
+          _ruamel_yaml.c:18548:61: warning: pointer targets in passing argument 2 of ‘yaml_alias_event_initialize’ differ in signedness [-Wpointer-sign]
+          18548 |     __pyx_t_2 = (yaml_alias_event_initialize(__pyx_v_event, __pyx_v_anchor) == 0);
+                |                                                             ^~~~~~~~~~~~~~
+                |                                                             |
+                |                                                             char *
+          yaml.h:555:63: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            555 | yaml_alias_event_initialize(yaml_event_t *event, yaml_char_t *anchor);
+                |                                                  ~~~~~~~~~~~~~^~~~~~
+          _ruamel_yaml.c:19259:62: warning: pointer targets in passing argument 2 of ‘yaml_scalar_event_initialize’ differ in signedness [-Wpointer-sign]
+          19259 |     __pyx_t_2 = (yaml_scalar_event_initialize(__pyx_v_event, __pyx_v_anchor, __pyx_v_tag, __pyx_v_value, __pyx_v_length, __pyx_v_plain_implicit, __pyx_v_quoted_implicit, __pyx_v_scalar_style) == 0);
+                |                                                              ^~~~~~~~~~~~~~
+                |                                                              |
+                |                                                              char *
+          yaml.h:581:22: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            581 |         yaml_char_t *anchor, yaml_char_t *tag,
+                |         ~~~~~~~~~~~~~^~~~~~
+          _ruamel_yaml.c:19259:78: warning: pointer targets in passing argument 3 of ‘yaml_scalar_event_initialize’ differ in signedness [-Wpointer-sign]
+          19259 |     __pyx_t_2 = (yaml_scalar_event_initialize(__pyx_v_event, __pyx_v_anchor, __pyx_v_tag, __pyx_v_value, __pyx_v_length, __pyx_v_plain_implicit, __pyx_v_quoted_implicit, __pyx_v_scalar_style) == 0);
+                |                                                                              ^~~~~~~~~~~
+                |                                                                              |
+                |                                                                              char *
+          yaml.h:581:43: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            581 |         yaml_char_t *anchor, yaml_char_t *tag,
+                |                              ~~~~~~~~~~~~~^~~
+          _ruamel_yaml.c:19259:91: warning: pointer targets in passing argument 4 of ‘yaml_scalar_event_initialize’ differ in signedness [-Wpointer-sign]
+          19259 |     __pyx_t_2 = (yaml_scalar_event_initialize(__pyx_v_event, __pyx_v_anchor, __pyx_v_tag, __pyx_v_value, __pyx_v_length, __pyx_v_plain_implicit, __pyx_v_quoted_implicit, __pyx_v_scalar_style) == 0);
+                |                                                                                           ^~~~~~~~~~~~~
+                |                                                                                           |
+                |                                                                                           char *
+          yaml.h:582:22: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            582 |         yaml_char_t *value, int length,
+                |         ~~~~~~~~~~~~~^~~~~
+          _ruamel_yaml.c:19690:70: warning: pointer targets in passing argument 2 of ‘yaml_sequence_start_event_initialize’ differ in signedness [-Wpointer-sign]
+          19690 |     __pyx_t_2 = (yaml_sequence_start_event_initialize(__pyx_v_event, __pyx_v_anchor, __pyx_v_tag, __pyx_v_implicit, __pyx_v_sequence_style) == 0);
+                |                                                                      ^~~~~~~~~~~~~~
+                |                                                                      |
+                |                                                                      char *
+          yaml.h:604:22: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            604 |         yaml_char_t *anchor, yaml_char_t *tag, int implicit,
+                |         ~~~~~~~~~~~~~^~~~~~
+          _ruamel_yaml.c:19690:86: warning: pointer targets in passing argument 3 of ‘yaml_sequence_start_event_initialize’ differ in signedness [-Wpointer-sign]
+          19690 |     __pyx_t_2 = (yaml_sequence_start_event_initialize(__pyx_v_event, __pyx_v_anchor, __pyx_v_tag, __pyx_v_implicit, __pyx_v_sequence_style) == 0);
+                |                                                                                      ^~~~~~~~~~~
+                |                                                                                      |
+                |                                                                                      char *
+          yaml.h:604:43: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            604 |         yaml_char_t *anchor, yaml_char_t *tag, int implicit,
+                |                              ~~~~~~~~~~~~~^~~
+          _ruamel_yaml.c:20121:69: warning: pointer targets in passing argument 2 of ‘yaml_mapping_start_event_initialize’ differ in signedness [-Wpointer-sign]
+          20121 |     __pyx_t_2 = (yaml_mapping_start_event_initialize(__pyx_v_event, __pyx_v_anchor, __pyx_v_tag, __pyx_v_implicit, __pyx_v_mapping_style) == 0);
+                |                                                                     ^~~~~~~~~~~~~~
+                |                                                                     |
+                |                                                                     char *
+          yaml.h:636:22: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            636 |         yaml_char_t *anchor, yaml_char_t *tag, int implicit,
+                |         ~~~~~~~~~~~~~^~~~~~
+          _ruamel_yaml.c:20121:85: warning: pointer targets in passing argument 3 of ‘yaml_mapping_start_event_initialize’ differ in signedness [-Wpointer-sign]
+          20121 |     __pyx_t_2 = (yaml_mapping_start_event_initialize(__pyx_v_event, __pyx_v_anchor, __pyx_v_tag, __pyx_v_implicit, __pyx_v_mapping_style) == 0);
+                |                                                                                     ^~~~~~~~~~~
+                |                                                                                     |
+                |                                                                                     char *
+          yaml.h:636:43: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            636 |         yaml_char_t *anchor, yaml_char_t *tag, int implicit,
+                |                              ~~~~~~~~~~~~~^~~
+          _ruamel_yaml.c: In function ‘__pyx_pf_6ruamel_4yaml_4clib_12_ruamel_yaml_8CEmitter_12serialize’:
+          _ruamel_yaml.c:22008:42: warning: pointer targets in assignment from ‘char *’ to ‘yaml_char_t *’ {aka ‘unsigned char *’} differ in signedness [-Wpointer-sign]
+          22008 |       __pyx_v_tag_directives_end->handle = PyString_AS_STRING(__pyx_v_handle);
+                |                                          ^
+          _ruamel_yaml.c:22123:42: warning: pointer targets in assignment from ‘char *’ to ‘yaml_char_t *’ {aka ‘unsigned char *’} differ in signedness [-Wpointer-sign]
+          22123 |       __pyx_v_tag_directives_end->prefix = PyString_AS_STRING(__pyx_v_prefix);
+                |                                          ^
+          _ruamel_yaml.c: In function ‘__pyx_f_6ruamel_4yaml_4clib_12_ruamel_yaml_8CEmitter__serialize_node’:
+          _ruamel_yaml.c:23005:64: warning: pointer targets in passing argument 2 of ‘yaml_alias_event_initialize’ differ in signedness [-Wpointer-sign]
+          23005 |     __pyx_t_2 = (yaml_alias_event_initialize((&__pyx_v_event), __pyx_v_anchor) == 0);
+                |                                                                ^~~~~~~~~~~~~~
+                |                                                                |
+                |                                                                char *
+          yaml.h:555:63: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            555 | yaml_alias_event_initialize(yaml_event_t *event, yaml_char_t *anchor);
+                |                                                  ~~~~~~~~~~~~~^~~~~~
+          _ruamel_yaml.c:23735:67: warning: pointer targets in passing argument 2 of ‘yaml_scalar_event_initialize’ differ in signedness [-Wpointer-sign]
+          23735 |       __pyx_t_2 = (yaml_scalar_event_initialize((&__pyx_v_event), __pyx_v_anchor, __pyx_v_tag, __pyx_v_value, __pyx_v_length, __pyx_v_plain_implicit, __pyx_v_quoted_implicit, __pyx_v_scalar_style) == 0);
+                |                                                                   ^~~~~~~~~~~~~~
+                |                                                                   |
+                |                                                                   char *
+          yaml.h:581:22: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            581 |         yaml_char_t *anchor, yaml_char_t *tag,
+                |         ~~~~~~~~~~~~~^~~~~~
+          _ruamel_yaml.c:23735:83: warning: pointer targets in passing argument 3 of ‘yaml_scalar_event_initialize’ differ in signedness [-Wpointer-sign]
+          23735 |       __pyx_t_2 = (yaml_scalar_event_initialize((&__pyx_v_event), __pyx_v_anchor, __pyx_v_tag, __pyx_v_value, __pyx_v_length, __pyx_v_plain_implicit, __pyx_v_quoted_implicit, __pyx_v_scalar_style) == 0);
+                |                                                                                   ^~~~~~~~~~~
+                |                                                                                   |
+                |                                                                                   char *
+          yaml.h:581:43: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            581 |         yaml_char_t *anchor, yaml_char_t *tag,
+                |                              ~~~~~~~~~~~~~^~~
+          _ruamel_yaml.c:23735:96: warning: pointer targets in passing argument 4 of ‘yaml_scalar_event_initialize’ differ in signedness [-Wpointer-sign]
+          23735 |       __pyx_t_2 = (yaml_scalar_event_initialize((&__pyx_v_event), __pyx_v_anchor, __pyx_v_tag, __pyx_v_value, __pyx_v_length, __pyx_v_plain_implicit, __pyx_v_quoted_implicit, __pyx_v_scalar_style) == 0);
+                |                                                                                                ^~~~~~~~~~~~~
+                |                                                                                                |
+                |                                                                                                char *
+          yaml.h:582:22: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            582 |         yaml_char_t *value, int length,
+                |         ~~~~~~~~~~~~~^~~~~
+          _ruamel_yaml.c:24092:75: warning: pointer targets in passing argument 2 of ‘yaml_sequence_start_event_initialize’ differ in signedness [-Wpointer-sign]
+          24092 |       __pyx_t_2 = (yaml_sequence_start_event_initialize((&__pyx_v_event), __pyx_v_anchor, __pyx_v_tag, __pyx_v_implicit, __pyx_v_sequence_style) == 0);
+                |                                                                           ^~~~~~~~~~~~~~
+                |                                                                           |
+                |                                                                           char *
+          yaml.h:604:22: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            604 |         yaml_char_t *anchor, yaml_char_t *tag, int implicit,
+                |         ~~~~~~~~~~~~~^~~~~~
+          _ruamel_yaml.c:24092:91: warning: pointer targets in passing argument 3 of ‘yaml_sequence_start_event_initialize’ differ in signedness [-Wpointer-sign]
+          24092 |       __pyx_t_2 = (yaml_sequence_start_event_initialize((&__pyx_v_event), __pyx_v_anchor, __pyx_v_tag, __pyx_v_implicit, __pyx_v_sequence_style) == 0);
+                |                                                                                           ^~~~~~~~~~~
+                |                                                                                           |
+                |                                                                                           char *
+          yaml.h:604:43: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            604 |         yaml_char_t *anchor, yaml_char_t *tag, int implicit,
+                |                              ~~~~~~~~~~~~~^~~
+          _ruamel_yaml.c:24605:74: warning: pointer targets in passing argument 2 of ‘yaml_mapping_start_event_initialize’ differ in signedness [-Wpointer-sign]
+          24605 |       __pyx_t_2 = (yaml_mapping_start_event_initialize((&__pyx_v_event), __pyx_v_anchor, __pyx_v_tag, __pyx_v_implicit, __pyx_v_mapping_style) == 0);
+                |                                                                          ^~~~~~~~~~~~~~
+                |                                                                          |
+                |                                                                          char *
+          yaml.h:636:22: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            636 |         yaml_char_t *anchor, yaml_char_t *tag, int implicit,
+                |         ~~~~~~~~~~~~~^~~~~~
+          _ruamel_yaml.c:24605:90: warning: pointer targets in passing argument 3 of ‘yaml_mapping_start_event_initialize’ differ in signedness [-Wpointer-sign]
+          24605 |       __pyx_t_2 = (yaml_mapping_start_event_initialize((&__pyx_v_event), __pyx_v_anchor, __pyx_v_tag, __pyx_v_implicit, __pyx_v_mapping_style) == 0);
+                |                                                                                          ^~~~~~~~~~~
+                |                                                                                          |
+                |                                                                                          char *
+          yaml.h:636:43: note: expected ‘yaml_char_t *’ {aka ‘unsigned char *’} but argument is of type ‘char *’
+            636 |         yaml_char_t *anchor, yaml_char_t *tag, int implicit,
+                |                              ~~~~~~~~~~~~~^~~
+          _ruamel_yaml.c: At top level:
+          _ruamel_yaml.c:31652:69: error: unknown type name ‘__pyx_vectorcallfunc’; did you mean ‘vectorcallfunc’?
+          31652 | static PyObject *__Pyx_PyVectorcall_FastCallDict_kw(PyObject *func, __pyx_vectorcallfunc vc, PyObject *const *args, size_t nargs, PyObject *kw)
+                |                                                                     ^~~~~~~~~~~~~~~~~~~~
+                |                                                                     vectorcallfunc
+          _ruamel_yaml.c:31697:80: error: unknown type name ‘__pyx_vectorcallfunc’; did you mean ‘vectorcallfunc’?
+          31697 | static CYTHON_INLINE PyObject *__Pyx_PyVectorcall_FastCallDict(PyObject *func, __pyx_vectorcallfunc vc, PyObject *const *args, size_t nargs, PyObject *kw)
+                |                                                                                ^~~~~~~~~~~~~~~~~~~~
+                |                                                                                vectorcallfunc
+          _ruamel_yaml.c: In function ‘__Pyx_CyFunction_CallAsMethod’:
+          _ruamel_yaml.c:32386:6: error: unknown type name ‘__pyx_vectorcallfunc’; did you mean ‘vectorcallfunc’?
+          32386 |      __pyx_vectorcallfunc vc = __Pyx_CyFunction_func_vectorcall(cyfunc);
+                |      ^~~~~~~~~~~~~~~~~~~~
+                |      vectorcallfunc
+          _ruamel_yaml.c:2252:45: warning: initialization of ‘int’ from ‘vectorcallfunc’ {aka ‘struct _object * (*)(struct _object *, struct _object * const*, long unsigned int,  struct _object *)’} makes integer from pointer without a cast [-Wint-conversion]
+           2252 | #define __Pyx_CyFunction_func_vectorcall(f) (((PyCFunctionObject*)f)->vectorcall)
+                |                                             ^
+          _ruamel_yaml.c:32386:32: note: in expansion of macro ‘__Pyx_CyFunction_func_vectorcall’
+          32386 |      __pyx_vectorcallfunc vc = __Pyx_CyFunction_func_vectorcall(cyfunc);
+                |                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          _ruamel_yaml.c:32389:16: warning: implicit declaration of function ‘__Pyx_PyVectorcall_FastCallDict’; did you mean ‘__Pyx_PyObject_FastCallDict’? [-Wimplicit-function-declaration]
+          32389 |         return __Pyx_PyVectorcall_FastCallDict(func, vc, &PyTuple_GET_ITEM(args, 0), (size_t)PyTuple_GET_SIZE(args), kw);
+                |                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                |                __Pyx_PyObject_FastCallDict
+          _ruamel_yaml.c:32389:16: warning: returning ‘int’ from a function with return type ‘PyObject *’ {aka ‘struct _object *’} makes pointer from integer without a cast [-Wint-conversion]
+          32389 |         return __Pyx_PyVectorcall_FastCallDict(func, vc, &PyTuple_GET_ITEM(args, 0), (size_t)PyTuple_GET_SIZE(args), kw);
+                |                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          exiting tmpfile {'full_package_name': 'ruamel.yaml.clib', 'version_info': (0, 2, 14), '__version__': '0.2.14', 'version_timestamp': '2025-09-22 18:47:49', 'author': 'Anthon van der Neut', 'author_email': 'a.van.der.neut@ruamel.eu', 'description': 'C version of reader, parser and emitter for ruamel.yaml derived from libyaml', 'license': 'MIT', 'entry_points': None, 'nested': True, 'binary_only': True, 'since': 2019, 'ext_modules': [{'name': '_ruamel_yaml', 'src': ['_ruamel_yaml.c', 'api.c', 'writer.c', 'dumper.c', 'loader.c', 'reader.c', 'scanner.c', 'parser.c', 'emitter.c'], 'lib': [], 'test': '\n            int main(int argc, char* argv[])\n            {\n              /* prevent warning */\n              return 0;\n            }\n            '}], 'classifiers': ['Programming Language :: Python :: Implementation :: CPython', 'Topic :: Software Development :: Libraries :: Python Modules'], 'keywords': 'yaml 1.2 parser c-library config', 'wheels': {'windows': 'appveyor', 'linux': 'libyaml-devel', 'macos': 'builder@macos'}, 'url_doc': 'https://yaml.dev/doc/{full_package_name}/', 'supported': [(3, 9)], 'python_requires': '>=3.9', 'tox': {'env': '*'}, 'manifest': 'include README.md LICENSE setup.py *.c *.h *.pxd *.pyx'}
+          error: command '/usr/bin/gcc' failed with exit code 1
+          [end of output]
+      
+      note: This error originates from a subprocess, and is likely not a problem with pip.
+      ERROR: Failed building wheel for ruamel.yaml.clib
+    error: failed-wheel-build-for-install
+    
+    × Failed to build installable wheels for some pyproject.toml based projects
+    ╰─> ruamel.yaml.clib
+Check the log at /home/dev/.cache/pre-commit/pre-commit.log
+
+## Environment:
+Branch: master
+Commit: 666e5b4

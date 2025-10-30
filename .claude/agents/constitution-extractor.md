@@ -1,6 +1,7 @@
 ---
 name: constitution-extractor
 description: Extract project-specific constraints from spec.md and plan.md for Constitution Section IX
+model: haiku
 ---
 
 # Constitution Extractor Agent

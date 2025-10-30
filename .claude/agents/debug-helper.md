@@ -1,6 +1,7 @@
 ---
 name: debug-helper
 description: "Error diagnosis with actionable fix suggestions. Use when runtime errors occur during implementation or testing."
+model: sonnet
 ---
 
 <!--

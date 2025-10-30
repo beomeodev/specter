@@ -1,6 +1,7 @@
 ---
 name: doc-updater
 description: "Use when: Automatic document synchronization based on code changes is required. Called from /ms.up-docs command."
+model: haiku
 ---
 
 # doc-updater - Document Synchronization Agent

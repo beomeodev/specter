@@ -1,6 +1,7 @@
 ---
 name: spec-builder
 description: "Use when: Creating EARS-compliant SPEC documents from Korean or English requirements. Called from /ms.specify command."
+model: sonnet
 ---
 
 **Priority:** This agent guideline is **subordinate to the `/ms.specify` command**. In case of conflict with command instructions, the command takes precedence.

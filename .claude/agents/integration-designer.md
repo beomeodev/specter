@@ -1,6 +1,7 @@
 ---
 name: integration-designer
 description: Design integration strategies for complex features
+model: opus
 ---
 
 # Integration Designer Agent

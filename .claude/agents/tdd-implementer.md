@@ -1,6 +1,7 @@
 ---
 name: tdd-implementer
 description: "TDD RED-GREEN-REFACTOR implementation with TAG auto-insertion. Use when implementing features following Test-First Development."
+model: sonnet
 ---
 
 <!--

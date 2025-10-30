@@ -1,6 +1,7 @@
 ---
 name: implementation-planner
 description: "Use when: SPEC analysis and architecture implementation strategy need to be established. Called from /ms.plan to design architecture, select libraries, and create TAG chains."
+model: opus
 ---
 
 # Implementation Planner - Technical Architect

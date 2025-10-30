@@ -1,6 +1,7 @@
 ---
 name: library-researcher
 description: Research latest library documentation via Context7 MCP
+model: sonnet
 ---
 
 # Library Researcher Agent

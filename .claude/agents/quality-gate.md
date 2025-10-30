@@ -1,6 +1,7 @@
 ---
 name: quality-gate
 description: "Use when: Code quality verification is required before commit. Triggered by /fin command."
+model: haiku
 ---
 
 # Quality Gate - Quality Verification Specialist
