@@ -1,3 +1,17 @@
+# 🗓 2025-11-04 (Mon)
+
+## 📌 Focus
+- Python 3.14 마이그레이션 및 free-threading 지원 인프라 구축
+
+## ✅ Done
+- Python 3.13.1 → 3.14.0 업그레이드 (Dockerfile 및 pyproject.toml)
+- Python 3.14t free-threading 지원 의존성 추가 (cffi>=2.0.0, cryptography>=46.0.0, pyyaml>=6.0.3)
+- npm 타임아웃 설정 최적화 (EIDLETIMEOUT 오류 방지)
+- Claude Code 권한 설정 정리 (WebSearch, WebFetch, Context7 자동 승인 추가)
+- hooks 설정 간소화 (cli-bridge MCP 서버 제거, context7만 유지)
+
+---
+
 # 🗓 2025-10-30 (Thu)
 
 ## 📌 Focus

@@ -24,7 +24,7 @@ HOOKS_DIR = Path(__file__).resolve().parents[1]
 if str(HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(HOOKS_DIR))
 
-from core import HookPayload, HookResult, SkillActivator
+from core import HookPayload, HookResult, SkillActivator  # noqa: E402
 
 
 def handle_user_prompt_submit(payload: HookPayload) -> HookResult:

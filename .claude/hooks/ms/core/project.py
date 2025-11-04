@@ -170,7 +170,11 @@ def get_git_info(cwd: str) -> dict[str, Any]:
             "changes": changes,
         }
 
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
+    except (
+        subprocess.TimeoutExpired,
+        subprocess.CalledProcessError,
+        FileNotFoundError,
+    ):
         return {}
 
 
@@ -216,7 +220,7 @@ def count_specs(cwd: str) -> dict[str, int]:
 
     # Regex pattern to match Markdown metadata: **Status**: Completed
     # Pattern is case-insensitive for "completed"
-    status_pattern = re.compile(r'\*\*Status\*\*:\s*(completed)', re.IGNORECASE)
+    status_pattern = re.compile(r"\*\*Status\*\*:\s*(completed)", re.IGNORECASE)
 
     for spec_dir in specs_dir.iterdir():
         if not spec_dir.is_dir():
@@ -277,12 +281,18 @@ def calculate_tag_integrity(cwd: str) -> float:
                 "rg",
                 r"@(SPEC|TEST|CODE|DOC):",
                 "-n",
-                "--type-add", "md:*.md",
-                "--type", "md",
-                "--type", "py",
-                "--type", "ts",
-                "--type", "js",
-                "--type", "sh",
+                "--type-add",
+                "md:*.md",
+                "--type",
+                "md",
+                "--type",
+                "py",
+                "--type",
+                "ts",
+                "--type",
+                "js",
+                "--type",
+                "sh",
             ],
             cwd=cwd,
             capture_output=True,
@@ -312,7 +322,11 @@ def calculate_tag_integrity(cwd: str) -> float:
             # Without explicit chains, use tag_count as rough proxy
             return min(100.0, (tag_count / 100) * 100)
 
-    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError):
+    except (
+        subprocess.TimeoutExpired,
+        subprocess.CalledProcessError,
+        FileNotFoundError,
+    ):
         # Fail-open: return 0 on error
         return 0.0
 

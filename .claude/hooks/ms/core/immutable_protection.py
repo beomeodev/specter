@@ -278,7 +278,7 @@ def unlock_file(
 File: {file_path}
 Justification: {justification}
 Checkpoint: {checkpoint_ref}
-Session: {os.getenv('CLAUDE_SESSION_ID', 'unknown')}
+Session: {os.getenv("CLAUDE_SESSION_ID", "unknown")}
 ---
 """
 

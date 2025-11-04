@@ -61,8 +61,8 @@ HOOKS_DIR = Path(__file__).parent
 if str(HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(HOOKS_DIR))
 
-from core import HookResult
-from handlers import (
+from core import HookResult  # noqa: E402
+from handlers import (  # noqa: E402
     handle_post_tool_use,
     handle_pre_tool_use,
     handle_session_end,
@@ -140,20 +140,24 @@ def main() -> None:
         # FR-001: Return valid Hook response AND exit with code 0 (fail-open principle)
         error_response = {
             "continue": True,
-            "systemMessage": f"⚠️ Hook JSON parse error: {e}"
+            "systemMessage": f"⚠️ Hook JSON parse error: {e}",
         }
         print(json.dumps(error_response))
         print(f"JSON parse error: {e}", file=sys.stderr)
-        sys.exit(0)  # Fail-open: exit with code 0 to prevent blocking Claude Code sessions
+        sys.exit(
+            0
+        )  # Fail-open: exit with code 0 to prevent blocking Claude Code sessions
     except Exception as e:
         # FR-002: Return valid Hook response AND exit with code 0 (fail-open principle)
         error_response = {
             "continue": True,
-            "systemMessage": f"⚠️ Hook execution error: {e}"
+            "systemMessage": f"⚠️ Hook execution error: {e}",
         }
         print(json.dumps(error_response))
         print(f"Unexpected error: {e}", file=sys.stderr)
-        sys.exit(0)  # Fail-open: exit with code 0 to prevent blocking Claude Code sessions
+        sys.exit(
+            0
+        )  # Fail-open: exit with code 0 to prevent blocking Claude Code sessions
 
 
 if __name__ == "__main__":

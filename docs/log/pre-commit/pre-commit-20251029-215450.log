@@ -57,21 +57,21 @@ stdout:
     Failed to build ruamel.yaml.clib
 stderr:
       error: subprocess-exited-with-error
-      
+
       × Building wheel for ruamel.yaml.clib (pyproject.toml) did not run successfully.
       │ exit code: 1
       ╰─> [443 lines of output]
           /tmp/pip-build-env-neb25_g_/overlay/lib/python3.13t/site-packages/setuptools/dist.py:759: SetuptoolsDeprecationWarning: License classifiers are deprecated.
           !!
-          
+
                   ********************************************************************************
                   Please consider removing the following classifiers in favor of a SPDX license expression:
-          
+
                   License :: OSI Approved :: MIT License
-          
+
                   See https://packaging.python.org/en/latest/guides/writing-pyproject-toml/#license for details.
                   ********************************************************************************
-          
+
           !!
             self._finalize_license_expression()
           running bdist_wheel
@@ -82,7 +82,7 @@ stderr:
           copying ./setup.py -> build/lib.linux-x86_64-cpython-313t/ruamel/yaml/clib
           copying ./LICENSE -> build/lib.linux-x86_64-cpython-313t/ruamel/yaml/clib
           warning: build_py: byte-compiling is disabled, skipping.
-          
+
           running build_ext
           building '_ruamel_yaml' extension
           creating build/temp.linux-x86_64-cpython-313t
@@ -505,11 +505,11 @@ stderr:
           exiting tmpfile {'full_package_name': 'ruamel.yaml.clib', 'version_info': (0, 2, 14), '__version__': '0.2.14', 'version_timestamp': '2025-09-22 18:47:49', 'author': 'Anthon van der Neut', 'author_email': 'a.van.der.neut@ruamel.eu', 'description': 'C version of reader, parser and emitter for ruamel.yaml derived from libyaml', 'license': 'MIT', 'entry_points': None, 'nested': True, 'binary_only': True, 'since': 2019, 'ext_modules': [{'name': '_ruamel_yaml', 'src': ['_ruamel_yaml.c', 'api.c', 'writer.c', 'dumper.c', 'loader.c', 'reader.c', 'scanner.c', 'parser.c', 'emitter.c'], 'lib': [], 'test': '\n            int main(int argc, char* argv[])\n            {\n              /* prevent warning */\n              return 0;\n            }\n            '}], 'classifiers': ['Programming Language :: Python :: Implementation :: CPython', 'Topic :: Software Development :: Libraries :: Python Modules'], 'keywords': 'yaml 1.2 parser c-library config', 'wheels': {'windows': 'appveyor', 'linux': 'libyaml-devel', 'macos': 'builder@macos'}, 'url_doc': 'https://yaml.dev/doc/{full_package_name}/', 'supported': [(3, 9)], 'python_requires': '>=3.9', 'tox': {'env': '*'}, 'manifest': 'include README.md LICENSE setup.py *.c *.h *.pxd *.pyx'}
           error: command '/usr/bin/gcc' failed with exit code 1
           [end of output]
-      
+
       note: This error originates from a subprocess, and is likely not a problem with pip.
       ERROR: Failed building wheel for ruamel.yaml.clib
     error: failed-wheel-build-for-install
-    
+
     × Failed to build installable wheels for some pyproject.toml based projects
     ╰─> ruamel.yaml.clib
 Check the log at /home/dev/.cache/pre-commit/pre-commit.log

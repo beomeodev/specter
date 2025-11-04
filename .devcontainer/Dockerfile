@@ -3,7 +3,7 @@
 # ============================================================================
 FROM debian:bookworm AS builder
 
-ARG PY_VER=3.13.1
+ARG PY_VER=3.14.0
 ARG JOBS=8
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -40,7 +40,7 @@ RUN ./configure \
 # ============================================================================
 FROM debian:bookworm-slim
 
-ARG PY_VER=3.13.1
+ARG PY_VER=3.14.0
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -93,6 +93,11 @@ PY
 RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
     apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
+
+# Configure npm timeout settings to prevent EIDLETIMEOUT errors
+RUN npm config set fetch-timeout 60000 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000
 
 # Setup git-lfs, pipx, uv
 RUN git lfs install && \

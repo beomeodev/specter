@@ -26,7 +26,9 @@ from pathlib import Path
 from typing import Any
 
 
-def detect_risky_operation(tool_name: str, tool_args: dict[str, Any], cwd: str) -> tuple[bool, str]:
+def detect_risky_operation(
+    tool_name: str, tool_args: dict[str, Any], cwd: str
+) -> tuple[bool, str]:
     """Detect risky operations before tool execution.
 
     Automatically identifies dangerous operations that could cause data loss or
@@ -70,11 +72,17 @@ def detect_risky_operation(tool_name: str, tool_args: dict[str, Any], cwd: str) 
             return (True, "delete")
 
         # Git merge/reset/rebase
-        if any(pattern in command for pattern in ["git merge", "git reset --hard", "git rebase"]):
+        if any(
+            pattern in command
+            for pattern in ["git merge", "git reset --hard", "git rebase"]
+        ):
             return (True, "merge")
 
         # Execute external script (potentially destructive)
-        if any(command.startswith(prefix) for prefix in ["python ", "node ", "bash ", "sh "]):
+        if any(
+            command.startswith(prefix)
+            for prefix in ["python ", "node ", "bash ", "sh "]
+        ):
             return (True, "script")
 
     # Edit/Write tool: Detect critical files
@@ -150,7 +158,11 @@ def create_checkpoint(cwd: str, operation_type: str) -> str:
 
         return branch_name
 
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+    except (
+        subprocess.CalledProcessError,
+        subprocess.TimeoutExpired,
+        FileNotFoundError,
+    ):
         # Fail-open: ignore Git error and continue execution
         return "checkpoint-failed"
 

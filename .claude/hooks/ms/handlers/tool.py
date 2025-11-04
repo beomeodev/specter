@@ -22,9 +22,9 @@ HOOKS_DIR = Path(__file__).resolve().parents[1]
 if str(HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(HOOKS_DIR))
 
-from core import HookPayload, HookResult
-from core.checkpoint import create_checkpoint, detect_risky_operation
-from core.immutable_protection import is_file_unlocked, scan_immutable_marker
+from core import HookPayload, HookResult  # noqa: E402
+from core.checkpoint import create_checkpoint, detect_risky_operation  # noqa: E402
+from core.immutable_protection import is_file_unlocked, scan_immutable_marker  # noqa: E402
 
 
 def handle_pre_tool_use(payload: HookPayload) -> HookResult:
@@ -177,10 +177,7 @@ def handle_post_tool_use(payload: HookPayload) -> HookResult:
     # Run formatter in background (async, non-blocking)
     try:
         subprocess.Popen(
-            formatter_cmd,
-            cwd=cwd,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            formatter_cmd, cwd=cwd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
         # Don't show formatting message to avoid noise
         # Formatters run silently in background

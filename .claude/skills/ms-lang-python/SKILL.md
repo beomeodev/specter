@@ -1,29 +1,29 @@
 ---
 name: ms-lang-python
-description: Python 3.13+ development expertise with cutting-edge toolchain - pytest 8.4.2 for powerful testing with fixtures and async support, ruff 0.13.1 for unified linting and formatting (100x faster than pylint), mypy 1.8.0 strict type checking, Pydantic 2.7 runtime validation, uv 0.9.3 package manager (10x faster than pip), modern async patterns with TaskGroup and context variables, PEP 695/701/698 features (type parameters, f-strings, override decorator), FastAPI patterns (dependency injection, middleware, exception handling, background tasks), structured logging with structlog, Constitution compliance (≤500 SLOC, ≤10 complexity), and comprehensive TDD workflow with TAG block integration
+description: Python 3.14+ development expertise with free-threading support and cutting-edge toolchain - pytest 8.4.2 for powerful testing with fixtures and async support, ruff 0.13.1 for unified linting and formatting (100x faster than pylint), mypy 1.8.0 strict type checking, Pydantic 2.7 runtime validation, uv 0.9.3 package manager (10x faster than pip), modern async patterns with TaskGroup and context variables, PEP 703 (free-threading), PEP 695/701/698 features (type parameters, f-strings, override decorator), FastAPI patterns (dependency injection, middleware, exception handling, background tasks), structured logging with structlog, Constitution compliance (≤500 SLOC, ≤10 complexity), and comprehensive TDD workflow with TAG block integration
 ---
 
-# Language: Python 3.13+ Expert
+# Language: Python 3.14+ Expert (Free-Threading)
 
 ## Skill Metadata
 | Field | Value |
 | ----- | ----- |
-| Version | 1.0.0 |
-| Created | 2025-10-26 |
-| Python Support | 3.13.1 (latest), 3.12.7 (LTS) |
+| Version | 2.0.0 |
+| Created | 2025-11-04 |
+| Python Support | 3.14.0-ft (latest, free-threaded), 3.13.x (stable) |
 | Allowed tools | Read, Bash, Grep |
 | Auto-load | On demand when `.py` files detected |
 | Trigger cues | Python files, pytest, async patterns, FastAPI |
 
 ## What it does
 
-Provides **Python 3.13+ expertise** for My-Spec TDD development, including:
+Provides **Python 3.14+ expertise with free-threading support** for My-Spec TDD development, including:
 
 - ✅ **Testing Framework**: pytest 8.4.2 (fixtures, asyncio, parametrization)
 - ✅ **Code Quality**: ruff 0.13.1 (unified linter + formatter, replaces black/pylint)
 - ✅ **Type Safety**: mypy 1.8.0 + Pydantic 2.7.0 (static + runtime validation)
 - ✅ **Package Management**: uv 0.9.3 (10x faster than pip)
-- ✅ **Python 3.13 Features**: PEP 695 (type params), PEP 701 (f-strings), PEP 698 (@override)
+- ✅ **Python 3.14 Features**: PEP 703 (free-threading/GIL removal), JIT compiler, PEP 695/701/698
 - ✅ **Async/Await**: asyncio.TaskGroup, context variables, concurrent patterns
 - ✅ **Constitution Compliance**: TRUST 5 principles, ≤500 SLOC files, ≤10 complexity
 
@@ -163,7 +163,7 @@ class Child(Parent):
 **Configuration** (`pyproject.toml`):
 ```toml
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.14"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
@@ -226,7 +226,7 @@ uv sync                             # Install all (from lock file)
 [project]
 name = "my-project"
 version = "1.0.0"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.115.0",
     "pydantic>=2.7.0",
@@ -748,7 +748,7 @@ mypy --strict .                     # Type check pass?
 
 ✅ **DO**:
 - Use ruff for linting + formatting (not black + pylint)
-- Specify exact Python version: `requires-python = ">=3.13"`
+- Specify exact Python version: `requires-python = ">=3.14"`
 - Use pytest for all tests
 - Enable mypy strict mode
 - Run quality gate before each commit

@@ -15,8 +15,6 @@ SessionStart, SessionEnd event handling adapted for My-Spec workflow.
 
 from core import HookPayload, HookResult
 from core.project import (
-    calculate_tag_integrity,
-    count_specs,
     detect_language,
     get_git_info,
 )
@@ -60,18 +58,16 @@ def handle_session_start(payload: HookPayload) -> HookResult:
         # Gather project info (fail-open on errors)
         language = detect_language(cwd)
         git_info = get_git_info(cwd)
-        specs = count_specs(cwd)
-        tag_integrity = calculate_tag_integrity(cwd)
 
         branch = git_info.get("branch", "N/A")
         commit = git_info.get("commit", "N/A")[:7]
         changes = git_info.get("changes", 0)
-        spec_progress = f"{specs['completed']}/{specs['total']}"
 
         # Count TODO items from docs/todo.md (lines starting with "*")
         todo_count = 0
         try:
             from pathlib import Path
+
             todo_file = Path(cwd) / "docs" / "todo.md"
             if todo_file.exists():
                 with open(todo_file, "r", encoding="utf-8") as f:

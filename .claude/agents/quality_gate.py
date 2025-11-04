@@ -43,14 +43,14 @@ def check_coverage(coverage_data: Dict[str, Any]) -> Dict[str, Any]:
                 "passed": True,
                 "severity": "PASS",
                 "actual_coverage": actual_coverage,
-                "message": f"Coverage {actual_coverage}% meets threshold (≥{threshold}%)"
+                "message": f"Coverage {actual_coverage}% meets threshold (≥{threshold}%)",
             }
         else:
             return {
                 "passed": False,
                 "severity": "CRITICAL",
                 "actual_coverage": actual_coverage,
-                "message": f"Coverage {actual_coverage}% below threshold (≥{threshold}%)"
+                "message": f"Coverage {actual_coverage}% below threshold (≥{threshold}%)",
             }
 
     except Exception as e:
@@ -59,7 +59,7 @@ def check_coverage(coverage_data: Dict[str, Any]) -> Dict[str, Any]:
             "passed": True,
             "severity": "WARNING",
             "actual_coverage": 0.0,
-            "message": f"Coverage check failed: {str(e)}"
+            "message": f"Coverage check failed: {str(e)}",
         }
 
 
@@ -79,28 +79,22 @@ def validate_trust_principles(files_changed: List[str]) -> Dict[str, Any]:
 
         # Check if all principles passed
         all_passed = all(
-            principle.get("passed", False)
-            for principle in result.values()
+            principle.get("passed", False) for principle in result.values()
         )
 
         if all_passed:
-            return {
-                "passed": True,
-                "severity": "PASS",
-                "failed_principles": []
-            }
+            return {"passed": True, "severity": "PASS", "failed_principles": []}
         else:
             # Identify failed principles
             failed = [
-                name for name, data in result.items()
-                if not data.get("passed", False)
+                name for name, data in result.items() if not data.get("passed", False)
             ]
 
             return {
                 "passed": False,
                 "severity": "CRITICAL",
                 "failed_principles": failed,
-                "details": result
+                "details": result,
             }
 
     except Exception as e:
@@ -109,7 +103,7 @@ def validate_trust_principles(files_changed: List[str]) -> Dict[str, Any]:
             "passed": True,
             "severity": "WARNING",
             "failed_principles": [],
-            "message": f"TRUST validation failed: {str(e)}"
+            "message": f"TRUST validation failed: {str(e)}",
         }
 
 
@@ -135,14 +129,10 @@ def call_agent(agent_name: str, params: Dict[str, Any]) -> Dict[str, Any]:
             "readable": {"passed": True},
             "unified": {"passed": True},
             "secured": {"passed": True},
-            "trackable": {"passed": True}
+            "trackable": {"passed": True},
         }
     elif agent_name == "tag-auditor":
-        return {
-            "complete_chains": 45,
-            "orphaned_tags": [],
-            "integrity_score": 100.0
-        }
+        return {"complete_chains": 45, "orphaned_tags": [], "integrity_score": 100.0}
     else:
         return {}
 
@@ -173,7 +163,7 @@ def check_linter(files_changed: List[str]) -> Dict[str, Any]:
                     ["pylint", file_path, "--output-format=json"],
                     capture_output=True,
                     text=True,
-                    timeout=30
+                    timeout=30,
                 )
 
                 if result.returncode != 0:
@@ -195,7 +185,7 @@ def check_linter(files_changed: List[str]) -> Dict[str, Any]:
                     ["eslint", file_path, "--format=json"],
                     capture_output=True,
                     text=True,
-                    timeout=30
+                    timeout=30,
                 )
 
                 if result.returncode != 0:
@@ -218,7 +208,7 @@ def check_linter(files_changed: List[str]) -> Dict[str, Any]:
                 "error_count": len(errors),
                 "warning_count": len(warnings),
                 "errors": errors,
-                "warnings": warnings
+                "warnings": warnings,
             }
         elif len(warnings) > 5:
             return {
@@ -226,7 +216,7 @@ def check_linter(files_changed: List[str]) -> Dict[str, Any]:
                 "severity": "WARNING",
                 "error_count": 0,
                 "warning_count": len(warnings),
-                "warnings": warnings
+                "warnings": warnings,
             }
         else:
             return {
@@ -234,7 +224,7 @@ def check_linter(files_changed: List[str]) -> Dict[str, Any]:
                 "severity": "PASS",
                 "error_count": 0,
                 "warning_count": len(warnings),
-                "warnings": warnings
+                "warnings": warnings,
             }
 
     except Exception as e:
@@ -243,7 +233,7 @@ def check_linter(files_changed: List[str]) -> Dict[str, Any]:
             "passed": True,
             "severity": "WARNING",
             "error_count": 0,
-            "message": f"Linter check failed: {str(e)}"
+            "message": f"Linter check failed: {str(e)}",
         }
 
 
@@ -269,7 +259,7 @@ def validate_tag_chains(files_changed: List[str]) -> Dict[str, Any]:
                 "passed": True,
                 "severity": "PASS",
                 "orphaned_tags": [],
-                "integrity_score": integrity_score
+                "integrity_score": integrity_score,
             }
         else:
             # Orphaned TAGs are warnings, not critical blockers
@@ -278,7 +268,7 @@ def validate_tag_chains(files_changed: List[str]) -> Dict[str, Any]:
                 "severity": "WARNING",
                 "orphaned_tags": orphaned_tags,
                 "integrity_score": integrity_score,
-                "message": f"{len(orphaned_tags)} orphaned TAGs found"
+                "message": f"{len(orphaned_tags)} orphaned TAGs found",
             }
 
     except Exception as e:
@@ -287,7 +277,7 @@ def validate_tag_chains(files_changed: List[str]) -> Dict[str, Any]:
             "passed": True,
             "severity": "WARNING",
             "orphaned_tags": [],
-            "message": f"TAG chain validation failed: {str(e)}"
+            "message": f"TAG chain validation failed: {str(e)}",
         }
 
 
@@ -308,7 +298,9 @@ def run_quality_gate(files_changed: List[str]) -> Dict[str, Any]:
         Dict with keys: final_evaluation (str), can_commit (bool), results (dict)
     """
     # Execute all quality checks
-    coverage_result = check_coverage({"totals": {"percent_covered": 90.0}})  # Placeholder
+    coverage_result = check_coverage(
+        {"totals": {"percent_covered": 90.0}}
+    )  # Placeholder
     trust_result = validate_trust_principles(files_changed)
     linter_result = check_linter(files_changed)
     tag_result = validate_tag_chains(files_changed)
@@ -317,18 +309,16 @@ def run_quality_gate(files_changed: List[str]) -> Dict[str, Any]:
         "coverage": coverage_result,
         "trust": trust_result,
         "linter": linter_result,
-        "tags": tag_result
+        "tags": tag_result,
     }
 
     # Determine final evaluation
     critical_count = sum(
-        1 for result in results.values()
-        if result.get("severity") == "CRITICAL"
+        1 for result in results.values() if result.get("severity") == "CRITICAL"
     )
 
     warning_count = sum(
-        1 for result in results.values()
-        if result.get("severity") == "WARNING"
+        1 for result in results.values() if result.get("severity") == "WARNING"
     )
 
     if critical_count > 0:
@@ -346,7 +336,7 @@ def run_quality_gate(files_changed: List[str]) -> Dict[str, Any]:
         "can_commit": can_commit,
         "results": results,
         "critical_count": critical_count,
-        "warning_count": warning_count
+        "warning_count": warning_count,
     }
 
 
@@ -361,17 +351,21 @@ def generate_report(results: Dict[str, Any]) -> str:
         Markdown-formatted report string
     """
     # Handle both formats: full run_quality_gate results OR individual check results
-    if 'results' in results:
+    if "results" in results:
         # Full format from run_quality_gate
         final_eval = results.get("final_evaluation", "UNKNOWN")
         can_commit = results.get("can_commit", False)
-        check_results = results['results']
+        check_results = results["results"]
     else:
         # Individual check results format (used in tests)
         # Infer final_evaluation from individual results
         check_results = results
-        critical_count = sum(1 for r in results.values() if r.get("severity") == "CRITICAL")
-        warning_count = sum(1 for r in results.values() if r.get("severity") == "WARNING")
+        critical_count = sum(
+            1 for r in results.values() if r.get("severity") == "CRITICAL"
+        )
+        warning_count = sum(
+            1 for r in results.values() if r.get("severity") == "WARNING"
+        )
 
         if critical_count > 0:
             final_eval = "CRITICAL"
@@ -384,11 +378,7 @@ def generate_report(results: Dict[str, Any]) -> str:
             can_commit = True
 
     # Map evaluation to icon
-    eval_icons = {
-        "PASS": "✅ PASS",
-        "WARNING": "⚠️ WARNING",
-        "CRITICAL": "❌ CRITICAL"
-    }
+    eval_icons = {"PASS": "✅ PASS", "WARNING": "⚠️ WARNING", "CRITICAL": "❌ CRITICAL"}
 
     report = f"""## 🛡️ Quality Gate Verification Results
 
@@ -398,29 +388,29 @@ def generate_report(results: Dict[str, Any]) -> str:
 
 | Check            | Status |
 |-----------------|--------|
-| Test Coverage    | {_format_status(check_results['coverage'])} |
-| TRUST Principles | {_format_status(check_results['trust'])} |
-| Code Style       | {_format_status(check_results['linter'])} |
-| TAG Chains       | {_format_status(check_results['tags'])} |
+| Test Coverage    | {_format_status(check_results["coverage"])} |
+| TRUST Principles | {_format_status(check_results["trust"])} |
+| Code Style       | {_format_status(check_results["linter"])} |
+| TAG Chains       | {_format_status(check_results["tags"])} |
 
 ### 🧪 Test Coverage
 
-- **Coverage**: {check_results['coverage'].get('actual_coverage', 0.0)}%
-- **Status**: {check_results['coverage'].get('message', 'N/A')}
+- **Coverage**: {check_results["coverage"].get("actual_coverage", 0.0)}%
+- **Status**: {check_results["coverage"].get("message", "N/A")}
 
 ### 🛡️ TRUST Principles
 
-- **Status**: {"All principles passed ✅" if check_results['trust']['passed'] else f"Failed: {', '.join(check_results['trust'].get('failed_principles', []))}"}
+- **Status**: {"All principles passed ✅" if check_results["trust"]["passed"] else f"Failed: {', '.join(check_results['trust'].get('failed_principles', []))}"}
 
 ### 🎨 Code Style
 
-- **Errors**: {check_results['linter'].get('error_count', 0)}
-- **Warnings**: {check_results['linter'].get('warning_count', 0)}
+- **Errors**: {check_results["linter"].get("error_count", 0)}
+- **Warnings**: {check_results["linter"].get("warning_count", 0)}
 
 ### 🏷️ TAG Chains
 
-- **Orphaned TAGs**: {len(check_results['tags'].get('orphaned_tags', []))}
-- **Integrity Score**: {check_results['tags'].get('integrity_score', 0.0)}%
+- **Orphaned TAGs**: {len(check_results["tags"].get("orphaned_tags", []))}
+- **Integrity Score**: {check_results["tags"].get("integrity_score", 0.0)}%
 
 ### ✅ Next Steps
 
@@ -434,11 +424,7 @@ def generate_report(results: Dict[str, Any]) -> str:
 def _format_status(result: Dict[str, Any]) -> str:
     """Format status with icon."""
     severity = result.get("severity", "UNKNOWN")
-    icons = {
-        "PASS": "✅ PASS",
-        "WARNING": "⚠️ WARNING",
-        "CRITICAL": "❌ CRITICAL"
-    }
+    icons = {"PASS": "✅ PASS", "WARNING": "⚠️ WARNING", "CRITICAL": "❌ CRITICAL"}
     return icons.get(severity, severity)
 
 

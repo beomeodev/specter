@@ -3,7 +3,7 @@ name = "specter"
 version = "0.1.0"
 description = "SPECTER: Specification-driven Engineering with Context, Traceability, Execution, and Review"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 authors = [
     { name = "SPECTER Team" }
 ]
@@ -13,8 +13,12 @@ dependencies = [
     # MCP Server support
     "mcp>=1.18.0",
 
+    # Python 3.14 free-threading compatibility
+    "cffi>=2.0.0",           # Python 3.14t support
+    "cryptography>=46.0.0",  # Free-threading support
+
     # Data processing
-    "pyyaml>=6.0.1",      # YAML parsing (spec.md front matter)
+    "pyyaml>=6.0.3",      # YAML parsing (spec.md front matter) - Python 3.14t wheels
     "regex>=2024.0.0",    # EARS/TAG pattern matching
 ]
 

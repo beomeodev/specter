@@ -123,7 +123,9 @@ class SkillActivator:
             self.rules = {"skills": {}}
             return self.rules
 
-    def _compile_patterns(self, skill_name: str, patterns: list[str]) -> list[re.Pattern]:
+    def _compile_patterns(
+        self, skill_name: str, patterns: list[str]
+    ) -> list[re.Pattern]:
         """Compile and cache regex patterns for a skill.
 
         Args:
@@ -192,7 +194,9 @@ class SkillActivator:
         open_files = open_files or []
 
         for skill_name, skill_config in rules.get("skills", {}).items():
-            match_reasons = self._check_match(prompt, open_files, skill_name, skill_config)
+            match_reasons = self._check_match(
+                prompt, open_files, skill_name, skill_config
+            )
 
             if match_reasons:
                 matches.append(

@@ -533,7 +533,7 @@ docs = mcp__context7__get_library_docs(lib_id, topic="background tasks")
 
 SPECTER는 4개의 자동화 시스템으로 품질을 강제합니다:
 
-### 1. Hooks System (Python 3.13+)
+### 1. Hooks System (Python 3.14+)
 
 **역할**: 자동화된 감시자
 
@@ -740,7 +740,8 @@ specter/
 ### 개발 환경
 
 **Python Requirements**:
-- **Minimum**: Python 3.13+ (required, pyproject.toml)
+- **Minimum**: Python 3.14+ free-threaded build (required, pyproject.toml)
+- **Free-threading**: GIL-free execution for true parallelism
 
 **MCP 서버 통합**:
 - **Context7 MCP**: 최신 라이브러리 문서 조회
