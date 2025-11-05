@@ -1,18 +1,9 @@
 ---
 name: ms-workflow-living-docs
-description: Living Documentation automation skill that scans TAG-annotated code with ripgrep to extract metadata, generates API documentation from function signatures and docstrings, synchronizes dev daily logs with Git diff summaries and TAG chain updates, validates complete SPEC→TEST→CODE→DOC chains with integrity scoring, updates README for major changes, supports parallel processing for performance (<10 min target), integrates with /fin and /finq workflows for automatic doc sync before commits, and uses fail-open error handling to never block commits
+description: Living Documentation automation skill that scans TAG-annotated code with ripgrep to extract metadata, generates API documentation from function signatures and docstrings, synchronizes dev daily logs with Git diff summaries and TAG chain updates, validates complete SPEC→TEST→CODE→DOC chains with integrity scoring, updates README for major changes, supports parallel processing for performance (<10 min target), integrates with /fin and /finq workflows for automatic doc sync before commits, and uses fail-open error handling to never block commits. Use when syncing documentation after feature implementation, running /fin or /finq workflows, updating API documentation, validating TAG chains, or synchronizing README with project changes
 ---
 
 # Workflow: Living-Docs Manager
-
-## Skill Metadata
-| Field | Value |
-| ----- | ----- |
-| Version | 1.0.0 |
-| Created | 2025-10-26 |
-| Allowed tools | Read, Bash, Grep, Write, Edit |
-| Auto-load | `/ms.up-docs`, `/fin`, `/finq`, doc synchronization |
-| Trigger cues | Documentation sync, API docs, TAG scanning, Living Documentation |
 
 ## What it does
 

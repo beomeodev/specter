@@ -1,19 +1,9 @@
 ---
 name: ms-lang-typescript
-description: TypeScript 5.7+ development expertise with modern toolchain - Vitest 2.1 for 10x faster testing with native ESM support, Biome 1.9 for unified linting and formatting (75x faster than ESLint), strict type checking with advanced patterns (const type parameters, satisfies operator), React 19 and Next.js 15 integration with Error Boundaries and Suspense patterns, Zod runtime validation, type-safe environment variables, Constitution compliance (≤500 SLOC, ≤10 complexity), and comprehensive TDD workflow with TAG block integration
+description: TypeScript 5.7+ development expertise with modern toolchain - Vitest 2.1 for 10x faster testing with native ESM support, Biome 1.9 for unified linting and formatting (75x faster than ESLint), strict type checking with advanced patterns (const type parameters, satisfies operator), React 19 and Next.js 15 integration with Error Boundaries and Suspense patterns, Zod runtime validation, type-safe environment variables, Constitution compliance (≤500 SLOC, ≤10 complexity), and comprehensive TDD workflow with TAG block integration. Use when working with TypeScript/TSX files, writing Vitest tests, implementing React/Next.js applications, enforcing type safety, or applying TypeScript best practices
 ---
 
 # Language: TypeScript 5.7+ Expert
-
-## Skill Metadata
-| Field | Value |
-| ----- | ----- |
-| Version | 1.0.0 |
-| Created | 2025-10-26 |
-| TypeScript Support | 5.7+ (latest) |
-| Allowed tools | Read, Bash, Grep |
-| Auto-load | On demand when `.ts`, `.tsx` files detected |
-| Trigger cues | TypeScript files, type safety, React/Next.js development |
 
 ## What it does
 

@@ -1,19 +1,9 @@
 ---
 name: ms-lang-python
-description: Python 3.14+ development expertise with free-threading support and cutting-edge toolchain - pytest 8.4.2 for powerful testing with fixtures and async support, ruff 0.13.1 for unified linting and formatting (100x faster than pylint), mypy 1.8.0 strict type checking, Pydantic 2.7 runtime validation, uv 0.9.3 package manager (10x faster than pip), modern async patterns with TaskGroup and context variables, PEP 703 (free-threading), PEP 695/701/698 features (type parameters, f-strings, override decorator), FastAPI patterns (dependency injection, middleware, exception handling, background tasks), structured logging with structlog, Constitution compliance (≤500 SLOC, ≤10 complexity), and comprehensive TDD workflow with TAG block integration
+description: Python 3.14+ development expertise with free-threading support and cutting-edge toolchain - pytest 8.4.2 for powerful testing with fixtures and async support, ruff 0.13.1 for unified linting and formatting (100x faster than pylint), mypy 1.8.0 strict type checking, Pydantic 2.7 runtime validation, uv 0.9.3 package manager (10x faster than pip), modern async patterns with TaskGroup and context variables, PEP 703 (free-threading), PEP 695/701/698 features (type parameters, f-strings, override decorator), FastAPI patterns (dependency injection, middleware, exception handling, background tasks), structured logging with structlog, Constitution compliance (≤500 SLOC, ≤10 complexity), and comprehensive TDD workflow with TAG block integration. Use when working with Python files, writing pytest tests, implementing async patterns, building FastAPI applications, or applying Python best practices
 ---
 
 # Language: Python 3.14+ Expert (Free-Threading)
-
-## Skill Metadata
-| Field | Value |
-| ----- | ----- |
-| Version | 2.0.0 |
-| Created | 2025-11-04 |
-| Python Support | 3.14.0-ft (latest, free-threaded), 3.13.x (stable) |
-| Allowed tools | Read, Bash, Grep |
-| Auto-load | On demand when `.py` files detected |
-| Trigger cues | Python files, pytest, async patterns, FastAPI |
 
 ## What it does
 

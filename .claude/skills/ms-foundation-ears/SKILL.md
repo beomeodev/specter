@@ -1,18 +1,9 @@
 ---
 name: ms-foundation-ears
-description: Requirements validation skill that enforces EARS syntax (Ubiquitous SHALL, Event-driven WHEN, State-driven WHILE, Optional WHERE, Constraints IF patterns), detects ambiguous forbidden phrases (fast, secure, user-friendly), ensures measurability and testability with clear pass/fail criteria, and provides concrete rewrite suggestions for non-compliant requirements
+description: Requirements validation skill that enforces EARS syntax (Ubiquitous SHALL, Event-driven WHEN, State-driven WHILE, Optional WHERE, Constraints IF patterns), detects ambiguous forbidden phrases (fast, secure, user-friendly), ensures measurability and testability with clear pass/fail criteria, and provides concrete rewrite suggestions for non-compliant requirements. Use when writing new specifications, clarifying requirements, validating SPEC documents, detecting ambiguous language, or ensuring requirements measurability
 ---
 
 # Foundation: EARS Requirements Validation
-
-## Skill Metadata
-| Field | Value |
-| ----- | ----- |
-| Version | 1.0.0 |
-| Created | 2025-10-26 |
-| Allowed tools | Read, Grep |
-| Auto-load | `/ms.specify`, `/ms.clarify` |
-| Trigger cues | Requirement writing, SPEC validation, ambiguity detection |
 
 ## What it does
 

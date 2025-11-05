@@ -1,24 +1,9 @@
 ---
 name: ms-essentials-debug
-description: Advanced debugging skill for runtime errors with systematic stack trace analysis, error pattern recognition (NoneType, undefined, async issues, memory leaks, performance bottlenecks), root cause identification using 5-Whys methodology, memory profiling with tracemalloc, N+1 query detection, and test-first debugging workflow that follows TDD RED-GREEN-REFACTOR cycle to provide actionable fix suggestions
+description: Advanced debugging skill for runtime errors with systematic stack trace analysis, error pattern recognition (NoneType, undefined, async issues, memory leaks, performance bottlenecks), root cause identification using 5-Whys methodology, memory profiling with tracemalloc, N+1 query detection, and test-first debugging workflow that follows TDD RED-GREEN-REFACTOR cycle to provide actionable fix suggestions. Use when encountering runtime errors, analyzing stack traces, debugging performance bottlenecks, investigating memory leaks, or diagnosing async/await issues
 ---
 
 # MS Essentials Debug v1.0
-
-## Skill Metadata
-
-| Field | Value |
-| ----- | ----- |
-| **Skill Name** | ms-essentials-debug |
-| **Version** | 1.0.0 |
-| **Created** | 2025-10-26 |
-| **Last Updated** | 2025-10-26 |
-| **Language Coverage** | Python, TypeScript, JavaScript |
-| **Allowed tools** | Read, Write, Edit, Bash, TodoWrite, Grep, Glob |
-| **Auto-load** | On demand during debugging scenarios |
-| **Trigger cues** | Runtime errors, stack traces, "debug this", "why is this failing?" |
-
----
 
 ## What It Does
 

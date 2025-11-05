@@ -1,17 +1,11 @@
+---
+name: api-testing-patterns
+description: Comprehensive API testing methodology covering REST API testing (CRUD operations, status codes, headers), GraphQL testing (queries, mutations, subscriptions), contract validation with Pact and Spring Cloud Contract, integration testing with real dependencies, idempotency verification for POST/PUT/DELETE operations, authentication and authorization flow testing (JWT, OAuth2, API keys), request/response schema validation with OpenAPI and JSON Schema, error scenario handling (4xx/5xx codes, timeouts, rate limits), consumer-driven contract testing patterns for microservices, performance testing with load and stress scenarios, automated test generation from API specifications, and CI/CD pipeline integration with pytest 8.4.2 and Vitest 2.1 for production-ready API systems with ≥85% coverage
+---
+
 # API Testing Patterns
 
 Comprehensive API testing methodology covering REST API testing, GraphQL testing, contract validation, integration testing, and idempotency verification. Apply when implementing API endpoints, testing request/response validation, ensuring authentication security, handling error scenarios, or validating API contracts across microservices. Provides consumer-driven contract testing patterns, performance testing strategies, and automated test generation for production-ready API systems.
-
----
-
-## Metadata
-
-- **Name:** api-testing-patterns
-- **Version:** 1.0.0
-- **Category:** testing
-- **Tags:** api-testing, contract-testing, rest-api, graphql, microservices, integration-testing, authentication, validation
-- **Difficulty:** intermediate
-- **Estimated Time:** 45-60 minutes
 
 ---
 

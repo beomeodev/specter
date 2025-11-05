@@ -1,18 +1,9 @@
 ---
 name: ms-foundation-constitution
-description: Constitution Section II compliance validator for Simplicity-First Architecture that checks file size limits (≤500 SLOC excluding comments), function complexity using McCabe metrics (≤10 cyclomatic complexity), function length constraints (≤100 LOC), and provides actionable refactoring suggestions with split strategies when violations detected
+description: Constitution Section II compliance validator for Simplicity-First Architecture that checks file size limits (≤500 SLOC excluding comments), function complexity using McCabe metrics (≤10 cyclomatic complexity), function length constraints (≤100 LOC), and provides actionable refactoring suggestions with split strategies when violations detected. Use when validating code quality, checking file size limits, analyzing function complexity, reviewing Constitution compliance, implementing new features, or running quality gate checks
 ---
 
 # Foundation: Constitution Compliance
-
-## Skill Metadata
-| Field | Value |
-| ----- | ----- |
-| Version | 1.0.0 |
-| Created | 2025-10-26 |
-| Allowed tools | Read, Bash, Grep |
-| Auto-load | SessionStart, `/ms.implement`, `/ms.analyze` |
-| Trigger cues | Code quality checks, file size validation, complexity analysis |
 
 ## What it does
 

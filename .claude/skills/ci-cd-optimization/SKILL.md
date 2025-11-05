@@ -1,17 +1,11 @@
+---
+name: ci-cd-optimization
+description: Transform manual release processes into automated, quality-gated, observable CI/CD pipelines with performance tracking, regression detection (20% threshold against 10-build moving average), and smoke testing (25-test suite covering execution, consistency, and structure validation). Provides five quality gate categories (coverage threshold ≥75-80%, lint blocking with zero tolerance, CHANGELOG validation with conventional commits, build verification across platforms, 100% test pass rate), release automation with semantic versioning (feat/fix/BREAKING CHANGE parsing), automated CHANGELOG generation from commit history, GitHub Actions workflow templates, observability framework with git-committed metrics in .ci-metrics/ directory (build time, test duration, coverage trends, artifact size), rollback strategies for failed deployments, and validated patterns achieving 2.5-3.5x speedup over manual processes for production-ready delivery pipelines
+---
+
 # CI/CD Optimization
 
 Transform manual release processes into automated, quality-gated, observable pipelines with performance tracking and regression detection. Apply when setting up deployment automation, running smoke tests, implementing quality gates, tracking build performance, optimizing CI pipelines, preventing production defects, or establishing release automation workflows. Provides coverage enforcement, CHANGELOG generation, observability metrics, and validated patterns for GitHub Actions with 2.5-3.5x speedup over manual processes.
-
----
-
-## Metadata
-
-- **Name:** ci-cd-optimization
-- **Version:** 1.0.0
-- **Category:** devops
-- **Tags:** ci-cd, automation, quality-gates, smoke-tests, deployment, performance-metrics, release-automation
-- **Difficulty:** intermediate
-- **Estimated Time:** 30-90 minutes (30 min quick-start, 90 min full implementation)
 
 ---
 

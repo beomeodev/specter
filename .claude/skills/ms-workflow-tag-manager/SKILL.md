@@ -1,18 +1,9 @@
 ---
 name: ms-workflow-tag-manager
-description: Traceability automation skill that generates language-specific TAG blocks (Python docstrings, TypeScript JSDoc, Go comments) with complete SPEC→TEST→CODE→DOC chain metadata, ensures unique TAG ID assignment with validation using ripgrep scanning, provides automatic TAG insertion during /ms.implement workflow, supports status tracking (planned, in_progress, implemented, reviewed), and maintains temporal metadata (CREATED, UPDATED timestamps) for full requirement-to-code traceability
+description: Traceability automation skill that generates language-specific TAG blocks (Python docstrings, TypeScript JSDoc, Go comments) with complete SPEC→TEST→CODE→DOC chain metadata, ensures unique TAG ID assignment with validation using ripgrep scanning, provides automatic TAG insertion during /ms.implement workflow, supports status tracking (planned, in_progress, implemented, reviewed), and maintains temporal metadata (CREATED, UPDATED timestamps) for full requirement-to-code traceability. Use when implementing new features with /ms.implement, creating TAG blocks for code, generating traceability metadata, validating TAG ID uniqueness, or tracking implementation status
 ---
 
 # Workflow: TAG Manager
-
-## Skill Metadata
-| Field | Value |
-| ----- | ----- |
-| Version | 1.0.0 |
-| Created | 2025-10-26 |
-| Allowed tools | Read, Bash, Grep |
-| Auto-load | `/ms.implement`, `/ms.tasks`, code implementation |
-| Trigger cues | TAG generation, traceability, implementation tracking |
 
 ## What it does
 
