@@ -2,6 +2,7 @@
 
 ## 📌 Focus
 - Claude Skills 공식 문서 표준 준수 (메타데이터 구조 재정비)
+- README.md 핵심 가치 재작성 (AI 협업 문제-해결 구조)
 
 ## ✅ Done
 - 전체 14개 스킬 YAML frontmatter 표준화 (Skill Metadata 테이블 제거)
@@ -9,6 +10,8 @@
 - api-testing-patterns, ci-cd-optimization의 "## Metadata" 섹션 제거
 - 3개 외부 스킬 도입 (ms-database-design, ms-architecture-patterns, ms-foundation-trust Security 통합)
 - Claude 공식 문서 4개 검토 및 표준 준수 검증 완료
+- README.md 구조 재정비 (워크플로우 우선, 4계층 자동화 명확화, 773→848줄)
+- README.md 핵심 가치 섹션 완전 재작성 (AI 협업 3가지 문제 → SPECTER 해결책 구조)
 
 ---
 
