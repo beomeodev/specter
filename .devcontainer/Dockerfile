@@ -64,7 +64,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     tzdata \
     pipx \
-    ripgrep && \
+    ripgrep \
+    procps && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy Free-Threading Python from builder

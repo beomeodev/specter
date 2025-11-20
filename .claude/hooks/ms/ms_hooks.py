@@ -109,7 +109,11 @@ def main() -> None:
 
     try:
         # Read JSON from stdin
-        input_data = sys.stdin.read()
+        # Check if stdin is a terminal to avoid blocking in Docker/TTY environments
+        if sys.stdin.isatty():
+            input_data = "{}"
+        else:
+            input_data = sys.stdin.read()
         # Handle empty stdin by treating it as empty object
         data = json.loads(input_data) if input_data.strip() else {}
 

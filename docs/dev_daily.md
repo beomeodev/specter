@@ -1,3 +1,15 @@
+# 🗓 2025-11-20 (Wed)
+
+## 📌 Focus
+- Docker 환경 이슈 해결 및 .gitignore 개선
+
+## ✅ Done
+- procps 의존성 Dockerfile에 추가 (Claude Code ps 명령어 사용 위해 필수)
+- .gitignore 표준 패턴 추가 (.venv, .ruff_cache, .mypy_cache, node_modules 등)
+- moai-adk embedded repository 제거 확인
+
+---
+
 # 🗓 2025-11-05 (Wed)
 
 ## 📌 Focus
