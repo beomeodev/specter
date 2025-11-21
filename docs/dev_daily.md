@@ -1,3 +1,14 @@
+# 🗓 2025-11-21 (Thu)
+
+## 📌 Focus
+- Claude Code 메모리 최적화 (대량 스킬 로드 시 OOM 해결)
+
+## ✅ Done
+- Makefile `claude cc` 타겟에 NODE_OPTIONS 추가 (힙 메모리 2GB→4GB)
+- 140+ 스킬 파일 환경에서도 안정적 실행 보장
+
+---
+
 # 🗓 2025-11-20 (Wed)
 
 ## 📌 Focus

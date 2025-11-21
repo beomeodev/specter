@@ -236,7 +236,7 @@ codex-resume cr: dev-up
 
 # Launch the Claude Code CLI inside the running container
 claude cc: dev-up
-	$(COMPOSE) exec app claude
+	$(COMPOSE) exec -e NODE_OPTIONS="--max-old-space-size=4096" app claude
 
 # Launch the Gemini CLI inside the running container
 # 설치 방식: NPX 별칭 (항상 최신 버전, 시스템 깔끔 유지)
