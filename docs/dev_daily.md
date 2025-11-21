@@ -6,6 +6,7 @@
 ## ✅ Done
 - Makefile `claude cc` 타겟에 NODE_OPTIONS 추가 (힙 메모리 2GB→4GB)
 - 140+ 스킬 파일 환경에서도 안정적 실행 보장
+- docker-compose.yml에 메모리 제한 추가 (8GB container limit) - OOM 사전 방지
 
 ---
 

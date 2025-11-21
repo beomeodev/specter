@@ -10,6 +10,11 @@ services:
     working_dir: /workspace/${PROJECT_NAME}
     tty: true
     stdin_open: true
+    # Memory limits for Claude Code (requires 4GB+ Node.js heap)
+    # Layer 1 (Docker): 8GB container limit
+    # Layer 2 (Node.js): 4GB heap (set in Makefile:239 via NODE_OPTIONS)
+    mem_limit: 8g
+    memswap_limit: 8g
     env_file:
       - ../.env
     volumes:
