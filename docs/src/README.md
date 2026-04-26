@@ -22,7 +22,6 @@ This compiles TypeScript files from `src/` to `dist/`.
 - **ripgrep-based TAG scanning** (blazing fast)
 - **TAG integrity validation** (orphaned TAGs, duplicates, broken chains)
 - **MoAI-style TAG blocks** with CHAIN and @IMMUTABLE support
-- **@IMMUTABLE protection** via Claude Code hooks
 
 ### Usage Examples
 
@@ -194,75 +193,6 @@ const jsonReport = TRUST.generateJSONReport(result);
 await TRUST.saveReportToFile(result, 'trust-report.md');
 ```
 
-## 🛡️ Claude Code Hook (Optional)
-
-### @IMMUTABLE TAG Protection
-
-The TAG enforcer hook prevents modification of @IMMUTABLE TAG blocks.
-
-#### Setup
-
-1. Build TypeScript to JavaScript:
-```bash
-npm run build
-```
-
-2. The hook is already configured in `.claude/settings.local.json`:
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/tag-enforcer.js"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-3. Restart Claude Code or reload the project.
-
-#### How It Works
-
-- **PreToolUse hook** runs before Write/Edit/MultiEdit operations
-- Checks if @IMMUTABLE TAG blocks are modified
-- **Blocks file write** if violation detected
-- Shows helpful error message with fix suggestions
-
-#### Example
-
-```typescript
-// Original file (src/auth.ts)
-/**
- * @SPEC:AUTH-001
- * CHAIN: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
- * STATUS: active
- * CREATED: 2025-10-15
- * @IMMUTABLE
- */
-export function authenticate() { ... }
-
-// Try to modify @IMMUTABLE block → BLOCKED! ❌
-/**
- * @SPEC:AUTH-001
- * CHAIN: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-002  // Changed!
- * STATUS: active
- * CREATED: 2025-10-15
- * @IMMUTABLE
- */
-
-// Error message:
-// 🚫 @IMMUTABLE TAG Modification Detected
-// TAG AUTH-001 is marked as @IMMUTABLE and cannot be modified.
-// ...
-```
-
 ## 📁 Project Structure
 
 ```
@@ -283,11 +213,6 @@ src/
 │       └── index.ts          # Unified export
 ├── index.ts                  # Main entry point
 └── README.md                 # This file
-
-.claude/
-├── hooks/
-│   └── tag-enforcer.ts       # @IMMUTABLE protection hook
-└── settings.local.json       # Hook configuration
 
 dist/                         # Compiled JavaScript (auto-generated)
 ```

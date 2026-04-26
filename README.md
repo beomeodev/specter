@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-    사양 기반 점진적 강제 · 헌법 기반 추적성 · 진화적 리뷰
+    사양 기반 점진적 검증 · 헌법 기반 추적성 · 진화적 리뷰
 </p>
 
 ---
@@ -66,13 +66,13 @@
 
 ### SPECTER의 해결책
 
-**1. Constitution이 AI를 자동으로 강제합니다**
+**1. Constitution이 AI에게 일관된 기준을 제공합니다**
 ```
 Constitution Section II: 파일 ≤500 SLOC
 
 → AI가 501줄 작성 시도
-→ ms-foundation-constitution Skill이 즉시 차단
-→ "파일 크기 초과. 2개로 분할하세요" 자동 경고
+→ ms-foundation-constitution Skill이 경고
+→ "파일 크기 초과. 2개로 분할하세요" 가이드 제시
 ```
 
 **2. EARS 패턴이 모호함을 제거합니다**
@@ -87,7 +87,7 @@ EARS 자동 변환 (ms-foundation-ears Skill)
 → AI가 정확히 구현할 수 있는 명확한 사양
 ```
 
-**3. TAG 시스템이 완전 추적을 보장합니다**
+**3. TAG 시스템이 추적 가능성을 구조화합니다**
 ```typescript
 /**
  * @SPEC:AUTH-001 User Authentication
@@ -108,31 +108,40 @@ export class AuthService {
 
 ### 왜 SPECTER인가?
 
+**SPECTER의 정체**: Spec-Kit 위에 올라가는 overlay + Claude Code 자산 세트입니다.
+
+- **Spec-Kit**: 사양 주도 개발 워크플로우 엔진 (GitHub)
+- **SPECTER**: Constitution 기반 품질 가이드 + TAG 추적성 + 에이전트 생태계
+
+`/ms.specify`, `/ms.plan`, `/ms.implement` 같은 커맨드는 내부적으로 `/speckit.*`를 실행하고, 그 위에 Constitution 검증과 TAG 자동화를 얹습니다. SPECTER만 단독으로는 동작하지 않으며, `/ms.init`으로 Spec-Kit을 먼저 설치해야 합니다.
+
+---
+
 **전통적 개발**: 코드 → 문서 (문서는 항상 뒤처짐)
 
 **SPECTER**: 사양 → 검증 → 코드 (사양이 실행 가능해짐)
 
 **마치 유령(Specter)처럼**, SPECTER는:
-- 보이지 않게 프로젝트 전체를 감시하고
-- AI가 규칙을 어기면 즉시 차단하며
-- 품질 문제가 발생하기 전에 예방합니다
+- 보이지 않게 프로젝트 전체에 기준을 적용하고
+- AI가 방향을 잃으면 가이드를 제시하며
+- 품질 기준을 워크플로우 곳곳에 녹여둡니다
 
 **7가지 DNA**:
 ```
 S - Specification-driven    사양 주도 (EARS로 모호함 제거)
 P - Progressive             점진적 검증 (Fail Fast로 빠른 수정)
-E - Enforcement             자동 강제 (Constitution이 AI 통제)
+E - Enforcement             일관 가이드 (Constitution이 AI 방향 제시)
 C - Constitution-based      단일 진실 출처 (규칙 산재 방지)
-T - Traceability            완전 추적 (TAG 체인으로 요구사항↔코드)
-E - Evolutionary            진화적 개선 (ultrathink 패턴 분석)
-R - Review                  자동 리뷰 (24/7 AI 품질 검증)
+T - Traceability            추적 구조화 (TAG 체인으로 요구사항↔코드)
+E - Evolutionary            진화적 개선 (패턴 분석 + 사이클 반복)
+R - Review                  코드 리뷰 (AI 지원 품질 검증)
 ```
 
 ---
 
 ## ⚡ 워크플로우
 
-SPECTER는 **14개 슬래시 커맨드**로 사양부터 배포까지 전 과정을 자동화합니다. 사용자는 커맨드만 입력하면, Skills/Agents/Hooks가 자동으로 품질을 강제합니다.
+SPECTER는 **13개 슬래시 커맨드**로 사양부터 배포까지 전 과정을 자동화합니다. 사용자는 커맨드만 입력하면, Skills/Agents가 자동으로 품질을 검증하고 가이드합니다.
 
 ### 전체 흐름 (10단계)
 
@@ -251,7 +260,7 @@ SPECTER는 **14개 슬래시 커맨드**로 사양부터 배포까지 전 과정
 - TAG 체인: `@SPEC:AUTH-001 → @TEST:AUTH-001 → @CODE:AUTH-001`
 - `tasks.md` 생성
 
-**철학**: "이 코드가 왜 있지?"라는 질문이 없어져야 합니다. TAG는 요구사항부터 코드까지 완전 추적을 보장합니다.
+**철학**: "이 코드가 왜 있지?"라는 질문이 없어져야 합니다. TAG는 요구사항부터 코드까지 추적 경로를 구조화합니다.
 
 **자동 트리거**:
 - `ms-workflow-tag-manager` Skill: 언어별 TAG 블록 템플릿 생성 (Python docstring, TypeScript JSDoc)
@@ -317,7 +326,7 @@ export class AuthService {
 - `ms-workflow-tag-manager` Skill: TAG 블록 자동 삽입
 - `ms-lang-{language}` Skill: 언어별 베스트 프랙티스 (Python: mypy, ruff / TypeScript: tsc strict, Biome)
 
-**철학**: 사람은 잊어버리지만, 시스템은 잊지 않습니다. TAG를 자동으로 삽입하여 추적성을 보장합니다.
+**철학**: 사람은 잊어버리지만, 시스템은 잊지 않습니다. TAG를 자동으로 삽입하여 추적성을 구조화합니다.
 
 ---
 
@@ -349,20 +358,23 @@ export class AuthService {
 
 #### 10. `/fin`, `/finq` - 완료
 
-**자동으로**:
-1. `/ms.up-docs` 실행 (Living Docs 동기화)
-2. `docs/dev_daily.md` 업데이트 (Git diff 기반)
-3. CI 체크 (`/fin`만: pytest, ruff, mypy)
-4. Git 커밋 + 푸시
+**실행 순서**:
+1. `/ms.up-docs --docs=dev` 호출 → `docs/dev_daily.md`에 git diff 요약 추가
+2. CI 체크 (`/fin`만: pytest, ruff, mypy 실행)
+3. git commit + push
+
+**`/ms.up-docs`가 `/fin` 안에서 하는 일**:
+```
+git diff HEAD~1 --stat          # 변경 파일 목록
+git log -1 --format='%h %s'     # 커밋 메시지
+rg '@(SPEC|TEST|CODE)'          # 수정된 TAG ID 스캔
+→ docs/dev_daily.md에 타임스탬프 포함 추가
+```
+`--docs=api`, `--docs=readme` 모드는 `/fin`에서 자동 실행되지 않습니다. 필요 시 수동으로 호출하세요.
 
 **차이점**:
-- `/fin`: CI 체크 포함 (프로덕션 품질 보장)
-- `/finq`: CI 생략 (개발 중 빠른 백업)
-
-**자동 트리거**:
-- `quality-gate` Agent (Haiku, `/fin`만): 메트릭 기반 품질 검증
-- `doc-updater` Agent (Haiku): Git diff 분석 + 문서 자동 업데이트
-- `ms-workflow-living-docs` Skill: API 문서 생성 (@CODE tags 기반)
+- `/fin`: CI 체크 포함 (프로덕션 커밋용)
+- `/finq`: CI 생략 (개발 중 빠른 백업용)
 
 **철학**: 문서는 코드와 함께 진화해야 합니다. 수동 문서화는 항상 뒤처집니다.
 
@@ -370,11 +382,11 @@ export class AuthService {
 
 ## 🏗️ 자동화 시스템
 
-SPECTER는 4계층 자동화로 사용자가 커맨드만 입력하면 품질이 자동으로 강제됩니다.
+SPECTER는 3계층으로 구성됩니다.
 
-### 1️⃣ Commands (14개) - 사용자 진입점
+### 1️⃣ Commands (13개) - 사용자 진입점
 
-사용자가 직접 실행하는 슬래시 커맨드입니다. 나머지 3계층은 자동으로 트리거됩니다.
+사용자가 직접 실행하는 슬래시 커맨드입니다. 나머지 2계층은 자동으로 트리거됩니다.
 
 | 명령어 | 역할 | 생성 파일 |
 |-------|------|----------|
@@ -387,97 +399,30 @@ SPECTER는 4계층 자동화로 사용자가 커맨드만 입력하면 품질이
 | `/ms.tasks` | 태스크 생성 | `specs/{id}/tasks.md` |
 | `/ms.analyze` | 3레벨 검증 | `.specify/warnings.log` |
 | `/ms.implement` | 구현 (TAG 자동) | 코드 + TAG 블록 |
-| `/ms.review` | ultrathink 리뷰 | `docs/review/{timestamp}.md` |
-| `/ms.up-docs` | Living Docs 동기화 | dev_daily.md, api/*.md |
+| `/ms.review` | 코드 품질 리뷰 | - |
+| `/ms.up-docs` | 문서 동기화 | `docs/dev_daily.md` |
 | `/fin` | 완료 (CI 포함) | Git commit + push |
 | `/finq` | 빠른 완료 (CI 생략) | Git commit + push |
-| `/ms.unlock` | 잠금 해제 | - |
 
 ---
 
-### 2️⃣ Skills (14개) - 품질 강제자
+### 2️⃣ Skills (14개) - 전문 지식 세트
 
-Commands 실행 시 자동으로 트리거되는 품질 검증 시스템입니다. Claude Code의 Skills 시스템을 활용합니다.
-
-**분류별**:
-
-| 분류 | 개수 | Skills | 역할 |
-|------|------|--------|------|
-| **Foundation** | 4 | constitution, trust, ears, architecture-patterns | 헌법 위반 검증, TRUST 5원칙, EARS 패턴, 아키텍처 패턴 (Clean/Hexagonal/DDD) |
-| **Language** | 2 | typescript, python | 언어별 베스트 프랙티스 (TypeScript: Biome, tsc strict / Python: ruff, mypy) |
-| **Essentials** | 2 | debug, review | 에러 진단, 코드 리뷰 |
-| **Workflow** | 2 | tag-manager, living-docs | TAG 블록 자동 삽입, API 문서 자동 생성 |
-| **Domain** | 4 | database-design, api-testing, ci-cd, cross-cutting | DB 스키마 설계, API 테스트 패턴, CI/CD 최적화, 공통 관심사 표준화 |
-
-**트리거 메커니즘**:
-- **YAML frontmatter의 `description`** 필드에 "Use when..." 패턴으로 트리거 조건 명시
-- Claude Code가 사용자 의도와 매칭하여 자동 로드
-- 예: "Use when working with Python files" → Python 파일 수정 시 `ms-lang-python` 자동 트리거
-
-**철학**: Skills는 보이지 않는 품질 감시자입니다. 사용자는 의식하지 못하지만, 모든 작업에서 Constitution 준수를 강제합니다.
+각 Skill 파일의 frontmatter `description: "Use when..."` 패턴을 Claude Code가 읽어 컨텍스트에 맞는 Skill을 자동 로드합니다. Foundation / Language / Essentials / Workflow / Domain 5개 분류로 구성되며, 상세 내용은 `.claude/skills/` 디렉토리를 참조하세요.
 
 ---
 
-### 3️⃣ Agents (12개) - 복잡 작업 전문가
+### 3️⃣ Agents (15개) - 서브에이전트 전문가
 
-Commands가 복잡한 작업을 만나면 자동으로 서브 에이전트를 실행합니다. 비용 최적화를 위해 고가 모델(Opus)은 전략적 작업에만 사용합니다.
+Commands가 복잡한 작업을 위임하는 서브에이전트입니다. 비용 최적화를 위해 모델을 작업 복잡도에 맞게 분배합니다.
 
-**모델별 분배** (비용 최적화):
+| 모델 | 개수 | Agents |
+|------|------|--------|
+| **Opus** | 3 | code-refactor-master, implementation-planner, integration-designer |
+| **Sonnet** | 5 | debug-helper, refactor-planner, spec-builder, tdd-implementer, web-research-specialist |
+| **Haiku** | 7 | codebase-explorer, constitution-extractor, doc-updater, library-researcher, quality-gate, tag-auditor, trust-validator |
 
-| 모델 | 개수 | 비율 | Agents | 역할 |
-|------|------|------|--------|------|
-| **Opus** | 2 | 17% | implementation-planner, integration-designer | 전략적 아키텍처 설계, ultrathink 패턴 분석 |
-| **Sonnet** | 3 | 25% | spec-builder, tdd-implementer, debug-helper | EARS 사양 작성, TDD 구현, 에러 진단 |
-| **Haiku** | 7 | 58% | library-researcher, codebase-explorer, constitution-extractor, tag-auditor, trust-validator, doc-updater, quality-gate | 패턴 검색, TAG 검증, 문서 생성 |
-
-**자동 실행 규칙**:
-```
-복잡도 높음 → 다중 에이전트 실행 (병렬)
-├── Pattern_Search_Agent (기존 패턴 검색)
-├── Library_Research_Agent (Context7 MCP)
-└── Dependency_Analysis_Agent (통합 분석)
-
-복잡도 낮음 → 단일 에이전트 실행
-```
-
-**철학**: 비싼 도구는 꼭 필요한 곳에만 사용합니다. Haiku가 58%를 담당하여 비용을 40% 절감합니다.
-
----
-
-### 4️⃣ Hooks (5개) - 자동 감시자
-
-Commands/Skills/Agents 실행 전후로 자동으로 트리거되는 이벤트 핸들러입니다. Python 3.14 기반 `.claude/hooks/` 스크립트로 구현됩니다.
-
-| Hook | 트리거 시점 | 역할 |
-|------|-----------|------|
-| **SessionStart** | Claude Code 시작 | 프로젝트 상태 표시 (언어, Git 브랜치, 변경사항) |
-| **UserPromptSubmit** | 사용자 입력 시 | Constitution 컨텍스트 자동 주입 (서브 에이전트용) |
-| **PreToolUse** | 위험 작업 전 | Git 체크포인트 자동 생성 |
-| **PostToolUse** | 파일 수정 후 | 자동 포매팅 (Prettier, Black) |
-| **SessionEnd** | Claude Code 종료 | 세션 정리 |
-
-**Fail-Open 원칙**: 모든 hook 에러는 exit code 0 (워크플로우 차단 안 함). 에러는 로그에만 기록하고 작업은 계속 진행됩니다.
-
-**철학**: Hooks는 보이지 않는 안전망입니다. 사용자는 의식하지 못하지만, 모든 작업에서 체크포인트를 생성하고 Constitution을 주입합니다.
-
----
-
-### 전체 워크플로우 매핑
-
-| 단계 | 명령어 | Main Agent | Sub-Agent | Skills | 생성 파일 |
-|------|--------|-----------|-----------|--------|----------|
-| **0** | `/ms.init` | Sonnet | - | - | Constitution, AGENTS.md |
-| **1** | `/ms.specify` | Sonnet | spec-builder (Sonnet) | ears | `specs/001-{feature}/spec.md` |
-| **2** | `/ms.clarify` | Sonnet | - | ears | spec.md 업데이트 |
-| **3** | `/ms.checklist` | Haiku | - | ears | `specs/{id}/checklist.md` |
-| **4** | `/ms.plan` | Opus | implementation-planner (Opus)<br>library-researcher (Haiku)<br>codebase-explorer (Haiku) | constitution, architecture-patterns | `specs/{id}/plan.md` |
-| **5** | `/ms.constitution` | Haiku | constitution-extractor (Haiku) | - | Constitution Section IX |
-| **6** | `/ms.tasks` | Sonnet | - | tag-manager | `specs/{id}/tasks.md` |
-| **7** | `/ms.analyze` | Haiku | tag-auditor (Haiku)<br>trust-validator (Haiku) | trust, constitution | `.specify/warnings.log` |
-| **8** | `/ms.implement` | Sonnet | tdd-implementer (Sonnet) | tag-manager, lang-{language}, database-design | 코드 + TAG 블록 |
-| **9** | `/ms.review` | Opus | integration-designer (Opus) | constitution, api-testing | `docs/review/{timestamp}.md` |
-| **10** | `/ms.up-docs` | Haiku | doc-updater (Haiku) | living-docs | dev_daily.md, api/*.md |
-| **11** | `/fin` | Sonnet | quality-gate (Haiku)<br>doc-updater (Haiku) | ci-cd, cross-cutting | Git commit + push |
+각 에이전트의 역할과 사용법은 `.claude/agents/` 디렉토리의 개별 파일을 참조하세요.
 
 ---
 
@@ -511,16 +456,15 @@ SPECTER의 모든 설계는 7가지 원칙에서 출발합니다. 각 원칙은 
 
 ---
 
-### E - Enforcement (자동 강제)
+### E - Enforcement (일관 가이드)
 
-**원칙**: Constitution이 규칙을 자동으로 강제합니다.
+**원칙**: Constitution이 규칙을 워크플로우 전반에 일관되게 제시합니다.
 
 **적용**:
-- `UserPromptSubmit` Hook이 모든 서브 에이전트에 Constitution 자동 주입
-- `ms-foundation-constitution` Skill이 파일 크기 ≤500 SLOC 위반 시 즉시 경고
-- `/ms.implement` 실행 시 TAG 블록 자동 삽입 (수동 작성 불가)
+- `ms-foundation-constitution` Skill이 파일 크기 ≤500 SLOC 위반 시 경고
+- `/ms.implement` 실행 시 TAG 블록 자동 삽입
 
-**철학**: 사람은 잊어버리지만, 시스템은 잊지 않습니다. 규칙을 문서가 아닌 코드로 강제하여 100% 준수를 보장합니다.
+**철학**: 사람은 잊어버리지만, 시스템은 잊지 않습니다. 규칙을 매번 프롬프트로 주입하는 대신 Constitution과 Skill로 구조화합니다.
 
 ---
 
@@ -628,10 +572,9 @@ specify → clarify → plan → constitution → tasks → analyze → implemen
 ```
 specter/
 ├── .claude/
-│   ├── commands/           # 슬래시 커맨드 (14개)
-│   ├── skills/             # 품질 강제자 (14개)
-│   ├── agents/             # 서브 에이전트 (12개)
-│   └── hooks/              # 자동 감시자 (5개)
+│   ├── commands/           # 슬래시 커맨드 (13개)
+│   ├── skills/             # 전문 지식 세트 (14개)
+│   └── agents/             # 서브 에이전트 (15개)
 ├── .specify/               # 생성됨 (/ms.init 실행 시)
 │   ├── memory/
 │   │   └── constitution.md       # 프로젝트 헌법 (14개 섹션)
@@ -751,11 +694,11 @@ npm install  # 또는 uv pip install -e .
   - 실시간 공식 문서 접근 (FastAPI, React, Next.js 등)
 
 **Multi-Agent System**:
-- **Claude Code 내장 에이전트** (Task tool 사용):
-  - **Opus 4**: implementation-planner (전략적 아키텍처 설계), integration-designer (코드 리뷰 + ultrathink)
-  - **Sonnet 3.5**: spec-builder (EARS 사양 작성), tdd-implementer (TDD 구현), debug-helper (에러 진단)
-  - **Haiku 3.5**: library-researcher, codebase-explorer, constitution-extractor, tag-auditor, trust-validator, doc-updater, quality-gate
-- 비용 최적화 (고가 모델은 전략적 작업에만 사용: Haiku 58%, Sonnet 25%, Opus 17%)
+- **Claude Code 내장 에이전트** (Task tool 사용), 총 15개
+  - **Opus**: code-refactor-master, implementation-planner, integration-designer
+  - **Sonnet**: debug-helper, refactor-planner, spec-builder, tdd-implementer, web-research-specialist
+  - **Haiku**: codebase-explorer, constitution-extractor, doc-updater, library-researcher, quality-gate, tag-auditor, trust-validator
+- 비용 최적화: Haiku 47%, Sonnet 33%, Opus 20%
 
 **컨테이너 환경**:
 - Docker Compose 기반 DevContainer
@@ -791,7 +734,7 @@ npm install  # 또는 uv pip install -e .
 
 ### 명령어 문서
 
-- [.claude/commands/](./.claude/commands/) - 14개 슬래시 커맨드 상세 문서
+- [.claude/commands/](./.claude/commands/) - 13개 슬래시 커맨드 상세 문서
 
 ### 스크립트
 
@@ -807,10 +750,12 @@ MIT License - 자유롭게 사용 가능
 
 ## 🙏 Credits
 
-### 영감을 받은 프로젝트
+### 기반 의존
 
 - **[Spec-Kit](https://github.com/github/spec-kit)** - GitHub의 사양 주도 개발 도구
-  - SPECTER의 기반이 되는 워크플로우
+  - SPECTER가 overlay하는 핵심 엔진. `/ms.init`으로 설치 필요.
+
+### 영감을 받은 프로젝트
 
 - **[MoAI-ADK](https://github.com/modu-ai/moai-adk)** - Modu AI의 개발 킷
   - TAG 시스템 영감

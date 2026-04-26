@@ -1,3 +1,20 @@
+# 🗓 2026-04-26 (Sun)
+
+## 📌 Focus
+- SPECTER 레포 Tier 1 정리 (Dead Reference 제거, Hooks 완전 삭제, 문서 드리프트 수정)
+
+## ✅ Done
+- `.claude/mcp_servers.json`에서 `cli-bridge` Dead Reference 제거 (`.mcp-servers/` 디렉토리 미존재 확인)
+- `hooks.disabled/` 디렉토리 전체 삭제 (Python 구현 11개 파일) + 모든 흔적 제거 6개 파일
+- `agents/README.md` 삭제 (모델 표 대부분 오류, 내용 중복)
+- `codebase-explorer.md` 내부 충돌 수정 (frontmatter: haiku, 본문: sonnet 요구 → haiku로 통일)
+- README.md Option B 재정비: 4계층→3계층, 에이전트 12→15개, 모델 분배 표 frontmatter 기준 수정, 워크플로우 매핑 테이블 삭제, 제품 포지셔닝("Spec-Kit overlay") 명시, "강제/보장" → "가이드/구조화" 톤 수정
+- `ms.unlock.md` 삭제 (PreToolUse hook 삭제로 보호 메커니즘 orphaned)
+- README.md Commands 14→13개 반영, `/ms.up-docs`의 `/fin` 내 실제 동작 코드 수준으로 명시
+- `settings.local.json` 빈 `"hooks"` 키 제거, `ms.init.md` hooks 설치 확인 Step 제거
+
+---
+
 # 🗓 2025-11-21 (Thu)
 
 ## 📌 Focus

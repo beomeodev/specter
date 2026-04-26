@@ -196,10 +196,6 @@ npm audit
 # Scan TAG blocks
 rg '@(SPEC|TEST|CODE|DOC):' -n --type-add 'md:*.md' --type md --type py --type ts
 
-# Check TAG integrity
-python .claude/hooks/ms/core/project.py
-# Should show high integrity percentage
-
 # Find orphaned TAGs
 # Example: @CODE:AUTH-001 exists but no file found
 rg '@CODE:AUTH-001' -l

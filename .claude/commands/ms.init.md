@@ -68,37 +68,7 @@ cp docs/templates/constitution-template.md .specify/memory/constitution.md
 -   This indicates a repository structure issue
 -   Exit with error
 
-### Step 3: Verify Hooks Installation
-
-Check if hooks are installed:
-
-```bash
-ls -la .claude/hooks/
-```
-
-**IF hooks not found**:
-```
-⚠️ Warning: Hooks not installed
-
-Hooks enable:
-- Auto-injection of Constitution into sub-agents
-- Audio notifications for task completion
-
-Install manually:
-1. Create .claude/hooks/ directory
-2. Copy constitution-injector.sh and notify.sh
-3. chmod +x .claude/hooks/*.sh
-4. Add sound files to .claude/hooks/sounds/
-
-Or continue without hooks (Constitution will be manually referenced).
-```
-
-**IF hooks found**:
-```
-✅ Hooks detected: Constitution auto-injection enabled
-```
-
-### Step 4: Report Success
+### Step 3: Report Success
 
 Display completion message:
 

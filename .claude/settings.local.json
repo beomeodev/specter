@@ -46,7 +46,5 @@
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "context7"
-  ],
-  "hooks": {
-  }
+  ]
 }
