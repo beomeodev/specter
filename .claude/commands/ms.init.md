@@ -24,7 +24,7 @@ This command performs **complete project initialization**:
 Execute the Spec-Kit installation command:
 
 ```bash
-uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --ai claude
+uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --integration claude
 ```
 
 **What this does**:
