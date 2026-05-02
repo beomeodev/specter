@@ -21,7 +21,6 @@ services:
       - ../:/workspace/${PROJECT_NAME}
       - ${HOME}/.codex:/home/dev/.codex
       - ${HOME}/.claude:/home/dev/.claude
-      - ${HOME}/.config/claude:/home/dev/.config/claude
       - ${HOME}/.gemini:/home/dev/.gemini
       - ${HOME}/.npm:/home/dev/.npm
       # SSH 에이전트 포워딩 (GitHub 인증용)
@@ -36,7 +35,7 @@ services:
 
   postgres:
     image: postgres:16
-    profiles: ["db"]
+    profiles: [ "db" ]
     environment:
       POSTGRES_USER: ${PGUSER:-app}
       POSTGRES_PASSWORD: ${PGPASS:-app}
@@ -48,15 +47,16 @@ services:
 
   redis:
     image: redis:7
-    profiles: ["cache"]
+    profiles: [ "cache" ]
     ports:
       - "${REDIS_PORT:-6379}:6379"
 
   jupyter:
     image: unidev-py:3.14-${PROJECT_NAME}
-    profiles: ["notebook"]
+    profiles: [ "notebook" ]
     working_dir: /workspace/${PROJECT_NAME}
-    command: bash -lc "python -m pip install jupyterlab && jupyter lab --ip=0.0.0.0 --no-browser --NotebookApp.token=''"
+    command: bash -lc "python -m pip install jupyterlab && jupyter lab --ip=0.0.0.0
+      --no-browser --NotebookApp.token=''"
     ports:
       - "${JUPYTER_PORT:-8888}:8888"
     volumes:
