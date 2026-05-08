@@ -1,5 +1,5 @@
 ---
-description: "Quick finish: sync docs → update daily log → commit & push (NO CI checks)"
+description: "Quick finish: sync docs → update daily log → commit → push → PR auto-create (NO CI checks)"
 ---
 
 Execute the following tasks in order:
@@ -282,8 +282,34 @@ fi
 # 3. git commit (커밋 메시지 생성)
 git commit -m "생성한_커밋_메시지"
 
-# 4. git push
-git push
+# 4. git push (with friendly auth-failure handler)
+BRANCH=$(git branch --show-current)
+if git rev-parse --abbrev-ref "@{u}" >/dev/null 2>&1; then
+  PUSH_OUTPUT=$(git push 2>&1) || PUSH_FAILED=1
+else
+  PUSH_OUTPUT=$(git push -u origin "$BRANCH" 2>&1) || PUSH_FAILED=1
+fi
+
+if [ "$PUSH_FAILED" = "1" ]; then
+  if echo "$PUSH_OUTPUT" | grep -q "Permission denied (publickey)"; then
+    cat <<'AUTH_HELP'
+❌ Push 실패 — SSH 인증 안 됨
+
+해결 절차 (호스트에서):
+  1. eval "$(ssh-agent -s)" && ssh-add ~/.ssh/id_ed25519
+  2. (필요 시) gh auth login --hostname github.com --git-protocol ssh --web
+  3. docker compose down && docker compose up -d   # 컨테이너 재시작
+
+자세한 안내: docs/runbooks/dev_environment_auth.md
+AUTH_HELP
+  else
+    echo "❌ Push 실패:"
+    echo "$PUSH_OUTPUT" | tail -10
+  fi
+  echo ""
+  echo "(commit은 로컬에 저장됨. 인증 픽스 후 'git push' 수동 재실행 가능)"
+  exit 1
+fi
 ```
 
 **Why this works**:
@@ -292,6 +318,7 @@ git push
 - Commit captures all formatting changes
 - No dirty state after commit
 - **Errors/warnings logged to `docs/log/pre-commit/` for later review**
+- **Push 실패 시**: SSH 인증 실패면 `dev_environment_auth.md` 안내; 그 외는 마지막 10줄만 보여주고 commit은 보존 (수동 재시도 가능)
 
 **Logging behavior**:
 - ✅ Only logs when errors/warnings occur (non-zero exit code or ERROR/WARNING in output)
@@ -329,7 +356,90 @@ wip(strategy): MACD 신호 생성 로직 작업 중
 
 ### Error handling
 - **When nothing to commit**: Display `⚠️ Nothing to commit` and proceed
-- **When push fails**: Display `❌ Push failed` (with error details)
+- **When push fails**: Display `❌ Push failed` (with error details). Commit은 로컬에 보존됨 → 인증 픽스 후 수동 `git push` 가능.
+
+---
+
+## 3.5. 🔀 GitHub PR Auto-create (NEW — Quick mode)
+
+**목적**: push 직후 같은 브랜치의 PR을 자동 생성/갱신. WIP commit 워크플로우에 PR 생성·갱신을 묶어 한 번 더 빨라짐.
+
+**동작 원칙**:
+- **Idempotent**: 같은 브랜치에 이미 PR이 있으면 body만 갱신, 없으면 신규 생성.
+- **PR body 자동 탐지**: `docs/PR_*_BODY.md` 패턴 중 가장 최근 mtime 파일을 자동 사용. 없으면 마지막 commit body 사용 (fallback).
+- **PR title**: 마지막 commit의 첫 줄 (WIP commit 이면 `wip(...)` 가 그대로 PR 제목).
+- **Base branch**: `master` (default; `main` 도 fallback).
+- **Auto-merge 안 함**: 머지는 항상 사람 판단.
+- **Quick mode 차이점**: `/fin` 과 동일한 PR 로직이지만 CI 검증을 안 거쳤으므로, 머지 전 운영자가 GitHub Actions 결과를 확인해야 함.
+
+```bash
+# Pre-flight: gh CLI 설치 + 인증 확인
+if ! command -v gh >/dev/null 2>&1; then
+  echo "⚠️  gh CLI 미설치 — PR 자동 생성 스킵"
+  echo "    설치: https://cli.github.com/"
+  echo "    또는 컨테이너 rebuild: docs/runbooks/dev_environment_auth.md"
+elif ! gh auth status >/dev/null 2>&1; then
+  echo "⚠️  gh 인증 안 됨 — PR 자동 생성 스킵"
+  echo "    호스트에서: gh auth login --hostname github.com --git-protocol ssh --web"
+  echo "    그 후 컨테이너 재시작: docker compose down && docker compose up -d"
+else
+  # Base branch 결정 (master 우선, 없으면 main)
+  BASE_BRANCH="master"
+  if ! git rev-parse --verify "origin/${BASE_BRANCH}" >/dev/null 2>&1; then
+    BASE_BRANCH="main"
+  fi
+
+  # PR body 파일 자동 탐지 (가장 최근 docs/PR_*_BODY.md)
+  PR_BODY_FILE=$(ls -t docs/PR_*_BODY.md 2>/dev/null | head -1)
+
+  # PR title = 마지막 commit 첫 줄
+  PR_TITLE=$(git log -1 --pretty=%s)
+
+  # Idempotent: 이미 PR 있으면 edit, 없으면 create
+  if PR_NUM=$(gh pr view --json number --jq .number 2>/dev/null); then
+    echo "ℹ️  PR #${PR_NUM} 이미 존재 — body 갱신 중"
+    if [ -n "$PR_BODY_FILE" ]; then
+      gh pr edit "$PR_NUM" --body-file "$PR_BODY_FILE"
+    fi
+    PR_URL=$(gh pr view "$PR_NUM" --json url --jq .url)
+    echo "✅ PR 갱신 완료: $PR_URL"
+  else
+    echo "🚀 새 PR 생성 중 (base: ${BASE_BRANCH})..."
+    if [ -n "$PR_BODY_FILE" ]; then
+      PR_URL=$(gh pr create \
+        --title "$PR_TITLE" \
+        --body-file "$PR_BODY_FILE" \
+        --base "$BASE_BRANCH")
+    else
+      # fallback: 마지막 commit body 사용
+      PR_URL=$(gh pr create \
+        --title "$PR_TITLE" \
+        --body "$(git log -1 --pretty=%b)" \
+        --base "$BASE_BRANCH")
+    fi
+    if [ $? -eq 0 ]; then
+      echo "✅ PR 생성 완료: $PR_URL"
+    else
+      echo "⚠️  PR 자동 생성 실패 — 호스트에서 수동 실행:"
+      echo "    gh pr create --title \"$PR_TITLE\" --body-file \"$PR_BODY_FILE\" --base $BASE_BRANCH"
+    fi
+  fi
+fi
+```
+
+### `/finq` 의 PR 자동화는 어떻게 다른가
+
+`/fin` 과 동일한 PR 로직이지만 사용 의도가 다릅니다:
+
+- **`/fin`**: CI 통과 후 PR 생성/갱신 → 머지 준비 완료 신호.
+- **`/finq`**: WIP commit + PR 생성/갱신 → 백업·동기화 목적. 머지 전에 반드시 `/fin` 으로 CI 한 번 + PR body 확인.
+
+**WIP 사용 케이스**:
+- 작업 중간 백업 (집에서 → 사무실에서 같은 브랜치 이어서 작업)
+- 진행 상황을 PR 페이지에서 시각화 (다른 사람이 in-progress draft 보고 의견)
+- 실험 코드 push (CI 통과 안 해도 일단 보존)
+
+`/finq` 로 만든 PR은 자연스럽게 draft 처럼 다뤄지지만 명시적 draft 플래그는 안 붙임 — 운영자가 GitHub UI 에서 "Convert to draft" 토글 권장.
 
 ---
 
@@ -344,8 +454,12 @@ Output after all steps complete:
 📝 dev_daily.md 업데이트 완료
 💾 커밋: [생성한 메시지]
 🚀 Push 완료 (또는 실패 시 에러 메시지)
+🔀 PR: [PR URL] (생성 또는 갱신 / 실패 시 안내)
 
-⚠️ CI 체크를 생략했습니다. 나중에 'make ci' 또는 '/fin'으로 검증하세요.
+⚠️ CI 체크를 생략했습니다. 머지 전에 반드시:
+   1. '/fin' 또는 'make ci' 로 검증
+   2. GitHub Actions 결과 확인
+   3. PR body 검토 (docs/PR_*_BODY.md)
 ```
 
 ---
@@ -389,10 +503,19 @@ Output after all steps complete:
    (Update README.md)      # Step 2.5: Optional
    ↓
    git commit && push      # Step 3: Commit & push (Skip CI)
+   ↓
+   gh pr create / edit     # Step 3.5: PR auto-create (NEW, idempotent)
+   ↓
+   (사람이 PR 검토 + 머지)  # Manual handoff to GitHub UI (CI 검증 후)
    ```
 
 7. **/fin vs /finq differences**:
-   - `/fin`: **Full** - /ms.up-docs → CI → commit → push
-   - `/finq`: **Quick** - /ms.up-docs (staged only) → commit → push (skip CI)
+   - `/fin`: **Full** - /ms.up-docs → CI → commit → push → PR auto-create
+   - `/finq`: **Quick** - /ms.up-docs (staged only) → commit → push → PR auto-create (skip CI)
    - TAG validation: /fin is detailed, /finq is quick scan
    - API docs: /fin can sync all, /finq only staged changes
+   - **PR 의도**: `/fin` = "머지 준비 완료" / `/finq` = "WIP 백업·동기화"
+
+8. **Auth dependency**: Step 3 (push) + Step 3.5 (PR) 는 컨테이너 안에서 호스트의 SSH agent + gh CLI auth 를 통해 동작. 호스트 셋업 미완료 시 친절한 안내 출력 후 commit은 보존. 셋업 절차: [`docs/runbooks/dev_environment_auth.md`](../../docs/runbooks/dev_environment_auth.md).
+
+9. **PR body 자동 탐지**: `docs/PR_*_BODY.md` 패턴 (예: `PR_014_BODY.md`, `PR_015_BODY.md`) 중 가장 최근 mtime 파일을 자동 사용. 없으면 마지막 commit body fallback.
