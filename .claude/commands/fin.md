@@ -1,5 +1,5 @@
 ---
-description: "Finish workflow: sync docs → update daily log → CI checks → commit & push"
+description: "Finish workflow: sync docs → update daily log → CI checks → commit → push → PR auto-create"
 ---
 
 Execute the following tasks in order:
@@ -170,8 +170,34 @@ fi
 # 3. git commit (커밋 메시지 생성)
 git commit -m "생성한_커밋_메시지"
 
-# 4. git push
-git push
+# 4. git push (with friendly auth-failure handler)
+BRANCH=$(git branch --show-current)
+if git rev-parse --abbrev-ref "@{u}" >/dev/null 2>&1; then
+  PUSH_OUTPUT=$(git push 2>&1) || PUSH_FAILED=1
+else
+  PUSH_OUTPUT=$(git push -u origin "$BRANCH" 2>&1) || PUSH_FAILED=1
+fi
+
+if [ "$PUSH_FAILED" = "1" ]; then
+  if echo "$PUSH_OUTPUT" | grep -q "Permission denied (publickey)"; then
+    cat <<'AUTH_HELP'
+❌ Push 실패 — SSH 인증 안 됨
+
+해결 절차 (호스트에서):
+  1. eval "$(ssh-agent -s)" && ssh-add ~/.ssh/id_ed25519
+  2. (필요 시) gh auth login --hostname github.com --git-protocol ssh --web
+  3. docker compose down && docker compose up -d   # 컨테이너 재시작
+
+자세한 안내: docs/runbooks/dev_environment_auth.md
+AUTH_HELP
+  else
+    echo "❌ Push 실패:"
+    echo "$PUSH_OUTPUT" | tail -10
+  fi
+  echo ""
+  echo "(commit은 로컬에 저장됨. 인증 픽스 후 'git push' 수동 재실행 가능)"
+  exit 1
+fi
 ```
 
 **Why this works**:
@@ -180,6 +206,7 @@ git push
 - Commit captures all formatting changes
 - No dirty state after commit
 - **Errors/warnings logged to `docs/log/pre-commit/` for later review**
+- **Push 실패 시**: SSH 인증 실패면 `dev_environment_auth.md` 안내; 그 외는 마지막 10줄만 보여주고 commit은 보존 (수동 재시도 가능)
 
 **Logging behavior**:
 - ✅ Only logs when errors/warnings occur (non-zero exit code or ERROR/WARNING in output)
@@ -216,7 +243,89 @@ feat(strategy): MACD 기반 기술적 분석 추가
 
 ### Error handling
 - **When nothing to commit**: Display `⚠️ Nothing to commit` and proceed
-- **When push fails**: Display `❌ Push failed` (with error details)
+- **When push fails**: Display `❌ Push failed` (with error details). Commit은 로컬에 보존됨 → 인증 픽스 후 수동 `git push` 가능.
+
+---
+
+## 4.5. 🔀 GitHub PR Auto-create (NEW)
+
+**목적**: push 직후 같은 브랜치의 PR을 자동 생성/갱신. 운영자는 GitHub UI 가서 검토 + 머지만.
+
+**동작 원칙**:
+- **Idempotent**: 같은 브랜치에 이미 PR이 있으면 body만 갱신, 없으면 신규 생성.
+- **PR body 자동 탐지**: `docs/PR_*_BODY.md` 패턴 중 가장 최근 mtime 파일을 자동 사용. 없으면 마지막 commit body 사용 (fallback).
+- **PR title**: 마지막 commit의 첫 줄.
+- **Base branch**: `master` (default; `main` 도 fallback).
+- **Auto-merge 안 함**: 머지는 항상 사람 판단.
+
+```bash
+# Pre-flight: gh CLI 설치 + 인증 확인
+if ! command -v gh >/dev/null 2>&1; then
+  echo "⚠️  gh CLI 미설치 — PR 자동 생성 스킵"
+  echo "    설치: https://cli.github.com/"
+  echo "    또는 컨테이너 rebuild: docs/runbooks/dev_environment_auth.md"
+  # commit + push는 끝났으므로 워크플로우는 부분 완료로 진행
+elif ! gh auth status >/dev/null 2>&1; then
+  echo "⚠️  gh 인증 안 됨 — PR 자동 생성 스킵"
+  echo "    호스트에서: gh auth login --hostname github.com --git-protocol ssh --web"
+  echo "    그 후 컨테이너 재시작: docker compose down && docker compose up -d"
+else
+  # Base branch 결정 (master 우선, 없으면 main)
+  BASE_BRANCH="master"
+  if ! git rev-parse --verify "origin/${BASE_BRANCH}" >/dev/null 2>&1; then
+    BASE_BRANCH="main"
+  fi
+
+  # PR body 파일 자동 탐지 (가장 최근 docs/PR_*_BODY.md)
+  PR_BODY_FILE=$(ls -t docs/PR_*_BODY.md 2>/dev/null | head -1)
+
+  # PR title = 마지막 commit 첫 줄
+  PR_TITLE=$(git log -1 --pretty=%s)
+
+  # Idempotent: 이미 PR 있으면 edit, 없으면 create
+  if PR_NUM=$(gh pr view --json number --jq .number 2>/dev/null); then
+    echo "ℹ️  PR #${PR_NUM} 이미 존재 — body 갱신 중"
+    if [ -n "$PR_BODY_FILE" ]; then
+      gh pr edit "$PR_NUM" --body-file "$PR_BODY_FILE"
+    fi
+    PR_URL=$(gh pr view "$PR_NUM" --json url --jq .url)
+    echo "✅ PR 갱신 완료: $PR_URL"
+  else
+    echo "🚀 새 PR 생성 중 (base: ${BASE_BRANCH})..."
+    if [ -n "$PR_BODY_FILE" ]; then
+      PR_URL=$(gh pr create \
+        --title "$PR_TITLE" \
+        --body-file "$PR_BODY_FILE" \
+        --base "$BASE_BRANCH")
+    else
+      # fallback: 마지막 commit body 사용
+      PR_URL=$(gh pr create \
+        --title "$PR_TITLE" \
+        --body "$(git log -1 --pretty=%b)" \
+        --base "$BASE_BRANCH")
+    fi
+    if [ $? -eq 0 ]; then
+      echo "✅ PR 생성 완료: $PR_URL"
+    else
+      echo "⚠️  PR 자동 생성 실패 — 호스트에서 수동 실행:"
+      echo "    gh pr create --title \"$PR_TITLE\" --body-file \"$PR_BODY_FILE\" --base $BASE_BRANCH"
+    fi
+  fi
+fi
+```
+
+### PR 자동화 안전장치
+
+- **base branch가 머지된 후 차단되지 않음**: GitHub의 branch protection rule이 켜져 있어도 PR 생성은 가능 (머지만 차단).
+- **fork repo 처리**: `gh pr create` 가 자동 감지. fork 면 upstream으로 PR 생성.
+- **secrets 자동 redact 안 함**: `docs/PR_*_BODY.md` 작성 시 직접 secret 안 들어가도록 운영자 책임. 향후 `git secrets` 같은 hook 추가 고려.
+- **draft PR**: 기본 ready-for-review. 필요 시 `gh pr edit --draft` 으로 전환.
+
+### 의도적으로 _안_ 하는 것
+
+- **`gh pr merge`** — 머지는 항상 사람 판단. auto-merge가 필요하면 GitHub UI에서 "Auto-merge" 토글.
+- **`--reviewer` 자동 추가** — 단일 운영자 / 팀 컨벤션에 따라 다름. per-project 설정으로 추후 분리.
+- **태그 / Release** — `/ms.release` 별도 명령어로 분리. 머지 후 master에서 실행.
 
 ---
 
@@ -232,6 +341,11 @@ Output after all steps complete:
 🚀 CI 체크 통과
 💾 커밋: [생성한 메시지]
 🚀 Push 완료 (또는 실패 시 에러 메시지)
+🔀 PR: [PR URL] (생성 또는 갱신 / 실패 시 안내)
+
+📋 다음 단계:
+  1. PR 페이지에서 검토 + 머지 (수동)
+  2. 머지 후 master에서: /ms.release  (tag + release 발행)
 ```
 
 ---
@@ -268,4 +382,14 @@ Output after all steps complete:
    make ci                 # Step 3: CI checks
    ↓
    git commit && push      # Step 4: Commit & push
+   ↓
+   gh pr create / edit     # Step 4.5: PR auto-create (NEW, idempotent)
+   ↓
+   (사람이 PR 검토 + 머지)  # Manual handoff to GitHub UI
+   ↓
+   /ms.release (master에서) # Tag + GitHub Release (별도 명령)
    ```
+
+6. **Auth dependency**: Step 4 (push) + Step 4.5 (PR) 는 컨테이너 안에서 호스트의 SSH agent + gh CLI auth 를 통해 동작합니다. 호스트 셋업 미완료 시 친절한 안내 출력 후 commit은 보존. 셋업 절차: [`docs/runbooks/dev_environment_auth.md`](../../docs/runbooks/dev_environment_auth.md).
+
+7. **PR body 자동 탐지**: `docs/PR_*_BODY.md` 패턴 (예: `PR_014_BODY.md`, `PR_015_BODY.md`) 중 가장 최근 mtime 파일을 자동 사용. 없으면 마지막 commit body fallback. **운영자가 PR 본문을 미리 작성해두는 것 권장.**
