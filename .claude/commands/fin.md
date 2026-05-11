@@ -125,8 +125,30 @@ make ci
 **Solution**: Run pre-commit first before committing to complete formatting, with error/warning logging
 
 ```bash
-# 1. Initial git add
-git add .
+# 1. Build an explicit staging list. NEVER use `git add .`.
+# Include only files that belong to the current feature/fix and were reviewed
+# in this workflow. If the list cannot be derived confidently, STOP and ask.
+STAGE_PATHS=(
+  # examples:
+  # "specs/018-admin-analytics-page"
+  # "backend/src/suseonglm/dashboard/group_performance.py"
+  # "backend/tests/dashboard/unit/test_group_performance.py"
+  # "frontend/app/(admin)/[adminPrefix]/dashboard/page.tsx"
+  # "frontend/tests/admin/admin-analytics-page.test.tsx"
+  # "docs/dev_daily.md"
+)
+
+if [ "${#STAGE_PATHS[@]}" -eq 0 ]; then
+  echo "❌ No explicit STAGE_PATHS configured. Refusing to run git add ."
+  exit 1
+fi
+
+printf 'Staging reviewed files:\n'
+printf '  %s\n' "${STAGE_PATHS[@]}"
+git add -- "${STAGE_PATHS[@]}"
+
+# Safety check: verify no unrelated dirty file was staged.
+git diff --cached --name-only
 
 # 2. Run pre-commit hooks to format files (if .pre-commit-config.yaml exists)
 if [ -f .pre-commit-config.yaml ]; then
@@ -163,8 +185,9 @@ EOF
     echo ""
   fi
 
-  # Hook may modify files, so add again
-  git add .
+  # Hook may modify files. Re-stage only the reviewed file list, never `git add .`.
+  git add -- "${STAGE_PATHS[@]}"
+  git diff --cached --name-only
 fi
 
 # 3. git commit (커밋 메시지 생성)
@@ -202,7 +225,7 @@ fi
 
 **Why this works**:
 - Pre-commit hooks (ruff-format, etc.) run and modify files
-- Modified files are re-staged with second `git add .`
+- Modified files are re-staged with the explicit `STAGE_PATHS` list
 - Commit captures all formatting changes
 - No dirty state after commit
 - **Errors/warnings logged to `docs/log/pre-commit/` for later review**
