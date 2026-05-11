@@ -141,9 +141,9 @@ R - Review                  코드 리뷰 (AI 지원 품질 검증)
 
 ## ⚡ 워크플로우
 
-SPECTER는 **13개 슬래시 커맨드**로 사양부터 배포까지 전 과정을 자동화합니다. 사용자는 커맨드만 입력하면, Skills/Agents가 자동으로 품질을 검증하고 가이드합니다.
+SPECTER는 **14개 슬래시 커맨드**로 사양부터 릴리즈까지 전 과정을 자동화합니다. 사용자는 커맨드만 입력하면, Skills/Agents가 자동으로 품질을 검증하고 가이드합니다.
 
-### 전체 흐름 (10단계)
+### 전체 흐름 (11단계)
 
 ```bash
 # 1. 초기화 - Constitution 생성
@@ -174,9 +174,12 @@ SPECTER는 **13개 슬래시 커맨드**로 사양부터 배포까지 전 과정
 # 9. 코드 리뷰 - ultrathink 패턴 분석
 /ms.review
 
-# 10. 완료 - 문서 동기화 + 커밋
+# 10. 완료 - 문서 동기화 + 커밋 + PR 생성
 /fin    # CI 체크 포함
 /finq   # CI 생략 (빠른 커밋)
+
+# 11. 머지 + 릴리즈 - 승인된 PR을 master에 머지하고 GitHub Release 생성
+/ms.merglease
 ```
 
 ### 핵심 커맨드 상세
@@ -361,7 +364,7 @@ export class AuthService {
 **실행 순서**:
 1. `/ms.up-docs --docs=dev` 호출 → `docs/dev_daily.md`에 git diff 요약 추가
 2. CI 체크 (`/fin`만: pytest, ruff, mypy 실행)
-3. git commit + push
+3. git commit + push + PR 생성
 
 **`/ms.up-docs`가 `/fin` 안에서 하는 일**:
 ```
@@ -380,11 +383,43 @@ rg '@(SPEC|TEST|CODE)'          # 수정된 TAG ID 스캔
 
 ---
 
+#### 11. `/ms.merglease` - 머지 + 릴리즈
+
+**언제 사용하나요?** `/fin` 또는 `/finq`로 PR을 만든 뒤, GitHub에서 리뷰가 끝나고 머지해도 되는 시점에 실행합니다.
+
+**실행 순서**:
+1. `gh` CLI 설치/인증, 현재 브랜치, 열린 PR, CI 상태를 사전 점검
+2. 머지 전략 결정 (`merge` 기본, `squash`/`rebase` 선택 가능)
+3. 사용자 확인 후 `gh pr merge`로 PR 머지
+4. `master`/`main`으로 전환 후 최신 상태 pull
+5. 기존 태그와 spec 번호를 기준으로 버전 제안
+6. 릴리즈 노트 초안 생성 후 사용자 확인
+7. annotated tag push
+8. GitHub Release 생성
+
+**사용 예시**:
+```bash
+/ms.merglease                      # PR 자동 감지 + 버전 제안 + 릴리즈
+/ms.merglease v0.21.0              # 명시 버전 사용
+/ms.merglease --strategy=squash    # squash merge 사용
+/ms.merglease --no-release         # 머지만 하고 릴리즈 생략
+```
+
+**안전장치**:
+- `master`/`main`에서 직접 실행하면 중단합니다.
+- 현재 브랜치에 열린 PR이 없으면 중단합니다.
+- 머지 충돌이 있으면 중단합니다.
+- CI 실패 항목은 경고로 표시하고, 머지/태그/릴리즈처럼 공유 상태를 바꾸는 단계는 사용자 확인 후 진행합니다.
+
+**철학**: `/fin`이 PR 생성까지 담당한다면, `/ms.merglease`는 승인된 PR을 실제 릴리즈 단위로 닫습니다. 머지, 태그, GitHub Release를 한 흐름으로 묶어 "머지만 하고 릴리즈를 잊는" 운영 실수를 줄입니다.
+
+---
+
 ## 🏗️ 자동화 시스템
 
 SPECTER는 3계층으로 구성됩니다.
 
-### 1️⃣ Commands (13개) - 사용자 진입점
+### 1️⃣ Commands (14개) - 사용자 진입점
 
 사용자가 직접 실행하는 슬래시 커맨드입니다. 나머지 2계층은 자동으로 트리거됩니다.
 
@@ -403,6 +438,7 @@ SPECTER는 3계층으로 구성됩니다.
 | `/ms.up-docs` | 문서 동기화 | `docs/dev_daily.md` |
 | `/fin` | 완료 (CI 포함) | Git commit + push |
 | `/finq` | 빠른 완료 (CI 생략) | Git commit + push |
+| `/ms.merglease` | PR 머지 + 태그 + GitHub Release | GitHub PR, tag, release |
 
 ---
 
@@ -572,7 +608,7 @@ specify → clarify → plan → constitution → tasks → analyze → implemen
 ```
 specter/
 ├── .claude/
-│   ├── commands/           # 슬래시 커맨드 (13개)
+│   ├── commands/           # 슬래시 커맨드 (14개)
 │   ├── skills/             # 전문 지식 세트 (14개)
 │   └── agents/             # 서브 에이전트 (15개)
 ├── .specify/               # 생성됨 (/ms.init 실행 시)
@@ -734,7 +770,7 @@ npm install  # 또는 uv pip install -e .
 
 ### 명령어 문서
 
-- [.claude/commands/](./.claude/commands/) - 13개 슬래시 커맨드 상세 문서
+- [.claude/commands/](./.claude/commands/) - 14개 슬래시 커맨드 상세 문서
 
 ### 스크립트
 
