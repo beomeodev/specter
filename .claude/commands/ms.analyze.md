@@ -45,13 +45,23 @@ This command is a **wrapper** that enhances `/speckit.analyze` with TRUST code-l
 
 ## Execution Steps
 
-### Step 1: Spec-Kit Foundation (Document Consistency)
+### Step 1: Spec-Kit Foundation (Document Consistency & Drift Detection)
 
-Execute `/speckit.analyze` for comprehensive document analysis:
+Execute `/speckit.analyze` for comprehensive document analysis, followed by **Cross-Document Drift Detection**:
 
 ```bash
 /speckit.analyze
 ```
+
+**Cross-Document Drift Detection (MANDATORY)**:
+1. **Migration Consistency**: Verify that `spec.md`, `plan.md`, and `tasks.md` all reference the same migration file names (e.g., `0021_...` vs `0019_...`).
+2. **File Path Integrity**: Check if every file path mentioned in any document exists in the workspace.
+3. **FR ↔ TAG Mapping**: Ensure all functional requirements in `spec.md` are covered by at least one `@TEST` tag in `tasks.md`.
+4. **Amendment Integrity**: Verify that any FR marked as `SUPERSEDED` has a corresponding `Amendment` block at the end of the document.
+
+**IF DRIFT DETECTED**:
+- ❌ **Auto-fixable** (migration index, path drift): Correct the documents automatically.
+- ❌ **Inconsistency** (missing amendment, missing FR mapping): **ABORT** and report in KOREAN.
 
 This validates **(Spec-Kit scope)**:
 - ✅ All spec.md functional requirements (FR) have corresponding tasks
@@ -364,56 +374,46 @@ Merge findings from both analyses:
 
 ### Step 4: Report Output
 
+Display summary (KOREAN ONLY - Issue 8.1, 8.2):
+
 ```json
 {
-    "document_consistency": "passed",
-    "trust_level_reached": 3,
-    "violations": [
-        {
-            "level": 3,
-            "severity": "HIGH",
-            "category": "Test-First",
-            "message": "Coverage 78% is below 85%",
-            "fix": "Add tests to increase coverage"
-        }
-    ],
-    "blocked": false,
-    "summary": {
-        "CRITICAL": 0,
-        "HIGH": 2,
-        "MEDIUM": 3,
-        "LOW": 1
-    }
+    "document_consistency": "PASSED",
+    "drift_detected": "NONE",
+    "trust_level": 3,
+    "progress": "75%",
+    "next_step": "/ms.implement"
 }
 ```
 
-**Display to user**:
+Display to user:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ /ms.analyze - Comprehensive Quality Report                  │
+│ /ms.analyze - 종합 품질 리포트 (Comprehensive Quality Report) │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
-│ ✅ Spec-Kit Analysis (Document Consistency)                │
-│    - All requirements covered                               │
-│    - Constitution aligned                                   │
-│    - Zero ambiguities                                       │
-│    - Zero coverage gaps                                     │
+│ ✅ Spec-Kit 분석 (문서 일관성 및 Drift 탐지)                 │
+│    - 요구사항 커버리지: 100%                                 │
+│    - 문서 간 Drift: 없음 (spec ↔ plan ↔ tasks 일치)          │
+│    - 파일 경로 검증: 모두 실재함                             │
 │                                                              │
-│ ✅ TRUST Validation (Code Quality)                         │
-│    - Level 1: Structure ✅                                  │
-│    - Level 2: Quality ✅                                    │
-│    - Level 3: Deep ⚠️ (2 HIGH warnings)                    │
+│ ✅ TRUST 검증 (코드 품질)                                    │
+│    - Level 1: 구조 (Structure) ✅                            │
+│    - Level 2: 품질 (Quality - Lint, Type, Tests) ✅           │
+│    - Level 3: 심층 분석 (Deep - Coverage, TAG) ⚠️            │
 │                                                              │
-│ Implementation: ✅ ALLOWED                                  │
+│ 구현 진행 가능 여부: ✅ 허용 (ALLOWED)                        │
 │                                                              │
-│ ⚠️ High Priority Issues:                                   │
-│ • Coverage 78% < 85% (add tests)                            │
-│ • Function complexity 12 > 10 (refactor auth.ts:45)         │
+│ ⚠️ 주요 경고 사항:                                           │
+│ • 테스트 커버리지 78% < 85% (테스트 추가 필요)                │
+│ • 함수 복잡도 12 > 10 (auth.ts:45 리팩토링 권장)              │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
 
-🎯 Next Step: /ms.implement (to start implementation with TAG auto-selection)
+🎯 다음 단계:
+👉 /ms.implement (태스크 구현 시작)
+👉 /ms.review (상세 코드 리뷰 실행)
 ```
 
 ## TRUST Principles

@@ -297,6 +297,19 @@ Based on complexity determined above:
 **ELSE**:
 - Skip (simple plan)
 
+### 3.2. Reality Verification (Execution & Blocking)
+
+**Before committing plan.md, the agent MUST execute these verification steps**:
+
+1. **Next Migration Index**: `ls db/migrations/00*.sql | sort | tail -1`
+2. **Schema Verification**: `grep -r "CREATE TABLE <table>" db/` (or migration files) to confirm columns.
+3. **File Path Verification**: `test -f <path>` for every existing file mentioned in the plan.
+4. **Convention Check**: `grep` for common status codes (401 vs 403) and error message formats.
+
+**IF any verification fails**:
+- ❌ **Auto-fixable** (path drift, migration index): Correct the plan automatically.
+- ❌ **Design Decision needed** (missing column, schema mismatch): **ABORT** and ask the user for guidance in KOREAN.
+
 ### 4. Run Base Plan Command
 
 Execute `/speckit.plan` with Constitution-enhanced context:

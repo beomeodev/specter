@@ -173,16 +173,32 @@ Add TAG chains to tasks.md for each User Story:
 
 ### 5. Report Output
 
+Display summary (KOREAN ONLY - Issue 8.1, 8.2, 8.3):
+
 ```json
 {
-    "tag_ids": ["@SPEC:AUTH-001", "@SPEC:USER-001", "@SPEC:PAY-001"],
-    "domain_map": {
-        "AUTH": 1,
-        "USER": 1,
-        "PAY": 1
-    },
-    "tasks_updated": "specs/001-my-spec-spec/tasks.md"
+    "tasks_created": "specs/001-user-authentication/tasks.md",
+    "total_tasks": 54,
+    "total_phases": 8,
+    "next_step": "/ms.implement"
 }
+```
+
+Display next steps:
+
+```
+✅ 태스크 리스트(tasks.md) 생성이 완료되었습니다!
+
+📄 위치: specs/001-user-authentication/tasks.md
+📊 통계: 총 {Total Tasks}개 태스크 / {Total Phases}개 단계
+
+🎯 다음 단계:
+👉 /ms.implement (첫 번째 태스크 구현 시작)
+👉 /ms.analyze (구현 전 최종 검증)
+
+💡 참고:
+- 모든 태스크에는 TAG ID가 할당되어 SPEC-TEST-CODE 추적이 가능합니다.
+- Phase 0 (Setup) → 1 (Audit) → 2-3 (RED) → 4-5 (GREEN) → 6 (VR) → 7 (Polish) 순으로 진행됩니다.
 ```
 
 ## TAG Format

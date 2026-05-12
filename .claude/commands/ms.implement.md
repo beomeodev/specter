@@ -24,10 +24,16 @@ Implements features with automatic TAG selection and TAG block insertion.
 ## Usage
 
 ```
-/ms.implement
+/ms.implement [--mode={tdd|refactor}]
 ```
 
-**No arguments required** - TAG is auto-selected from tasks.md.
+**No arguments required** - TAG is auto-selected from tasks.md, and all tasks in the current phase are targeted by default.
+
+**Refactor mode**:
+```
+/ms.implement --mode=refactor
+```
+*Note: In refactor mode, the narrative changes from RED-GREEN-REFACTOR to safety-net → swap → verify.*
 
 **Manual TAG specification** (optional):
 

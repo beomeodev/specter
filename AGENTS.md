@@ -157,10 +157,12 @@ Decision sequence:
 
 **File Size Constraints** (from Constitution):
 
-- Files ≤500 SLOC (code only, excluding comments)
-- Functions ≤100 LOC
-- Complexity ≤10 per function
-- **Split files when limits exceeded**
+-   ✅ Production file ≤700 SLOC (Source Lines of Code, excluding comments and blank lines)
+-   ✅ Test file SLOC: NO LIMIT (case coverage prioritized over file length)
+-   ✅ Function ≤100 LOC
+-   ✅ Complexity ≤10 per function
+-   ✅ Nesting depth ≤4 levels
+-   **Split files when limits exceeded**
 
 ---
 

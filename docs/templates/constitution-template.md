@@ -433,7 +433,8 @@ Every requirement must clearly answer:
 
 **Size Constraints**:
 
--   ✅ File ≤500 SLOC (Source Lines of Code, excluding comments and blank lines)
+-   ✅ Production file ≤700 SLOC (Source Lines of Code, excluding comments and blank lines)
+-   ✅ Test file SLOC: NO LIMIT (case coverage prioritized over file length)
 -   ✅ Function ≤100 LOC (Lines of Code, excluding comments)
 -   ✅ Parameters ≤5 per function
 -   ✅ Nesting depth ≤4 levels
@@ -446,7 +447,8 @@ Every requirement must clearly answer:
 **Rationale**:
 
 -   100 LOC functions: Sufficient for complex algorithms without excessive splitting
--   500 SLOC files: Allows substantial modules without forcing artificial splits
+-   700 SLOC production files: Allows substantial modules without forcing artificial splits
+-   Test files: NO LIMIT to ensure complete coverage in a single file where natural
 -   Complexity limits: More important than line count for maintainability
 
 **Naming Conventions**:

@@ -209,7 +209,7 @@ Before starting TDD implementation:
 
 Use `ms-workflow-tag-manager` Skill for all TAG operations:
 
-**For test files** (@TEST:{TAG}):
+**For test files** (@TEST:{TAG}) - **FILE-LEVEL ONLY**:
 ```python
 """
 @TEST:AUTH-001
@@ -219,10 +219,12 @@ Use `ms-workflow-tag-manager` Skill for all TAG operations:
 @STATUS: in_progress
 @CREATED: 2025-10-26
 @UPDATED: 2025-10-26
+
+Covers FR-AUTH-*
 """
 ```
 
-**For code files** (@CODE:{TAG}):
+**For code files** (@CODE:{TAG}) - **FILE-LEVEL ONLY**:
 ```python
 """
 @CODE:AUTH-001
@@ -234,6 +236,8 @@ Use `ms-workflow-tag-manager` Skill for all TAG operations:
 @UPDATED: 2025-10-26
 """
 ```
+
+*Note: Line-level @TEST docstrings are no longer required for each test function.*
 
 ### TAG Chain Verification
 
@@ -560,3 +564,4 @@ Skill("ms-foundation-trust")
 - **TAG Manager Skill**: `.claude/skills/ms-workflow-tag-manager/SKILL.md`
 - **TRUST Skill**: `.claude/skills/ms-foundation-trust/SKILL.md`
 - **MoAI TDD Implementer**: `docs/references/moai-adk/.claude/agents/alfred/tdd-implementer.md`
+**: `docs/references/moai-adk/.claude/agents/alfred/tdd-implementer.md`
