@@ -36,7 +36,7 @@ Designs optimized, production-ready database schemas for SQL and NoSQL systems:
 - Scale requirements (expected records, concurrent users)
 - Compliance needs (GDPR, audit trails, soft deletes)
 
-**EARS Pattern Application**:
+**GEARS Pattern Application**:
 ```
 ✅ System SHALL store user profiles with email, username, and timestamps
 ✅ WHEN user deletes account, system SHALL soft-delete with deleted_at timestamp

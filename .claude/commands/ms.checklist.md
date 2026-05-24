@@ -42,12 +42,12 @@ This command wraps `/speckit.checklist` to maintain naming consistency with othe
 - Exit
 
 **Reference for checklist generation**:
-- Constitution Section IV (EARS Standards - requirement patterns to validate)
+- Constitution Section IV (GEARS Standards - requirement patterns to validate)
 - Constitution Section IX (Project-specific quality standards - **if exists**, added by `/ms.constitution`)
 - AGENTS.md (coding standards, quality expectations)
 
 **These documents help**:
-- Generate checklists that validate EARS pattern compliance
+- Generate checklists that validate GEARS compliance
 - Apply project-specific quality criteria (e.g., performance targets from Section IX)
 - Create relevant questions based on project tech stack
 

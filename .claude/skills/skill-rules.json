@@ -34,12 +34,12 @@
       "type": "guardrail",
       "priority": "high",
       "enforcement": "suggest",
-      "description": "EARS requirements validation (SHALL, WHEN, WHILE, WHERE, IF patterns)",
+      "description": "GEARS requirements validation (SHALL, WHEN, WHILE, WHERE, IF patterns)",
       "promptTriggers": {
         "keywords": [
           "requirement",
           "specification",
-          "EARS",
+          "GEARS",
           "SHALL",
           "WHEN",
           "WHILE",
@@ -48,7 +48,7 @@
         "intentPatterns": [
           "(write|create|validate).*?(requirement|spec)",
           "(clarify|rewrite).*?requirement",
-          "EARS.*?(pattern|syntax)"
+          "GEARS.*?(pattern|syntax)"
         ]
       },
       "fileTriggers": {

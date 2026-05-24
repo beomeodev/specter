@@ -8,7 +8,7 @@ Create a feature specification following Spec-Kit workflow with Constitution com
 
 ## Overview
 
-This command extends `/speckit.specify` to include explicit Constitution references, ensuring AI follows EARS, TRUST, and TAG principles during specification writing.
+This command extends `/speckit.specify` to include explicit Constitution references, ensuring AI follows GEARS, TRUST, and TAG principles during specification writing.
 
 ## Usage
 
@@ -39,7 +39,7 @@ Example:
 - Continue
 
 **Reference key sections**:
-- Constitution Section IV (EARS Standards)
+- Constitution Section IV (GEARS Standards)
 - Constitution Section V (TRUST Principles)
 - Constitution Section IX (Project-specific constraints - **if exists**, added by `/ms.constitution`)
 - project-structure.md (understand existing tech stack - **if exists**)
@@ -54,19 +54,19 @@ You are creating a specification that MUST follow the project Constitution.
 **Constitution**: .specify/memory/constitution.md
 
 **Read and apply these sections**:
-- **Section IV**: Requirements Clarity (EARS Standards) - Use EARS patterns (WHEN/WHILE/WHERE/IF/SHALL)
+- **Section IV**: Requirements Clarity (GEARS Standards) - Use the GEARS canonical form ([Where][While][When] the <subject> shall <behavior>)
 - **Section V**: TRUST 5 Principles - Design for testability, readability, security, traceability
 
 **Language Policy**:
 - Write ALL requirements in ENGLISH
-- Use EARS keywords (WHEN/WHILE/WHERE/IF/SHALL/MAY) in English
-- If user provides Korean input, translate to English EARS format
+- Use GEARS keywords (Where / While / When, and shall) in English
+- If user provides Korean input, translate to English GEARS
 
 **Example**:
 User input (Korean): "사용자가 로그인하면 토큰을 발급한다"
-Your output (English): "WHEN user logs in with valid credentials, system SHALL issue JWT token"
+Your output (English): "When a user logs in with valid credentials, the auth service shall issue a JWT session token."
 
-**Refer to Constitution for detailed EARS patterns and TRUST principles.**
+**Refer to Constitution for detailed GEARS rules and TRUST principles.**
 
 Now create the specification following these principles.
 ```
@@ -202,9 +202,9 @@ Execute `/speckit.specify` with Constitution-enhanced context:
 /speckit.specify $ARGUMENTS
 ```
 
-**Agent Delegation**: This internally uses the **spec-builder** agent (Sonnet model) for EARS pattern conversion and SPEC document generation.
+**Agent Delegation**: This internally uses the **spec-builder** agent (Sonnet model) for GEARS conversion and SPEC document generation.
 
-This creates the specification in `specs/{SPEC_ID}/spec.md` with AI automatically following EARS and TRUST principles.
+This creates the specification in `specs/{SPEC_ID}/spec.md` with AI automatically following GEARS and TRUST principles.
 
 ### 4. Add Constitution Reference Footer
 
@@ -218,7 +218,7 @@ After spec.md is created, append Constitution reference section to document:
 This specification follows the project [Constitution](../../.specify/memory/constitution.md).
 
 **Key Sections:**
-- **Section IV**: EARS Requirements Standards
+- **Section IV**: GEARS Requirements Standards
 - **Section V**: TRUST 5 Quality Principles
 - **TAG System**: Traceability (SPEC → TEST → CODE)
 
@@ -253,7 +253,7 @@ Display next steps:
 4. Then proceed to `/ms.plan` for implementation planning
 
 📖 Constitution Sections Applied:
-- Section IV: EARS (5 requirement patterns)
+- Section IV: GEARS (5 requirement patterns)
 - Section V: TRUST (5 quality principles)
 ```
 

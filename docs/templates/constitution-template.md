@@ -218,17 +218,27 @@ Only proceed to next level if previous fails.
 
 ---
 
-### IV. Requirements Clarity (EARS Standards)
+### IV. Requirements Clarity (GEARS Standard)
 
-**Rule**: All requirements must follow EARS format to eliminate ambiguity.
+**Rule**: All requirements MUST follow the **GEARS** syntax to eliminate ambiguity. GEARS (Generalized EARS) is the canonical requirement syntax; classic EARS is a **legacy-compatible subset** (mechanically convertible, not "wrong"), retained for reference and external input only.
 
 **Language Policy (My-Spec)**:
 
 -   ✅ User inputs requirements in **Korean** (natural language)
--   ✅ EARS system converts Korean → **English** EARS format
+-   ✅ The spec system converts Korean → **English GEARS**
 -   ✅ ALL workflow documents written in **English only** (spec.md, plan.md, tasks.md, code, tests, docs)
--   ✅ EARS keywords (WHEN/WHILE/WHERE/IF) remain in **English**
--   ✅ "System SHALL" pattern used (not "시스템은 ~해야 한다")
+-   ✅ GEARS keywords (Where/While/When) and `shall` remain in **English**
+
+**Canonical form**:
+
+```
+[Where <static condition>]   # configuration / feature flag / deploy environment / permission
+[While <runtime state>]      # job running / session active / connection open / edit mode
+[When <trigger>]             # triggering event, including error / exceptional events
+the <subject> shall <behavior>.
+```
+
+Clauses are optional, but when present MUST appear in this fixed order. GEARS maps 1:1 to Given-When-Then: `Where + While → Given`, `When → When`, `shall → Then`.
 
 **Example Conversion**:
 
@@ -236,163 +246,58 @@ Only proceed to next level if previous fails.
 Korean Input (user):
 "사용자가 유효한 자격증명으로 로그인하면, 시스템은 JWT 토큰을 발급해야 한다"
 
-English EARS Output (spec.md):
-"WHEN user submits valid credentials, system SHALL issue JWT token"
+GEARS Output (spec.md):
+"When a user submits valid credentials, the auth service shall issue a JWT session token."
 ```
 
-**5 EARS Types**:
+(Note the concrete subject `the auth service`, not `the system`.)
 
-| Type                | Keyword        | Format                                    | Example                                                                       |
-| ------------------- | -------------- | ----------------------------------------- | ----------------------------------------------------------------------------- |
-| **1. Ubiquitous**   | `System SHALL` | System SHALL provide [capability]         | System SHALL provide user authentication capability                           |
-| **2. Event-driven** | `WHEN`         | WHEN [trigger], system SHALL [action]     | WHEN user submits valid credentials, system SHALL issue JWT token             |
-| **3. State-driven** | `WHILE`        | WHILE [state], system SHALL [action]      | WHILE user is authenticated, system SHALL allow access to protected resources |
-| **4. Optional**     | `WHERE`        | WHERE [condition], system MAY [action]    | WHERE refresh token is provided, system MAY issue new access token            |
-| **5. Constraints**  | `IF`           | IF [condition], system SHALL [constraint] | IF invalid token is provided, system SHALL deny access                        |
+**Rules (R1–R8)**:
 
-**Detailed Guidelines**:
+-   **R1 — Subject**: use a concrete, implementable unit (`the upload service`, `the chat API`) that narrows responsibility. Use `the system` only when the requirement is genuinely product-wide.
+-   **R2 — Where**: static applicability only — configuration, feature flag, deployment environment, permission/role.
+-   **R3 — While**: runtime state only — job running, session active, connection open, edit mode.
+-   **R4 — When**: triggering events, **including error and exceptional events**.
+-   **R5 — No classic `IF...then`**: express exceptions with a category label, e.g. `[Error Handling] When <event>, the <subject> shall <behavior>.`
+-   **R6 — Testability**: one requirement = one verifiable behavior, mapping to ≥1 acceptance test / task.
+-   **R7 — `shall` is lowercase** canonical; validators are case-insensitive (legacy `SHALL` accepted).
+-   **R8 — Invalid (review ERROR)** when: clause order is violated, subject or behavior is missing, or a forbidden vague phrase is present.
 
-#### 1. Ubiquitous (Unconditional Requirements)
+**Category labels** (preserve semantics GEARS strips from syntax): `[Error Handling]`, `[Security]`, `[Performance]`, … — optional prefix placed before the clauses.
 
-**When to Use**: Always-applicable system features or properties
+**Compatibility layers** (role separation — never mix syntaxes within one block):
 
-**Format**: `System SHALL provide [capability]`
+| Area | Syntax |
+| --- | --- |
+| External input (PRD / stakeholder) | free-form; classic EARS allowed |
+| High-level requirements | GEARS (loose ok) |
+| Acceptance criteria | **strict GEARS** |
+| Test scenarios | Given-When-Then |
+| Legacy EARS specs | frozen; convert to GEARS on next edit |
 
-**Examples**:
+**Migration (EARS → GEARS)**:
 
--   ✅ System SHALL provide HTTPS for all external communication
--   ✅ System SHALL hash all passwords using bcrypt
--   ✅ System SHALL provide JSON format for all API responses
--   ❌ System SHALL provide fast responses _(not measurable)_
-
-**Applicable Areas**:
-
--   Security policies
--   Data formats
--   Protocol rules
--   Core capabilities
-
----
-
-#### 2. Event-driven (Event-based Requirements)
-
-**When to Use**: System reactions to specific triggers or user actions
-
-**Format**: `WHEN [trigger], system SHALL [action]`
-
-**Examples**:
-
--   ✅ WHEN user clicks login button, system SHALL initiate authentication process
--   ✅ WHEN file upload completes, system SHALL generate thumbnail
--   ✅ WHEN API request is received, system SHALL log request details
--   ❌ User can log in _(trigger unclear)_
-
-**Applicable Areas**:
-
--   User interactions
--   External event handling
--   API endpoints
--   UI events
-
----
-
-#### 3. State-driven (State-based Requirements)
-
-**When to Use**: Continuous behaviors while specific state persists
-
-**Format**: `WHILE [state], system SHALL [action]`
-
-**Examples**:
-
--   ✅ WHILE user session is active, system SHALL display auto-logout timer
--   ✅ WHILE file is uploading, system SHALL display progress bar
--   ✅ WHILE database connection is lost, system SHALL attempt reconnection
--   ❌ Completed todos look different _(state condition unclear)_
-
-**Applicable Areas**:
-
--   UI state display
--   Permission-based behaviors
--   Connection state management
--   In-progress processes
-
----
-
-#### 4. Optional (Optional Requirements)
-
-**When to Use**: Features that may be performed under specific conditions
-
-**Format**: `WHERE [condition], system MAY [action]`
-
-**Examples**:
-
--   ✅ WHERE user has admin privileges, system MAY display advanced settings menu
--   ✅ WHERE network speed is slow, system MAY serve low-quality images
--   ✅ WHERE user grants location permission, system MAY recommend nearby stores
--   ❌ System may provide recommendation feature _(condition unclear)_
-
-**Applicable Areas**:
-
--   Optional features
--   Conditional optimizations
--   Premium features
--   Context-based enhancements
-
----
-
-#### 5. Constraints (Constraint Requirements)
-
-**When to Use**: Handling errors, exceptions, and limiting situations
-
-**Format**: `IF [condition], system SHALL [constraint]`
-
-**Examples**:
-
--   ✅ IF password fails 3 times, system SHALL lock account for 15 minutes
--   ✅ IF file size exceeds 10MB, system SHALL reject upload
--   ✅ IF API requests exceed 100 per second, system SHALL return 429 error
--   ❌ Handle errors _(condition and constraint unclear)_
-
-**Applicable Areas**:
-
--   Input validation
--   Error handling
--   Security constraints
--   Resource limits
-
----
-
-**EARS Writing Checklist**:
-
-Every requirement must start with one of these:
-
--   [ ] `System SHALL` - Unconditional capability (Ubiquitous)
--   [ ] `WHEN` - Triggered by event (Event-driven)
--   [ ] `WHILE` - During specific state (State-driven)
--   [ ] `WHERE` - Optional condition (Optional)
--   [ ] `IF` - Constraint/exception handling (Constraints)
+-   `the system` → concrete subject (narrow to an implementable unit — not a blind rename)
+-   `IF...then` → `[Error Handling] When …`
+-   `WHERE … MAY` (optional) → `Where <static condition>, … the <subject> shall …`
+-   `WHILE` → `While <runtime state>, … the <subject> shall …`
 
 **Forbidden Phrases**:
 
--   ❌ "can", "could", "might" (ambiguous, clarify with WHERE or WHEN)
--   ❌ "should", "would be good" (optional, use WHERE)
--   ❌ "fast", "secure", "safe" (not measurable, provide specific metrics)
--   ❌ "user-friendly" (subjective, define specific behaviors)
+-   ❌ "can", "could", "might" (ambiguous → clarify with Where/When)
+-   ❌ "should", "would be good" (→ make it a Where-gated `shall`)
+-   ❌ "fast", "secure", "safe", "user-friendly" (not measurable → provide a specific metric/behavior)
 
-**Measurability Principle**:
-Every requirement must clearly answer:
-
--   "When is this requirement satisfied?"
--   "How will this be tested?"
--   "How do we determine success/failure?"
+**Measurability Principle**: every requirement must answer "When is this satisfied? / How is it tested? / How do we judge success or failure?"
 
 **Enforcement**:
 
--   `/clarify` phase automatically validates EARS format
--   AI detects non-EARS requirements and suggests rewrites
--   All FR-XXX must comply with EARS format
+-   `/ms.clarify` and `/ms.review` validate GEARS (R1–R8)
+-   `/ms.analyze` checks subject/condition/trigger/behavior completeness + Given-When-Then mappability
+-   AI detects non-GEARS requirements and suggests rewrites
+-   All FR-XXX MUST comply with GEARS
 
-**Metrics**: 100% of functional requirements must use EARS format.
+**Metrics**: 100% of functional requirements use GEARS format.
 
 ---
 

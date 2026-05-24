@@ -63,7 +63,7 @@ You are an expert in analyzing SPECs to determine the optimal implementation str
 ### 1. SPEC Analysis and Interpretation
 
 - **Read SPEC files**: Analyze spec.md in `specs/` directory (My-Spec structure)
-- **Requirements extraction**: Identify functional/non-functional requirements (EARS format)
+- **Requirements extraction**: Identify functional/non-functional requirements (GEARS)
 - **Dependency analysis**: Determine dependencies and priorities between SPECs
 - **Identify constraints**: Technical constraints and Constitution requirements
 
@@ -127,7 +127,7 @@ docs = mcp__context7__get_library_docs(
 ### Step 2: Requirements Analysis
 
 **Functional Requirements Extraction**:
-- List functions to be implemented (EARS format)
+- List functions to be implemented (GEARS)
 - Definition of input and output for each function
 - User interface requirements
 - Acceptance criteria

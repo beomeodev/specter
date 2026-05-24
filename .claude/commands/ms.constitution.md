@@ -512,7 +512,7 @@ cp .env.example .env
 
 This project follows the SPECTER workflow:
 
-1. **`/ms.specify`** - Create EARS-compliant requirements
+1. **`/ms.specify`** - Create GEARS-compliant requirements
 2. **`/ms.plan`** - Design architecture and implementation plan
 3. **`/ms.constitution`** - Extract project constraints
 4. **`/ms.tasks`** - Break down work into TAG-tracked tasks

@@ -1,249 +1,91 @@
 ---
 name: ms-foundation-ears
-description: Requirements validation skill that enforces EARS syntax (Ubiquitous SHALL, Event-driven WHEN, State-driven WHILE, Optional WHERE, Constraints IF patterns), detects ambiguous forbidden phrases (fast, secure, user-friendly), ensures measurability and testability with clear pass/fail criteria, and provides concrete rewrite suggestions for non-compliant requirements. Use when writing new specifications, clarifying requirements, validating SPEC documents, detecting ambiguous language, or ensuring requirements measurability
+description: Requirements validation skill that enforces the GEARS syntax (Generalized EARS) — the canonical "[Where <static>] [While <runtime>] [When <trigger>] the <subject> shall <behavior>" form — checks clause order, concrete subjects, error-handling labels (no IF...then), detects ambiguous forbidden phrases (fast, secure, user-friendly), ensures Given-When-Then testability, and gives concrete rewrite suggestions. Classic EARS is accepted as a legacy-compatible subset. Use when writing specifications, clarifying requirements, validating SPEC documents, detecting ambiguous language, or ensuring requirements measurability.
 ---
 
-# Foundation: EARS Requirements Validation
+# Foundation: GEARS Requirements Validation
 
 ## What it does
 
-Validates requirements compliance with Constitution Section IV (EARS Standards):
-- Enforces 5 EARS patterns (Ubiquitous, Event-driven, State-driven, Optional, Constraints)
-- Detects ambiguous/forbidden phrases
-- Ensures measurability and testability
+Validates requirements against **Constitution Section IV (GEARS Standard)**. GEARS (Generalized EARS) is the canonical requirement syntax; classic EARS is a legacy-compatible subset (mechanically convertible, not "wrong").
+
+- Enforces the single GEARS canonical form (clause order, concrete subject, `shall`)
+- Replaces classic EARS `IF...then` with `[Error Handling]` category labels
+- Detects ambiguous / forbidden phrases
+- Ensures Given-When-Then testability
 - Provides rewrite suggestions for non-compliant requirements
 
 ## When to use
 
 - Writing new specifications (`/ms.specify`)
 - Clarifying requirements (`/ms.clarify`)
-- SPEC review (`/ms.analyze`)
+- SPEC review / analysis (`/ms.review`, `/ms.analyze`)
 - Detecting ambiguous language
-- Converting natural language → formal requirements
+- Converting natural language / legacy EARS → GEARS
 
-## How it works
+## Canonical form
 
-### 5 EARS Patterns
-
-#### 1. Ubiquitous (Unconditional)
-**Format**: `System SHALL [capability]`
-
-**When to use**: Always-applicable features, security policies, data formats
-
-**Examples**:
-- ✅ System SHALL provide HTTPS for all external communication
-- ✅ System SHALL hash passwords using bcrypt
-- ❌ System SHALL provide fast responses (not measurable)
-
-#### 2. Event-driven (Triggered)
-**Format**: `WHEN [trigger], system SHALL [action]`
-
-**When to use**: User actions, external events, API calls
-
-**Examples**:
-- ✅ WHEN user clicks login button, system SHALL initiate authentication
-- ✅ WHEN file upload completes, system SHALL generate thumbnail
-- ❌ User can log in (trigger unclear)
-
-#### 3. State-driven (Continuous)
-**Format**: `WHILE [state], system SHALL [action]`
-
-**When to use**: Continuous behaviors during specific states
-
-**Examples**:
-- ✅ WHILE user session is active, system SHALL display auto-logout timer
-- ✅ WHILE file is uploading, system SHALL display progress bar
-- ❌ Completed todos look different (state condition unclear)
-
-#### 4. Optional (Conditional)
-**Format**: `WHERE [condition], system MAY [action]`
-
-**When to use**: Optional features, conditional enhancements
-
-**Examples**:
-- ✅ WHERE user has admin privileges, system MAY display advanced settings
-- ✅ WHERE network speed is slow, system MAY serve low-quality images
-- ❌ System may provide recommendation feature (condition unclear)
-
-#### 5. Constraints (Limitations)
-**Format**: `IF [condition], system SHALL [constraint]`
-
-**When to use**: Error handling, input validation, security limits
-
-**Examples**:
-- ✅ IF password fails 3 times, system SHALL lock account for 15 minutes
-- ✅ IF file size exceeds 10MB, system SHALL reject upload
-- ❌ Handle errors (condition and constraint unclear)
-
-### Forbidden Phrases
-
-**Ambiguous Terms** (require clarification):
-- ❌ "can", "could", "might" → Use WHERE or WHEN
-- ❌ "should", "would be good" → Use WHERE or System SHALL
-- ❌ "fast", "quickly", "slowly" → Specify exact metrics (e.g., "<200ms")
-- ❌ "secure", "safe" → Define specific security measures
-- ❌ "user-friendly", "intuitive" → Define specific behaviors
-
-**Replacement Guide**:
 ```
-"System should respond quickly"
-→ "System SHALL respond within 200ms for 95% of requests"
-
-"Login should be secure"
-→ "System SHALL enforce password complexity (≥12 chars, mixed case, symbols)"
-→ "WHEN user fails login 3 times, system SHALL lock account for 15 minutes"
-
-"Feature could be useful"
-→ "WHERE user enables advanced mode, system MAY display feature"
+[Where <static condition>]   # configuration / feature flag / deploy environment / permission
+[While <runtime state>]      # job running / session active / connection open / edit mode
+[When <trigger>]             # triggering event, including error / exceptional events
+the <subject> shall <behavior>.
 ```
 
-### Validation Algorithm
+Clauses are optional, but when present MUST appear in this fixed order. GEARS maps 1:1 to Given-When-Then: `Where + While → Given`, `When → When`, `shall → Then`. This mapping is what makes a requirement testable.
 
-```python
-def validate_ears_compliance(requirement: str) -> dict:
-    """
-    Validates single requirement against EARS patterns.
+## Validation rules (R1–R8)
 
-    Returns:
-        {
-            "compliant": bool,
-            "pattern": str | None,  # Which EARS pattern detected
-            "violations": list[str],  # Forbidden phrases found
-            "suggestions": list[str]  # Rewrite recommendations
-        }
-    """
-    result = {
-        "compliant": False,
-        "pattern": None,
-        "violations": [],
-        "suggestions": []
-    }
+| Rule | Check | Severity |
+| --- | --- | --- |
+| **R1** Subject | concrete, implementable unit (`the upload service`), not `the system` unless genuinely product-wide | WARNING (nudge) |
+| **R2** Where | static only — config / flag / deploy env / permission | ERROR if misused for runtime state |
+| **R3** While | runtime state only — job running / session active / connection open / edit mode | ERROR if misused for static config |
+| **R4** When | triggering events, including error/exception events | — |
+| **R5** No `IF...then` | exceptions use `[Error Handling] When …, the <subject> shall …` | ERROR on `IF...then` |
+| **R6** Testability | one verifiable behavior; maps to ≥1 acceptance test / task (GWT) | ERROR if not testable |
+| **R7** `shall` lowercase canonical | validators case-insensitive (legacy `SHALL` accepted) | INFO |
+| **R8** Well-formed | clause order correct, subject + behavior present, no forbidden phrase | ERROR |
 
-    # Check EARS patterns
-    patterns = {
-        "ubiquitous": r"System SHALL",
-        "event_driven": r"WHEN .+, system SHALL",
-        "state_driven": r"WHILE .+, system SHALL",
-        "optional": r"WHERE .+, system MAY",
-        "constraints": r"IF .+, system SHALL"
-    }
+## Category labels
 
-    for pattern_name, regex in patterns.items():
-        if re.search(regex, requirement, re.IGNORECASE):
-            result["pattern"] = pattern_name
-            result["compliant"] = True
-            break
+Preserve semantics GEARS strips from syntax. Optional prefix placed before the clauses:
+`[Error Handling]`, `[Security]`, `[Performance]`, `[Accessibility]`, …
 
-    # Check forbidden phrases
-    forbidden = [
-        "can", "could", "might", "should", "would",
-        "fast", "quickly", "slowly", "secure", "safe",
-        "user-friendly", "intuitive", "easy"
-    ]
-
-    for phrase in forbidden:
-        if re.search(rf"\b{phrase}\b", requirement, re.IGNORECASE):
-            result["violations"].append(phrase)
-            result["compliant"] = False
-
-    # Generate suggestions
-    if not result["compliant"]:
-        if not result["pattern"]:
-            result["suggestions"].append(
-                "Add EARS keyword: System SHALL, WHEN, WHILE, WHERE, or IF"
-            )
-        if result["violations"]:
-            result["suggestions"].append(
-                f"Replace ambiguous terms: {', '.join(result['violations'])}"
-            )
-
-    return result
+```
+[Error Handling] When an invalid file type is uploaded, the upload service shall reject the file and display the supported file types.
 ```
 
-### Measurability Check
+## Forbidden phrases (always ERROR)
 
-Every requirement must answer:
-1. "When is this requirement satisfied?" → Clear pass/fail criteria
-2. "How will this be tested?" → Test case derivable from requirement
-3. "What does success look like?" → Observable outcome
+- ❌ "can", "could", "might" → clarify with `Where`/`When`
+- ❌ "should", "would be good" → make it a `Where`-gated `shall`
+- ❌ "fast", "secure", "safe", "user-friendly" → not measurable; provide a specific metric/behavior
 
-**Example**:
-```
-❌ "System should be fast"
-→ NOT MEASURABLE (no criteria)
+## Migration: classic EARS → GEARS
 
-✅ "System SHALL respond to GET /api/users within 200ms for 95% of requests"
-→ MEASURABLE (200ms, 95% threshold, specific endpoint)
-```
+| Classic EARS | GEARS |
+| --- | --- |
+| `System SHALL X` | `the <subject> shall X.` |
+| `WHEN e, system SHALL X` | `When e, the <subject> shall X.` |
+| `WHILE s, system SHALL X` | `While s, the <subject> shall X.` |
+| `WHERE c, system MAY X` | `Where c, the <subject> shall X.` |
+| `IF c, system SHALL X` | `[Error Handling] When c, the <subject> shall X.` |
 
-## Inputs
-- Requirement text (natural language or EARS)
-- SPEC document (`specs/<spec-id>/spec.md`)
-- Language preference (Korean input → English EARS output)
+Key for R1: do not blindly rename `the system` → a noun; **narrow the responsibility to a concrete implementable unit** (the service/component/agent that actually performs the behavior).
 
-## Outputs
-- Validation report (compliant/non-compliant)
-- Detected EARS pattern (if any)
-- List of forbidden phrases found
-- Suggested rewrites for non-compliant requirements
-- Testability assessment
+## Validation workflow
 
-## Example Validation Report
+1. Parse each functional requirement (FR-XXX).
+2. Confirm it ends with `the <subject> shall <behavior>.`; flag missing subject/behavior (R8).
+3. If optional clauses exist, confirm order `Where → While → When` (R8) and clause semantics (R2/R3).
+4. Reject any `IF...then` (R5) — suggest the `[Error Handling] When …` rewrite.
+5. Nudge concrete subjects (R1); scan for forbidden phrases.
+6. Confirm Given-When-Then mappability (R6).
+7. For each violation, emit a concrete GEARS rewrite.
 
-```json
-{
-  "requirement": "User can login with email and password",
-  "validation": {
-    "compliant": false,
-    "pattern": null,
-    "violations": ["can"],
-    "suggestions": [
-      "Add EARS keyword: 'WHEN user submits email and password, system SHALL...'",
-      "Replace 'can' with specific trigger condition"
-    ],
-    "measurability": "FAIL - No success criteria defined",
-    "testability": "FAIL - Cannot derive test case"
-  },
-  "suggested_rewrites": [
-    "WHEN user submits valid email and password, system SHALL issue JWT token",
-    "System SHALL provide email/password authentication endpoint",
-    "IF credentials are invalid, system SHALL return 401 error with message"
-  ]
-}
-```
+See `examples.md` for full before/after rewrites.
 
-## Language Conversion (Korean → English EARS)
+## Output format
 
-**My-Spec Workflow**:
-1. User inputs requirements in Korean (natural language)
-2. EARS validator converts Korean → English EARS format
-3. ALL workflow documents (spec.md, plan.md, tasks.md) use English
-4. EARS keywords remain in English (WHEN, WHILE, WHERE, IF)
-
-**Conversion Example**:
-```
-Korean Input:
-"사용자가 유효한 자격증명으로 로그인하면, 시스템은 JWT 토큰을 발급해야 한다"
-
-English EARS Output:
-"WHEN user submits valid credentials, system SHALL issue JWT token"
-```
-
-## CI/CD Integration
-
-**Pre-commit Hook**:
-```bash
-#!/bin/bash
-# .git/hooks/pre-commit
-
-# Scan SPEC for non-EARS requirements
-if grep -rn "should\|could\|might" specs/; then
-    echo "❌ Non-EARS requirements detected. Use EARS patterns."
-    exit 1
-fi
-```
-
-## Related Skills
-- `moai-foundation-specs`: SPEC metadata validation
-- `moai-alfred-spec-metadata-validation`: YAML frontmatter checks
-- `/ms.clarify`: Interactive requirement clarification
+For each requirement: `PASS` or a list of `{rule, severity, issue, suggested GEARS rewrite}`. Report overall: total FRs, GEARS-compliant %, ERROR count (must be 0 to pass review).
