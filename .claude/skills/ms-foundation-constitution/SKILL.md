@@ -1,6 +1,6 @@
 ---
 name: ms-foundation-constitution
-description: Constitution Section II compliance validator for Simplicity-First Architecture that checks file size limits (≤500 SLOC excluding comments), function complexity using McCabe metrics (≤10 cyclomatic complexity), function length constraints (≤100 LOC), and provides actionable refactoring suggestions with split strategies when violations detected. Use when validating code quality, checking file size limits, analyzing function complexity, reviewing Constitution compliance, implementing new features, or running quality gate checks
+description: Constitution Section II compliance validator for Simplicity-First Architecture that checks file size limits (≤700 SLOC for production code; test files have no limit), function complexity using McCabe metrics (≤10 cyclomatic complexity), function length constraints (≤100 LOC), and provides actionable refactoring suggestions with split strategies when violations detected. Use when validating code quality, checking file size limits, analyzing function complexity, reviewing Constitution compliance, implementing new features, or running quality gate checks
 ---
 
 # Foundation: Constitution Compliance
@@ -8,7 +8,7 @@ description: Constitution Section II compliance validator for Simplicity-First A
 ## What it does
 
 Validates code compliance with Constitution Section II (Simplicity-First Architecture):
-- File size ≤500 SLOC (Source Lines of Code, excluding comments and blank lines)
+- Production file size ≤700 SLOC (excluding comments/blank lines); test files: NO LIMIT
 - Function complexity ≤10 per function
 - Function size ≤100 LOC
 - Provides actionable feedback when violations detected
@@ -23,7 +23,7 @@ Validates code compliance with Constitution Section II (Simplicity-First Archite
 
 ## How it works
 
-### File Size Validation (≤500 SLOC)
+### File Size Validation (≤700 SLOC production; test files exempt)
 
 **SLOC Calculation**:
 ```bash
@@ -36,11 +36,11 @@ grep -v '^\s*//' file.ts | grep -v '^\s*\*' | grep -v '^\s*$' | wc -l
 ```
 
 **Validation Rules**:
-- ✅ SLOC ≤500: PASS
-- ⚠️ 400 < SLOC ≤500: WARNING (approaching limit)
-- ❌ SLOC >500: FAIL (must split file)
+- ✅ Production SLOC ≤700: PASS  (test files: exempt — never failed for length)
+- ⚠️ 600 < SLOC ≤700: WARNING (approaching limit)
+- ❌ Production SLOC >700: FAIL (must split file)
 
-**Split Strategies** (when SLOC >500):
+**Split Strategies** (when production SLOC >700):
 1. Extract reusable utilities → `utils/` or `lib/`
 2. Separate types/interfaces → `types/` or `models/`
 3. Split by domain responsibility → multiple focused modules
@@ -115,7 +115,7 @@ awk '/^def / {start=NR} /^def / && start {print NR-start; start=NR}' file.py
       "file": "src/auth/service.py",
       "type": "file_size",
       "sloc": 587,
-      "limit": 500,
+      "limit": 700,
       "suggestion": "Extract helpers to src/auth/utils.py"
     },
     {

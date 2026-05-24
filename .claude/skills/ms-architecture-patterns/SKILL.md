@@ -15,7 +15,7 @@ Provides production-ready architectural patterns for backend systems:
 - **Microservices Patterns**: Service decomposition, API Gateway, Saga, CQRS
 - **Event-Driven Design**: Event Sourcing, message queues, eventual consistency
 - **Anti-Pattern Detection**: Anemic domain, framework coupling, fat controllers
-- **Constitution Compliance**: File size ≤500 SLOC, complexity ≤10
+- **Constitution Compliance**: File size ≤700 SLOC production (tests: no limit), complexity ≤10
 
 ## When to use
 
@@ -579,7 +579,7 @@ class Order:
 
 **File Size Constraints**:
 ```python
-# ❌ Violates Constitution (>500 SLOC)
+# ❌ Violates Constitution (>700 SLOC production)
 class OrderService:
     # 800 lines of methods...
 

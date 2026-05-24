@@ -441,7 +441,7 @@ Continue sync? (Yes/No)
 - **Test-First**: Links tests to docs via @TEST TAGs
 
 **File Size Constraints (Section II)**:
-- Each API doc ≤500 lines (split if larger)
+- Each API doc: no hard limit (docs are unbounded; split only if unwieldy)
 - Generated content follows My-Spec formatting
 
 **Documentation Standards (Section VIII)**:

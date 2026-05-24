@@ -142,7 +142,7 @@ docs = mcp__context7__get_library_docs(
 - Existing codebase constraints
 - Environment constraints (Python/Node.js version)
 - Platform constraints
-- Constitution constraints (Section II: files ≤500 SLOC, functions ≤100 LOC, complexity ≤10)
+- Constitution constraints (Section II: production files ≤700 SLOC (tests: no limit), functions ≤100 LOC, complexity ≤10)
 
 ### Step 3: Collaborate with Sub-Agents
 
@@ -378,7 +378,7 @@ graph TD
 ## 8. Constitution Compliance
 
 ### Section II: Simplicity-First
-- Files ≤500 SLOC: All modules designed within limit
+- Files ≤700 SLOC (production; tests: no limit): All modules designed within limit
 - Functions ≤100 LOC: Auth functions modular, single responsibility
 - Complexity ≤10: Simple control flow, early returns
 
@@ -403,7 +403,7 @@ After approval, hand over to **tdd-implementer** agent:
 - TAG chain: AUTH-001, AUTH-002, AUTH-003, AUTH-004
 - Library versions: react ^18.2.0, jwt-utils ^5.0.0
 - Key decisions: Zustand for state, JWT for auth tokens
-- Constitution constraints: Files ≤500 SLOC, ≥85% coverage
+- Constitution constraints: Files ≤700 SLOC (production; tests: no limit), ≥85% coverage
 
 ---
 
@@ -442,7 +442,7 @@ After approval, hand over to **tdd-implementer** agent:
 - **Library versions specified**: All dependencies versioned with rationale
 - **TAG chain validity**: No circular references, logical errors
 - **SPEC complete coverage**: All SPEC requirements in plan
-- **Constitution compliance**: Files ≤500 SLOC, ≥85% coverage, TRUST 5 principles
+- **Constitution compliance**: Files ≤700 SLOC (production; tests: no limit), ≥85% coverage, TRUST 5 principles
 
 ## 📤 Output Format
 

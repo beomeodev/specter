@@ -1,6 +1,6 @@
 ---
 name: ms-lang-python
-description: Python 3.14+ development expertise with free-threading support and cutting-edge toolchain - pytest 8.4.2 for powerful testing with fixtures and async support, ruff 0.13.1 for unified linting and formatting (100x faster than pylint), mypy 1.8.0 strict type checking, Pydantic 2.7 runtime validation, uv 0.9.3 package manager (10x faster than pip), modern async patterns with TaskGroup and context variables, PEP 703 (free-threading), PEP 695/701/698 features (type parameters, f-strings, override decorator), FastAPI patterns (dependency injection, middleware, exception handling, background tasks), structured logging with structlog, Constitution compliance (≤500 SLOC, ≤10 complexity), and comprehensive TDD workflow with TAG block integration. Use when working with Python files, writing pytest tests, implementing async patterns, building FastAPI applications, or applying Python best practices
+description: Python 3.14+ development expertise with free-threading support and cutting-edge toolchain - pytest 8.4.2 for powerful testing with fixtures and async support, ruff 0.13.1 for unified linting and formatting (100x faster than pylint), mypy 1.8.0 strict type checking, Pydantic 2.7 runtime validation, uv 0.9.3 package manager (10x faster than pip), modern async patterns with TaskGroup and context variables, PEP 703 (free-threading), PEP 695/701/698 features (type parameters, f-strings, override decorator), FastAPI patterns (dependency injection, middleware, exception handling, background tasks), structured logging with structlog, Constitution compliance (≤700 SLOC production / tests no limit, ≤10 complexity), and comprehensive TDD workflow with TAG block integration. Use when working with Python files, writing pytest tests, implementing async patterns, building FastAPI applications, or applying Python best practices
 ---
 
 # Language: Python 3.14+ Expert (Free-Threading)
@@ -15,7 +15,7 @@ Provides **Python 3.14+ expertise with free-threading support** for My-Spec TDD 
 - ✅ **Package Management**: uv 0.9.3 (10x faster than pip)
 - ✅ **Python 3.14 Features**: PEP 703 (free-threading/GIL removal), JIT compiler, PEP 695/701/698
 - ✅ **Async/Await**: asyncio.TaskGroup, context variables, concurrent patterns
-- ✅ **Constitution Compliance**: TRUST 5 principles, ≤500 SLOC files, ≤10 complexity
+- ✅ **Constitution Compliance**: TRUST 5 principles, ≤700 SLOC production files (tests: no limit), ≤10 complexity
 
 ## When to use
 
@@ -679,7 +679,7 @@ log.info("user_login", user_id=42)
 ## Constitution Compliance
 
 **My-Spec Requirements**:
-- ✅ Files ≤500 SLOC (split if larger)
+- ✅ Production files ≤700 SLOC (split if larger); test files: no limit
 - ✅ Functions ≤100 lines
 - ✅ Complexity ≤10 per function
 - ✅ Test coverage ≥85%

@@ -172,17 +172,35 @@ Only proceed to next level if previous fails.
 -   `.md` - Markdown files
 -   `.txt` - Plain text files
 
-**Code Files** (≤500 SLOC):
+**Production Code Files** (≤700 SLOC):
 
--   All files in `src/`, `lib/`, `app/`, `tests/` directories
+-   All files in `src/`, `lib/`, `app/` directories (production code)
+
+**Test Files** (NO LIMIT):
+
+-   All files in `tests/` directories — case coverage is prioritized over file length
 -   SLOC = Source Lines of Code (excluding comments and blank lines)
 
 **Rationale**:
 
 -   Detailed documentation improves implementation quality
--   500 SLOC allows substantial modules without forcing artificial splits
+-   700 SLOC allows substantial production modules without forcing artificial splits; test files have NO limit so coverage is never sacrificed to length
 -   Complexity metrics (≤10 per function) ensure maintainability
 -   Command prompts are executable instructions for AI agents, thus treated as code
+
+---
+
+### Change Discipline (Surgical Changes)
+
+**Rule**: Touch only what the task requires; clean up only your own mess.
+
+-   Don't "improve" adjacent code, comments, or formatting; match the existing style.
+-   Don't refactor what isn't broken. Notice unrelated dead code → mention it, don't delete it.
+-   Remove only the imports/variables/functions that YOUR change orphaned; leave pre-existing dead code unless asked.
+-   Every changed line must trace directly to the request.
+-   **Senior test** (Simplicity): "Would a senior engineer call this overcomplicated?" If yes, simplify. No speculative abstractions, no flexibility/configurability that wasn't requested, no error handling for cases that cannot occur.
+
+Planned refactors (splitting >700-SLOC files, migrating to shared primitives, TRUST gates) are **explicit tasks**, not silent side-effects — surgical discipline applies within each task's own scope.
 
 ---
 
@@ -494,7 +512,7 @@ rg '@CODE:AUTH-001' -l  # Should return at least one file
 | Principle  | Metric              | Threshold | Enforcement      |
 | ---------- | ------------------- | --------- | ---------------- |
 | Test First | Coverage            | ≥85%      | CI/CD blocking   |
-| Readable   | File size           | ≤500 SLOC | Linter rules     |
+| Readable   | File size           | ≤700 SLOC prod / test: no limit | Linter rules     |
 | Readable   | Function size       | ≤100 LOC  | Linter rules     |
 | Readable   | Complexity          | ≤10       | Linter rules     |
 | Unified    | Type errors         | 0         | CI/CD blocking   |
@@ -914,7 +932,7 @@ const LAYER_RULES = {
 | Circular Dependencies | madge/pydeps  | 0         | Every commit | YES      |
 | Code Duplication      | jscpd         | <5%       | Every commit | YES      |
 | Function Complexity   | ESLint/Pylint | ≤10       | Every commit | YES      |
-| File Size             | Custom script | ≤500 SLOC | Every commit | NO       |
+| File Size             | Custom script | ≤700 SLOC prod / test: no limit | Every commit | NO       |
 | Test Coverage         | Jest/Pytest   | ≥85%      | Every commit | YES      |
 
 ---

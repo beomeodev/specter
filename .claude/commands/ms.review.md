@@ -325,6 +325,11 @@ Detect N+1 queries (loops with DB calls), unnecessary recomputation, memory leak
 
 Check missing auth on endpoints, sensitive data in logs, stack trace exposure.
 
+#### H. Simplicity & Surgical Changes (Karpathy)
+
+- **Overcomplication**: speculative abstractions, unrequested flexibility/config, error handling for impossible cases, "200 lines that could be 50". Senior test: would a senior call it overcomplicated?
+- **Non-surgical diff**: changed lines that DON'T trace to the task — adjacent "improvements", style churn, refactors of unbroken code, deletion of pre-existing (not orphaned-by-this-change) code. (Planned refactor tasks are exempt — they ARE the request.)
+
 ---
 
 ### Step 5.5: ultrathink Pattern Analysis

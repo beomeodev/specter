@@ -78,7 +78,7 @@ npm test -- --coverage
 #### 2. **R**eadable (Code Clarity & Simplicity)
 
 **Check**:
-- [ ] File ≤500 SLOC (Source Lines of Code, excluding comments)
+- [ ] Production file ≤700 SLOC (excluding comments); test files: no limit
 - [ ] Function ≤100 LOC (Lines of Code)
 - [ ] Function parameters ≤5
 - [ ] Nesting depth ≤4 levels
@@ -104,7 +104,7 @@ with open(sys.argv[1]) as f:
 ```
 
 **Failure examples**:
-- ❌ File exceeds 500 SLOC: "Split file into smaller modules"
+- ❌ Production file exceeds 700 SLOC: "Split file into smaller modules" (test files exempt)
 - ❌ Function exceeds 100 LOC: "Extract helper functions"
 - ❌ Complexity > 10: "Simplify conditional logic, reduce branches"
 - ❌ Poor naming: "Rename `d` to `database_connection`"
@@ -253,7 +253,7 @@ rg '@CODE:AUTH-001' -l
    - Suggest concrete fix
 
 4. **Check Constitution compliance**:
-   - File size ≤500 SLOC
+   - Production file size ≤700 SLOC (test files: no limit)
    - Function complexity ≤10
    - Test coverage ≥85%
 
@@ -351,7 +351,7 @@ rg '@CODE:AUTH-001' -l
    - Run: `npm audit fix`
 
 **Non-blocking issues**:
-1. File `src/utils/helpers.py` is 543 SLOC (exceeds 500 limit)
+1. File `src/utils/helpers.py` is 743 SLOC (exceeds 700 limit)
    - Consider: Split into smaller modules
 
 **Recommendation**: Fix blocking issues before commit
@@ -363,7 +363,7 @@ rg '@CODE:AUTH-001' -l
 
 **Constitution**:
 - Section I: Test-First Development (≥85% coverage)
-- Section II: Simplicity-First Architecture (≤500 SLOC files, ≤100 LOC functions, ≤10 complexity)
+- Section II: Simplicity-First Architecture (≤700 SLOC production files / tests no limit, ≤100 LOC functions, ≤10 complexity)
 - Section V: TRUST 5 Principles (comprehensive quality framework)
 - Section VII: Security by Default (security requirements)
 

@@ -75,7 +75,7 @@ Run type checking, test coverage, and complexity metrics.
 - [ ] Test coverage ≥85%
 - [ ] Function complexity ≤10 (cyclomatic complexity)
 - [ ] Function length ≤100 LOC
-- [ ] File length ≤500 SLOC (excluding comments)
+- [ ] File length ≤700 SLOC (excluding comments)
 - [ ] Function parameters ≤5
 
 **Commands**:

@@ -13,7 +13,7 @@ Designs optimized, production-ready database schemas for SQL and NoSQL systems:
 - **ERD Generation**: ASCII text-based entity relationship diagrams
 - **Migration Scripts**: Up/down migrations with transaction safety and rollback
 - **Performance Optimization**: Indexing strategy, partitioning, sharding, replication
-- **Constitution Compliance**: Schema complexity ≤10, file size ≤500 SLOC
+- **Constitution Compliance**: Schema complexity ≤10, file size ≤700 SLOC (production)
 
 ## When to use
 
@@ -280,7 +280,7 @@ Replica 2 (Read): postgresql://db-replica-2:5432/app
 -- ❌ Violates Constitution (too many columns, high complexity)
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
-    -- 50+ columns here... (violates ≤500 SLOC guideline)
+    -- 50+ columns here... (violates ≤700 SLOC guideline)
     col1, col2, col3, ... col50
 );
 

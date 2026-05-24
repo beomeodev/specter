@@ -170,7 +170,7 @@ Before starting TDD implementation:
    - **Readability**: Clear variable names, extract functions
    - **DRY**: Eliminate duplication
    - **SOLID**: Single responsibility, proper abstractions
-   - **Constitution compliance**: Files ≤500 SLOC, functions ≤100 LOC
+   - **Constitution compliance**: Files ≤700 SLOC (production; tests: no limit), functions ≤100 LOC
 
 2. **Run tests after each change**:
    ```bash
@@ -300,7 +300,7 @@ Skill("ms-foundation-trust")
 
 **Enforced during implementation**:
 
-- Files ≤500 SLOC (code only, excluding comments)
+- Files ≤700 SLOC (production; tests: no limit) (code only, excluding comments)
 - Functions ≤100 LOC
 - Complexity ≤10 per function
 - Prefer external tools over reimplementation

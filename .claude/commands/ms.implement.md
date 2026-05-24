@@ -63,7 +63,7 @@ Example:
 - Exit
 
 **Reference key sections**:
-- Constitution Section II (Simplicity-First Architecture - Files ≤500 SLOC, Functions ≤100 LOC)
+- Constitution Section II (Simplicity-First Architecture - Files ≤700 SLOC, Functions ≤100 LOC)
 - Constitution Section V (TRUST 5 Principles - Test-First, Readable, Unified, Secured, Trackable)
 - Constitution Section IX (Project-specific constraints - **if exists**, added by `/ms.constitution`)
 - AGENTS.md (coding standards, patterns to follow - if exists)
@@ -161,7 +161,7 @@ You are implementing code that MUST follow the project Constitution.
 **CRITICAL: Read and apply these sections**:
 
 **Section II - Simplicity-First (MANDATORY)**:
-- Files ≤500 SLOC (code files only - split if larger)
+- Files ≤700 SLOC (code files only - split if larger)
 - Functions ≤100 lines (extract helper functions if needed)
 - Complexity ≤10 per function
 - Prefer built-in tools over external dependencies
@@ -173,7 +173,15 @@ You are implementing code that MUST follow the project Constitution.
 - **Secured**: Input validation, environment variables for secrets
 - **Trackable**: Code structure mirrors spec.md organization
 
-**Refer to Constitution for detailed constraints and examples.**
+**Change Discipline — Surgical (MANDATORY)**:
+- Touch ONLY what this TAG/task requires. Every changed line traces to the task.
+- Don't "improve" adjacent code, don't refactor what isn't broken, match existing style.
+- Remove only orphans YOUR change created; mention (don't delete) unrelated dead code.
+- (A planned refactor task is itself the request — stay surgical to that task's scope.)
+
+**Goal-Driven**: the task's GEARS acceptance criteria are the success bar — write the test, then loop until it passes.
+
+**Refer to Constitution (Section II, Change Discipline, Section V) for details.**
 
 Now implement TAG: {TAG_ID}
 ```

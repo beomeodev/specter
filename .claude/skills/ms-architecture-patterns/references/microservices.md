@@ -268,7 +268,7 @@ class SagaStep(Enum):
 class OrderSagaOrchestrator:
     """
     Saga coordinator - manages distributed transaction.
-    Constitution: File ≤500 SLOC (focused on coordination).
+    Constitution: File ≤700 SLOC (focused on coordination).
     """
     def __init__(
         self,

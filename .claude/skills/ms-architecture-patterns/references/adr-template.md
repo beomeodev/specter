@@ -119,7 +119,7 @@ Our payment service currently has tight coupling to Stripe API. We need to:
 - Support multiple payment providers (Stripe, PayPal, Crypto)
 - Easily swap providers without changing business logic
 - Test payment logic without real API calls
-- Comply with Constitution file size limits (≤500 SLOC)
+- Comply with Constitution file size limits (≤700 SLOC production; tests no limit)
 
 Current problems:
 - Stripe SDK calls scattered throughout business logic
@@ -189,7 +189,7 @@ payment_service/
 ## Compliance
 
 **Constitution Section II (Simplicity)**:
-- ✅ File size: Each adapter ≤300 SLOC (under 500 limit)
+- ✅ File size: Each adapter ≤300 SLOC (under 700 limit)
 - ✅ Complexity: Port interface simple (5 methods, complexity ≤3)
 - ✅ Single responsibility: Each adapter handles one provider
 
@@ -342,7 +342,7 @@ Implement **CQRS (Command Query Responsibility Segregation)** pattern.
 ## Compliance
 
 **Constitution Section II (Simplicity)**:
-- ✅ File size: Event handlers ≤200 SLOC each (under 500 limit)
+- ✅ File size: Event handlers ≤200 SLOC each (under 700 limit)
 - ✅ Complexity: Each handler simple (1 event type → 1 table update)
 - ✅ Split by concern: Write model, read model, event handlers separate
 

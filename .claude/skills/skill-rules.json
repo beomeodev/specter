@@ -7,7 +7,7 @@
       "type": "guardrail",
       "priority": "critical",
       "enforcement": "suggest",
-      "description": "Constitution compliance validator (≤500 SLOC, ≤10 complexity)",
+      "description": "Constitution compliance validator (≤700 SLOC production / tests no limit, ≤10 complexity)",
       "promptTriggers": {
         "keywords": [
           "file size",

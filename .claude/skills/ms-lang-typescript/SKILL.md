@@ -1,6 +1,6 @@
 ---
 name: ms-lang-typescript
-description: TypeScript 5.7+ development expertise with modern toolchain - Vitest 2.1 for 10x faster testing with native ESM support, Biome 1.9 for unified linting and formatting (75x faster than ESLint), strict type checking with advanced patterns (const type parameters, satisfies operator), React 19 and Next.js 15 integration with Error Boundaries and Suspense patterns, Zod runtime validation, type-safe environment variables, Constitution compliance (≤500 SLOC, ≤10 complexity), and comprehensive TDD workflow with TAG block integration. Use when working with TypeScript/TSX files, writing Vitest tests, implementing React/Next.js applications, enforcing type safety, or applying TypeScript best practices
+description: TypeScript 5.7+ development expertise with modern toolchain - Vitest 2.1 for 10x faster testing with native ESM support, Biome 1.9 for unified linting and formatting (75x faster than ESLint), strict type checking with advanced patterns (const type parameters, satisfies operator), React 19 and Next.js 15 integration with Error Boundaries and Suspense patterns, Zod runtime validation, type-safe environment variables, Constitution compliance (≤700 SLOC production / tests no limit, ≤10 complexity), and comprehensive TDD workflow with TAG block integration. Use when working with TypeScript/TSX files, writing Vitest tests, implementing React/Next.js applications, enforcing type safety, or applying TypeScript best practices
 ---
 
 # Language: TypeScript 5.7+ Expert
@@ -15,7 +15,7 @@ Provides **TypeScript 5.7+ expertise** for My-Spec TDD development, including:
 - ✅ **Package Management**: npm/pnpm/bun (project preference)
 - ✅ **TypeScript 5.7 Features**: Decorators, const type parameters, satisfies operator
 - ✅ **React/Next.js**: Modern patterns with TypeScript integration
-- ✅ **Constitution Compliance**: TRUST 5 principles, ≤500 SLOC files, ≤10 complexity
+- ✅ **Constitution Compliance**: TRUST 5 principles, ≤700 SLOC production files (tests: no limit), ≤10 complexity
 
 ## When to use
 
@@ -628,7 +628,7 @@ const routes = {
 ## Constitution Compliance
 
 **My-Spec Requirements**:
-- ✅ Files ≤500 SLOC (split if larger)
+- ✅ Production files ≤700 SLOC (split if larger); test files: no limit
 - ✅ Functions ≤100 lines
 - ✅ Complexity ≤10 per function
 - ✅ Test coverage ≥85%
@@ -696,7 +696,7 @@ tsc --noEmit                        # Type check pass?
 - Run quality gate before each commit
 - Use const assertions and satisfies operator
 - Add type annotations to public APIs
-- Keep files ≤500 SLOC (Constitution requirement)
+- Keep production files ≤700 SLOC (Constitution requirement); test files: no limit
 
 ❌ **DON'T**:
 - Use Jest (Vitest is faster and better for TS)

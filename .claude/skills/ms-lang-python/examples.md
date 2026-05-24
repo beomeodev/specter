@@ -649,4 +649,4 @@ pytest --cov=src --cov-report=term --cov-fail-under=85 && ruff check . && mypy .
 
 ---
 
-All examples follow My-Spec TRUST 5 principles and Constitution constraints (≤500 SLOC, ≤10 complexity, ≥85% coverage).
+All examples follow My-Spec TRUST 5 principles and Constitution constraints (≤700 SLOC production / tests no limit, ≤10 complexity, ≥85% coverage).
