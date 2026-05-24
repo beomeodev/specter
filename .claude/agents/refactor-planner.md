@@ -42,7 +42,7 @@ npx eslint . --ext .ts,.tsx  # TypeScript
 - Abstraction levels (appropriate or over/under-engineered?)
 
 **Evaluate code quality**:
-- Constitution compliance: ≤500 SLOC, ≤10 complexity
+- Constitution compliance: ≤700 SLOC, ≤10 complexity
 - SOLID principles: Single Responsibility, DRY, Separation of Concerns
 - Test coverage: ≥85% (TRUST principle)
 - Type safety: mypy (Python) or tsc --noEmit (TypeScript)
@@ -57,7 +57,7 @@ npx eslint . --ext .ts,.tsx  # TypeScript
 def process_user_registration(data):
     # 200 lines of code...
 
-# Large classes (>500 SLOC)
+# Large classes (>700 SLOC)
 class UserService:
     # 700 lines of code...
 
@@ -239,7 +239,7 @@ rg "TODO|FIXME" | wc -l  # Technical debt: 10 items (↓78%)
 ```
 
 **Maintainability metrics**:
-- Files >500 SLOC: Before 12 → After 0
+- Files >700 SLOC: Before 12 → After 0
 - Functions >100 LOC: Before 23 → After 3
 - Circular dependencies: Before 5 → After 0
 - Code duplication: Before 25% → After <10%
@@ -279,7 +279,7 @@ Your refactoring plan should use this structure:
 - Issue 4: Description + affected files
 
 ### Metrics (Baseline)
-- Files >500 SLOC: X files
+- Files >700 SLOC: X files
 - Average complexity: Y
 - Test coverage: Z%
 - Technical debt: N TODOs/FIXMEs
@@ -353,7 +353,7 @@ Your refactoring plan should use this structure:
 ## Success Metrics
 
 **Target improvements**:
-- Files >500 SLOC: X → 0
+- Files >700 SLOC: X → 0
 - Average complexity: Y → <5
 - Test coverage: Z% → 87%+
 - Build time: N seconds → <30 seconds

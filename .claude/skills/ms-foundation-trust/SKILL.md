@@ -1,6 +1,6 @@
 ---
 name: ms-foundation-trust
-description: Comprehensive code quality validator enforcing TRUST 5 principles - Test-First (≥85% coverage with pytest/vitest), Readable (≤500 SLOC files, ≤10 complexity), Unified (strict type checking with mypy/tsc), Secured (OWASP Top 10 implementation patterns + trivy/bandit scanning, cryptographic best practices, input validation, authorization checks), Trackable (complete TAG chain integrity SPEC→TEST→CODE→DOC) with detailed compliance reports and remediation guidance. Use when validating quality before merging PRs, running quality gate checks, checking release readiness, validating TRUST compliance, or performing comprehensive code reviews
+description: Comprehensive code quality validator enforcing TRUST 5 principles - Test-First (≥85% coverage with pytest/vitest), Readable (≤700 SLOC production files / tests no limit, ≤10 complexity), Unified (strict type checking with mypy/tsc), Secured (OWASP Top 10 implementation patterns + trivy/bandit scanning, cryptographic best practices, input validation, authorization checks), Trackable (complete TAG chain integrity SPEC→TEST→CODE→DOC) with detailed compliance reports and remediation guidance. Use when validating quality before merging PRs, running quality gate checks, checking release readiness, validating TRUST compliance, or performing comprehensive code reviews
 ---
 
 # Foundation: TRUST 5 Validation
@@ -50,7 +50,7 @@ pytest --cov=src --cov=tests --cov-report=term-missing --cov-fail-under=85
 ### R - Readable (Code Quality)
 
 **Size Constraints** (from Constitution):
-- File ≤500 SLOC
+- Production file ≤700 SLOC (test files: no limit)
 - Function ≤100 LOC
 - Parameters ≤5 per function
 - Nesting depth ≤4 levels

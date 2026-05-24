@@ -572,7 +572,7 @@ def get_orders_for_users(user_ids: List[int]):
 
 **File Size Limits**:
 - Migration files: ≤300 lines (split large schemas)
-- Schema files: ≤500 SLOC (separate concerns: auth, billing, content)
+- Schema files: ≤700 SLOC production (separate concerns: auth, billing, content)
 
 **Complexity Limits**:
 - Table columns: ≤20 per table (split into related tables)

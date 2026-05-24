@@ -37,7 +37,7 @@ Extends `/speckit.tasks` to generate implementation tasks with automatic TAG ID 
 - Exit
 
 **Reference for task generation**:
-- Constitution Section II (Simplicity-First - file size targets: ≤500 SLOC, ≤100 LOC/function)
+- Constitution Section II (Simplicity-First - file size targets: ≤700 SLOC, ≤100 LOC/function)
 - Constitution Section IX (Project-specific constraints - **if exists**, added by `/ms.constitution`)
 - AGENTS.md (coding standards, task organization patterns - if exists)
 

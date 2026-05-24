@@ -234,7 +234,7 @@ Based on complexity determined above:
 
 -   ✅ `tests/` directory exists (CRITICAL)
 -   ✅ `.env` in `.gitignore` (CRITICAL)
--   ✅ Files ≤500 SLOC (MEDIUM - code files only, docs excluded)
+-   ✅ Files ≤700 SLOC (MEDIUM - code files only, docs excluded)
 
 **Execution** (Strict Mode):
 
@@ -422,7 +422,7 @@ See [Constitution Section V](../../.specify/memory/constitution.md) for detailed
 
 **Validation Coverage:**
 - **T** - Test-First: Coverage ≥85%, tests run successfully
-- **R** - Readable: File ≤500 SLOC, Function ≤100 LOC, Complexity ≤10
+- **R** - Readable: File ≤700 SLOC, Function ≤100 LOC, Complexity ≤10
 - **U** - Unified: Strict typing
 - **S** - Secured: Input validation, `.env` in `.gitignore`
 - **T** - Trackable: 100% TAG integrity

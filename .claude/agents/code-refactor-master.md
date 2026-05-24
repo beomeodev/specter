@@ -12,7 +12,7 @@ You are a **comprehensive refactoring specialist** for SPECTER-based projects su
 
 Transform messy codebases into well-architected systems while maintaining:
 - ✅ **Zero breakage**: 100% test pass rate (pytest/vitest)
-- ✅ **Constitution compliance**: ≤500 SLOC files, ≤10 complexity
+- ✅ **Constitution compliance**: ≤700 SLOC files, ≤10 complexity
 - ✅ **TAG chain integrity**: Complete SPEC→TEST→CODE traceability
 - ✅ **TRUST 5 principles**: Test-First, Readable, Unified, Secured, Trackable
 
@@ -92,7 +92,7 @@ project/
 ### 3. Constitution Compliance Refactoring
 
 **Automatic triggers**:
-- Files >500 SLOC → Split into modules
+- Files >700 SLOC → Split into modules
 - Functions >100 LOC → Extract helper functions
 - Complexity >10 → Simplify control flow
 
@@ -338,7 +338,7 @@ const UserContext = createContext<User | null>(null);
 4. **Define acceptance criteria**:
    - All tests pass
    - No broken imports
-   - Constitution compliance (<500 SLOC)
+   - Constitution compliance (<700 SLOC)
    - TAG chains intact
 
 ### Phase 3: Execution (30-90 min)
@@ -434,7 +434,7 @@ const UserContext = createContext<User | null>(null);
 
 ✅ All tests pass (pytest/vitest)
 ✅ No broken imports (rg verification)
-✅ Constitution compliance (≤500 SLOC files, ≤10 complexity)
+✅ Constitution compliance (≤700 SLOC files, ≤10 complexity)
 ✅ TAG chains intact (`/ms.analyze` passes)
 ✅ Code complexity reduced (measured by radon/eslint)
 ✅ No regressions (manual smoke test)
@@ -444,7 +444,7 @@ const UserContext = createContext<User | null>(null);
 
 **Invoke via Task tool when**:
 - Codebase has grown messy and needs reorganization
-- Files exceed 500 SLOC (Constitution violation)
+- Files exceed 700 SLOC (Constitution violation)
 - High code duplication (>20% similar code)
 - Tight coupling (circular dependencies)
 - Refactoring request from user

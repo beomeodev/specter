@@ -8,14 +8,14 @@ Clarify ambiguous requirements in spec.md using Spec-Kit's standard clarificatio
 
 ## Overview
 
-This command extends `/speckit.clarify` by injecting Constitution principles (especially EARS format) and enabling **Korean language interaction** for user communication.
+This command extends `/speckit.clarify` by injecting Constitution principles (especially GEARS) and enabling **Korean language interaction** for user communication.
 
 **Key Features**:
 
--   AI receives EARS principles BEFORE clarification
+-   AI receives GEARS principles BEFORE clarification
 -   User interaction in **KOREAN** (questions, options, answers)
--   Final spec.md updates in **ENGLISH** with EARS format
--   Natural EARS compliance through Constitution-guided AI behavior
+-   Final spec.md updates in **ENGLISH** with GEARS
+-   Natural GEARS compliance through Constitution-guided AI behavior
 
 ## Language Policy
 
@@ -30,8 +30,8 @@ Per Constitution Section IV:
 
 1. AI asks clarification questions in **KOREAN**
 2. User answers in **KOREAN**
-3. AI provides A/B/C options in **KOREAN** (with English EARS reference)
-4. spec.md is updated in **ENGLISH** with EARS format
+3. AI provides A/B/C options in **KOREAN** (with English GEARS reference)
+4. spec.md is updated in **ENGLISH** with GEARS
 
 ## Execution Steps
 
@@ -41,7 +41,7 @@ Read `.specify/memory/constitution.md` and confirm it exists.
 
 **Key section to reference:**
 
--   **Section IV**: Requirements Clarity (EARS Standards)
+-   **Section IV**: Requirements Clarity (GEARS Standards)
 
 **Language Policy** (from Section IV):
 
@@ -60,29 +60,29 @@ You are clarifying requirements in spec.md. Follow the project Constitution.
 
 **Constitution**: .specify/memory/constitution.md
 
-**Read and apply Section IV** (Requirements Clarity - EARS Standards):
-- Use EARS patterns: WHEN/WHILE/WHERE/IF/SHALL/MAY
+**Read and apply Section IV** (Requirements Clarity - GEARS Standard):
+- Use the GEARS canonical form: `[Where <static>] [While <runtime>] [When <trigger>] the <subject> shall <behavior>.`
 - Identify ambiguous requirements and provide alternative interpretations
 
 **LANGUAGE POLICY (MANDATORY)**:
 - Communicate with user in KOREAN (questions and options)
-- Show EARS English format in parentheses for reference
-- Update spec.md in ENGLISH with EARS format
+- Show GEARS English format in parentheses for reference
+- Update spec.md in ENGLISH with GEARS
 
 **Example clarification** (in KOREAN):
 ```
 
 요구사항 "로그인 기능이 필요합니다"가 모호합니다. 다음 중 선택해주세요:
 
-A) 시스템은 사용자 로그인 기능을 제공해야 합니다
-(EARS: System SHALL provide user login functionality)
+A) 인증 서비스는 사용자 로그인 기능을 제공해야 합니다
+(GEARS: the auth service shall provide a username/password login endpoint.)
 
-B) 사용자가 로그인 버튼을 클릭하면, 시스템은 자격증명을 인증해야 합니다
-(EARS: WHEN user clicks login button, system SHALL authenticate credentials)
+B) 사용자가 로그인 버튼을 클릭하면, 인증 서비스가 자격증명을 검증해야 합니다
+(GEARS: When a user clicks login, the auth service shall validate the credentials.)
 
 ```
 
-**Refer to Constitution Section IV for detailed EARS patterns.**
+**Refer to Constitution Section IV for detailed GEARS rules.**
 
 Now identify ambiguous requirements and begin clarification.
 ```
@@ -95,7 +95,7 @@ Execute `/speckit.clarify` with Constitution-enhanced context:
 /speckit.clarify $ARGUMENTS
 ```
 
-This runs clarification workflow with AI following EARS principles and using Korean for user interaction.
+This runs clarification workflow with AI following GEARS principles and using Korean for user interaction.
 
 ### 4. Report Success
 
@@ -120,10 +120,10 @@ Display next steps (in KOREAN):
 🎯 다음 단계:
 1. 명확화된 요구사항 검토
 2. `/ms.plan` 실행하여 구현 계획 작성
-3. AI가 Constitution 기반으로 EARS 형식을 따랐습니다 ✅
+3. AI가 Constitution 기반으로 GEARS 형식을 따랐습니다 ✅
 
-📖 EARS 준수 달성:
-- Constitution Section IV (EARS 규칙)
+📖 GEARS 준수 달성:
+- Constitution Section IV (GEARS 규칙)
 - AI 자연어 이해
 - 강제 변환 로직 없음 (Constitution 주입 방식)
 ```

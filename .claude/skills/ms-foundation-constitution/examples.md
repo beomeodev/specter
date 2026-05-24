@@ -29,7 +29,7 @@ def hash_password(password: str) -> str:
 # ... 235 more lines of utility functions
 ```
 
-**Result**: ✅ PASS (245 SLOC ≤ 500)
+**Result**: ✅ PASS (245 SLOC ≤ 700)
 
 ---
 

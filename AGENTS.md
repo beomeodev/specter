@@ -49,31 +49,32 @@
 
 ---
 
-## 3. Requirements Clarification (EARS Pattern)
+## 3. Requirements Clarification (GEARS)
 
 **Problem**: Ambiguous requirements lead to wrong implementations
 
-**Rule**: Clarify requirements in one of 5 formats before implementation
+**Rule**: Write every requirement in the **GEARS** canonical form before implementation (Constitution Section IV). GEARS = canonical; classic EARS = legacy-compatible subset.
 
-| Pattern | Keyword | Format | Example |
-|---------|---------|--------|---------|
-| **Unconditional** | `System SHALL` | System SHALL [capability] | System SHALL use HTTPS for all API calls |
-| **Event-driven** | `WHEN` | WHEN [event], system SHALL [action] | WHEN login button clicked, SHALL validate credentials |
-| **State-driven** | `WHILE` | WHILE [state], system SHALL [action] | WHILE file uploading, SHALL display progress bar |
-| **Optional** | `WHERE` | WHERE [condition], system MAY [action] | WHERE user is admin, MAY display admin panel |
-| **Constraint** | `IF` | IF [condition], system SHALL [constraint] | IF password fails 3 times, SHALL lock account |
+```
+[Where <static condition>]   # config / feature flag / deploy env / permission
+[While <runtime state>]      # job running / session active / connection open / edit mode
+[When <trigger>]             # triggering event, incl. error/exception events
+the <subject> shall <behavior>.
+```
+
+Rules: concrete subject (not "the system" unless product-wide) · `Where`=static, `While`=runtime · no `IF...then` (use `[Error Handling] When …`) · maps 1:1 to Given-When-Then.
 
 **Application Example**:
 
 ```
 ❌ "Build login feature"
 
-✅ Clear requirements:
-- System SHALL provide login endpoint at /api/auth/login
-- WHEN user submits credentials, system SHALL validate against database
-- IF credentials invalid, system SHALL return 401 with error message
-- WHILE session is active, system SHALL allow access to protected routes
-- WHERE refresh token is provided, system MAY extend session
+✅ Clear requirements (GEARS):
+- the auth service shall expose a login endpoint at /api/auth/login.
+- When a user submits credentials, the auth service shall validate them against the user store.
+- [Error Handling] When credentials are invalid, the auth service shall return 401 with a generic message.
+- While a session is active, the API gateway shall allow access to protected routes.
+- Where a refresh token is provided, the auth service shall issue a new access token.
 ```
 
 **Forbidden phrases**: "quickly", "securely", "well", "appropriately" → Replace with specific criteria
@@ -131,6 +132,16 @@ def login(data: LoginData):
 ```
 
 **Apply**: Always think "how to test this" before implementing
+
+**Goal-Driven Execution** (Karpathy): transform imperative tasks into verifiable goals, then loop until they pass.
+
+| Instead of... | Transform to... |
+|---|---|
+| "Add validation" | "Write tests for invalid inputs, then make them pass" |
+| "Fix the bug" | "Write a test that reproduces it, then make it pass" |
+| "Refactor X" | "Ensure tests pass before AND after" |
+
+GEARS requirements already give the success criteria (Given-When-Then). Strong criteria let the agent loop independently; weak criteria ("make it work") force constant clarification.
 
 ---
 
@@ -276,7 +287,7 @@ def process_user(user: User, state: State) -> ProcessedUser:
 **File Size Guidelines**:
 
 - Target: Under 300-350 lines per file
-- **Maximum: 500 SLOC (hard limit from Constitution)**
+- **Maximum: 700 SLOC for production (hard limit from Constitution); test files: NO LIMIT**
 - One file = one clear responsibility
 - Prefer composition over inheritance (use inheritance only for true 'is-a' relationships)
 
@@ -424,6 +435,28 @@ if z:
     return result
 result = d
 ```
+
+---
+
+### 12. Surgical Changes (Karpathy)
+
+**Problem**: AI edits/refactors code orthogonal to the task, breaking things it didn't understand.
+
+**Rule**: Touch only what the request requires. Clean up only your own mess.
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, **mention it — don't delete it**.
+
+When your changes create orphans:
+- Remove imports/variables/functions that **YOUR** changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+**The test**: every changed line should trace directly to the request.
+
+**Reconciliation with Specter's refactor culture** (IMPORTANT — avoids a contradiction): Specter *does* mandate broader changes — splitting >700-SLOC files, migrating to shared primitives, TRUST quality gates. Those are **explicit, planned tasks** (authored in `/ms.tasks` / requested by the user), NOT silent side-effects of an unrelated task. So "surgical" means **no unrequested/unplanned adjacent changes** — a planned refactor task is itself the request, and within it you stay surgical to that task's scope.
 
 ---
 

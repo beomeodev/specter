@@ -42,7 +42,7 @@ When executing /speckit.plan, the agent must read and strictly adhere to constit
 1. **Focus on Architecture Sections** (Priority Order):
    - **Section II**: Simplicity-First Architecture
      → Prefer built-in tools over external dependencies
-     → Files ≤500 SLOC, functions ≤100 LOC
+     → Files ≤700 SLOC, functions ≤100 LOC
      → Choose simplest solution first
 
    - **Section III**: Modular Design
@@ -420,7 +420,7 @@ Display next steps:
 
 📖 Plan includes:
 - Modular architecture (independent testable units)
-- File size limits (≤500 SLOC)
+- File size limits (≤700 SLOC)
 - Function complexity limits (≤10)
 - Security considerations
 - TAG traceability design

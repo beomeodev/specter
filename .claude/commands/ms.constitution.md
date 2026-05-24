@@ -37,7 +37,7 @@ Read **BOTH** spec.md AND plan.md:
 
 **Rationale**:
 - spec.md contains user-facing requirements → constraints (e.g., "must use bcrypt")
-- plan.md contains technical/architectural decisions → constraints (e.g., "files ≤500 SLOC")
+- plan.md contains technical/architectural decisions → constraints (e.g., "production files ≤700 SLOC (tests: no limit)")
 - Both contribute to project rules in Section IX
 
 ### 3. Extract Constraints with Parallel Agents
@@ -95,7 +95,7 @@ Extract constraints in these categories:
 - Extract constraints from ANYWHERE in the documents (not just specific sections)
 - Look for phrases: "must use", "required", "forbidden", "shall not", "prohibited"
 - Look for version requirements: ">= 18", "≥ 13.0"
-- Look for architectural decisions: "files ≤500 SLOC", "functions ≤100 lines"
+- Look for architectural decisions: "production files ≤700 SLOC (tests: no limit)", "functions ≤100 lines"
 - Ignore user-facing features (those belong in spec, not constitution)
 - Write in ENGLISH only
 
@@ -372,7 +372,7 @@ Replace or create Section IX with merged constraints:
 ### Architecture
 
 ✅ **Required**:
-- Files ≤500 SLOC (code files - docs have no limit)
+- Files ≤700 SLOC (production; tests: no limit) (code files - docs have no limit)
 - Functions ≤100 lines
 - Complexity ≤10 per function
 - AST parsers allowed following safety models (read-only, sandboxed, etc.)
@@ -512,7 +512,7 @@ cp .env.example .env
 
 This project follows the SPECTER workflow:
 
-1. **`/ms.specify`** - Create EARS-compliant requirements
+1. **`/ms.specify`** - Create GEARS-compliant requirements
 2. **`/ms.plan`** - Design architecture and implementation plan
 3. **`/ms.constitution`** - Extract project constraints
 4. **`/ms.tasks`** - Break down work into TAG-tracked tasks
