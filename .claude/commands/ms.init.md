@@ -68,6 +68,28 @@ cp docs/templates/constitution-template.md .specify/memory/constitution.md
 -   This indicates a repository structure issue
 -   Exit with error
 
+#### 2.3 Install GEARS Spec-Template
+
+Step 1 (`specify init --force`) overwrites `.specify/templates/spec-template.md` with
+the upstream (classic EARS) template. Restore the My-Spec GEARS version on top of it —
+the same copy-after-init pattern used for the constitution in Step 2.2:
+
+```bash
+cp docs/templates/spec-template.md .specify/templates/spec-template.md
+```
+
+**Why the core path** (not an `overrides/` entry): the `/speckit.specify` skill creates
+each new `spec.md` by copying `.specify/templates/spec-template.md` directly (it does not
+go through `resolve_template`, so a `templates/overrides/` entry would be ignored on the
+live path). Installing GEARS at the core path is therefore what actually reaches new specs,
+and it must be re-applied after every `specify init --force` (hence here in `/ms.init`).
+
+**IF source file not found**:
+
+-   Display error: "Spec-template missing. Expected: docs/templates/spec-template.md"
+-   This indicates a repository structure issue
+-   Exit with error
+
 ### Step 3: Report Success
 
 Display completion message:
