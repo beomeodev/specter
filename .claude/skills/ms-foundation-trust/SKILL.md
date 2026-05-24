@@ -1,6 +1,6 @@
 ---
 name: ms-foundation-trust
-description: Comprehensive code quality validator enforcing TRUST 5 principles - Test-First (≥85% coverage with pytest/vitest), Readable (≤700 SLOC production files / tests no limit, ≤10 complexity), Unified (strict type checking with mypy/tsc), Secured (OWASP Top 10 implementation patterns + trivy/bandit scanning, cryptographic best practices, input validation, authorization checks), Trackable (complete TAG chain integrity SPEC→TEST→CODE→DOC) with detailed compliance reports and remediation guidance. Use when validating quality before merging PRs, running quality gate checks, checking release readiness, validating TRUST compliance, or performing comprehensive code reviews
+description: Comprehensive code quality validator enforcing TRUST 5 principles - Test-First (≥85% coverage with pytest/vitest), Readable (≤700 SLOC production files / tests no limit, ≤10 complexity), Unified (strict type checking with mypy/tsc), Secured (OWASP Top 10 implementation patterns + trivy/bandit scanning, cryptographic best practices, input validation, authorization checks, adversarial abuse-case review for IDOR/multi-tenant isolation), Trackable (complete TAG chain integrity SPEC→TEST→CODE→DOC) with detailed compliance reports and remediation guidance. Use when validating quality before merging PRs, running quality gate checks, checking release readiness, validating TRUST compliance, or performing comprehensive code reviews
 ---
 
 # Foundation: TRUST 5 Validation
@@ -181,6 +181,24 @@ npm audit --audit-level=high
 # Check for secrets (git-secrets or truffleHog)
 git secrets --scan
 ```
+
+**5. Adversarial Review (Abuse-Case Analysis)**:
+
+The checklist above verifies controls *exist*; adversarial review asks whether they can be *bypassed* for the app's actual data flows. Run it on every endpoint that reads or writes user-scoped data — checklist-only review misses these (a common root-cause class of data-confidentiality leaks). For each endpoint, answer: *who* may call it, with *whose* resource IDs, returning *whose* data?
+
+- ✅ **IDOR / BOLA**: the authorization check must bind the **requester's identity** to the **resource owner** — not merely require "logged in". Actively try substituting another user's ID.
+- ✅ **Multi-tenant isolation**: list/query endpoints must scope the `WHERE` clause to the current principal **server-side**; a client-supplied filter must never *widen* scope.
+  ```python
+  # ❌ Leak: client controls the scope
+  Submission.query.filter_by(owner_id=request.args["owner_id"])
+  # ✅ Scope bound to the authenticated principal
+  Submission.query.filter_by(owner_id=current_user.id)
+  ```
+- ✅ **Mass assignment**: update endpoints must whitelist writable fields (Pydantic/Zod), never bind the raw request body to the model — block a user setting `is_admin` or another `user_id`.
+- ✅ **Business-logic / workflow bypass**: can a step be skipped or replayed (a protected resource before its precondition, a reused one-time token)? Validate state and single-use server-side.
+- ✅ **Minimal response / no PII over-exposure**: return only the fields the caller needs; never leak other principals' identifiers in responses or logs.
+
+Record findings as GEARS `[Security]` requirements with `@SPEC:SEC-*` TAGs and the same PASS/WARNING/CRITICAL severity used elsewhere in this report; delegate fixes to `debug-helper` / `tdd-implementer`.
 
 **For detailed OWASP examples**: See `examples.md` for A01-A10 Before/After code patterns
 
