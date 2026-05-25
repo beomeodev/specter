@@ -135,12 +135,33 @@ def generate_tag_block(
     """
 ```
 
+**`@UPDATED` rule (must reflect reality, not creation time)**: `@UPDATED` is
+**derived from git**, not hand-stamped. For a file already tracked, it is the
+date of the file's last commit (`git log -1 --format=%cs -- <file>`); only for a
+brand-new (untracked) file does it equal `@CREATED` (= today). A hand-maintained
+`@UPDATED` drifts and lies (Trackable failure) — so never set it to "today" on an
+edit unless the file is actually being committed today. If git derivation isn't
+available at generation time, omit `@UPDATED` rather than write a false date.
+
 **Implementation**:
 ```python
+import subprocess
 from datetime import date
 
-def generate_tag_block(lang, tag_id, spec_path, test_path, status="implemented", doc_path=None):
+def _git_last_modified(file_path: str) -> str | None:
+    """Last-commit date (YYYY-MM-DD) for a tracked file, else None (new/untracked)."""
+    out = subprocess.run(
+        ["git", "log", "-1", "--format=%cs", "--", file_path],
+        capture_output=True, text=True,
+    )
+    stamp = out.stdout.strip()
+    return stamp or None
+
+def generate_tag_block(lang, tag_id, spec_path, test_path, status="implemented",
+                       doc_path=None, code_path=None):
     today = date.today().strftime("%Y-%m-%d")
+    # @UPDATED = git last-modified for existing files; today only for new files.
+    updated = (_git_last_modified(code_path) if code_path else None) or today
 
     chain = f"@SPEC:{tag_id} → @TEST:{tag_id} → @CODE:{tag_id}"
     if doc_path:
@@ -152,7 +173,7 @@ def generate_tag_block(lang, tag_id, spec_path, test_path, status="implemented",
 @CHAIN: {chain}
 @STATUS: {status}
 @CREATED: {today}
-@UPDATED: {today}"""
+@UPDATED: {updated}"""
 
     if doc_path:
         content = f"""@CODE:{tag_id}
@@ -162,7 +183,7 @@ def generate_tag_block(lang, tag_id, spec_path, test_path, status="implemented",
 @CHAIN: {chain}
 @STATUS: {status}
 @CREATED: {today}
-@UPDATED: {today}"""
+@UPDATED: {updated}"""
 
     # Language-specific formatting
     if lang in ["python"]:

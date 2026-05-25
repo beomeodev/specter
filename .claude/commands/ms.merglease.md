@@ -94,6 +94,18 @@ if [ -n "$FAILING_CHECKS" ]; then
   # User must confirm via prompt or --force flag
 fi
 
+# 1.4b Override safeguard — classify before admin-merging a red/absent CI.
+# If remote CI is unavailable (e.g. Actions billing/quota), an empty rollup is
+# NOT "all green". Before overriding, validate locally so a real regression
+# doesn't slip in buried under pre-existing baseline failures.
+#
+#   → Recommend delegating to the `local-ci` subagent to reproduce the gates
+#     locally (lint/types/tests/build) and report pass/fail per gate.
+#
+# local-ci REPORTS ONLY — it makes no merge decision. The override call
+# (infra/billing vs env vs real regression vs baseline) stays the operator's,
+# per the admin-override decision framework. Do NOT auto-merge on its output.
+
 # 1.5 Mergeable state
 if [ "$PR_MERGEABLE" = "CONFLICTING" ]; then
   echo "❌ PR #${PR_NUM} 에 머지 충돌이 있어요. 먼저 충돌을 해결하세요:"
@@ -191,35 +203,48 @@ if [ "$COMMITS_SINCE" -eq 0 ]; then
 fi
 ```
 
-### 5.2 Detect feature spec numbers in merged commits
+### 5.2 Compute the next version (SemVer from the last tag — NEVER from spec number)
 
-The project uses **spec-number-as-version** convention (v0.14.0 = after Feature 014, v0.21.0 = after Feature 021). The skill auto-detects the highest spec number in commits since the last tag.
+**Versioning rule (authoritative):** the version is derived **only** from the
+last git tag + the conventional-commit types since it. The spec/feature number
+is **never** an input — `minor` and the spec number diverged long ago
+(e.g. Feature 039 shipped as v0.63.0, not v0.39.0). Computing `v0.<spec>.0` is a
+known bug and is removed here.
 
 ```bash
-# Look for "feat(NNN):" patterns OR "Feature NNN" references in commit subjects
-HIGHEST_SPEC=$(git log "${LAST_TAG}..HEAD" --format='%s' |
-  grep -oE 'feat\(([0-9]{3})\)|Feature ([0-9]{3})' |
-  grep -oE '[0-9]{3}' |
-  sort -un |
-  tail -1)
+# base = last tag (already resolved above as $LAST_TAG / $LAST_TAG_VERSION).
+IFS='.' read -r MAJOR MINOR PATCH <<<"$LAST_TAG_VERSION"
 
-# Also detect if 021 / 022 / etc. is in spec directory names changed since last tag
-HIGHEST_DIR_SPEC=$(git diff --name-only "${LAST_TAG}..HEAD" |
-  grep -oE 'specs/([0-9]{3})-' |
-  grep -oE '[0-9]{3}' |
-  sort -un |
-  tail -1)
+SUBJECTS=$(git log "${LAST_TAG}..HEAD" --no-merges --format='%s')
+BODIES=$(git log "${LAST_TAG}..HEAD" --no-merges --format='%b')
 
-HIGHEST=$(printf '%s\n%s\n' "$HIGHEST_SPEC" "$HIGHEST_DIR_SPEC" | sort -un | tail -1)
+HAS_BREAKING=$(printf '%s\n%s\n' "$SUBJECTS" "$BODIES" | grep -qE '(^|\s)BREAKING CHANGE|!:' && echo 1 || echo "")
+HAS_FEAT=$(printf '%s\n' "$SUBJECTS"   | grep -qE '^feat(\([^)]+\))?!?:' && echo 1 || echo "")
+HAS_FIX=$(printf '%s\n'  "$SUBJECTS"   | grep -qE '^(fix|perf)(\([^)]+\))?!?:' && echo 1 || echo "")
+HAS_OTHER=$(printf '%s\n' "$SUBJECTS"  | grep -qE '^(chore|docs|refactor|build|ci|test|style)(\([^)]+\))?:' && echo 1 || echo "")
 
-# Propose v0.<HIGHEST>.0 (strip leading zero: 021 → 21)
-if [ -n "$HIGHEST" ]; then
-  PROPOSED_VERSION="v0.$((10#$HIGHEST)).0"
-else
-  # Fallback: simple minor bump
-  IFS='.' read -r MAJOR MINOR PATCH <<<"$LAST_TAG_VERSION"
+if [ -n "$HAS_BREAKING" ]; then
+  # Project is 0.x: stay in 0.x, treat breaking as a minor bump until 1.0 is
+  # declared explicitly by the operator (pass an explicit version to override).
   PROPOSED_VERSION="v${MAJOR}.$((MINOR + 1)).0"
+  BUMP_REASON="breaking change (0.x → minor bump; pass explicit version for 1.0)"
+elif [ -n "$HAS_FEAT" ]; then
+  PROPOSED_VERSION="v${MAJOR}.$((MINOR + 1)).0"
+  BUMP_REASON="feat present → minor bump"
+elif [ -n "$HAS_FIX" ]; then
+  PROPOSED_VERSION="v${MAJOR}.${MINOR}.$((PATCH + 1))"
+  BUMP_REASON="fix/perf only → patch bump"
+elif [ -n "$HAS_OTHER" ]; then
+  # Tooling-only chore: default to NO release (suggest --no-release). If the
+  # operator still wants a tag, fall through to a patch bump on confirm.
+  PROPOSED_VERSION="v${MAJOR}.${MINOR}.$((PATCH + 1))"
+  BUMP_REASON="chore/docs only → consider --no-release; else patch bump"
+else
+  PROPOSED_VERSION="v${MAJOR}.${MINOR}.$((PATCH + 1))"
+  BUMP_REASON="no conventional types detected → patch bump (verify manually)"
 fi
+
+echo "🔢 제안 버전: ${PROPOSED_VERSION}  (마지막 태그 ${LAST_TAG} 기준 — ${BUMP_REASON})"
 ```
 
 ### 5.3 Generate release notes
@@ -344,10 +369,18 @@ fi
 📦 Release: ${RELEASE_URL}
 🧹 Branch cleanup: [enabled / skipped]
 
-📋 다음 단계:
-  1. 배포 (CI/CD pipeline 이 v* 태그 트리거하도록 설정되어 있다면 자동)
-  2. 운영자 변경사항 안내 (DB 백업, env vars, admin URL prefix 등)
-  3. 다음 feature 브랜치 작업 시작
+🚀 배포 (자동배포가 아닐 수 있음 — 프로젝트 배포 형태 확인):
+  태그/릴리즈만으로 운영에 반영되지 않는 형태(예: image-baked 컨테이너)라면
+  프로젝트의 배포 절차를 반드시 수행하세요. 일반 절차:
+    1) 배포 환경에서 master 최신화
+    2) 빌드/재배포 (예: docker compose up -d --build)
+    3) 인스턴스/컨테이너가 실제로 교체됐는지 확인 (캐시 hit 로 미반영 주의)
+    4) 반영 안 보이면 캐시 계층(CDN → 서비스워커 → 브라우저) 순서대로 배제
+  ※ CI/CD 가 v* 태그로 자동배포하도록 설정돼 있으면 이 단계는 자동입니다.
+
+📋 그 외:
+  - 운영자 변경사항 안내 (DB 백업, env vars, 스키마 마이그레이션 등)
+  - 다음 feature 브랜치 작업 시작
 ```
 
 ---
@@ -383,11 +416,20 @@ fi
 
 **`--no-release` 플래그로 분리 옵션 유지**: release 까지 자동화하기 부담스러운 경우 (예: 사내 정책상 release approval 필요) merge 만 수행.
 
-### Why spec-number-as-version?
+### Why SemVer-from-last-tag (NOT spec-number-as-version)?
 
-이 프로젝트의 강한 컨벤션. v0.14.0 = Feature 014 머지 후. 일관성 유지가 operator 인지 부담 감소. 자동 detection 로직 (`feat(NNN):` + `specs/NNN-*/` 디렉토리 변화) 이 단순하고 신뢰성 높음.
+옛 버전은 `v0.<spec번호>.0` 을 썼는데 이건 **버그**였음 — `minor` 와 spec 번호가
+오래전 갈라져서 (Feature 039 가 실제로는 v0.63.0 으로 릴리즈됨) 매번 틀린 버전을
+제안하고 operator 가 손으로 교정해야 했음.
 
-Conventional Commits 의 default minor-bump 로직 (feat → minor, fix → patch) 도 fallback 으로 지원.
+**규칙**: 버전 입력은 **오직** (마지막 git 태그) + (그 이후 conventional-commit 타입)뿐.
+spec/feature 번호는 절대 입력이 아님.
+- `feat` 있음 → **minor +1**
+- `fix`/`perf` 만 → **patch +1**
+- `chore`/`docs`/`refactor`/`ci` 만 → 기본 `--no-release` 권장 (원하면 patch +1)
+- `BREAKING CHANGE`/`!` → 0.x 단계라 **minor +1** (1.0 은 operator 가 명시 버전으로 선언)
+
+`git describe` 마지막 태그가 single source of truth. 명시 버전 인자 (`/ms.merglease v0.70.0`) 로 항상 override 가능.
 
 ### Why tag the merge commit (not the PR's feature-branch tip)?
 
@@ -429,7 +471,7 @@ If a step fails (merge conflict, CI block, network): **stop immediately**, repor
                                                                      ↓
                                                             (release tag + GitHub Release)
                                                                      ↓
-                                                          (deploy via CI/CD pipeline)
+                                          (deploy: auto via CI/CD if configured, else run your project's deploy step — see Step 9)
 ```
 
-`/fin` and `/finq` push + open PR. **`/ms.merglease` is the natural follow-up after PR is review-approved**: merge it, cut a versioned release, hand off to the deploy pipeline.
+`/fin` and `/finq` push + open PR. **`/ms.merglease` is the natural follow-up after PR is review-approved**: merge it, cut a versioned release, then deploy — automatically if a v* tag triggers your CI/CD, otherwise run your project's deploy step (image-baked stacks need a rebuild + container recreation; see Step 9).

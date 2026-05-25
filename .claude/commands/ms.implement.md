@@ -228,7 +228,17 @@ generate_tag_block() {
   local tag_id="$2"
   local spec_path="$3"
   local test_path="$4"
+  local code_path="${5:-}"
   local date=$(date +%Y-%m-%d)
+  # @UPDATED reflects git reality, not creation time. For an already-tracked
+  # file use its last-commit date; for a new file it equals @CREATED (today).
+  # A hand-stamped "today" on an unchanged file is a false Trackable signal.
+  local updated="$date"
+  if [ -n "$code_path" ]; then
+    local git_date
+    git_date=$(git log -1 --format=%cs -- "$code_path" 2>/dev/null)
+    [ -n "$git_date" ] && updated="$git_date"
+  fi
 
   case "$lang" in
     ts|js|tsx|jsx)
@@ -240,7 +250,7 @@ generate_tag_block() {
  * @CHAIN: @SPEC:${tag_id} → @TEST:${tag_id} → @CODE:${tag_id}
  * @STATUS: implemented
  * @CREATED: ${date}
- * @UPDATED: ${date}
+ * @UPDATED: ${updated}
  */
 EOF
       ;;
@@ -253,7 +263,7 @@ EOF
 @CHAIN: @SPEC:${tag_id} → @TEST:${tag_id} → @CODE:${tag_id}
 @STATUS: implemented
 @CREATED: ${date}
-@UPDATED: ${date}
+@UPDATED: ${updated}
 """
 EOF
       ;;
@@ -349,6 +359,22 @@ Task(
 ```
 
 **This step is MANDATORY** - Without updating tasks.md, progress tracking breaks.
+
+#### Read-back verification (don't rely on "remembering")
+
+After writing tasks.md, **re-read it and assert** every task for the current
+TAG_ID is now `[x]`. Progress lives only in these checkboxes and the next run
+auto-selects the *first* `[ ]` — a missed checkoff silently re-implements or skips.
+
+```bash
+# Fail loudly if any task for this TAG is still unchecked after the update.
+UNCHECKED=$(grep -nE "^\s*-?\s*\[ \].*${TAG_ID}" "specs/${SPEC_ID}/tasks.md" || true)
+if [ -n "$UNCHECKED" ]; then
+  echo "❌ tasks.md read-back failed — these ${TAG_ID} tasks are still [ ]:"
+  echo "$UNCHECKED"
+  echo "   Fix the checkboxes before reporting completion."
+fi
+```
 
 ### Step 5: Report Output
 

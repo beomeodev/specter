@@ -90,29 +90,28 @@ Analyze current session's work and review `docs/dev_daily.md`:
 
 ## 3. 🚀 Run CI Checks
 
-**Agent Delegation**: This step uses the **quality-gate** agent (Haiku model) to perform TRUST validation before committing:
-- Test coverage ≥85% (MANDATORY)
-- All tests passing
-- Zero type errors
-- Zero lint warnings
-- TAG integrity validation
+**This is the pre-push gate** — and since remote CI is frequently unavailable
+(GitHub Actions billing), this local run is often the *only* CI that ever
+executes. Catch failures here, before the bad push.
 
-Execute the following command to validate code quality:
+**Primary mechanism — `local-ci` subagent** (read-only, reproduces the repo's
+own gates):
 
-```bash
-make ci
+```
+Delegate to the `local-ci` agent. It reads .github/workflows/*.yml and runs the
+locally-runnable gates (lint → types → tests → build) with the project's declared
+runner (backend: `cd backend && uv run ...`), skipping secret/server-dependent
+jobs. It reports pass/fail per gate. It makes NO merge/override decision and edits nothing.
 ```
 
-**CI includes**:
-- `black --check .` (Code formatting)
-- `isort --check-only .` (Import sorting)
-- `ruff check .` (Linting)
-- `mypy src/` (Type checking)
-- `pytest -v --cov=src` (Tests with ≥85% coverage)
+**Then — `quality-gate` agent** (Haiku) for TRUST validation: coverage ≥85%,
+TAG integrity, type/lint clean.
 
 **Result handling**:
-- ✅ **Pass**: Proceed to next step
-- ❌ **Fail**: Display specific error message and **STOP** (don't commit)
+- ✅ **All gates pass**: Proceed to next step.
+- ❌ **Any gate fails**: Display the failing gate + error and **STOP** (don't commit). Fix in the main conversation, then re-run `/fin`.
+
+> Fallback (if no workflow file): `make ci` → `ruff check .` / `mypy src/` / `pytest -v --cov=src` (backend via `uv run`), frontend `npm run lint && npm run typecheck && npm run test -- --run`.
 
 ---
 
