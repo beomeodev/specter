@@ -139,7 +139,7 @@ PR_BODY_FILE=$(ls -t docs/PR_*_BODY.md 2>/dev/null | head -1)
 ```
 🚀 새 PR 생성 중 (base: master)...
 Warning: 23 uncommitted changes
-https://github.com/beomeodev/suseonglm/pull/36
+https://github.com/<org>/<repo>/pull/36
 ```
 
 "어느 PR_BODY 파일을 첨부했는지" 가 출력에 없음. 만약 다른 파일이 첨부됐다면 사용자도 즉시 알 수 없음.
@@ -253,16 +253,16 @@ grep -A 30 "CREATE TABLE <table>" db/migrations/0001_initial.sql
 grep "ALTER TABLE <table>" db/migrations/*.sql
 
 # 3. File path existence (each path mentioned in plan §"Project Structure")
-test -f backend/src/suseonglm/<path> || echo "MISSING: <path>"
+test -f backend/src/<package>/<path> || echo "MISSING: <path>"
 
 # 4. HTTP status convention (auth gating: 401 vs 403)
-grep -rE "HTTP_(401|403)" backend/src/suseonglm/middleware/
+grep -rE "HTTP_(401|403)" backend/src/<package>/middleware/
 
 # 5. Generic error body strings (404 / 422 / 409 정확한 wording)
-grep -rhE '"detail":\s*"[^"]+"' backend/src/suseonglm/ | sort -u | head -10
+grep -rhE '"detail":\s*"[^"]+"' backend/src/<package>/ | sort -u | head -10
 
 # 6. Required env vars at boot (FR-INF 가 새 env 가정 시 conflict 확인)
-grep -E "os.environ\[|getenv\b" backend/src/suseonglm/config.py
+grep -E "os.environ\[|getenv\b" backend/src/<package>/config.py
 
 # 7. Existing test fixtures inventory
 grep -h "@pytest.fixture" backend/tests/conftest.py backend/tests/*/conftest.py
@@ -487,7 +487,7 @@ COUNT=$(echo "$MIGRATION_REFS" | wc -l)
 [ "$COUNT" -le 1 ] || echo "DRIFT: multiple migration names: $MIGRATION_REFS"
 
 # 2. File path consistency (참조된 모든 path 가 실제 존재하는지)
-PATH_REFS=$(grep -hoE 'backend/src/suseonglm/[a-z_/]+\.py' "$SPEC_DIR"/{spec,plan,tasks}.md | sort -u)
+PATH_REFS=$(grep -hoE 'backend/src/<package>/[a-z_/]+\.py' "$SPEC_DIR"/{spec,plan,tasks}.md | sort -u)
 for p in $PATH_REFS; do
   [ -f "$p" ] || echo "DRIFT: $p missing"
 done
