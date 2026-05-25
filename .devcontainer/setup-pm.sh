@@ -19,11 +19,11 @@
 #   exec $SHELL -l
 #
 # 사용:
-#   np suseonglm slm
-#   pm slm cc
-#   pm slm cx
-#   pm slm cr
-#   pm slm gm
+#   np myapp map
+#   pm map cc
+#   pm map cx
+#   pm map cr
+#   pm map gm
 # ============================================================================
 
 set -euo pipefail
@@ -64,7 +64,7 @@ cat > "$NP_BIN" <<'NP_SCRIPT'
 #   np <project_name> <ticker> [template_source]
 #
 # 예시:
-#   np suseonglm slm
+#   np myapp map
 #   np airchanger acp
 #   np myapp map ~/projects/spt
   np myapp map git@github.com:beomeodev/specter.git
@@ -94,7 +94,7 @@ if [ -z "$PROJECT_NAME" ] || [ -z "$TICKER" ]; then
 ❌ 사용법: np <project_name> <ticker> [template_source]
 
 예시:
-  np suseonglm slm
+  np myapp map
   np airchanger acp
   np myapp map ~/projects/spt
   np myapp map git@github.com:beomeodev/specter.git
@@ -110,7 +110,7 @@ esac
 
 case "$TICKER" in
   [A-Za-z][A-Za-z0-9][A-Za-z0-9]) ;;
-  *) fail "ticker는 3글자 영문/숫자 조합을 권장합니다. 예: slm, acp, sab" ;;
+  *) fail "ticker는 3글자 영문/숫자 조합을 권장합니다. 예: map, acp, sab" ;;
 esac
 
 TICKER="$(echo "$TICKER" | tr '[:upper:]' '[:lower:]')"
@@ -345,15 +345,15 @@ esac
 # 예시:
 #   pm spt cc
 #   pm sab cx
-#   pm slm gm
+#   pm map gm
 function pm() {
     if [ -z "${1:-}" ] || [ -z "${2:-}" ]; then
         echo "❌ 사용법: pm <project_ticker> <agent_command>"
         echo ""
         echo "예시:"
         echo "  pm spt cc"
-        echo "  pm slm cx"
-        echo "  pm slm gm"
+        echo "  pm map cx"
+        echo "  pm map gm"
         return 1
     fi
 
@@ -378,7 +378,7 @@ function pm() {
 
     if [ ! -d "$proj_root/$ticker" ]; then
         echo "❌ 프로젝트 디렉토리 없음: $proj_root/$ticker"
-        echo "새 프로젝트 생성 예시: np suseonglm slm"
+        echo "새 프로젝트 생성 예시: np myapp map"
         return 1
     fi
 
@@ -444,9 +444,9 @@ cat <<FINAL
   source ~/.bashrc  # bash인 경우
 
 사용 예시:
-  np suseonglm slm
-  pm slm cc
-  pm slm cx
-  pm slm cr
-  pm slm gm
+  np myapp map
+  pm map cc
+  pm map cx
+  pm map cr
+  pm map gm
 FINAL

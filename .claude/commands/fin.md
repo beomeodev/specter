@@ -130,7 +130,7 @@ TAG integrity, type/lint clean.
 STAGE_PATHS=(
   # examples:
   # "specs/018-admin-analytics-page"
-  # "backend/src/suseonglm/dashboard/group_performance.py"
+  # "backend/src/<package>/dashboard/group_performance.py"
   # "backend/tests/dashboard/unit/test_group_performance.py"
   # "frontend/app/(admin)/[adminPrefix]/dashboard/page.tsx"
   # "frontend/tests/admin/admin-analytics-page.test.tsx"
