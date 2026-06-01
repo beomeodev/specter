@@ -74,32 +74,58 @@ Stopping now.
 
 **Only if the Feature Map input gate passes**, continue to Step 0.2.
 
-### 0.2 REQUIRE Feature Map Checklist (HARD GATE)
+### 0.2 REQUIRE Global And Per-Feature Checklists (HARD GATE)
 
-Before creating a spec, verify that `/ms.checklist` has already validated the
-Feature Map. This prevents the native `/speckit.checklist` flow from becoming the
-first real validation point, which would be too late.
+Before creating a spec, verify that `/ms.checklist --global` has validated the
+whole Feature Map and `/ms.checklist` has validated the selected Feature. This
+keeps Spec-Kit's native checklist from becoming the first real validation point,
+which would be too late.
 
 **Checks:**
 
-1. `docs/prd/feature-map.checklist.md` exists.
-2. The audit contains `**Result**: PASS` or `**Result**: WARN`.
-3. The audit does not contain `**Result**: FAIL`.
-4. The audit's `Feature Map SHA256` matches the current `docs/prd/feature-map.md` SHA256.
+1. Identify the Feature number from the input's `## Feature NNN:` heading before
+   checking audit files.
+2. `docs/prd/feature-map.checklist.md` exists.
+3. The global audit contains `**Mode**: global`.
+4. The global audit contains `**Result**: PASS` or `**Result**: WARN`.
+5. The global audit does not contain `**Result**: FAIL`.
+6. The global audit's `Feature Map SHA256` matches the current
+   `docs/prd/feature-map.md` SHA256.
+7. `docs/prd/checklists/feature-NNN.checklist.md` exists for the selected Feature.
+8. The per-Feature audit contains `**Mode**: per-feature` and the same Feature NNN.
+9. The per-Feature audit contains `**Result**: PASS` or `**Result**: WARN`.
+10. The per-Feature audit does not contain `**Result**: FAIL`.
+11. The per-Feature audit's `Feature Map SHA256` matches the current
+    `docs/prd/feature-map.md` SHA256.
 
-**If the audit is missing, failed, or stale**, refuse and exit:
+**If the global audit is missing, failed, or stale**, refuse and exit:
 
 ```text
-⛔ /ms.specify requires a passing Feature Map checklist.
+⛔ /ms.specify requires a passing global Feature Map checklist.
+
+Run this first:
+  /ms.checklist --global
+
+Fix any Blocking Fixes in docs/prd/feature-map.checklist.md, re-run /ms.checklist --global,
+then retry the Feature checklist.
+Stopping now.
+```
+
+**If the per-Feature audit is missing, failed, stale, or for a different Feature**, refuse and exit:
+
+```text
+⛔ /ms.specify requires a passing checklist for this Feature.
 
 Run this first:
   /ms.checklist
 
-Fix any Blocking Fixes in docs/prd/feature-map.checklist.md, re-run /ms.checklist, then retry /ms.specify.
+This validates the selected Feature against its PRD references and PRD Commitment Index rows.
+Fix any Blocking Fixes in docs/prd/checklists/feature-NNN.checklist.md, re-run /ms.checklist,
+then retry /ms.specify.
 Stopping now.
 ```
 
-Only if this gate passes, continue to Step 0.5.
+Only if both gates pass, continue to Step 0.5.
 
 ### 0.5 Reconcile Feature progress + pick next (refreshes the Progress Ledger)
 
@@ -386,5 +412,5 @@ After `/ms.specify`:
 1. Run `/ms.clarify` if the generated spec contains open questions or ambiguous decisions.
 2. Then proceed to `/ms.plan` for implementation planning.
 
-`/ms.checklist` is no longer used here; it is the pre-spec Feature Map gate and
-should already have passed before this command ran.
+`/ms.checklist --global` and the per-Feature `/ms.checklist` are pre-spec gates
+and should already have passed before this command ran.

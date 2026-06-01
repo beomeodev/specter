@@ -112,13 +112,15 @@ if [ -f "$SPECKIT_SPECIFY" ] && ! grep -q "MS_FEATUREMAP_GATE_START" "$SPECKIT_S
 > ⛔ **FEATURE MAP + CHECKLIST GATE.** Do NOT create or update a spec unless:
 > 1. The input is a Feature section produced by `/ms.featuremap` (a `## Feature NNN:`
 >    block containing `### In scope`, `### Explicitly out of scope`, `### Done criteria`).
-> 2. `docs/prd/feature-map.checklist.md` exists and its result is PASS or WARN.
-> 3. The checklist audit's Feature Map SHA256 matches the current `docs/prd/feature-map.md`.
-> REFUSE if: no Feature Map file exists (`docs/prd/feature-map*.md`), OR the checklist
-> is missing/failed/stale, OR the input is freeform / inline ad-hoc text / derived from
-> an existing `spec.md`.
-> On refusal, tell the user to run `/ms.featuremap @docs/prd/PRD.md`, then `/ms.checklist`,
-> then paste a Feature section. Prefer the `/ms.specify` wrapper over direct calls.
+> 2. `docs/prd/feature-map.checklist.md` exists, is `**Mode**: global`, and its result is PASS or WARN.
+> 3. `docs/prd/checklists/feature-NNN.checklist.md` exists for the selected Feature, is
+>    `**Mode**: per-feature`, and its result is PASS or WARN.
+> 4. Both checklist audits' Feature Map SHA256 values match the current `docs/prd/feature-map.md`.
+> REFUSE if: no Feature Map file exists (`docs/prd/feature-map*.md`), OR either checklist
+> is missing/failed/stale, OR the per-Feature checklist is for a different Feature, OR the
+> input is freeform / inline ad-hoc text / derived from an existing `spec.md`.
+> On refusal, tell the user to run `/ms.featuremap @docs/prd/PRD.md`, then `/ms.checklist --global`,
+> then `/ms.checklist`, then paste the checked Feature section. Prefer the `/ms.specify` wrapper over direct calls.
 <!-- MS_FEATUREMAP_GATE_END -->
 GATE
 )
@@ -159,15 +161,16 @@ Display completion message:
 
 0. (Write your PRD first, e.g. docs/prd/PRD.md)
 1. /ms.featuremap @docs/prd/PRD.md - Decompose the PRD into a Feature Map
-2. /ms.checklist - Validate PRD coverage, Feature ownership, and DAG before /ms.specify
-3. /ms.specify - Create feature specification (paste a Feature section from the Feature Map)
-4. /ms.clarify - Clarify requirements (if needed)
-5. /ms.plan - Create implementation plan
-6. /ms.constitution - Establish project baseline once after the first plan, if not already established
-7. /ms.tasks - Generate implementation tasks
-8. /ms.analyze - Validate spec-plan-tasks document consistency
-9. /ms.implement - Start implementation
-10. /ms.review - Run code review and executable gates before /fin
+2. /ms.checklist --global - Validate whole PRD coverage, Feature ownership, and DAG
+3. /ms.checklist - Validate the next Feature against its PRD references
+4. /ms.specify - Create feature specification (paste the checked Feature section from the Feature Map)
+5. /ms.clarify - Clarify requirements (if needed)
+6. /ms.plan - Create implementation plan
+7. /ms.constitution - Establish project baseline once after the first plan, if not already established
+8. /ms.tasks - Generate implementation tasks
+9. /ms.analyze - Validate spec-plan-tasks document consistency
+10. /ms.implement - Start implementation
+11. /ms.review - Run code review and executable gates before /fin
 
 ```
 
@@ -200,4 +203,4 @@ Then run /ms.init again.
 
 ## Next Command
 
-After `/ms.init`: Write your PRD, run `/ms.featuremap @docs/prd/PRD.md`, then run `/ms.checklist`. `/ms.specify` consumes a Feature section from the checked Feature Map and refuses to run when the checklist audit is missing or failed.
+After `/ms.init`: Write your PRD, run `/ms.featuremap @docs/prd/PRD.md`, then run `/ms.checklist --global`. Each Feature cycle starts with `/ms.checklist`, and `/ms.specify` refuses to run when either the global or per-Feature audit is missing, failed, or stale.
