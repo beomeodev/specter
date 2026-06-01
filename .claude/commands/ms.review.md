@@ -4,16 +4,16 @@ description: "Code quality review after implementation"
 
 # /ms.review - Code Quality Review
 
-Performs deep code quality review after `/ms.implement` completes. Focuses on code design, maintainability, and best practices (NOT requirements validation - that's `/speckit.checklist`).
+Performs deep code quality review and executable code-gate validation after `/ms.implement` completes. Feature Map validation belongs to `/ms.checklist`; pre-implementation document consistency belongs to `/ms.analyze`.
 
 ## Overview
 
-**Purpose**: Review implemented code quality AFTER `/ms.implement`
+**Purpose**: Review implemented code quality AFTER `/ms.implement` and decide whether the branch is ready for `/fin`.
 
 **NOT for**:
-- ❌ Requirements validation (use `/speckit.checklist`)
-- ❌ TRUST metrics (use `/ms.analyze`)
-- ❌ Build/test/lint checks (use `/ms.analyze` Level 2)
+- ❌ PRD-to-Feature-Map validation (use `/ms.checklist` before `/ms.specify`)
+- ❌ Drafting or clarifying requirements (use `/ms.specify` and `/ms.clarify`)
+- ❌ Pre-implementation document consistency (use `/ms.analyze` before `/ms.implement`)
 
 **FOR**:
 - ✅ Code design quality (architecture, patterns, DRY)
@@ -21,6 +21,7 @@ Performs deep code quality review after `/ms.implement` completes. Focuses on co
 - ✅ Performance issues (N+1 queries, unnecessary computations)
 - ✅ Security deep-dive (auth gaps, logging leaks, error exposure)
 - ✅ Test quality (AAA pattern, boundary tests, mock overuse)
+- ✅ Post-implementation code gates (lint, typecheck, tests, build, coverage, TAG integrity)
 
 ## Workflow Position
 
@@ -28,7 +29,23 @@ Performs deep code quality review after `/ms.implement` completes. Focuses on co
 /ms.implement → /ms.review → /fin
 ```
 
-**When to run**: After implementing all tasks, before final commit
+**When to run**: After implementing all tasks, before final commit.
+
+`/ms.analyze` remains the pre-implementation document gate: spec ↔ plan ↔ tasks,
+Constitution alignment, and drift detection. `/ms.review` owns the post-implementation
+code gate, so a separate `analyze --code` path is unnecessary.
+
+## Post-Implementation Gate Ownership
+
+When `/ms.review` runs after implementation, it shall verify both qualitative code
+review findings and executable gates:
+
+- local CI gates via the `local-ci` agent: lint → types → tests → build, using the
+  repository's own workflow commands
+- TRUST code checks via the `quality-gate` or `trust-validator` agent: coverage,
+  file/function size, complexity, strict typing, security scan, TAG integrity
+- unresolved HIGH/CRITICAL review issues persisted to `.specify/review-state.txt`
+  so `/fin` can block or require explicit acknowledgement
 
 ## Execution Steps
 
@@ -350,6 +367,49 @@ Aggregate issues from automated tools + AI analysis.
 
 ---
 
+### Step 6.5: Executable Code Gates
+
+Run the code gates that make the implemented branch merge-ready.
+
+#### A. Local CI Gate
+
+Delegate to the `local-ci` agent. It reads the repository's CI configuration and
+runs locally reproducible gates in this order:
+
+```text
+lint → types → tests → build
+```
+
+Rules:
+
+- Use the repository's declared runner and working directories.
+- Skip secret-dependent or server-dependent jobs with an explicit reason.
+- The agent reports only pass/fail per gate and edits nothing.
+- Any failing executable gate is a HIGH issue at minimum; a failing test, typecheck,
+  lint, or build gate is CRITICAL when it affects changed code.
+
+#### B. TRUST Code Gate
+
+Run `quality-gate` or `trust-validator` for code-level TRUST checks:
+
+- coverage threshold from Constitution Section V
+- production file SLOC and function length limits
+- function complexity limits
+- strict typing and zero-warning lint policy
+- security scan results where tooling exists
+- TAG chain integrity: `@SPEC → @TEST → @CODE → @DOC`
+
+#### C. Gate Result Handling
+
+- If CRITICAL gates fail, mark review as **NOT READY** and write
+  `.specify/review-state.txt`.
+- If only HIGH/MEDIUM warnings remain, mark review as **READY WITH WARNINGS** and
+  persist the warning summary for `/fin` acknowledgement.
+- If all executable gates and deep review checks pass, remove stale
+  `.specify/review-state.txt` if it exists.
+
+---
+
 ### Step 7: Report Generation
 
 ```bash
@@ -427,7 +487,7 @@ Skip pattern analysis for faster review:
 ```bash
 /ms.review --quick
 # Skips: ultrathink pattern analysis (Step 5.5)
-# Runs: Regular checks only (30% faster)
+# Still runs: executable gates in Step 6.5
 ```
 
 ### Verbose Mode (NEW)
@@ -456,13 +516,16 @@ For quick review during development:
 
 ```bash
 /ms.review --fast
-# Skips: automated tools (jscpd, complexity analysis)
-# Runs: only AI-based pattern detection
+# Skips: optional slow static-analysis tools (jscpd, extended complexity scans)
+# Still runs: local CI gate + TRUST critical checks in Step 6.5
 ```
+
+`--fast` must never skip lint, typecheck, tests, build, or critical TAG checks.
+Those are the post-implementation gate owned by `/ms.review`.
 
 ### Focus on Category
 
-Review specific aspect only:
+Review a specific qualitative aspect while still running executable gates:
 
 ```bash
 /ms.review --focus security
@@ -532,15 +595,16 @@ The review state file contains:
 
 | Command | Purpose | Checks | When to Run |
 |---------|---------|--------|-------------|
-| `/ms.analyze` | Structure + TRUST validation | Tests run, lint pass, coverage ≥85%, TAG integrity | Before `/ms.implement` |
-| `/ms.review` | Code quality + design | Naming, architecture, performance, security deep-dive | After `/ms.implement` |
-| `/speckit.checklist` | Requirements validation | Spec requirements met, functional correctness | Any time (manual) |
-| `/fin` | Final commit | CI checks, warnings acknowledgment | After all reviews pass |
+| `/ms.checklist` | Feature Map gate | PRD coverage, Feature ownership, DAG, stub-forward, template completeness | After `/ms.featuremap`, before `/ms.specify` |
+| `/ms.analyze` | Pre-implementation document gate | spec ↔ plan ↔ tasks consistency, Constitution alignment, drift detection | Before `/ms.implement` |
+| `/ms.review` | Post-implementation code gate | Design review, lint/types/tests/build, coverage, security, TAG integrity | After `/ms.implement` |
+| `/fin` | Final commit | Review-state acknowledgement, docs sync, commit, push, PR | After `/ms.review` passes |
 
 **Mental model**:
-- `/ms.analyze` = "Can I build?" (structure)
-- `/ms.review` = "Should I merge?" (quality)
-- `/speckit.checklist` = "Did I build the right thing?" (requirements)
+- `/ms.checklist` = "Did the PRD become the right Features?"
+- `/ms.analyze` = "Are the implementation documents coherent enough to build?"
+- `/ms.review` = "Is the implemented branch ready to publish?"
+- `/fin` = "Commit, push, and open/update the PR."
 
 ---
 

@@ -403,10 +403,9 @@ Display next steps:
 
 🎯 Next Steps:
 1. Review generated code and tests
-2. Run tests: npm test (or pytest)
-3. **REQUIRED**: Update tasks.md checklist - mark completed tasks with [x]
-4. Run `/ms.implement` again for next TAG
-5. All TAG blocks auto-generated ✅
+2. Confirm tasks.md was auto-updated and read-back verified
+3. Run `/ms.implement` again for the next pending TAG
+4. When all tasks are complete, run `/ms.review` for code quality and executable gates
 ```
 
 ## TAG Block Format
@@ -508,11 +507,10 @@ Please check the error message above and retry.
 
 After `/ms.implement`:
 
-1. Verify TAG blocks in generated files
-2. Run tests to verify implementation
-3. **REQUIRED**: Update tasks.md checklist - mark completed tasks with [x]
-4. Run `/ms.implement` again to implement next TAG
-5. Commit changes with TAG ID in commit message
+1. Verify TAG blocks in generated files.
+2. Verify tasks.md was marked complete by the command's mandatory read-back check.
+3. Run `/ms.implement` again until no pending TAGs remain.
+4. Run `/ms.review` before `/fin`; review owns tests, lint, typecheck, build, coverage, and TAG integrity gates.
 
 ## Notes
 

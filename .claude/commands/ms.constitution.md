@@ -1,739 +1,242 @@
 ---
-description: "Extract project constraints from `plan.md` to constitution `Section IX`"
+description: "Establish project-specific Constitution Section IX after the first implementation plan"
 ---
 
-# /ms.constitution - Extract Project Constraints & Rules
+# /ms.constitution - Establish Project Baseline Rules
 
-Extracts project-specific constraints from spec.md and plan.md, then updates:
-1. **Constitution Section IX**: Technical constraints (dependencies, architecture, security)
-2. **AGENTS.md**: Project-specific coding rules with examples (300-500 tokens)
+Extract durable project-specific constraints from the first mature `spec.md` and
+`plan.md`, then update:
 
-## Overview
+1. **Constitution Section IX**: project-wide technical constraints
+2. **AGENTS.md**: concrete coding rules and verification checks
+3. **README.md**: project README initialization, if the root README is still the
+   SPECTER template
 
-This command runs AFTER `/ms.plan` to extract:
-- **Technical constraints** → Constitution Section IX (what technologies/patterns to use)
-- **Coding patterns** → AGENTS.md Project Rules (how to write code in this project)
+This command normally runs **once**, after the first Feature reaches `/ms.plan`.
+It is not a per-Feature ceremony. Later Features should use the established
+Constitution and only re-run this command when the user explicitly wants to
+revise durable project rules.
 
-**Why after /ms.plan?**
-- plan.md contains architecture decisions, tech stack choices, and file structure
-- These are essential for extracting meaningful project constraints
-- spec.md alone doesn't have enough technical detail
+## Why It Runs After The First Plan
 
-Both Constitution and AGENTS.md are sourced from spec.md and plan.md but serve different purposes:
-- **Constitution**: High-level project rules and constraints (what to use)
-- **AGENTS.md**: Concrete code examples and verification checklists (how to code)
+Feature Map shows the product shape, but `plan.md` is the first artifact that
+contains concrete architecture, dependencies, file structure, and verification
+strategy. Section IX should capture rules that apply across future Features, not
+Feature-local implementation details.
+
+## Workflow Position
+
+```text
+/ms.plan → /ms.constitution   # normally once, first planned Feature only
+/ms.plan → /ms.tasks          # normal path after baseline exists
+```
+
+## GEARS Contract
+
+- When Section IX is empty or still contains template placeholders,
+  `/ms.constitution` shall extract durable project-wide constraints from
+  `spec.md` and `plan.md`.
+- When Section IX is already populated, `/ms.constitution` shall not silently
+  accumulate new rules; it shall stop and ask for explicit user intent before
+  replacing or amending the baseline.
+- When a decision is Feature-local, `/ms.constitution` shall leave it in
+  `plan.md` or recommend an ADR instead of promoting it to Section IX.
+- When AGENTS.md contains `PROJECT_RULES_START` markers, `/ms.constitution` shall
+  replace only the generated block between those markers.
 
 ## Execution Steps
 
-### 1. Read Constitution
+### Step 0: Prerequisites
 
-Load current constitution from `.specify/memory/constitution.md`
+Read these files in full:
 
-### 2. Read Source Documents
+- `.specify/memory/constitution.md`
+- `specs/[spec-id]/spec.md`
+- `specs/[spec-id]/plan.md`
+- `AGENTS.md` if it exists
 
-Read **BOTH** spec.md AND plan.md:
-- **spec.md**: User requirements, technical decisions
-- **plan.md**: Architectural decisions, implementation constraints
+If Constitution, `spec.md`, or `plan.md` is missing, stop and tell the user which
+upstream command must run first.
 
-**Rationale**:
-- spec.md contains user-facing requirements → constraints (e.g., "must use bcrypt")
-- plan.md contains technical/architectural decisions → constraints (e.g., "production files ≤700 SLOC (tests: no limit)")
-- Both contribute to project rules in Section IX
+### Step 1: Baseline Guard
 
-### 3. Extract Constraints with Parallel Agents
+Inspect Constitution Section IX.
 
-**This workflow always uses 3 parallel agents** (constitution extraction is inherently multi-dimensional).
+Proceed automatically only if Section IX is empty, placeholder-only, or clearly
+marked as not yet established.
 
-#### Step 1: Detect AGENTS.md Files
+If Section IX already contains real project rules, stop with this message:
 
-```bash
-# Check which AGENTS.md files exist
-AGENTS_ROOT=$([ -f "AGENTS.md" ] && echo "1" || echo "0")
-AGENTS_FRONTEND=$([ -f "frontend/AGENTS.md" ] && echo "1" || echo "0")
-AGENTS_BACKEND=$([ -f "backend/AGENTS.md" ] && echo "1" || echo "0")
-AGENTS_TOTAL=$((AGENTS_ROOT + AGENTS_FRONTEND + AGENTS_BACKEND))
+```text
+⚠️ Project Constitution baseline already exists.
+
+/ms.constitution is normally a one-time baseline command, not a per-Feature step.
+Re-run it only if you intentionally want to revise durable project-wide rules.
+
+Stopping now.
 ```
 
-#### Step 2: Launch 3 Agents in PARALLEL
+### Step 2: Extract Durable Constraints
 
-**CRITICAL**: Use single message with 3 Task calls (not sequential).
+Extract only constraints that should apply to multiple future Features.
 
-**Agent 1: constitution-extractor** (subagent_type="constitution-extractor")
+Promote these categories:
 
-```
-Extract project-specific constraints from spec.md and plan.md for Constitution Section IX.
+- Technology stack and required versions
+- Required dependencies and forbidden dependencies
+- Architecture patterns that future Features must follow
+- Security requirements that apply across the product
+- Performance targets that are product-wide
+- Test, lint, type, and TAG requirements that differ from the default
 
-**spec.md**:
-{spec_content}
+Do **not** promote:
 
-**plan.md**:
-{plan_content}
+- One Feature's endpoint list
+- One Feature's UI copy or layout
+- One Feature's migration implementation detail
+- Temporary scaffolding decisions
+- Business behavior that belongs in `spec.md`
 
-Extract constraints in these categories:
+### Step 3: Validate With Agents
 
-**Technology Stack**:
-✅ Required: Languages, frameworks, minimum versions
-❌ Forbidden: Prohibited technologies, patterns
+Use the same extraction capabilities as before, but synthesize them through the
+one-time baseline rule:
 
-**Dependencies**:
-✅ Required: Essential libraries, tools, services
-❌ Forbidden: Prohibited dependencies
+- `constitution-extractor`: candidate Section IX constraints
+- `trust-validator`: conflict and completeness validation
+- AGENTS rule generation: concrete examples/checks for existing AGENTS.md files
 
-**Architecture**:
-✅ Required: Mandatory patterns, file limits, complexity limits
-❌ Forbidden: Anti-patterns, prohibited structures
+Resolve conflicts in favor of `spec.md` for product requirements and `plan.md`
+for implementation architecture, unless Constitution already has a stricter
+non-negotiable rule.
 
-**Security**:
-✅ Required: Authentication methods, encryption, validation rules
-❌ Forbidden: Security anti-patterns
+### Step 4: Update Section IX
 
-**Performance**:
-✅ Required: Response time limits, throughput requirements
-❌ Forbidden: Performance anti-patterns
-
-**Instructions**:
-- Extract constraints from ANYWHERE in the documents (not just specific sections)
-- Look for phrases: "must use", "required", "forbidden", "shall not", "prohibited"
-- Look for version requirements: ">= 18", "≥ 13.0"
-- Look for architectural decisions: "production files ≤700 SLOC (tests: no limit)", "functions ≤100 lines"
-- Ignore user-facing features (those belong in spec, not constitution)
-- Write in ENGLISH only
-
-Output format:
-```markdown
-## IX. Project-Specific Constraints
-
-*Auto-generated by `/ms.constitution` from spec.md and plan.md on {date}*
-
-### Technology Stack
-
-✅ **Required**:
-- {constraint 1}
-- {constraint 2}
-
-❌ **Forbidden**:
-- {constraint 1}
-
-### Dependencies
-
-...
-```
-```
-
-**Agent 2: AGENTS.md Rules Generator** (subagent_type="general-purpose")
-
-```
-Generate project-specific coding rules for existing AGENTS.md files.
-
-Note: This uses general-purpose agent (not dedicated agent file)
-because it's highly specific to AGENTS.md generation workflow.
-
-Workflow:
-1. Detect which AGENTS.md files exist (root, frontend/, backend/)
-2. Extract coding patterns from plan.md
-3. Find concrete examples from existing code
-4. Distribute rules appropriately:
-   - Root: Cross-cutting (API contracts, auth flow, data formats)
-   - Frontend: State management, component patterns, UI rules
-   - Backend: Database access, API implementation, external services
-5. Ensure 300-500 tokens per file
-6. Link all rules to source (FR-XXX/STEP-XXX)
-7. Return: Rules per file with token counts
-```
-
-**Agent 3: trust-validator** (subagent_type="trust-validator", level=1)
-
-```
-Validate extracted constraints for conflicts and completeness (level 1).
-
-Note: Use level 1 for basic structure validation of Constitution constraints.
-```
-
-**Debug Output** (for transparency):
-```json
-{
-  "agents_md_detected": {
-    "root": true,
-    "frontend": true,
-    "backend": false,
-    "total": 2
-  },
-  "agents_spawned": 3,
-  "tasks": [
-    "Constraint extraction for Section IX",
-    "Rules generation for 2 AGENTS.md files",
-    "Validation of constraints and rules"
-  ]
-}
-```
-
-#### Step 3: Synthesize Results
-
-**Merge findings from all agents**:
-- Constraints from constitution-extractor agent
-- Rules from AGENTS.md Rules Generator (if AGENTS.md files exist)
-- Validation warnings from trust-validator agent
-- Resolve any conflicts identified
-- Prepare final content for Constitution Section IX and AGENTS.md files
-
-### 4. Merge with Existing Section IX
-
-**IF Section IX already exists in constitution**:
-- Extract existing constraints
-- Merge with newly extracted constraints
-- Deduplicate (keep newer version on conflict)
-- Preserve manual additions (constraints not from spec/plan)
-
-**Merge Logic**:
-```typescript
-function mergeConstraints(existing: Constraint[], extracted: Constraint[]): Constraint[] {
-  const merged = [...existing];
-
-  for (const newConstraint of extracted) {
-    const existingIndex = merged.findIndex(c =>
-      c.category === newConstraint.category &&
-      similarText(c.text, newConstraint.text) > 0.8  // 80% similarity
-    );
-
-    if (existingIndex === -1) {
-      // New constraint - add it
-      merged.push(newConstraint);
-    } else {
-      // Duplicate - keep newer (extracted from latest spec/plan)
-      merged[existingIndex] = newConstraint;
-    }
-  }
-
-  return merged;
-}
-```
-
-### 5. Extract Project-Specific Rules for AGENTS.md
-
-**After extracting Constitution constraints, extract project-specific coding rules for AGENTS.md files**
-
-#### Target Files (Auto-detect)
-
-Distribute rules to existing AGENTS.md files only:
-
-1. **Root AGENTS.md** (always update if exists)
-   - Cross-cutting rules: API contracts, auth flow, data formats
-
-2. **frontend/AGENTS.md** (if `frontend/` directory exists)
-   - Frontend-specific: State management, component patterns, UI rules
-
-3. **backend/AGENTS.md** (if `backend/` directory exists)
-   - Backend-specific: Database access, API implementation, external services
-
-#### What to Extract per File
-
-**Root AGENTS.md** (cross-cutting):
-- API contracts both sides must follow
-- Authentication/Authorization flow
-- Shared data formats (JSON schemas)
-- Error code conventions
-
-**frontend/AGENTS.md** (if exists):
-- State management patterns (Redux, Zustand, etc.)
-- Component structure rules
-- API client configuration
-- UI/UX constraints from spec
-
-**backend/AGENTS.md** (if exists):
-- Database access patterns (repository, ORM usage)
-- API endpoint implementation
-- External service integrations (Stripe, SendGrid, etc.)
-- Background job patterns
-
-**✅ Extract**: Tech stack, architecture patterns, security rules, performance targets
-**❌ Don't Extract**: Business logic, generic principles, timelines, non-coding decisions
-
-#### Token Budget Constraint
-
-**Per AGENTS.md file**: 300-500 tokens
-
-**If exceeding limit**: Remove least critical categories or shorten examples
-
-#### Format (Same for All AGENTS.md Files)
-
-Add at END of each AGENTS.md:
-
-```markdown
----
-
-## 🎯 Project-Specific Rules
-
-> Source: spec.md, plan.md | Updated: {DATE}
-
-### {Category}
-**{Rule Name}** (spec: FR-XXX or plan: STEP-XXX)
-```{language}
-# Code example (≤10 lines)
-```
-Check: [ ] {Verification point}
-
----
-```
-
-**Per Rule**: One sentence + 5-10 line code + source link (FR-XXX/STEP-XXX) + 1-2 checks
-
-#### AI Extraction Prompt
-
-```
-Extract project-specific coding rules from spec.md and plan.md.
-Distribute to AGENTS.md files (if they exist):
-
-1. Root AGENTS.md - Cross-cutting (API contracts, auth flow)
-2. frontend/AGENTS.md - Frontend-specific (state, components, UI)
-3. backend/AGENTS.md - Backend-specific (database, API, services)
-
-**Documents**:
-{spec_content}
-{plan_content}
-
-**Requirements per file**:
-- 300-500 tokens each
-- Link to source (FR-XXX/STEP-XXX)
-- Format: Category > Rule > Code (≤10 lines) > Check
-- Only relevant rules (no forced distribution)
-
-**Example** (spec: "JWT auth with 1h expiry"):
-
-Root AGENTS.md:
-### Authentication Flow
-**JWT Tokens** (FR-AUTH-001)
-- Access: 1h expiry
-- Refresh: 30d expiry
-
-frontend/AGENTS.md:
-### API Client
-**Auth Headers** (FR-AUTH-001)
-```typescript
-axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-```
-Check: [ ] Token auto-refresh on 401
-
-backend/AGENTS.md:
-### Authentication
-**JWT Config** (FR-AUTH-001)
-```python
-ACCESS_TOKEN_EXPIRE = 3600  # 1h
-```
-Check: [ ] Tokens signed with JWT_SECRET
-
-**Report per file**: Token count, rules added
-```
-
-#### AGENTS.md Update Process
-
-For each existing AGENTS.md file (root, frontend/, backend/):
-
-1. **Check if file exists** (skip if not)
-2. **Check for "🎯 Project-Specific Rules" section**
-   - If exists: Replace entire section
-   - If not: Append to end
-3. **Extract rules** using AI prompt
-4. **Validate**: 300-500 tokens, source links, ≤10 line code
-5. **Update file**
-
-### 6. Update Constitution
-
-Replace or create Section IX with merged constraints:
+Replace placeholder Section IX with generated content. Use this structure:
 
 ```markdown
 ## IX. Project-Specific Constraints
 
-*Auto-generated by `/ms.constitution` from spec.md and plan.md on 2025-10-10*
+*Established by `/ms.constitution` from the first planned Feature on YYYY-MM-DD.*
+*This section is not updated per Feature. Re-run only for intentional baseline revision.*
 
 ### Technology Stack
 
 ✅ **Required**:
-- Node.js ≥18
-- TypeScript with strict mode
-- Vitest for testing
+- ...
 
-⚠️ **Use with Caution**:
-- Custom AST parsers (prefer established tools: ESLint, TSC API, ast stdlib)
-- Complex frameworks (require justification in plan.md)
-
-✅ **Safe AST Usage**:
-- Read-only analysis (ESLint, complexity metrics)
-- Approved tools: @typescript-eslint/parser, ast (Python), esprima
+❌ **Forbidden**:
+- ...
 
 ### Dependencies
 
 ✅ **Required**:
-- ripgrep ≥13.0 for TAG operations
-- ESLint with zero-warnings policy
+- ...
 
 ❌ **Forbidden**:
-- Unnecessary external dependencies
+- ...
 
 ### Architecture
 
 ✅ **Required**:
-- Files ≤700 SLOC (production; tests: no limit) (code files - docs have no limit)
-- Functions ≤100 lines
-- Complexity ≤10 per function
-- AST parsers allowed following safety models (read-only, sandboxed, etc.)
+- ...
 
 ### Security
 
 ✅ **Required**:
-- `.env` must be in `.gitignore`
-- Input validation for all user inputs
-- bcrypt for password hashing
+- ...
 
 ### Performance
 
 ✅ **Required**:
-- API response time < 200ms (p95)
-- Database queries < 100ms
+- ...
 ```
 
-### 7. Update Root AGENTS.md
+### Step 5: Update AGENTS.md
 
-**Update root AGENTS.md** (must exist):
-
-1. **Search for PROJECT_RULES slot**:
-   ```bash
-   grep -n "PROJECT_RULES_START" AGENTS.md
-   ```
-
-2. **IF PROJECT_RULES slot found** (expected case):
-   - Read AGENTS.md
-   - Find slot start: `<!-- PROJECT_RULES_START -->`
-   - Find slot end: `<!-- PROJECT_RULES_END -->`
-   - **Replace content** between markers with updated {SECTION_IX_CONTENT}
-   - Use Edit tool with old_string (entire block including comments) → new_string (updated block)
-   - Example:
-     ```markdown
-     <!-- PROJECT_RULES_START -->
-     {SECTION_IX_CONTENT}
-     <!-- PROJECT_RULES_END -->
-     ```
-
-3. **IF PROJECT_RULES slot NOT found** (legacy fallback):
-   - Read AGENTS.md
-   - Find insertion point: Before final `---` separator
-   - **Insert new PROJECT_RULES slot**:
-     ```markdown
-     <!-- PROJECT_RULES_START -->
-     <!-- This section is auto-populated by /ms.constitution with project-specific rules -->
-     <!-- DO NOT manually edit this section -->
-     {SECTION_IX_CONTENT}
-     <!-- PROJECT_RULES_END -->
-     ```
-   - Use Edit tool to insert at appropriate location
-
-### 8. Initialize Project README
-
-**Replace template README with project-specific README**
-
-This step ensures the SPECTER template README is archived and a new project README is generated.
-
-#### Step 1: Preserve Template README
-
-```bash
-# Move SPECTER template README to docs/
-mv README.md docs/README.md
-```
-
-**Rationale**: Keep template documentation for reference but remove from root.
-
-#### Step 2: Generate New Project README
-
-Extract content from spec.md and plan.md to create a project-specific README.
-
-**Content Structure**:
+If `AGENTS.md` contains this slot:
 
 ```markdown
-# {Project Name}
-
-> {One-line description from spec.md}
-
-## Overview
-
-{Extract from spec.md: Problem statement and goals}
-
-## Tech Stack
-
-{Extract from Constitution Section IX: Technology Stack}
-
-**Languages**:
-- {language 1}
-- {language 2}
-
-**Frameworks**:
-- {framework 1}
-- {framework 2}
-
-**Tools**:
-- {tool 1}
-- {tool 2}
-
-## Architecture
-
-{Extract from plan.md: High-level architecture overview}
-
-**Key Components**:
-- {component 1}: {description}
-- {component 2}: {description}
-
-## Getting Started
-
-### Prerequisites
-{List from Constitution Section IX: Dependencies}
-
-### Installation
-
-\`\`\`bash
-# Clone the repository
-git clone {repo_url}
-
-# Install dependencies
-{package_manager} install
-
-# Setup environment
-cp .env.example .env
-\`\`\`
-
-### Development
-
-\`\`\`bash
-# Run development server
-{dev_command}
-
-# Run tests
-{test_command}
-\`\`\`
-
-## Development Workflow
-
-This project follows the SPECTER workflow:
-
-1. **`/ms.featuremap`** - Decompose the PRD into a Feature Map (required before /ms.specify)
-2. **`/ms.specify`** - Create GEARS-compliant requirements (from a Feature Map section)
-3. **`/ms.plan`** - Design architecture and implementation plan
-4. **`/ms.constitution`** - Extract project constraints
-5. **`/ms.tasks`** - Break down work into TAG-tracked tasks
-6. **`/ms.implement`** - TDD implementation with auto-documentation
-7. **`/ms.review`** - TRUST 5 principles validation
-8. **`/fin`** - Quality gate check and commit
-
-## Project Constraints
-
-See [Constitution](./docs/constitution.md) Section IX for detailed project-specific constraints.
-
-## Documentation
-
-- **Template Guide**: [SPECTER Template](./docs/README.md)
-- **Constitution**: [Project Rules](./docs/constitution.md)
-- **Specifications**: [specs/](./specs/)
-
----
-
-*Generated by [SPECTER](./docs/README.md) template v1.0.0*
+<!-- PROJECT_RULES_START -->
+...
+<!-- PROJECT_RULES_END -->
 ```
 
-#### Step 3: AI Extraction Prompt
+replace only the content between the markers with the generated Section IX
+summary and concrete coding checks. Preserve all other AGENTS.md content.
 
-```
-Generate a project README.md from spec.md and plan.md.
+If frontend/backend AGENTS.md files exist, distribute only rules that are truly
+local to those areas. Keep each generated project-rules block concise.
 
-**spec.md**:
-{spec_content}
+### Step 6: Initialize README If Needed
 
-**plan.md**:
-{plan_content}
+Keep the existing functionality, but run it only when the root README is still the
+SPECTER template or clearly uninitialized.
 
-**Constitution Section IX**:
-{section_ix_content}
+If README initialization is needed:
 
-Extract and populate:
+1. Preserve the SPECTER template README at `docs/README.md`.
+2. Generate a project README from `spec.md`, `plan.md`, and Section IX.
+3. Link the active Constitution as `.specify/memory/constitution.md`, not
+   `docs/constitution.md`.
 
-1. **Project Name**: From spec.md title or plan.md
-2. **One-line Description**: Summarize spec.md problem statement (≤15 words)
-3. **Overview**: Extract problem statement and key goals from spec.md
-4. **Tech Stack**: Extract from Constitution Section IX (Languages, Frameworks, Tools)
-5. **Architecture**: Extract high-level structure from plan.md
-6. **Prerequisites**: Extract from Constitution Section IX Dependencies
-7. **Commands**: Detect package manager (npm/yarn/pnpm/uv/pip) and infer standard commands
+If the root README already appears project-specific, do not replace it silently.
+Report that README initialization was skipped.
 
-**Requirements**:
-- Keep Overview ≤200 words
-- List top 3-5 components only
-- Use detected package manager for commands
-- Maintain professional tone
-- Include SPECTER attribution
+### Step 7: Report
 
-Output the complete README.md content.
-```
-
-#### Step 4: Write README.md
-
-```bash
-# Write new README to root
-echo "{generated_content}" > README.md
-```
-
-### 9. Report Output
+Display in Korean:
 
 ```json
 {
-  "constraints_extracted": {
-    "from_spec": 12,
-    "from_plan": 8,
-    "total_new": 15,
-    "merged_duplicates": 5
-  },
-  "agents_md_created": true,
-  "section_ix_updated": true,
+  "section_ix_established": true,
+  "agents_md_updated": true,
   "readme_initialized": true,
-  "template_readme_archived": "docs/README.md",
   "constitution_path": ".specify/memory/constitution.md",
-  "agents_md_path": "AGENTS.md",
-  "project_readme_path": "README.md"
+  "next_step": "/ms.tasks"
 }
 ```
 
-Display (in KOREAN):
-```
-✅ Constitution Section IX + AGENTS.md + README.md 생성 완료!
-
-📊 제약사항 추출 (Constitution Section IX):
-- spec.md에서: 12개
-- plan.md에서: 8개
-- 신규 추가: 15개
-- 중복 병합: 5개
+```text
+✅ Project Constitution baseline established.
 
 📄 업데이트된 파일:
-- ✅ .specify/memory/constitution.md (Section IX 완성)
-- ✅ AGENTS.md (프로젝트 코딩 규칙)
-- ✅ README.md (프로젝트 문서 생성)
-- 📦 docs/README.md (SPECTER 템플릿 문서 보관)
+- .specify/memory/constitution.md
+- AGENTS.md
+- README.md (초기화가 필요한 경우에만)
 
-🎯 다음 단계:
-1. Constitution Section IX 검토
-2. AGENTS.md 검토
-3. README.md 검토 및 필요시 수정
-4. `/ms.tasks` 실행 (implementation tasks 생성)
+🎯 다음 단계: /ms.tasks
 
-💡 참고:
-- AI 에이전트는 AGENTS.md를 통해 Constitution을 자동 참조합니다
-- Living Documents는 `/ms.implement` 실행 시 자동 생성됩니다
-- SPECTER 템플릿 가이드는 docs/README.md에 보관되었습니다
+참고: /ms.constitution은 매 Feature마다 실행하지 않습니다. 이후 Feature는
+기존 Section IX를 기준으로 /ms.tasks → /ms.analyze → /ms.implement 흐름을 탑니다.
 ```
 
 ## Error Handling
 
-### Error 1: Constitution Not Found
+### Constitution Missing
 
-**Symptom**: `.specify/memory/constitution.md` missing
-
-**Message**:
-```
-❌ Error: Constitution not found
-
-Expected: .specify/memory/constitution.md
-
-Please run `/ms.init` first to create the project Constitution.
+```text
+❌ Constitution not found. Run /ms.init first.
 ```
 
-**Exit**: Code 1
+### Source Documents Missing
 
-### Error 2: Spec or Plan Not Found
-
-**Symptom**: spec.md or plan.md doesn't exist
-
-**Message**:
-```
-❌ Error: Source documents not found
-
-Required files:
-- specs/{SPEC_ID}/spec.md (missing)
-- specs/{SPEC_ID}/plan.md (missing)
-
-Please run:
-1. `/ms.specify` to create spec.md
-2. `/ms.plan` to create plan.md
-
-Then re-run `/ms.constitution`
+```text
+❌ Source documents not found. Run /ms.specify and /ms.plan first.
 ```
 
-**Exit**: Code 1
+### No Durable Constraints Found
 
-### Error 3: No Constraints Found
+If no durable project-wide constraints can be extracted, keep Section IX minimal
+and report that the default Constitution remains authoritative. Do not invent
+constraints just to fill the section.
 
-**Symptom**: AI extracts 0 constraints from spec.md and plan.md
+### Conflicting Constraints
 
-**Message**:
-```
-⚠️ Warning: No project-specific constraints found
+If `spec.md` and `plan.md` conflict on a durable rule, stop and ask the user to
+choose. Do not silently pick one.
 
-spec.md and plan.md do not contain explicit constraints.
+## Next Command
 
-Common missing constraints:
-- Technology stack (Node.js version, Python version)
-- Required dependencies (libraries, tools)
-- Architectural decisions (file size limits, patterns)
-- Security requirements (authentication method, encryption)
-
-Would you like to:
-1. Manually add constraints to spec.md or plan.md and re-run `/ms.constitution`
-2. Keep Section IX empty (use default Constitution only)
-3. Skip Section IX generation
-```
-
-**Action**: Prompt user for choice
-
-### Error 4: Conflicting Constraints
-
-**Symptom**: spec.md says "Use PostgreSQL", plan.md says "Use MongoDB"
-
-**Message**:
-```
-⚠️ Constraint Conflict Detected
-
-spec.md: "Required: PostgreSQL database"
-plan.md: "Required: MongoDB database"
-
-Please resolve the conflict:
-1. Edit spec.md or plan.md to remove conflict
-2. Re-run `/ms.constitution` after resolution
-
-Proceeding with latest (plan.md) constraint for now.
-```
-
-**Action**: Use plan.md constraint (as it's more recent in workflow)
-
-### Error 6: Token Budget Exceeded (Per File)
-
-**Symptom**: Extracted rules for a file exceed 500 tokens
-
-**Message**:
-```
-⚠️ Token Budget Exceeded: backend/AGENTS.md
-
-Extracted rules: 720 tokens (limit: 500)
-
-Auto-trimming to fit budget:
-- Removed: Performance Monitoring (80 tokens)
-- Removed: Error Handling (90 tokens)
-- Final: 450 tokens
-
-Review backend/AGENTS.md and manually add removed categories if needed.
-```
-
-**Action**: Auto-trim least critical categories per file to fit budget
-
-## Next Steps
-
-After `/ms.constitution`:
-1. Review Constitution Section IX (project constraints)
-2. Review AGENTS.md (project-specific coding rules)
-3. Review README.md (project documentation)
-4. Run `/ms.tasks` to generate implementation tasks with TAG IDs
-5. Constitution + Agent Rules + Project README now complete ✅
-
-**Note**: `/ms.constitution` must run AFTER `/ms.plan` (plan.md is required for constraint extraction)
+After `/ms.constitution`, run `/ms.tasks`. For later Features, skip
+`/ms.constitution` unless the user intentionally revises the project baseline.

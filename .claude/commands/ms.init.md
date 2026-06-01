@@ -109,13 +109,16 @@ if [ -f "$SPECKIT_SPECIFY" ] && ! grep -q "MS_FEATUREMAP_GATE_START" "$SPECKIT_S
   GATE=$(cat <<'GATE'
 
 <!-- MS_FEATUREMAP_GATE_START — injected by /ms.init; do not remove -->
-> ⛔ **FEATURE MAP GATE.** Do NOT create or update a spec unless the input is a Feature
-> section produced by `/ms.featuremap` (a `## Feature NNN:` block containing `### In scope`,
-> `### Explicitly out of scope`, `### Done criteria`).
-> REFUSE if: no Feature Map file exists (`docs/prd/feature-map*.md`), OR the input is
-> freeform / inline ad-hoc text / derived from an existing `spec.md`.
-> On refusal, tell the user to run `/ms.featuremap @docs/prd/PRD.md` first, then paste a
-> Feature section. Prefer the `/ms.specify` wrapper over calling this command directly.
+> ⛔ **FEATURE MAP + CHECKLIST GATE.** Do NOT create or update a spec unless:
+> 1. The input is a Feature section produced by `/ms.featuremap` (a `## Feature NNN:`
+>    block containing `### In scope`, `### Explicitly out of scope`, `### Done criteria`).
+> 2. `docs/prd/feature-map.checklist.md` exists and its result is PASS or WARN.
+> 3. The checklist audit's Feature Map SHA256 matches the current `docs/prd/feature-map.md`.
+> REFUSE if: no Feature Map file exists (`docs/prd/feature-map*.md`), OR the checklist
+> is missing/failed/stale, OR the input is freeform / inline ad-hoc text / derived from
+> an existing `spec.md`.
+> On refusal, tell the user to run `/ms.featuremap @docs/prd/PRD.md`, then `/ms.checklist`,
+> then paste a Feature section. Prefer the `/ms.specify` wrapper over direct calls.
 <!-- MS_FEATUREMAP_GATE_END -->
 GATE
 )
@@ -128,7 +131,7 @@ GATE
     { printf '%s\n' "$GATE"; cat "$SPECKIT_SPECIFY"; } > "$TMP"
   fi
   mv "$TMP" "$SPECKIT_SPECIFY"
-  echo "✓ Feature-Map gate injected into speckit.specify.md (after frontmatter)"
+  echo "✓ Feature-Map + checklist gate injected into speckit.specify.md (after frontmatter)"
 fi
 ```
 
@@ -155,14 +158,16 @@ Display completion message:
 🎯 Next Steps:
 
 0. (Write your PRD first, e.g. docs/prd/PRD.md)
-1. /ms.featuremap @docs/prd/PRD.md - Decompose the PRD into a Feature Map (REQUIRED before /ms.specify)
-2. /ms.specify - Create feature specification (paste a Feature section from the Feature Map)
-3. /ms.clarify - Clarify requirements (if needed)
-4. /ms.plan - Create implementation plan
-5. /ms.constitution - Extract project-specific constraints (from plan.md)
-6. /ms.tasks - Generate implementation tasks
-7. /ms.analyze - Validate TRUST compliance
-8. /ms.implement - Start implementation
+1. /ms.featuremap @docs/prd/PRD.md - Decompose the PRD into a Feature Map
+2. /ms.checklist - Validate PRD coverage, Feature ownership, and DAG before /ms.specify
+3. /ms.specify - Create feature specification (paste a Feature section from the Feature Map)
+4. /ms.clarify - Clarify requirements (if needed)
+5. /ms.plan - Create implementation plan
+6. /ms.constitution - Establish project baseline once after the first plan, if not already established
+7. /ms.tasks - Generate implementation tasks
+8. /ms.analyze - Validate spec-plan-tasks document consistency
+9. /ms.implement - Start implementation
+10. /ms.review - Run code review and executable gates before /fin
 
 ```
 
@@ -195,4 +200,4 @@ Then run /ms.init again.
 
 ## Next Command
 
-After `/ms.init`: Write your PRD, then run `/ms.featuremap @docs/prd/PRD.md` to decompose it into a Feature Map at `docs/prd/feature-map.md`. `/ms.specify` consumes a Feature section from that map (it will refuse to run without one — the gate is enforced in both the wrapper and the injected `/speckit.specify`).
+After `/ms.init`: Write your PRD, run `/ms.featuremap @docs/prd/PRD.md`, then run `/ms.checklist`. `/ms.specify` consumes a Feature section from the checked Feature Map and refuses to run when the checklist audit is missing or failed.

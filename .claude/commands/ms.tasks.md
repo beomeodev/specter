@@ -180,7 +180,7 @@ Display summary (KOREAN ONLY - Issue 8.1, 8.2, 8.3):
     "tasks_created": "specs/001-user-authentication/tasks.md",
     "total_tasks": 54,
     "total_phases": 8,
-    "next_step": "/ms.implement"
+    "next_step": "/ms.analyze"
 }
 ```
 
@@ -193,8 +193,8 @@ Display next steps:
 📊 통계: 총 {Total Tasks}개 태스크 / {Total Phases}개 단계
 
 🎯 다음 단계:
-👉 /ms.implement (첫 번째 태스크 구현 시작)
-👉 /ms.analyze (구현 전 최종 검증)
+👉 /ms.analyze (구현 전 문서 일관성 검증)
+👉 /ms.implement (검증 통과 후 첫 번째 태스크 구현 시작)
 
 💡 참고:
 - 모든 태스크에는 TAG ID가 할당되어 SPEC-TEST-CODE 추적이 가능합니다.
@@ -227,4 +227,4 @@ Display next steps:
 After `/ms.tasks`:
 
 1. Review tasks.md with TAG assignments
-2. Run `/ms.analyze` to validate spec-tasks consistency and TRUST compliance
+2. Run `/ms.analyze` to validate spec-plan-tasks consistency before implementation

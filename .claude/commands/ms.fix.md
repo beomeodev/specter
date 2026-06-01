@@ -78,7 +78,7 @@ Do not commit/push without user approval (Constitution §2).
 
 ```
 새 요구사항?
- ├ 예  → /ms.featuremap → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.implement → /fin → /ms.merglease
+ ├ 예  → /ms.featuremap → /ms.checklist → /ms.specify → /ms.clarify → /ms.plan → /ms.constitution(첫 기준 없을 때만) → /ms.tasks → /ms.analyze → /ms.implement → /ms.review → /fin → /ms.merglease
  └ 아니오 → /ms.fix (1-2 files: 경량 / 3+ files: mini-plan 먼저) → /fin|/finq → /ms.merglease
 ```
 

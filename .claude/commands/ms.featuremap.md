@@ -10,7 +10,7 @@ graph of independently implementable, mergeable, and shippable vertical slices (
 This command is the **front of the Specter pipeline** and runs **BEFORE** `/ms.specify`.
 
 ```
-/ms.featuremap  →  /ms.specify (per Feature)  →  /ms.clarify  →  /ms.plan  →  /ms.tasks  →  /ms.implement
+/ms.featuremap  →  /ms.checklist  →  /ms.specify (per Feature)  →  /ms.clarify  →  /ms.plan  →  /ms.constitution (once if needed)  →  /ms.tasks  →  /ms.analyze  →  /ms.implement  →  /ms.review
 ```
 
 > ⛔ **Hard contract**: `/ms.specify` MUST consume a Feature section produced by THIS command.
@@ -185,11 +185,14 @@ somewhere else.
 🔗 Dependency DAG: validated (no cycles)
 🧩 Stub-and-Forward points: <list>
 
-🎯 Next step — start the FIRST Feature:
+🎯 Next step — validate the Feature Map before specifying:
+   /ms.checklist
+
+After the checklist passes, start the FIRST Feature:
    /ms.specify  + paste the "Feature 001" section from docs/prd/feature-map.md
 
-⛔ Reminder: /ms.specify must be driven by a Feature section from THIS file.
-   Never write a spec freeform or from a pre-existing spec.md.
+⛔ Reminder: /ms.specify must be driven by a Feature section from THIS file, and
+   it will refuse to run if the Feature Map checklist is missing or failed.
 ```
 
 ---
@@ -209,6 +212,8 @@ somewhere else.
 ## Next Command
 
 After `/ms.featuremap`:
-1. Open `docs/prd/feature-map.md`, read the **Feature 001** section in full.
-2. Run `/ms.specify` and paste that Feature section as the input.
-3. Proceed through the dependency graph one Feature at a time, in order.
+1. Run `/ms.checklist` to validate PRD coverage, Feature ownership, DAG, and template completeness.
+2. Fix any blocking issues in `docs/prd/feature-map.md` and re-run `/ms.checklist`.
+3. After the checklist passes, open `docs/prd/feature-map.md`, read the **Feature 001** section in full.
+4. Run `/ms.specify` and paste that Feature section as the input.
+5. Proceed through the dependency graph one Feature at a time, in order.

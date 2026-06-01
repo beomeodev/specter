@@ -72,7 +72,34 @@ Do this first:
 Stopping now.
 ```
 
-**Only if the gate passes**, continue to Step 0.5.
+**Only if the Feature Map input gate passes**, continue to Step 0.2.
+
+### 0.2 REQUIRE Feature Map Checklist (HARD GATE)
+
+Before creating a spec, verify that `/ms.checklist` has already validated the
+Feature Map. This prevents the native `/speckit.checklist` flow from becoming the
+first real validation point, which would be too late.
+
+**Checks:**
+
+1. `docs/prd/feature-map.checklist.md` exists.
+2. The audit contains `**Result**: PASS` or `**Result**: WARN`.
+3. The audit does not contain `**Result**: FAIL`.
+4. The audit's `Feature Map SHA256` matches the current `docs/prd/feature-map.md` SHA256.
+
+**If the audit is missing, failed, or stale**, refuse and exit:
+
+```text
+⛔ /ms.specify requires a passing Feature Map checklist.
+
+Run this first:
+  /ms.checklist
+
+Fix any Blocking Fixes in docs/prd/feature-map.checklist.md, re-run /ms.checklist, then retry /ms.specify.
+Stopping now.
+```
+
+Only if this gate passes, continue to Step 0.5.
 
 ### 0.5 Reconcile Feature progress + pick next (refreshes the Progress Ledger)
 
@@ -310,7 +337,7 @@ Display summary:
     "spec_created": "specs/001-user-authentication/spec.md",
     "constitution_referenced": true,
     "constitution_exists": true,
-    "next_step": "/ms.clarify or /ms.checklist"
+    "next_step": "/ms.clarify or /ms.plan"
 }
 ```
 
@@ -324,9 +351,8 @@ Display next steps:
 
 🎯 Next Steps:
 1. Review spec.md for completeness
-2. Run `/ms.clarify` to clarify ambiguous requirements (질의응답)
-3. OR run `/ms.checklist` to generate completeness checklist (체크리스트)
-4. Then proceed to `/ms.plan` for implementation planning
+2. Run `/ms.clarify` if any requirement still needs user decisions
+3. Then proceed to `/ms.plan` for implementation planning
 
 📖 Constitution Sections Applied:
 - Section IV: GEARS (5 requirement patterns)
@@ -357,6 +383,8 @@ This will set up Spec-Kit templates AND create the Constitution.
 ## Next Command
 
 After `/ms.specify`:
-1. Run `/ms.clarify` to clarify ambiguous requirements (질의응답 방식)
-2. OR run `/ms.checklist` to generate completeness checklist (체크리스트 방식)
-3. Then proceed to `/ms.plan` for implementation planning
+1. Run `/ms.clarify` if the generated spec contains open questions or ambiguous decisions.
+2. Then proceed to `/ms.plan` for implementation planning.
+
+`/ms.checklist` is no longer used here; it is the pre-spec Feature Map gate and
+should already have passed before this command ran.

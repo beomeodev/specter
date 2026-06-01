@@ -401,7 +401,7 @@ Display summary:
     "plan_created": "specs/001-user-authentication/plan.md",
     "constitution_referenced": true,
     "constitution_exists": true,
-    "next_step": "/ms.constitution"
+    "next_step": "/ms.constitution if project baseline is not established, otherwise /ms.tasks"
 }
 ```
 
@@ -415,8 +415,8 @@ Display next steps:
 
 🎯 Next Steps:
 1. Review plan.md architecture
-2. Run `/ms.constitution` to extract project-specific constraints
-3. AI followed TRUST principles based on Constitution ✅
+2. If this is the first planned Feature and Section IX is still empty, run `/ms.constitution` once to establish project-specific constraints
+3. Otherwise proceed to `/ms.tasks`
 
 📖 Plan includes:
 - Modular architecture (independent testable units)
@@ -473,4 +473,4 @@ Please check the error message above and retry.
 
 ## Next Command
 
-After `/ms.plan`: Run `/ms.constitution` to extract project-specific constraints from spec.md and plan.md
+After `/ms.plan`: Run `/ms.constitution` only when the project-specific baseline has not been established yet; otherwise run `/ms.tasks`.
