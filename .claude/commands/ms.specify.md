@@ -72,7 +72,33 @@ Do this first:
 Stopping now.
 ```
 
-**Only if the gate passes**, continue to Step 1.
+**Only if the gate passes**, continue to Step 0.5.
+
+### 0.5 Reconcile Feature progress + pick next (refreshes the Progress Ledger)
+
+This is the cross-session "where am I" answer. Progress lives in `specs/` + git; the Feature
+Map's **Progress Ledger** is just a cached view of it, recomputed here so it never drifts.
+
+1. Identify the Feature being specified from the input's `## Feature NNN:` heading.
+2. List which Features already have a spec directory (= started):
+   ```bash
+   ls -d specs/*/ 2>/dev/null | sed 's#specs/##; s#/##'
+   ```
+3. For every Feature row in `docs/prd/feature-map.md`'s Progress Ledger, recompute Status:
+   - `specs/<NNN>-*` directory exists → `🚧 specified` (or `✅ shipped` if you can confirm a
+     merged release for it), else `⬜ planned`. **Rewrite the Status column** to match.
+4. Determine the **next undone Feature** = the lowest-order Feature in the dependency DAG whose
+   dependencies are all started and which has no `specs/` directory of its own.
+5. **Report (Korean is fine):**
+   ```
+   📍 지금 시작: Feature NNN <name>
+   ✅ 완료까지: <started/shipped 목록 요약>
+   ➡️  DAG상 다음 미완료: Feature MMM
+   ```
+6. **Warn and ask for confirmation** if the Feature being started skips an unmet dependency
+   (i.e. some Feature it depends on has no `specs/` dir yet) — that breaks the DAG order.
+
+Then continue to Step 1.
 
 ### 1. Load Project Context
 
