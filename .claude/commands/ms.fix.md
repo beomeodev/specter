@@ -11,8 +11,8 @@ the full SPEC→clarify→plan→tasks ceremony that doesn't fit small work.
 
 ## Step 0: The discriminator — is this really a fix?
 
-**Use the FULL workflow (`/ms.specify` → … → `/ms.implement`) instead if the change
-introduces a new requirement**, i.e. ANY of:
+**Use the FULL workflow (`/ms.featuremap` → `/ms.specify` → … → `/ms.implement`) instead
+if the change introduces a new requirement**, i.e. ANY of:
 - a new GEARS "shall" (new user-facing capability / behavior contract)
 - a new endpoint, a new DB schema/migration, a new external integration
 
@@ -78,7 +78,7 @@ Do not commit/push without user approval (Constitution §2).
 
 ```
 새 요구사항?
- ├ 예  → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.implement → /fin → /ms.merglease
+ ├ 예  → /ms.featuremap → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.implement → /fin → /ms.merglease
  └ 아니오 → /ms.fix (1-2 files: 경량 / 3+ files: mini-plan 먼저) → /fin|/finq → /ms.merglease
 ```
 

@@ -61,7 +61,7 @@ fi
 BRANCH=$(git branch --show-current)
 if [ "$BRANCH" = "master" ] || [ "$BRANCH" = "main" ]; then
   echo "❌ 이미 master 에 있어요. /ms.merglease 는 feature 브랜치에서 호출해야 합니다."
-  echo "   (PR 머지 후 release 만 다시 하려면 /ms.release 별도 명령을 만드세요.)"
+  echo "   (이미 머지된 뒤 release 만 하려면: 수동으로 git tag -a + gh release create.)"
   exit 1
 fi
 
@@ -405,7 +405,7 @@ fi
 
 ## Design decisions
 
-### Why "merglease" (not just /ms.release)?
+### Why merge + release in one command (not a separate release-only command)?
 
 `/fin` 이 push + PR open 까지 한다면, 자연스러운 follow-up은 "PR 검토 + 머지 + release". 두 동작은 거의 항상 같이 일어남 (release 는 머지된 master 에서만 의미 있음).
 
@@ -463,9 +463,9 @@ If a step fails (merge conflict, CI block, network): **stop immediately**, repor
 ## Relationship to other commands
 
 ```
-/ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.implement → /fin
-                                                                     ↓
-                                                        (PR review on GitHub)
+/ms.featuremap → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.implement → /fin
+                                                                                     ↓
+                                                                        (PR review on GitHub)
                                                                      ↓
                                                             /ms.merglease ← YOU ARE HERE
                                                                      ↓
