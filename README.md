@@ -141,46 +141,58 @@ R - Review                  코드 리뷰 (AI 지원 품질 검증)
 
 ## ⚡ 워크플로우
 
-SPECTER는 **14개 슬래시 커맨드**로 사양부터 릴리즈까지 전 과정을 자동화합니다. 사용자는 커맨드만 입력하면, Skills/Agents가 자동으로 품질을 검증하고 가이드합니다.
+SPECTER는 **15개 슬래시 커맨드**로 PRD 분해부터 릴리즈까지 전 과정을 자동화합니다. 파이프라인은 `/ms.featuremap`(PRD → Feature Map)에서 시작하며, `/ms.specify`는 **Feature Map의 Feature 섹션 없이는 동작하지 않습니다(게이트)**. 사용자는 커맨드만 입력하면, Skills/Agents가 자동으로 품질을 검증하고 가이드합니다.
 
-### 전체 흐름 (11단계)
+### 전체 흐름 (PRD → 릴리즈)
 
 ```bash
-# 1. 초기화 - Constitution 생성
+# 0. PRD 작성 (docs/prd/PRD.md) — 무엇을, 왜 (단일 진실 출처)
+
+# 1. 초기화 - Constitution 생성 + Spec-Kit 설치
 /ms.init
 
-# 2. 사양 작성 - EARS 패턴 자동 변환
+# 2. PRD 분해 - PRD를 Feature Map(의존성 그래프)으로  ⭐ 파이프라인 진입점
+/ms.featuremap @docs/prd/PRD.md      # → docs/prd/feature-map.md
+
+# ───── 이하 Feature Map의 Feature별로 DAG 순서대로 반복 ─────
+
+# 3. 사양 작성 - Feature Map의 Feature 섹션을 입력 (게이트: 이것 없이는 거부)
 /ms.specify
 
-# 3. 명확화 - 불명확한 요구사항 질의응답
+# 4. 명확화 - 불명확한 요구사항 질의응답
 /ms.clarify
-/ms.checklist  # 요구사항 완전성 체크 - 생성 후 Codex가 검토.
+/ms.checklist  # 요구사항 완전성 체크 (선택) - 생성 후 Codex가 검토.
 
-# 4. 구현 계획 - TRUST 원칙 적용
+# 5. 구현 계획 - TRUST 원칙 적용
 /ms.plan
 
-# 5. 헌법 추출 - 프로젝트 제약사항 자동 추출
+# 6. 헌법 추출 - 프로젝트 제약사항 자동 추출
 /ms.constitution
 
-# 6. 태스크 생성 - TAG ID 자동 할당
+# 7. 태스크 생성 - TAG ID 자동 할당
 /ms.tasks
 
-# 7. 품질 검증 - 3레벨 진보적 검증
+# 8. 품질 검증 - 3레벨 진보적 검증
 /ms.analyze
 
-# 8. 구현 - TAG 블록 자동 삽입
+# 9. 구현 - TAG 블록 자동 삽입
 /ms.implement
 
-# 9. 코드 리뷰 - ultrathink 패턴 분석
+# 10. 코드 리뷰 - ultrathink 패턴 분석
 /ms.review
 
-# 10. 완료 - 문서 동기화 + 커밋 + PR 생성
+# 11. 완료 - 문서 동기화 + 커밋 + PR 생성
 /fin    # CI 체크 포함
 /finq   # CI 생략 (빠른 커밋)
 
-# 11. 머지 + 릴리즈 - 승인된 PR을 master에 머지하고 GitHub Release 생성
+# 12. 머지 + 릴리즈 - 승인된 PR을 master에 머지하고 GitHub Release 생성
 /ms.merglease
+
+# → 다음 Feature는 3번부터 반복. /ms.specify가 specs/를 대조해
+#   Feature Map의 Progress Ledger를 새로고침하고 "다음 미완료 Feature"를 안내.
 ```
+
+> **곁가지 트랙**: 새 요구사항이 아닌 변경(버그·문구·스타일·리팩토링)은 `/ms.fix`로 — spec/clarify/plan/tasks 생략, TDD+TAG+게이트는 유지. 구현 후 설계 변경은 `/ms.amend`.
 
 ### 핵심 커맨드 상세
 
@@ -192,13 +204,31 @@ SPECTER는 **14개 슬래시 커맨드**로 사양부터 릴리즈까지 전 과
 
 **철학**: 규칙이 산재되면 AI가 혼란스러워합니다. Constitution은 모든 규칙의 단일 진실 출처(SSOT)입니다.
 
+추가로 `/ms.init`은 설치된 `speckit.specify`에 Feature Map 게이트를 주입하여, `/ms.specify`를 우회한 직접 호출도 차단합니다.
+
 ---
 
-#### 2. `/ms.specify` - 사양 작성
+#### 2. `/ms.featuremap` - PRD 분해 (Feature Map 생성)
 
 **AI가 자동으로**:
-- 자연어 → EARS 패턴 변환 (WHEN/WHILE/WHERE/IF/SHALL)
-- `specs/001-{feature}/spec.md` 생성
+- PRD를 **독립 구현·머지·배포 가능한 Feature들의 의존성 그래프(DAG)**로 분해
+- `docs/prd/feature-map.md` 생성 (영어). 각 Feature 섹션이 `/ms.specify` 입력이 됨
+- Progress Ledger(전 Feature 상태표) 포함
+
+**분해 원칙**: 마일스톤=Phase 골격 · 인프라 먼저 · 엔진↔화면 분리 · 횡단 관심사는 늦은 전용 Feature · Stub-and-Forward(공유 기반은 1번 Feature에 스텁, 활성화는 후속 Feature) · 모든 범위 외 항목에 담당 Feature 명시.
+
+**철학**: PRD가 단일 진실 출처. Feature Map은 사양을 복제하지 않고 "어디부터 어디까지가 한 Feature인가"의 경계만 정의합니다. 이 단계 없이는 `/ms.specify`가 거부됩니다.
+
+---
+
+#### 3. `/ms.specify` - 사양 작성
+
+**입력**: Feature Map의 Feature 섹션 (게이트 — freeform·임의 텍스트·기존 spec.md 기반이면 거부)
+
+**AI가 자동으로**:
+- Feature 섹션 → EARS/GEARS 사양 변환
+- `specs/{NNN}-{feature}/spec.md` 생성
+- Progress Ledger를 specs/ 기준으로 새로고침 + "다음 미완료 Feature" 보고
 
 **예시**:
 ```
@@ -214,7 +244,7 @@ SPECTER는 **14개 슬래시 커맨드**로 사양부터 릴리즈까지 전 과
 
 ---
 
-#### 3. `/ms.clarify` - 요구사항 명확화 (선택)
+#### 4. `/ms.clarify` - 요구사항 명확화 (선택)
 
 **AI가 자동으로**:
 - 불명확한 요구사항 질문 생성
@@ -225,7 +255,7 @@ SPECTER는 **14개 슬래시 커맨드**로 사양부터 릴리즈까지 전 과
 
 ---
 
-#### 4. `/ms.plan` - 구현 계획
+#### 5. `/ms.plan` - 구현 계획
 
 **AI가 자동으로**:
 - TRUST 원칙 적용 (파일 ≤500 SLOC, 함수 ≤100 LOC)
@@ -242,7 +272,7 @@ SPECTER는 **14개 슬래시 커맨드**로 사양부터 릴리즈까지 전 과
 
 ---
 
-#### 5. `/ms.constitution` - 헌법 추출
+#### 6. `/ms.constitution` - 헌법 추출
 
 **자동으로**:
 - spec.md + plan.md에서 제약사항 추출
@@ -256,7 +286,7 @@ SPECTER는 **14개 슬래시 커맨드**로 사양부터 릴리즈까지 전 과
 
 ---
 
-#### 6. `/ms.tasks` - 태스크 생성
+#### 7. `/ms.tasks` - 태스크 생성
 
 **생성되는 것**:
 - TAG ID 자동 할당 (AUTH-001, USER-001 등)
@@ -270,7 +300,7 @@ SPECTER는 **14개 슬래시 커맨드**로 사양부터 릴리즈까지 전 과
 
 ---
 
-#### 7. `/ms.analyze` - 품질 검증
+#### 8. `/ms.analyze` - 품질 검증
 
 **3단계 검증** (Progressive Validation):
 ```
@@ -302,7 +332,7 @@ Level 3: Deep (HIGH/MEDIUM/LOW)
 
 ---
 
-#### 8. `/ms.implement` - 구현
+#### 9. `/ms.implement` - 구현
 
 **AI가 자동으로**:
 - Constitution + AGENTS.md 자동 준수
@@ -333,7 +363,7 @@ export class AuthService {
 
 ---
 
-#### 9. `/ms.review` - 코드 리뷰
+#### 10. `/ms.review` - 코드 리뷰
 
 **검증 항목**:
 - ✅ 명명 규칙 (도메인 용어)
@@ -359,7 +389,7 @@ export class AuthService {
 
 ---
 
-#### 10. `/fin`, `/finq` - 완료
+#### 11. `/fin`, `/finq` - 완료
 
 **실행 순서**:
 1. `/ms.up-docs --docs=dev` 호출 → `docs/dev_daily.md`에 git diff 요약 추가
@@ -383,7 +413,7 @@ rg '@(SPEC|TEST|CODE)'          # 수정된 TAG ID 스캔
 
 ---
 
-#### 11. `/ms.merglease` - 머지 + 릴리즈
+#### 12. `/ms.merglease` - 머지 + 릴리즈
 
 **언제 사용하나요?** `/fin` 또는 `/finq`로 PR을 만든 뒤, GitHub에서 리뷰가 끝나고 머지해도 되는 시점에 실행합니다.
 
@@ -419,14 +449,15 @@ rg '@(SPEC|TEST|CODE)'          # 수정된 TAG ID 스캔
 
 SPECTER는 3계층으로 구성됩니다.
 
-### 1️⃣ Commands (14개) - 사용자 진입점
+### 1️⃣ Commands (15개) - 사용자 진입점
 
 사용자가 직접 실행하는 슬래시 커맨드입니다. 나머지 2계층은 자동으로 트리거됩니다.
 
 | 명령어 | 역할 | 생성 파일 |
 |-------|------|----------|
 | `/ms.init` | 프로젝트 초기화 | Constitution, AGENTS.md |
-| `/ms.specify` | 사양 작성 (EARS) | `specs/{id}/spec.md` |
+| `/ms.featuremap` | PRD 분해 (Feature Map) | `docs/prd/feature-map.md` |
+| `/ms.specify` | 사양 작성 (Feature Map 게이트) | `specs/{id}/spec.md` |
 | `/ms.clarify` | 요구사항 명확화 | spec.md 업데이트 |
 | `/ms.checklist` | 완전성 체크리스트 | `specs/{id}/checklist.md` |
 | `/ms.plan` | 구현 계획 (TRUST) | `specs/{id}/plan.md` |
@@ -651,8 +682,11 @@ npm install  # 또는 uv pip install -e .
 # 1. 프로젝트 초기화
 /ms.init
 
-# 2. 첫 기능 사양 작성
-/ms.specify my-first-feature
+# 2. PRD 작성 후 Feature Map으로 분해
+/ms.featuremap @docs/prd/PRD.md
+
+# 3. 첫 Feature 사양 작성 (Feature Map의 Feature 001 섹션을 입력)
+/ms.specify
 ```
 
 ---
@@ -770,7 +804,7 @@ npm install  # 또는 uv pip install -e .
 
 ### 명령어 문서
 
-- [.claude/commands/](./.claude/commands/) - 14개 슬래시 커맨드 상세 문서
+- [.claude/commands/](./.claude/commands/) - 15개 슬래시 커맨드 상세 문서
 
 ### 스크립트
 
