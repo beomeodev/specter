@@ -73,9 +73,9 @@ Execute the underlying Spec-Kit checklist command with Constitution context:
 ## Workflow Position
 
 ```
-/ms.specify → /ms.clarify → /ms.plan → /ms.constitution → /ms.tasks → /ms.analyze
-                ↓                                                            ↓
-          [/ms.checklist]                                              [/ms.checklist]
+/ms.featuremap → /ms.specify → /ms.clarify → /ms.plan → /ms.constitution → /ms.tasks → /ms.analyze
+                   ↓                                                                       ↓
+             [/ms.checklist]                                                         [/ms.checklist]
                 ↓                                                            ↓
          Validate spec.md                                        Validate all requirements
          requirements quality                                    before implementation

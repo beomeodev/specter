@@ -327,9 +327,9 @@ Continue anyway? (sync completed, but TAG issues detected)
 
 **Workflow position**:
 ```
-/ms.specify → /ms.plan → /ms.implement → [/ms.up-docs] → /fin
-                                              ↑
-                                      (optional, but recommended)
+/ms.featuremap → /ms.specify → /ms.plan → /ms.implement → [/ms.up-docs] → /fin
+                                                              ↑
+                                                      (optional, but recommended)
 ```
 
 **Best practices**:

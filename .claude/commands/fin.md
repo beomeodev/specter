@@ -347,7 +347,7 @@ fi
 
 - **`gh pr merge`** — 머지는 항상 사람 판단. auto-merge가 필요하면 GitHub UI에서 "Auto-merge" 토글.
 - **`--reviewer` 자동 추가** — 단일 운영자 / 팀 컨벤션에 따라 다름. per-project 설정으로 추후 분리.
-- **태그 / Release** — `/ms.release` 별도 명령어로 분리. 머지 후 master에서 실행.
+- **태그 / Release** — `/ms.merglease` 명령어로 분리. feature 브랜치에서 호출(PR 머지 + 태그 + Release 통합).
 
 ---
 
@@ -366,8 +366,8 @@ Output after all steps complete:
 🔀 PR: [PR URL] (생성 또는 갱신 / 실패 시 안내)
 
 📋 다음 단계:
-  1. PR 페이지에서 검토 + 머지 (수동)
-  2. 머지 후 master에서: /ms.release  (tag + release 발행)
+  1. PR 페이지에서 검토 (수동)
+  2. (feature 브랜치에서) /ms.merglease  (PR 머지 + tag + release 발행)
 ```
 
 ---
@@ -407,9 +407,9 @@ Output after all steps complete:
    ↓
    gh pr create / edit     # Step 4.5: PR auto-create (NEW, idempotent)
    ↓
-   (사람이 PR 검토 + 머지)  # Manual handoff to GitHub UI
+   (사람이 PR 검토)         # Manual review on GitHub UI
    ↓
-   /ms.release (master에서) # Tag + GitHub Release (별도 명령)
+   /ms.merglease (feature 브랜치에서) # PR 머지 + Tag + GitHub Release (별도 명령)
    ```
 
 6. **Auth dependency**: Step 4 (push) + Step 4.5 (PR) 는 컨테이너 안에서 호스트의 SSH agent + gh CLI auth 를 통해 동작합니다. 호스트 셋업 미완료 시 친절한 안내 출력 후 commit은 보존. 셋업 절차: [`docs/runbooks/dev_environment_auth.md`](../../docs/runbooks/dev_environment_auth.md).

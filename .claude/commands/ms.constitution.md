@@ -512,13 +512,14 @@ cp .env.example .env
 
 This project follows the SPECTER workflow:
 
-1. **`/ms.specify`** - Create GEARS-compliant requirements
-2. **`/ms.plan`** - Design architecture and implementation plan
-3. **`/ms.constitution`** - Extract project constraints
-4. **`/ms.tasks`** - Break down work into TAG-tracked tasks
-5. **`/ms.implement`** - TDD implementation with auto-documentation
-6. **`/ms.review`** - TRUST 5 principles validation
-7. **`/fin`** - Quality gate check and commit
+1. **`/ms.featuremap`** - Decompose the PRD into a Feature Map (required before /ms.specify)
+2. **`/ms.specify`** - Create GEARS-compliant requirements (from a Feature Map section)
+3. **`/ms.plan`** - Design architecture and implementation plan
+4. **`/ms.constitution`** - Extract project constraints
+5. **`/ms.tasks`** - Break down work into TAG-tracked tasks
+6. **`/ms.implement`** - TDD implementation with auto-documentation
+7. **`/ms.review`** - TRUST 5 principles validation
+8. **`/fin`** - Quality gate check and commit
 
 ## Project Constraints
 

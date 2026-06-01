@@ -90,6 +90,57 @@ and it must be re-applied after every `specify init --force` (hence here in `/ms
 -   This indicates a repository structure issue
 -   Exit with error
 
+#### 2.4 Inject the Feature-Map gate into the installed `/speckit.specify`
+
+`/ms.specify` enforces the Feature-Map gate, but it is only a *wrapper*. The underlying
+`/speckit.specify` command (installed by Step 1's `specify init --force`) can be invoked
+directly and would bypass the gate entirely. We cannot permanently edit a vendored file —
+Step 1 re-installs it with `--force` — so, exactly like the GEARS spec-template in Step 2.3,
+we **re-apply our overlay after every init**: insert a gate preamble **just after the YAML
+frontmatter** of the installed `.claude/commands/speckit.specify.md` (the line-1 `---` must
+stay first, or the command's `description` metadata stops parsing). Re-running `/ms.init`
+restores it.
+
+```bash
+SPECKIT_SPECIFY=".claude/commands/speckit.specify.md"
+if [ -f "$SPECKIT_SPECIFY" ] && ! grep -q "MS_FEATUREMAP_GATE_START" "$SPECKIT_SPECIFY"; then
+  # Line number of the SECOND '---' = end of YAML frontmatter (empty if none).
+  FM_END=$(grep -n '^---[[:space:]]*$' "$SPECKIT_SPECIFY" | sed -n '2p' | cut -d: -f1)
+  GATE=$(cat <<'GATE'
+
+<!-- MS_FEATUREMAP_GATE_START — injected by /ms.init; do not remove -->
+> ⛔ **FEATURE MAP GATE.** Do NOT create or update a spec unless the input is a Feature
+> section produced by `/ms.featuremap` (a `## Feature NNN:` block containing `### In scope`,
+> `### Explicitly out of scope`, `### Done criteria`).
+> REFUSE if: no Feature Map file exists (`docs/prd/feature-map*.md`), OR the input is
+> freeform / inline ad-hoc text / derived from an existing `spec.md`.
+> On refusal, tell the user to run `/ms.featuremap @docs/prd/PRD.md` first, then paste a
+> Feature section. Prefer the `/ms.specify` wrapper over calling this command directly.
+<!-- MS_FEATUREMAP_GATE_END -->
+GATE
+)
+  TMP="$(mktemp)"
+  if [ -n "$FM_END" ]; then
+    # Keep frontmatter (lines 1..FM_END), insert gate, then the rest.
+    { head -n "$FM_END" "$SPECKIT_SPECIFY"; printf '%s\n' "$GATE"; tail -n +"$((FM_END + 1))" "$SPECKIT_SPECIFY"; } > "$TMP"
+  else
+    # No frontmatter → safe to prepend at the very top.
+    { printf '%s\n' "$GATE"; cat "$SPECKIT_SPECIFY"; } > "$TMP"
+  fi
+  mv "$TMP" "$SPECKIT_SPECIFY"
+  echo "✓ Feature-Map gate injected into speckit.specify.md (after frontmatter)"
+fi
+```
+
+**Idempotent**: the `MS_FEATUREMAP_GATE_START` marker prevents double-injection on re-runs.
+**Durable**: because `specify init --force` overwrites `speckit.specify.md`, this step (like
+Step 2.3) is what keeps the gate alive across every re-init — closing the direct-call bypass.
+
+**IF `.claude/commands/speckit.specify.md` not found**:
+
+-   Display notice: "speckit.specify.md not found — gate injection skipped (re-run after Step 1 installs it)"
+-   Continue (non-fatal)
+
 ### Step 3: Report Success
 
 Display completion message:
@@ -103,13 +154,15 @@ Display completion message:
 
 🎯 Next Steps:
 
-1. /ms.specify - Create feature specification
-2. /ms.clarify - Clarify requirements (if needed)
-3. /ms.plan - Create implementation plan
-4. /ms.constitution - Extract project-specific constraints (from plan.md)
-5. /ms.tasks - Generate implementation tasks
-6. /ms.analyze - Validate TRUST compliance
-7. /ms.implement - Start implementation
+0. (Write your PRD first, e.g. docs/prd/PRD.md)
+1. /ms.featuremap @docs/prd/PRD.md - Decompose the PRD into a Feature Map (REQUIRED before /ms.specify)
+2. /ms.specify - Create feature specification (paste a Feature section from the Feature Map)
+3. /ms.clarify - Clarify requirements (if needed)
+4. /ms.plan - Create implementation plan
+5. /ms.constitution - Extract project-specific constraints (from plan.md)
+6. /ms.tasks - Generate implementation tasks
+7. /ms.analyze - Validate TRUST compliance
+8. /ms.implement - Start implementation
 
 ```
 
@@ -142,4 +195,4 @@ Then run /ms.init again.
 
 ## Next Command
 
-After `/ms.init`: Run `/ms.specify` to create first feature specification
+After `/ms.init`: Write your PRD, then run `/ms.featuremap @docs/prd/PRD.md` to decompose it into a Feature Map at `docs/prd/feature-map.md`. `/ms.specify` consumes a Feature section from that map (it will refuse to run without one — the gate is enforced in both the wrapper and the injected `/speckit.specify`).

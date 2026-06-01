@@ -466,51 +466,6 @@ fi
 
 ---
 
-## 3.5. 🚀 Auto-create PR (Optional)
-
-**Goal**: Automatically create a GitHub PR with the correct PR body file.
-
-### Logic (Branch-based detection)
-
-```bash
-# 1. Get current branch name
-BRANCH=$(git branch --show-current)
-
-# 2. Extract feature identifier (e.g., D6 from D6-global-palette, 027 from 027-note-switch)
-FEATURE_ID=$(echo "$BRANCH" | grep -oE '^([A-Z][0-9]+|[0-9]{3}|fix-[0-9]+)')
-
-# 3. Detect PR body file
-if [ -n "$FEATURE_ID" ] && [ -f "docs/PR_${FEATURE_ID}_BODY.md" ]; then
-  PR_BODY_FILE="docs/PR_${FEATURE_ID}_BODY.md"
-  DETECTION_METHOD="branch name"
-else
-  # Fallback to mtime (most recent)
-  PR_BODY_FILE=$(ls -t docs/PR_*_BODY.md 2>/dev/null | head -1)
-  DETECTION_METHOD="mtime (fallback)"
-fi
-
-# 4. Verify branch ref in PR body (Safety check)
-if [ -n "$PR_BODY_FILE" ]; then
-  # Optional: check if PR_BODY_FILE contains BRANCH name or FEATURE_ID
-  # ...
-fi
-
-# 5. Create PR (using gh CLI)
-if [ -n "$PR_BODY_FILE" ]; then
-  echo "🚀 새 PR 생성 중 (base: master)..."
-  echo "🔍 PR Body: $PR_BODY_FILE (matched via $DETECTION_METHOD)"
-  # gh pr create -B master -F "$PR_BODY_FILE"
-else
-  echo "⏭️  PR body file not found - PR creation skipped"
-fi
-```
-
-### Safety Rules
-1. **Confirm before creation**: Ask the user in KOREAN: `PR #NN에 docs/PR_D6_BODY.md를 첨부할까요?`
-2. **Display source**: Show which file was selected and why (branch match vs fallback).
-
----
-
 ## 4. ✅ Completion Message
 
 Output after all steps complete:

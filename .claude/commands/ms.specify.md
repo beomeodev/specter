@@ -10,19 +10,69 @@ Create a feature specification following Spec-Kit workflow with Constitution com
 
 This command extends `/speckit.specify` to include explicit Constitution references, ensuring AI follows GEARS, TRUST, and TAG principles during specification writing.
 
+> ⛔ **Upstream contract — Feature Map is MANDATORY.** This command runs AFTER `/ms.featuremap`.
+> Its input MUST be a **Feature section copied from `docs/prd/feature-map.md`** (the Feature Map
+> produced by `/ms.featuremap` from the PRD). A spec must NEVER be created freeform, from inline ad-hoc text,
+> or from a pre-existing `spec.md`. The Feature Map is the single, mandatory bridge from PRD → spec —
+> bypassing it makes the spec meaningless. No Feature section → do not proceed (see Step 0).
+
 ## Usage
 
 ```
-/ms.specify [feature_name]
+/ms.specify
+<paste the "Feature NNN" section from docs/prd/feature-map.md here>
 ```
 
 Example:
 
 ```
-/ms.specify user-authentication
+/ms.specify
+## Feature 001: Foundation
+### One-line summary
+... (full Feature section from docs/prd/feature-map.md) ...
 ```
 
 ## Execution Steps
+
+### 0. REQUIRE Feature Map Input (HARD GATE — runs first)
+
+Before anything else, verify the input is a Feature section originating from the Feature Map.
+
+**Checks:**
+1. At least one Feature Map file exists. Look for any of:
+   `docs/feature-map.md`, `docs/prd/feature-map.md`, or `docs/**/feature-map*.md`
+   (the per-feature convention `docs/prd/feature-map_<NNN>_*.md` counts — those are
+   also `/ms.featuremap` outputs).
+   ```bash
+   FEATUREMAP_FILES=$(ls docs/feature-map*.md docs/prd/feature-map*.md 2>/dev/null)
+   ```
+   - **IF none found** → display the error below and EXIT. Do NOT create a spec.
+2. The input (`$ARGUMENTS` or attached/pasted text) is a **Feature section** — i.e. it contains the
+   Feature-Map template markers (a `## Feature NNN:` heading plus `### In scope`,
+   `### Explicitly out of scope`, `### Done criteria`), OR it clearly names a Feature whose section can
+   be read directly from the Feature Map file.
+   - **IF the input is freeform prose, an inline ad-hoc request, or derived from an existing spec.md**
+     → REFUSE and EXIT with the error below.
+3. Treat the matched Feature section as the **authoritative scope boundary** for this spec.
+   The PRD (referenced by that section) remains the single source of truth for detail.
+
+**Gate failure message:**
+
+```
+⛔ /ms.specify requires a Feature Map.
+
+A spec must be driven by a Feature section from docs/prd/feature-map.md — never freeform,
+never from inline text, never from a pre-existing spec.md.
+
+Do this first:
+  1. /ms.featuremap @docs/prd/PRD.md   → generates docs/prd/feature-map.md
+  2. Open docs/prd/feature-map.md, copy the "Feature NNN" section you want to build
+  3. /ms.specify  + paste that Feature section
+
+Stopping now.
+```
+
+**Only if the gate passes**, continue to Step 1.
 
 ### 1. Load Project Context
 
