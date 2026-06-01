@@ -4,7 +4,7 @@ description: "Validate PRD coverage for the global Feature Map or the next Featu
 
 # /ms.checklist - Feature Map Audit Gate
 
-Validate that the PRD is preserved through the Feature Map before any spec is
+Validate that the PRD set is preserved through the Feature Map before any spec is
 created. The command has two modes:
 
 - `/ms.checklist --global`: one-time global audit after `/ms.featuremap`.
@@ -23,7 +23,7 @@ mistake.
 
 The split is deliberate:
 
-1. **Global audit** (`--global`) proves the whole PRD has been mapped into the
+1. **Global audit** (`--global`) proves the whole PRD set has been mapped into the
    Feature Map once.
 2. **Per-Feature audit** (default) proves the next DAG Feature is ready to become
    a spec and still reflects the PRD sections it claims to own.
@@ -39,8 +39,9 @@ The split is deliberate:
 Workflow position:
 
 ```text
-/ms.featuremap @docs/prd/PRD.md
+/ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]
 /ms.checklist --global
+/ms.constitution
 
 # Repeat in DAG order:
 /ms.checklist
@@ -97,7 +98,7 @@ audit is missing, failed, or stale, stop and tell the user to run:
 
 Read these files in full:
 
-- `docs/prd/PRD.md` or the PRD path recorded in `docs/prd/feature-map.md`
+- Every source PRD recorded in `docs/prd/feature-map.md` (or the PRD path list passed to `/ms.featuremap`)
 - `docs/prd/feature-map.md`
 - `.specify/memory/constitution.md` if it exists
 - `AGENTS.md` if it exists
@@ -108,12 +109,12 @@ Read these files in full:
 ⛔ Feature Map not found.
 
 Run this first:
-  /ms.featuremap @docs/prd/PRD.md
+  /ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]
 
 Stopping now.
 ```
 
-**If no PRD can be identified**, ask the user for the PRD path and stop. Do not
+**If no complete PRD source set can be identified**, ask the user for the PRD path and stop. Do not
 guess from memory.
 
 ---
@@ -124,7 +125,7 @@ guess from memory.
 
 Check that `docs/prd/feature-map.md` contains:
 
-- Header with PRD source/version.
+- Header with every PRD source path/version.
 - Usage section.
 - `## PRD Commitment Index`.
 - Full Feature dependency graph.
@@ -134,12 +135,12 @@ Check that `docs/prd/feature-map.md` contains:
 
 ### Step G2: Audit PRD Commitment Coverage
 
-Evaluate the PRD Commitment Index against the full PRD:
+Evaluate the PRD Commitment Index against the full PRD source set:
 
 - Every functional requirement, user journey, milestone, acceptance criterion,
   constraint, non-functional requirement, integration promise, data/migration
   promise, and explicit exclusion has an index row.
-- Every index row has exactly one owning Feature.
+- Every index row has a source PRD, stable PRD reference, and exactly one owning Feature.
 - Cross-cutting commitments have one real owner, with earlier stubs called out
   as stubs only.
 - No PRD commitment is silently dropped because it is small, operational, or
@@ -184,7 +185,7 @@ Use this structure:
 # Feature Map Global Checklist
 
 **Mode**: global
-**PRD**: docs/prd/PRD.md
+**PRDs**: <source label → path list>
 **Feature Map**: docs/prd/feature-map.md
 **Feature Map SHA256**: <sha256 of docs/prd/feature-map.md at audit time>
 **Result**: PASS | WARN | FAIL
@@ -200,7 +201,7 @@ Use this structure:
 
 | Category | Check | Result | Evidence | Required Fix |
 | --- | --- | --- | --- | --- |
-| PRD Coverage | ... | PASS | PRD §... → Feature 003 | - |
+| PRD Coverage | ... | PASS | Product PRD §... → Feature 003 | - |
 
 ## Blocking Fixes
 
@@ -214,8 +215,8 @@ Use this structure:
 ### Global FAIL Conditions
 
 - PRD Commitment Index is missing.
-- Any PRD commitment has no index row.
-- Any index row lacks an owning Feature.
+- Any PRD commitment in any source PRD has no index row.
+- Any index row lacks a source PRD, stable PRD reference, or owning Feature.
 - Any PRD commitment has multiple owning Features.
 - Any out-of-scope item lacks a destination Feature.
 - The DAG contains a cycle.
@@ -227,7 +228,7 @@ Use this structure:
 
 ## Per-Feature Audit: `/ms.checklist`
 
-### Step F1: Verify Global Audit First
+### Step F1: Verify Global Audit And Constitution Baseline First
 
 Before auditing a Feature, require:
 
@@ -237,6 +238,8 @@ Before auditing a Feature, require:
 4. The global audit does not contain `**Result**: FAIL`.
 5. The global audit's `Feature Map SHA256` matches the current
    `docs/prd/feature-map.md` SHA256.
+6. `.specify/memory/constitution.md` has an established Section IX baseline from `/ms.constitution`
+   or explicitly records that no durable project-specific constraints were found.
 
 If this fails, stop:
 
@@ -248,6 +251,17 @@ Run this first:
 
 Fix any Blocking Fixes in docs/prd/feature-map.checklist.md, re-run the global audit,
 then retry /ms.checklist for the next Feature.
+```
+
+If Section IX is not established, stop:
+
+```text
+⛔ Project Constitution baseline is not established.
+
+Run this first:
+  /ms.constitution
+
+Then retry /ms.checklist for the next Feature.
 ```
 
 ### Step F2: Select The Target Feature
@@ -271,11 +285,12 @@ Otherwise, select the next eligible Feature:
 For the selected Feature:
 
 - Extract the full `## Feature NNN:` section.
+- Extract its `### Source PRDs` list.
 - Extract its `### PRD references` list.
 - Extract every PRD Commitment Index row where `Owning Feature = Feature NNN`.
-- Read the referenced PRD sections in full.
+- Read all listed Source PRD documents and the referenced PRD sections in full.
 
-If the Feature has no PRD references or no owned commitment rows, mark FAIL.
+If the Feature has no Source PRDs, no PRD references, or no owned commitment rows, mark FAIL.
 
 ### Step F4: Audit Feature Readiness Against The PRD
 
@@ -329,7 +344,7 @@ Use this structure:
 
 **Mode**: per-feature
 **Feature**: Feature NNN: <name>
-**PRD**: docs/prd/PRD.md
+**PRDs**: <source label → path list>
 **Feature Map**: docs/prd/feature-map.md
 **Feature Map SHA256**: <sha256 of docs/prd/feature-map.md at audit time>
 **Global Audit**: docs/prd/feature-map.checklist.md
@@ -338,9 +353,9 @@ Use this structure:
 
 ## PRD Evidence
 
-| PRD Ref | Commitment Type | Short Label | Handling In This Feature |
-| --- | --- | --- | --- |
-| §3.1 | Functional | User login | In scope |
+| Source PRD | PRD Ref | Commitment Type | Short Label | Handling In This Feature |
+| --- | --- | --- | --- | --- |
+| Product PRD | §3.1 | Functional | User login | In scope |
 
 ## Checklist Results
 
@@ -361,6 +376,7 @@ Use this structure:
 
 - The selected Feature is not the next eligible Feature and the user did not
   explicitly confirm skipping DAG order.
+- The Feature has no Source PRDs.
 - The Feature has no PRD references.
 - The Feature has no owned PRD Commitment Index rows.
 - Any owned PRD commitment is absent from scope, deferred ownership, decisions,
@@ -434,8 +450,8 @@ Bypass protection:
 
 ## Next Command
 
-After `/ms.checklist --global` passes, run `/ms.checklist` for the first eligible
-Feature.
+After `/ms.checklist --global` passes, run `/ms.constitution` once. Then run `/ms.checklist` for
+the first eligible Feature.
 
 After `/ms.checklist` passes for a Feature, run `/ms.specify` and paste that
 checked Feature section from `docs/prd/feature-map.md`.

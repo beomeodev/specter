@@ -12,8 +12,10 @@ This command extends `/speckit.specify` to include explicit Constitution referen
 
 > ⛔ **Upstream contract — Feature Map is MANDATORY.** This command runs AFTER `/ms.featuremap`.
 > Its input MUST be a **Feature section copied from `docs/prd/feature-map.md`** (the Feature Map
-> produced by `/ms.featuremap` from the PRD). A spec must NEVER be created freeform, from inline ad-hoc text,
-> or from a pre-existing `spec.md`. The Feature Map is the single, mandatory bridge from PRD → spec —
+> produced by `/ms.featuremap` from the PRD set). That Feature section is the actual prompt for
+> `/ms.specify`; it must include Source PRDs and PRD references so the command can read every
+> relevant source document. A spec must NEVER be created freeform, from inline ad-hoc text, or
+> from a pre-existing `spec.md`. The Feature Map is the single, mandatory bridge from PRDs → spec —
 > bypassing it makes the spec meaningless. No Feature section → do not proceed (see Step 0).
 
 ## Usage
@@ -28,6 +30,8 @@ Example:
 ```
 /ms.specify
 ## Feature 001: Foundation
+### Source PRDs
+- Product PRD: docs/prd/product.md
 ### One-line summary
 ... (full Feature section from docs/prd/feature-map.md) ...
 ```
@@ -48,8 +52,8 @@ Before anything else, verify the input is a Feature section originating from the
    ```
    - **IF none found** → display the error below and EXIT. Do NOT create a spec.
 2. The input (`$ARGUMENTS` or attached/pasted text) is a **Feature section** — i.e. it contains the
-   Feature-Map template markers (a `## Feature NNN:` heading plus `### In scope`,
-   `### Explicitly out of scope`, `### Done criteria`), OR it clearly names a Feature whose section can
+   Feature-Map template markers (a `## Feature NNN:` heading plus `### Source PRDs`,
+   `### PRD references`, `### In scope`, `### Explicitly out of scope`, `### Done criteria`), OR it clearly names a Feature whose section can
    be read directly from the Feature Map file.
    - **IF the input is freeform prose, an inline ad-hoc request, or derived from an existing spec.md**
      → REFUSE and EXIT with the error below.
@@ -65,9 +69,12 @@ A spec must be driven by a Feature section from docs/prd/feature-map.md — neve
 never from inline text, never from a pre-existing spec.md.
 
 Do this first:
-  1. /ms.featuremap @docs/prd/PRD.md   → generates docs/prd/feature-map.md
-  2. Open docs/prd/feature-map.md, copy the "Feature NNN" section you want to build
-  3. /ms.specify  + paste that Feature section
+  1. /ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]   → generates docs/prd/feature-map.md
+  2. /ms.checklist --global
+  3. /ms.constitution
+  4. /ms.checklist
+  5. Open docs/prd/feature-map.md, copy the checked "Feature NNN" section you want to build
+  6. /ms.specify  + paste that Feature section
 
 Stopping now.
 ```
@@ -97,6 +104,8 @@ which would be too late.
 10. The per-Feature audit does not contain `**Result**: FAIL`.
 11. The per-Feature audit's `Feature Map SHA256` matches the current
     `docs/prd/feature-map.md` SHA256.
+12. `.specify/memory/constitution.md` has an established Section IX baseline from `/ms.constitution`
+    or explicitly records that no durable project-specific constraints were found.
 
 **If the global audit is missing, failed, or stale**, refuse and exit:
 
@@ -125,7 +134,37 @@ then retry /ms.specify.
 Stopping now.
 ```
 
-Only if both gates pass, continue to Step 0.5.
+**If Section IX is not established**, refuse and exit:
+
+```text
+⛔ /ms.specify requires the project Constitution baseline.
+
+Run this first:
+  /ms.constitution
+
+This establishes Section IX from the checked PRD Feature Map before individual specs are created.
+Stopping now.
+```
+
+Only if all gates pass, continue to Step 0.4.
+
+### 0.4 Load Source PRDs For The Feature Prompt
+
+Before invoking `/speckit.specify`, load the PRD context referenced by the checked Feature section.
+
+1. Read every document listed under the Feature section's `### Source PRDs` heading.
+2. Read every PRD section named under `### PRD references`.
+3. Read the matching PRD Commitment Index rows for this Feature.
+4. Build the `/speckit.specify` prompt from:
+   - the full checked Feature section,
+   - the relevant PRD excerpts from every Source PRD,
+   - the matching Commitment Index rows,
+   - and the global reference priority from the Feature Map.
+
+If any Source PRD is missing or a PRD reference cannot be resolved, stop and ask the user to fix
+`docs/prd/feature-map.md` or rerun `/ms.checklist`.
+
+Only after the PRD context is loaded, continue to Step 0.5.
 
 ### 0.5 Reconcile Feature progress + pick next (refreshes the Progress Ledger)
 
@@ -164,13 +203,13 @@ Then continue to Step 1.
 - Exit
 
 **IF AGENTS.md missing**:
-- Display notice: "AGENTS.md not found (will be created by `/ms.constitution`)"
+- Display notice: "AGENTS.md not found; `/ms.constitution` should already have created or updated it before this step"
 - Continue
 
 **Reference key sections**:
 - Constitution Section IV (GEARS Standards)
 - Constitution Section V (TRUST Principles)
-- Constitution Section IX (Project-specific constraints - **if exists**, added by `/ms.constitution`)
+- Constitution Section IX (Project-specific baseline established from the checked PRD Feature Map by `/ms.constitution`)
 - project-structure.md (understand existing tech stack - **if exists**)
 
 ### 2. Inject Constitution Context into AI Prompt
@@ -247,88 +286,33 @@ Execute in priority order (stop at first match):
 
 ### 3. Run Base Specify Command
 
-#### 3.1. Handle Attached Document Scenarios
+#### 3.1. Use The Checked Feature Section As The Only Feature Prompt
 
-**BEFORE executing `/speckit.specify`**, check if user provided feature requirements via attached document instead of inline `$ARGUMENTS`:
+Do not accept a new attached PRD, freeform request, or ad-hoc feature description at this stage.
+Those inputs belong upstream in `/ms.featuremap`.
 
-**Detection**:
-- User message contains file attachments (e.g., `.md`, `.txt`, `.pdf`)
-- User refers to "attached document", "see the file", or similar phrases
-- `$ARGUMENTS` is empty or only contains file reference
+The input to `/speckit.specify` is the checked Feature prompt bundle assembled in Step 0.4:
 
-**When attached document detected**:
+1. The full `## Feature NNN:` section from `docs/prd/feature-map.md`.
+2. The Feature's `### Source PRDs` documents and referenced PRD excerpts.
+3. The Feature's PRD Commitment Index rows.
+4. Constitution context and reference priority.
 
-1. **Read the attached document** to understand feature requirements
-2. **Analyze document content** for context and intent
-3. **Generate branch name** (2-4 words) based on document CONTENT, NOT filename
+If the user provides new source material here, stop and tell them to update the PRD set and rerun:
 
-**Branch Naming Rules**:
-
+```text
+/ms.featuremap
+/ms.checklist --global
+/ms.constitution
+/ms.checklist
 ```
-❌ BAD: Using filename as branch name
-- Filename: "feature-requirements-draft-v3-final.md"
-- Branch: "feature-requirements-draft-v3-final" (meaningless)
-
-✅ GOOD: Deriving branch name from content
-- Document describes: "Implement user authentication with OAuth2 and JWT"
-- Branch: "oauth-jwt-auth" (concise, descriptive)
-```
-
-**Process**:
-
-```python
-# Step 1: Detect attached document
-if user_attached_file and not $ARGUMENTS:
-    # Step 2: Read document
-    document_content = Read(attached_file_path)
-
-    # Step 3: Extract feature intent from content
-    # Look for: title, main requirements, key features
-    feature_intent = extract_main_feature(document_content)
-
-    # Step 4: Generate concise branch name (2-4 words)
-    # - Focus on WHAT the feature does, not the document name
-    # - Use kebab-case
-    # - Keep it short and descriptive
-    branch_name = generate_branch_name(feature_intent)
-
-    # Step 5: Use content as $ARGUMENTS for /speckit.specify
-    $ARGUMENTS = document_content
-```
-
-**Example**:
-
-```
-User: "I've attached a document describing the feature I want to implement"
-Attached: "project-planning-notes-2024.md"
-
-Document content:
----
-# Real-time Notification System
-Implement WebSocket-based real-time notifications for user events...
----
-
-AI Processing:
-1. Reads document ✓
-2. Identifies main feature: "Real-time notification system via WebSocket"
-3. Generates branch name: "realtime-websocket-notifications"
-4. Passes full document content to /speckit.specify
-```
-
-**Common Pitfalls to Avoid**:
-
-| Anti-Pattern | Why It's Wrong | Correct Approach |
-|-------------|----------------|------------------|
-| Use filename directly | Filenames often contain metadata, not intent | Parse document content for feature description |
-| Skip reading document | Loses context and requirements | Always read and analyze document first |
-| Generate generic names | "feature-123", "new-feature" | Extract specific feature purpose from content |
 
 #### 3.2. Execute Speckit Specify
 
-Execute `/speckit.specify` with Constitution-enhanced context:
+Execute `/speckit.specify` with the checked Feature prompt bundle and Constitution-enhanced context:
 
 ```
-/speckit.specify $ARGUMENTS
+/speckit.specify <checked Feature prompt bundle from Step 0.4>
 ```
 
 **Agent Delegation**: This internally uses the **spec-builder** agent (Sonnet model) for GEARS conversion and SPEC document generation.
@@ -363,7 +347,7 @@ Display summary:
     "spec_created": "specs/001-user-authentication/spec.md",
     "constitution_referenced": true,
     "constitution_exists": true,
-    "next_step": "/ms.clarify or /ms.plan"
+    "next_step": "/ms.clarify"
 }
 ```
 
@@ -377,7 +361,7 @@ Display next steps:
 
 🎯 Next Steps:
 1. Review spec.md for completeness
-2. Run `/ms.clarify` if any requirement still needs user decisions
+2. Run `/ms.clarify` to settle or explicitly confirm remaining decisions
 3. Then proceed to `/ms.plan` for implementation planning
 
 📖 Constitution Sections Applied:
@@ -409,7 +393,7 @@ This will set up Spec-Kit templates AND create the Constitution.
 ## Next Command
 
 After `/ms.specify`:
-1. Run `/ms.clarify` if the generated spec contains open questions or ambiguous decisions.
+1. Run `/ms.clarify` to settle or explicitly confirm remaining decisions.
 2. Then proceed to `/ms.plan` for implementation planning.
 
 `/ms.checklist --global` and the per-Feature `/ms.checklist` are pre-spec gates

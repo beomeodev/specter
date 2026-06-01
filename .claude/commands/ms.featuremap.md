@@ -1,35 +1,40 @@
 ---
-description: "Decompose a PRD into a Feature Map — the MANDATORY upstream artifact for /ms.specify"
+description: "Decompose one or more PRDs into the Feature Map prompts consumed by /ms.specify"
 ---
 
-# /ms.featuremap - Decompose PRD into a Feature Map
+# /ms.featuremap - Decompose PRDs into a Feature Map
 
-Transform a PRD (Product Requirements Document) into a **Feature Map**: a dependency-ordered
+Transform one or more PRDs (Product Requirements Documents) into a **Feature Map**: a dependency-ordered
 graph of independently implementable, mergeable, and shippable vertical slices (Features).
 
 This command is the **front of the Specter pipeline** and runs **BEFORE** `/ms.specify`.
 
 ```
-/ms.featuremap  →  /ms.checklist --global
+/ms.featuremap  →  /ms.checklist --global  →  /ms.constitution
                  →  repeat per Feature in DAG order:
                     /ms.checklist  →  /ms.specify  →  /ms.clarify  →  /ms.plan
-                    →  /ms.constitution (once if needed)  →  /ms.tasks
-                    →  /ms.analyze  →  /ms.implement  →  /ms.review
+                    →  /ms.tasks  →  /ms.analyze  →  /ms.implement  →  /ms.review
 ```
 
 > ⛔ **Hard contract**: `/ms.specify` MUST consume a Feature section produced by THIS command.
-> A spec must never be created freeform or from a hand-written spec.md. The Feature Map is the
-> single, mandatory bridge between the PRD and every spec. No Feature Map → no spec.
+> Each Feature section is written as the copy-paste prompt for `/ms.specify`, with Source PRDs
+> and PRD references preserved so the spec can read every relevant source document. A spec must
+> never be created freeform or from a hand-written spec.md. The Feature Map is the single,
+> mandatory bridge between the PRD set and every spec. No Feature Map → no spec.
 
 ## Usage
 
 ```
 /ms.featuremap @docs/prd/PRD.md
-/ms.featuremap                 # (then attach or reference the PRD document)
+/ms.featuremap @docs/prd/product.md @docs/prd/admin.md
+/ms.featuremap                 # (then attach or reference the PRD document set)
 ```
 
-`$ARGUMENTS` = path to the PRD (or an attached document). If empty, look for an attached
-document or the most likely PRD under `docs/prd/` and confirm with the user before proceeding.
+`$ARGUMENTS` = one or more PRD paths (or attached documents). If multiple PRDs are provided,
+read all of them in full, assign stable source IDs (for example `PRD-A`, `Admin PRD`), and keep
+those IDs in the Feature Map so `/ms.specify` can load the same source documents later. If empty,
+look for attached documents or likely PRDs under `docs/prd/` and confirm the full PRD set with the
+user before proceeding.
 
 ## Language Policy (MANDATORY)
 
@@ -43,11 +48,11 @@ document or the most likely PRD under `docs/prd/` and confirm with the user befo
 
 ## Core Philosophy (NEVER violate)
 
-1. **The PRD is the Single Source of Truth.** The Feature Map does NOT duplicate the spec.
-   Each Feature *references* the relevant PRD section numbers; detailed requirements stay in the PRD.
+1. **The PRD set is the Single Source of Truth.** The Feature Map does NOT duplicate the spec.
+   Each Feature *references* the relevant source PRD documents and section numbers; detailed requirements stay in the PRD.
    The Feature Map's only job is to define **"where one Feature begins and ends"** (the boundary).
    To keep the PRD from becoming blurry, the Feature Map MUST include a thin **PRD Commitment Index**
-   that maps each PRD commitment to exactly one owning Feature.
+   that maps each PRD commitment from each source document to exactly one owning Feature.
 2. **1 Feature = the smallest vertical slice that can be implemented, merged, and verified
    independently.** Each Feature starts from the state where the previous Feature is merged to main;
    each is its own branch. Size sense: smaller than a Phase, larger than a trivial one-PR chore
@@ -62,23 +67,24 @@ document or the most likely PRD under `docs/prd/` and confirm with the user befo
 ### 1. Load Context
 
 **Read (REQUIRED):**
-- The PRD at `$ARGUMENTS` (or attached/located document). Read it in FULL before writing anything.
+- Every PRD in `$ARGUMENTS` (or every attached/located PRD document). Read each one in FULL before writing anything.
+- Assign each PRD a stable source label and path, then preserve that label everywhere a PRD reference appears.
 
 **Read (if they exist):**
 - `docs/prd/product-principles.md` (or equivalent behavioral-norms doc)
 - `.specify/memory/constitution.md` (development methodology + project constraints)
 - `AGENTS.md` / `CLAUDE.md`
 
-**IF no PRD can be found or confirmed** → ask the user for the PRD path and STOP. Do not guess content.
+**IF no PRD set can be found or confirmed** → ask the user for the PRD path and STOP. Do not guess content.
 
 ### 2. Run the Decomposition Algorithm (think through ALL steps before writing)
 
 #### STEP 1 — Extract PRD commitments before slicing
-Read the PRD and enumerate every durable commitment before creating Features. A commitment is any
+Read every PRD and enumerate every durable commitment before creating Features. A commitment is any
 functional requirement, user journey, milestone promise, constraint, acceptance criterion,
 non-functional requirement, integration promise, migration/data requirement, or explicit exclusion.
 
-Write each commitment as an index row with a stable PRD reference and exactly one owning Feature
+Write each commitment as an index row with a stable source document, PRD reference, and exactly one owning Feature
 after slicing is complete. Do not copy full PRD prose; summarize only enough to make ownership
 auditable.
 
@@ -132,8 +138,12 @@ last Feature.**
 ### One-line summary
 <what it builds, in one sentence>
 
+### Source PRDs
+- <source label>: <path to PRD document>
+- ...
+
 ### PRD references
-- <§x.y title> (the PRD location this Feature implements; details live in the PRD)
+- <source label §x.y title> (the PRD location this Feature implements; details live in the PRD)
 - ...
 
 ### In scope
@@ -158,9 +168,9 @@ last Feature.**
 
 ### 4. Assemble the full document (in this order)
 
-1. **Header** — version / based-on PRD version / document role
+1. **Header** — version / based-on PRD document list and versions / document role
    (= "the standard source for `/ms.specify` input").
-2. **Usage** — per-Feature workflow + the copy-paste pattern into `/ms.specify`.
+2. **Usage** — per-Feature workflow + the copy-paste pattern into `/ms.specify`; state that each Feature section is the `/ms.specify` prompt.
 3. **PRD Commitment Index** — the thin ownership map that prevents PRD requirements from being
    blurred or lost (template below).
 4. **Full Feature dependency graph** — an ASCII DAG grouped by Phase.
@@ -180,10 +190,10 @@ last Feature.**
 > exactly one owning Feature. `/ms.checklist --global` audits the whole table, and `/ms.checklist`
 > audits the next Feature's rows before `/ms.specify`.
 
-| PRD Ref | Commitment Type | Short Label | Owning Feature | Handling |
-|---------|-----------------|-------------|----------------|----------|
-| §3.1 | Functional | User login | Feature 002 | Implemented |
-| §5.2 | Cross-cutting | Audit log | Feature 009 | Deferred from earlier Features |
+| Source PRD | PRD Ref | Commitment Type | Short Label | Owning Feature | Handling |
+|------------|---------|-----------------|-------------|----------------|----------|
+| Product PRD | §3.1 | Functional | User login | Feature 002 | Implemented |
+| Admin PRD | §5.2 | Cross-cutting | Audit log | Feature 009 | Deferred from earlier Features |
 ```
 
 ### Progress Ledger — template (emit right after the dependency graph)
@@ -218,19 +228,23 @@ somewhere else.
 ```
 ✅ Feature Map created: docs/prd/feature-map.md
 
-📊 <N> Phases, <M> Features
+📊 <P> PRDs, <N> Phases, <M> Features
 🔗 Dependency DAG: validated (no cycles)
 🧩 Stub-and-Forward points: <list>
 
 🎯 Next step — validate the whole Feature Map before starting the Feature cycle:
    /ms.checklist --global
 
-After the global checklist passes, validate the FIRST Feature and then specify it:
+After the global checklist passes, establish the project baseline once:
+   /ms.constitution
+
+Then validate the FIRST Feature and specify it:
    /ms.checklist
-   /ms.specify  + paste the "Feature 001" section from docs/prd/feature-map.md
+   /ms.specify  + paste the full "Feature 001" section from docs/prd/feature-map.md
 
 ⛔ Reminder: /ms.specify must be driven by a Feature section from THIS file, and
-   it will refuse to run if the global or per-Feature checklist is missing or failed.
+   it will refuse to run if the global/per-Feature checklist is missing or failed,
+   or if the Constitution baseline has not been established.
 ```
 
 ---
@@ -240,11 +254,11 @@ After the global checklist passes, validate the FIRST Feature and then specify i
 - ❌ Not English. The persisted Feature Map MUST be English (Language Policy above).
 - ❌ No vague words ("good enough", "fast", "robust", "secure", "user-friendly"). Criteria must be measurable.
 - ❌ Do NOT duplicate the spec — reference PRD sections. The Feature Map is an index + boundary.
-- ❌ FAIL if the PRD Commitment Index is missing or any row lacks exactly one owning Feature.
+- ❌ FAIL if the PRD Commitment Index is missing, any row lacks a source PRD, or any row lacks exactly one owning Feature.
 - ❌ FAIL if any out-of-scope item lacks an owning Feature.
 - ❌ FAIL if the dependency graph has a cycle.
 - ❌ FAIL if a Phase's last Feature has no E2E integration scenario.
-- ✅ Read the entire PRD and finish STEP 1–8 mentally BEFORE writing. Verify against the PRD; do not guess.
+- ✅ Read the entire PRD set and finish STEP 1–8 mentally BEFORE writing. Verify against the PRDs; do not guess.
 
 ---
 
@@ -253,7 +267,8 @@ After the global checklist passes, validate the FIRST Feature and then specify i
 After `/ms.featuremap`:
 1. Run `/ms.checklist --global` to validate PRD coverage, Feature ownership, DAG, and template completeness.
 2. Fix any blocking issues in `docs/prd/feature-map.md` and re-run `/ms.checklist --global`.
-3. Run `/ms.checklist` to validate the next eligible Feature against its PRD references and commitment rows.
-4. After the per-Feature checklist passes, open `docs/prd/feature-map.md`, read the selected Feature section in full.
-5. Run `/ms.specify` and paste that Feature section as the input.
-6. Proceed through the dependency graph one Feature at a time, in order.
+3. Run `/ms.constitution` once to establish Section IX from the PRD set and checked Feature Map.
+4. Run `/ms.checklist` to validate the next eligible Feature against its Source PRDs, PRD references, and commitment rows.
+5. After the per-Feature checklist passes, open `docs/prd/feature-map.md`, read the selected Feature section in full.
+6. Run `/ms.specify` and paste that Feature section as the input.
+7. Proceed through the dependency graph one Feature at a time, in order.

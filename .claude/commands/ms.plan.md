@@ -58,7 +58,7 @@ When executing /speckit.plan, the agent must read and strictly adhere to constit
      → Trackable: TAG traceability (SPEC → TEST → CODE)
 
 2. **Apply Project-Specific Constraints** (if exists):
-   - **Section IX**: Project-specific rules from `/ms.constitution`
+   - **Section IX**: Project-specific baseline established by `/ms.constitution` from the checked PRD Feature Map
    → Technology stack constraints
    → Team conventions
    → Domain-specific requirements
@@ -401,7 +401,7 @@ Display summary:
     "plan_created": "specs/001-user-authentication/plan.md",
     "constitution_referenced": true,
     "constitution_exists": true,
-    "next_step": "/ms.constitution if project baseline is not established, otherwise /ms.tasks"
+    "next_step": "/ms.tasks"
 }
 ```
 
@@ -415,8 +415,8 @@ Display next steps:
 
 🎯 Next Steps:
 1. Review plan.md architecture
-2. If this is the first planned Feature and Section IX is still empty, run `/ms.constitution` once to establish project-specific constraints
-3. Otherwise proceed to `/ms.tasks`
+2. Proceed to `/ms.tasks`
+3. If Section IX baseline is missing, stop and return to `/ms.constitution` after `/ms.checklist --global`
 
 📖 Plan includes:
 - Modular architecture (independent testable units)
@@ -473,4 +473,4 @@ Please check the error message above and retry.
 
 ## Next Command
 
-After `/ms.plan`: Run `/ms.constitution` only when the project-specific baseline has not been established yet; otherwise run `/ms.tasks`.
+After `/ms.plan`: Run `/ms.tasks`. Section IX baseline should already be established by `/ms.constitution` before the per-Feature cycle starts.

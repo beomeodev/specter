@@ -65,7 +65,7 @@ Example:
 **Reference key sections**:
 - Constitution Section II (Simplicity-First Architecture - Files ≤700 SLOC, Functions ≤100 LOC)
 - Constitution Section V (TRUST 5 Principles - Test-First, Readable, Unified, Secured, Trackable)
-- Constitution Section IX (Project-specific constraints - **if exists**, added by `/ms.constitution`)
+- Constitution Section IX (Project-specific baseline established from the checked PRD Feature Map by `/ms.constitution`)
 - AGENTS.md (coding standards, patterns to follow - if exists)
 
 **These documents MUST guide implementation to ensure code quality and consistency.**

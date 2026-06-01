@@ -463,7 +463,7 @@ If a step fails (merge conflict, CI block, network): **stop immediately**, repor
 ## Relationship to other commands
 
 ```
-/ms.featuremap → /ms.checklist → /ms.specify → /ms.clarify → /ms.plan → /ms.constitution (once if needed) → /ms.tasks → /ms.analyze → /ms.implement → /ms.review → /fin
+/ms.featuremap → /ms.checklist --global → /ms.constitution → /ms.checklist → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.analyze → /ms.implement → /ms.review → /fin
                                                                                      ↓
                                                                         (PR review on GitHub)
                                                                      ↓
