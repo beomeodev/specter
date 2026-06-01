@@ -142,9 +142,32 @@ last Feature.**
    (= "the standard source for `/ms.specify` input").
 2. **Usage** — per-Feature workflow + the copy-paste pattern into `/ms.specify`.
 3. **Full Feature dependency graph** — an ASCII DAG grouped by Phase.
-4. **All Feature sections**, grouped by Phase, using the fixed template.
-5. **Global rules** — branch/commit conventions, TAG system, reference priority
+4. **Progress Ledger** — a status table of every Feature (template below). Emit all rows as
+   `⬜ planned`. It is a convenience view; the canonical truth is `specs/` + git, and
+   `/ms.specify` refreshes the Status column from `specs/` each time a Feature is started.
+5. **All Feature sections**, grouped by Phase, using the fixed template.
+6. **Global rules** — branch/commit conventions, TAG system, reference priority
    (reference priority = PRD > product-principles > constitution > feature-map > dependency Feature spec).
+
+### Progress Ledger — template (emit right after the dependency graph)
+
+```markdown
+## Progress Ledger
+
+> Convenience view — the canonical truth is `specs/<NNN>-*` (started) + merged PRs/tags (shipped).
+> `/ms.specify` recomputes the Status column from `specs/` every time you start a Feature, so
+> this table cannot drift. Update `✅ shipped` by hand (or via /ms.merglease) when a Feature releases.
+> Legend: ⬜ planned · 🚧 specified (a `specs/<NNN>-*` dir exists) · ✅ shipped (merged + released)
+>
+> **Next Feature** = the lowest-order Feature whose dependencies are all done and which has no
+> `specs/` directory yet.
+
+| Feature | Depends on | Status |
+|---------|------------|--------|
+| 001 <name> | — | ⬜ planned |
+| 002 <name> | 001 | ⬜ planned |
+| … | … | ⬜ planned |
+```
 
 ### 5. Write the file
 
