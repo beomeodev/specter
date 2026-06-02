@@ -4,1271 +4,465 @@
 
 ## Preamble
 
-This Constitution establishes the foundational principles for {PROJECT_NAME}. All architectural decisions, code changes, and feature implementations must align with these principles. Deviations require explicit justification and user approval.
+This Constitution is the workflow governance layer for {PROJECT_NAME}. It is
+applied when `.specify/memory/constitution.md` exists or when an `/ms.*` workflow
+is active.
+
+This Constitution does not replace `AGENTS.md`. `AGENTS.md` is the always-on
+fallback contract for basic agent safety, permissions, surgical scope, and coding
+hygiene. This Constitution adds stricter workflow rules for specifications,
+planning, task generation, implementation review, traceability, and release
+readiness.
+
+If the Constitution and `AGENTS.md` conflict:
+
+1. User safety, data integrity, destructive-operation approval, and surgical
+   scope from `AGENTS.md` always remain binding.
+2. This Constitution governs `/ms.*` artifacts, gates, and project-specific
+   workflow constraints.
+3. Command files under `.claude/commands/` define step-specific execution
+   details, but must not contradict this Constitution.
+
+Deviations from this Constitution require explicit user approval and should be
+recorded as an amendment or project-specific rule when durable.
 
 ---
 
-## Core Principles
+## I. Workflow Scope And Gate Ownership
 
-### I. Test-First Development (NON-NEGOTIABLE)
+### Workflow Scope
 
-**Rule**: All functionality must have tests written before implementation.
+The `/ms.*` workflow is a layered process:
 
-**Rationale**:
-
--   Test-Driven Development ensures better design through interface-first thinking
--   Prevents regression bugs
--   Serves as living documentation
--   Forces consideration of edge cases upfront
-
-**Process**:
-
-1. Write failing test
-2. Implement minimum code to pass
-3. Refactor while keeping tests green
-
-**Enforcement**:
-
--   Phase 3.2 (Tests) must complete before Phase 3.3 (Implementation)
--   `/ms.analyze` Level 2 validates test coverage ≥85% (CI/CD blocking)
--   Coverage < 85% blocks `/ms.implement` execution
-
-**Exceptions**: None. This is an absolute rule.
-
-**Metrics**: Minimum 85% test coverage across the codebase.
-
----
-
-### II. Simplicity-First Architecture
-
-**Rule**: Choose the simplest solution that solves the current problem. Avoid premature optimization and over-engineering.
-
-**Complex Patterns to Avoid (unless proven necessary)**:
-
--   Microservices architecture
--   Event sourcing / CQRS
--   Kubernetes (start with simpler deployment)
--   GraphQL (when REST suffices)
--   Custom frameworks
--   Distributed transactions
-
-**Tool Usage Philosophy**:
-
-✅ **Prefer External Tools Over Reimplementation**:
-
--   Use ESLint/Pylint for complexity analysis (AST-based)
--   Use ripgrep for code search (regex-based)
--   Use TypeScript compiler API for type checking (AST-based)
--   Use git for version control (not custom DB)
-
-❌ **Avoid Building What Already Exists**:
-
--   Don't write custom AST parsers when `@typescript-eslint/parser` exists
--   Don't write custom regex engines when ripgrep exists
--   Don't write custom type checkers when `tsc` exists
-
-**Decision Framework**:
-
-```
-Does a mature, well-maintained tool exist?
-├─ YES → Use it (even if AST-based)
-└─ NO → Build simplest solution (prefer regex over custom AST)
+```text
+/ms.featuremap -> /ms.checklist --global -> /ms.constitution
+/ms.checklist -> /ms.specify -> /ms.clarify -> /ms.plan -> /ms.tasks
+/ms.analyze -> /ms.implement -> /ms.review -> [/ms.up-docs] -> /fin
 ```
 
-**Rationale**:
+`/ms.constitution` is not a per-Feature ceremony. It establishes or amends the
+project-wide baseline in Section IX from the checked PRD Feature Map.
 
--   Simplicity = leveraging existing robust tools
--   AST parsers (ESLint, TSC, ast stdlib) are **already dependencies**
--   Building custom parsers is **more complex** than using existing ones
+### Gate Ownership
 
----
-
-**AST Parser Usage Policy** (4 Safety Models):
-
-**Allowed Use Cases**:
-
-1️⃣ **Read-only Mode**
-
--   Code analysis, metrics extraction, complexity measurement
--   Example: ESLint complexity rules, code navigation
--   Safety: No code modification, no side effects
-
-2️⃣ **Sandboxed Transformation**
-
--   Parse → Clone AST → Modify clone → Generate new code
--   Original code untouched, transformation isolated
--   Example: Code refactoring, auto-formatting
--   Safety: Original preserved, changes reviewable before applying
-
-3️⃣ **Sandbox AST Execution**
-
--   Execute AST in restricted environment with no built-ins
--   No access to file system, network, or external functions
--   Example: Safe expression evaluation, config validation
--   Safety: Isolated VM, no escape to host system
-
-4️⃣ **AST Diffing**
-
--   Compare two AST versions to detect structural changes
--   Example: Code review automation, test change detection
--   Safety: Read-only comparison, no modifications
-
-**Enforcement**:
-
--   All AST usage must follow one of the 4 models above
--   Document which model is used in code comments
--   Code review verifies safety model compliance
-
-**Approved AST Libraries** (already safe):
-
--   TypeScript: `@typescript-eslint/parser` (read-only, sandboxed)
--   Python: `ast` module (read-only, sandboxed)
--   JavaScript: `acorn` (read-only parser)
--   Go: `go/parser` (stdlib, read-only)
+- `/ms.checklist` owns PRD and Feature Map coverage checks.
+- `/ms.specify` owns conversion from Feature prompt to `spec.md`.
+- `/ms.clarify` owns ambiguity reduction and spec updates.
+- `/ms.plan` owns implementation strategy and architectural planning.
+- `/ms.tasks` owns task breakdown and lightweight traceability metadata.
+- `/ms.analyze` owns pre-implementation document consistency only: `spec.md`,
+  `plan.md`, `tasks.md`, amendments, lineage, file-path references, and project
+  baseline alignment.
+- `/ms.analyze` must not run post-implementation code gates such as tests, lint,
+  typecheck, coverage, build, security scan, or code-level TAG scans.
+- `/ms.implement` owns test-first implementation for the current task/TAG.
+- `/ms.review` owns post-implementation code review and executable gates:
+  lint, typecheck, tests, build, coverage, security checks, TRUST review, and
+  TAG integrity reporting.
+- `/ms.up-docs` owns documentation synchronization. Documentation sync failures
+  are fail-open unless the active project explicitly promotes them to blockers.
+- `/fin` and `/finq` handle commit/push/PR workflows according to their command
+  definitions and user approval requirements.
 
 ---
 
-**Decision Framework**:
+## II. Requirements Clarity: GEARS Standard
 
-```
-Can the problem be solved with:
-1. Plain functions/methods? → Use them
-2. Existing libraries? → Use them
-3. Standard patterns? → Use them
-4. Custom solution needed? → Document why
+### Rule
 
-Only proceed to next level if previous fails.
+GEARS is the canonical syntax for behavioral requirements in `/ms.*` workflow
+documents. It is used where precision prevents ambiguity, especially in behavior
+contracts and acceptance criteria.
+
+Classic EARS is a legacy-compatible subset. Convert legacy EARS to GEARS on the
+next meaningful edit instead of preserving mixed syntax.
+
+### Language Policy
+
+- User interaction may be in Korean.
+- Workflow documents (`spec.md`, `plan.md`, `tasks.md`, tests, code-facing docs)
+  are written in English unless the user explicitly requests otherwise.
+- GEARS keywords (`Where`, `While`, `When`) and `shall` remain in English.
+
+### Canonical Form
+
+```text
+[Where <static condition>] [While <runtime state>] [When <trigger>]
+the <concrete subject> shall <verifiable behavior>.
 ```
 
-**Rationale**:
+Clauses are optional, but when present they must appear in this order:
+`Where -> While -> When -> shall`.
 
--   Faster iteration in early stages
--   Lower cognitive load for team
--   Easier debugging and maintenance
--   Complexity can be added later when bottlenecks are proven
+### GEARS Is Required For
 
-**Enforcement**:
+- new user-facing behavior contracts
+- acceptance criteria that drive implementation or tests
+- event-triggered behavior (`When ...`)
+- runtime-state behavior (`While ...`)
+- static applicability such as permissions, feature flags, deployment targets, or
+  configuration (`Where ...`)
+- error handling, exceptional behavior, validation failures, and security rules
+- behavior that must map 1:1 to a test or verification task
 
--   `/plan` phase includes Complexity Check
--   Architectural decisions require written justification
--   Regular complexity audits
+### Plain Statements Are Allowed For
 
-**Exceptions** (require user approval):
+- preservation contracts, such as existing UI/layout/flow that must remain
+  unchanged
+- type, schema, shape, or field declarations
+- scope notes and out-of-scope boundaries
+- Constitution or policy echoes
+- refactor constraints that do not introduce new behavior
+- implementation notes that are not acceptance criteria
 
--   Proven performance bottleneck (with metrics)
--   Explicit business requirement (e.g., compliance)
+Plain statements must still be specific and verifiable. Do not use vague phrases
+such as "fast", "secure", "safe", "user-friendly", "well", or
+"appropriately" without measurable criteria.
 
-**File Size Limits**:
+### Rules
 
-**Documentation Directories** (NO LIMIT):
+- Use a concrete subject, such as `the auth service` or `the upload worker`.
+  Use `the system` only for genuinely product-wide behavior.
+- `Where` describes static applicability only.
+- `While` describes runtime state only.
+- `When` describes triggers, including error or exceptional events.
+- Express exceptions as category-labeled GEARS, for example:
+  `[Error Handling] When credentials are invalid, the auth service shall return
+  a generic authentication error.`
+- One behavioral requirement should describe one verifiable behavior.
+- Requirements that cannot be tested or verified must be clarified before
+  implementation.
 
--   `specs/` - Spec-Kit specifications
--   `docs/` - Project documentation
--   `.specify/` - Spec-Kit metadata
--   `.claude/commands/` - Command prompts (special case: these ARE code for AI agents)
+### Enforcement
 
-**Documentation Files** (NO LIMIT):
-
--   `.md` - Markdown files
--   `.txt` - Plain text files
-
-**Production Code Files** (≤700 SLOC):
-
--   All files in `src/`, `lib/`, `app/` directories (production code)
-
-**Test Files** (NO LIMIT):
-
--   All files in `tests/` directories — case coverage is prioritized over file length
--   SLOC = Source Lines of Code (excluding comments and blank lines)
-
-**Rationale**:
-
--   Detailed documentation improves implementation quality
--   700 SLOC allows substantial production modules without forcing artificial splits; test files have NO limit so coverage is never sacrificed to length
--   Complexity metrics (≤10 per function) ensure maintainability
--   Command prompts are executable instructions for AI agents, thus treated as code
-
----
-
-### Change Discipline (Surgical Changes)
-
-**Rule**: Touch only what the task requires; clean up only your own mess.
-
--   Don't "improve" adjacent code, comments, or formatting; match the existing style.
--   Don't refactor what isn't broken. Notice unrelated dead code → mention it, don't delete it.
--   Remove only the imports/variables/functions that YOUR change orphaned; leave pre-existing dead code unless asked.
--   Every changed line must trace directly to the request.
--   **Senior test** (Simplicity): "Would a senior engineer call this overcomplicated?" If yes, simplify. No speculative abstractions, no flexibility/configurability that wasn't requested, no error handling for cases that cannot occur.
-
-Planned refactors (splitting >700-SLOC files, migrating to shared primitives, TRUST gates) are **explicit tasks**, not silent side-effects — surgical discipline applies within each task's own scope.
+- `/ms.specify` and `/ms.clarify` produce or refine behavioral requirements.
+- `/ms.analyze` checks document coverage, drift, contradiction, and mappability
+  from requirements to plan/tasks.
+- `/ms.review` may flag implemented behavior that no longer matches active
+  requirements.
 
 ---
 
-### III. Modular Design (Library-First)
+## III. Test-First Implementation
 
-**Rule**: Every feature starts as an independently testable module with clear boundaries.
+### Rule
 
-**Characteristics of Good Modules**:
+For `/ms.*` feature work, implementation follows a verifiable test-first loop:
 
--   Single, well-defined responsibility
--   Can be tested without external dependencies
--   Clear input/output contract
--   No global state dependencies
--   Reusable across contexts
+1. Define the behavior contract.
+2. Write or update the relevant test or verification case.
+3. Implement the smallest change that satisfies it.
+4. Refactor only within the task scope while keeping verification green.
 
-**Anti-Patterns**:
+For audit-driven refactors, the RED phase may be a safety-net verification that
+is already green. In that case, document that the task is refactor-mode and keep
+the safety net in place before making changes.
 
--   God objects (modules doing everything)
--   Hidden dependencies
--   Tightly coupled components
--   Utility modules (catch-all for unrelated functions)
+### Coverage Target
 
-**Enforcement**:
+- Overall coverage target: 85% or the active project threshold, whichever is
+  explicitly stricter.
+- Critical paths such as authentication, authorization, payments, data deletion,
+  and security-sensitive flows should have targeted tests even when global
+  coverage is already high.
 
--   `/ms.analyze` Level 3 checks module cohesion
--   `/ms.plan` phase requires module structure
--   Automated dependency analysis in CI
+### Enforcement
 
-**Exceptions**:
-
--   Trivial utilities (<10 lines)
--   Prototype/spike phase (must refactor before merge)
-
----
-
-### IV. Requirements Clarity (GEARS Standard)
-
-**Rule**: All requirements MUST follow the **GEARS** syntax to eliminate ambiguity. GEARS (Generalized EARS) is the canonical requirement syntax; classic EARS is a **legacy-compatible subset** (mechanically convertible, not "wrong"), retained for reference and external input only.
-
-**Language Policy (My-Spec)**:
-
--   ✅ User inputs requirements in **Korean** (natural language)
--   ✅ The spec system converts Korean → **English GEARS**
--   ✅ ALL workflow documents written in **English only** (spec.md, plan.md, tasks.md, code, tests, docs)
--   ✅ GEARS keywords (Where/While/When) and `shall` remain in **English**
-
-**Canonical form**:
-
-```
-[Where <static condition>]   # configuration / feature flag / deploy environment / permission
-[While <runtime state>]      # job running / session active / connection open / edit mode
-[When <trigger>]             # triggering event, including error / exceptional events
-the <subject> shall <behavior>.
-```
-
-Clauses are optional, but when present MUST appear in this fixed order. GEARS maps 1:1 to Given-When-Then: `Where + While → Given`, `When → When`, `shall → Then`.
-
-**Example Conversion**:
-
-```
-Korean Input (user):
-"사용자가 유효한 자격증명으로 로그인하면, 시스템은 JWT 토큰을 발급해야 한다"
-
-GEARS Output (spec.md):
-"When a user submits valid credentials, the auth service shall issue a JWT session token."
-```
-
-(Note the concrete subject `the auth service`, not `the system`.)
-
-**Rules (R1–R8)**:
-
--   **R1 — Subject**: use a concrete, implementable unit (`the upload service`, `the chat API`) that narrows responsibility. Use `the system` only when the requirement is genuinely product-wide.
--   **R2 — Where**: static applicability only — configuration, feature flag, deployment environment, permission/role.
--   **R3 — While**: runtime state only — job running, session active, connection open, edit mode.
--   **R4 — When**: triggering events, **including error and exceptional events**.
--   **R5 — No classic `IF...then`**: express exceptions with a category label, e.g. `[Error Handling] When <event>, the <subject> shall <behavior>.`
--   **R6 — Testability**: one requirement = one verifiable behavior, mapping to ≥1 acceptance test / task.
--   **R7 — `shall` is lowercase** canonical; validators are case-insensitive (legacy `SHALL` accepted).
--   **R8 — Invalid (review ERROR)** when: clause order is violated, subject or behavior is missing, or a forbidden vague phrase is present.
-
-**Category labels** (preserve semantics GEARS strips from syntax): `[Error Handling]`, `[Security]`, `[Performance]`, … — optional prefix placed before the clauses.
-
-**Compatibility layers** (role separation — never mix syntaxes within one block):
-
-| Area | Syntax |
-| --- | --- |
-| External input (PRD / stakeholder) | free-form; classic EARS allowed |
-| High-level requirements | GEARS (loose ok) |
-| Acceptance criteria | **strict GEARS** |
-| Test scenarios | Given-When-Then |
-| Legacy EARS specs | frozen; convert to GEARS on next edit |
-
-**Migration (EARS → GEARS)**:
-
--   `the system` → concrete subject (narrow to an implementable unit — not a blind rename)
--   `IF...then` → `[Error Handling] When …`
--   `WHERE … MAY` (optional) → `Where <static condition>, … the <subject> shall …`
--   `WHILE` → `While <runtime state>, … the <subject> shall …`
-
-**Forbidden Phrases**:
-
--   ❌ "can", "could", "might" (ambiguous → clarify with Where/When)
--   ❌ "should", "would be good" (→ make it a Where-gated `shall`)
--   ❌ "fast", "secure", "safe", "user-friendly" (not measurable → provide a specific metric/behavior)
-
-**Measurability Principle**: every requirement must answer "When is this satisfied? / How is it tested? / How do we judge success or failure?"
-
-**Enforcement**:
-
--   `/ms.clarify` and `/ms.review` validate GEARS (R1–R8)
--   `/ms.analyze` checks subject/condition/trigger/behavior completeness + Given-When-Then mappability
--   AI detects non-GEARS requirements and suggests rewrites
--   All FR-XXX MUST comply with GEARS
-
-**Metrics**: 100% of functional requirements use GEARS format.
+- `/ms.implement` owns the local test-first workflow for the current task.
+- `/ms.review` owns executable verification after implementation.
+- `/ms.analyze` does not run coverage or test commands.
 
 ---
 
-### V. TRUST 5 Principles (Code Quality Standards)
+## IV. TRUST Review Model
 
-**Rule**: All code MUST comply with TRUST 5 principles. No exceptions without user approval.
+TRUST is the code quality review model for `/ms.*` work. It is a review and gate
+framework, not a claim that every check is automatically available in every
+repository.
 
-**Foundation**: Based on MoAI-ADK TRUST methodology for systematic code quality assurance.
+### T - Test First
 
----
+- Tests or verification cases exist for the implemented behavior.
+- Tests pass for the touched area.
+- Coverage is evaluated by `/ms.review` or the project's CI tooling when
+  available.
 
-#### T - Test First
+### R - Readable
 
-**SPEC → Test → Code Cycle**:
+- Production code files target <=700 SLOC, excluding blank/comment-only lines.
+- Test files have no SLOC limit; case coverage is prioritized over file length.
+- Functions target <=100 LOC.
+- Cyclomatic complexity target: <=10 per function.
+- Nesting depth target: <=4.
+- Parameters target: <=5 unless a framework interface requires more.
 
-1. ✅ SPEC written with @SPEC:ID tag
-2. ✅ RED: Write failing test with @TEST:ID
-3. ✅ GREEN: Implement minimum code to pass (@CODE:ID)
-4. ✅ REFACTOR: Improve quality while keeping tests green
+### U - Unified
 
-**Coverage Requirements**:
+- Code follows existing project patterns and folder structure.
+- Types are explicit and strict typing is preferred.
+- Lint and formatting rules come from the repository's configured tooling.
 
--   ✅ Overall coverage ≥85% (MANDATORY)
--   ✅ New code coverage 100% (RECOMMENDED)
--   ✅ Critical paths 100% (authentication, payment, security)
+### S - Secured
 
-**Enforcement**:
+- User-controlled inputs are validated at boundaries.
+- Authorization is checked before user- or tenant-scoped data access.
+- Secrets are loaded from environment/configuration, never hardcoded.
+- Sensitive data is not logged.
+- Dependency and static security tooling should be run by `/ms.review` or CI when
+  configured.
 
--   CI/CD blocks merge if coverage < 85%
--   `/ms.analyze` Level 2 validates test existence
--   Coverage < 85% blocks `/ms.implement` execution
+### T - Trackable
 
-**No Exceptions**: Test-first is NON-NEGOTIABLE.
+- TAGS provide best-effort grep-based traceability from requirement to tests,
+  code, and docs.
+- TAG integrity issues are warnings by default, not commit-blocking gates, unless
+  Section IX or a user decision explicitly promotes them to blockers.
 
----
+### TRUST Gate Ownership
 
-#### R - Readable
-
-**Size Constraints**:
-
--   ✅ Production file ≤700 SLOC (Source Lines of Code, excluding comments and blank lines)
--   ✅ Test file SLOC: NO LIMIT (case coverage prioritized over file length)
--   ✅ Function ≤100 LOC (Lines of Code, excluding comments)
--   ✅ Parameters ≤5 per function
--   ✅ Nesting depth ≤4 levels
-
-**Complexity Limits**:
-
--   ✅ Cyclomatic Complexity ≤10 per function
--   ✅ Cognitive Complexity ≤15 per function
-
-**Rationale**:
-
--   100 LOC functions: Sufficient for complex algorithms without excessive splitting
--   700 SLOC production files: Allows substantial modules without forcing artificial splits
--   Test files: NO LIMIT to ensure complete coverage in a single file where natural
--   Complexity limits: More important than line count for maintainability
-
-**Naming Conventions**:
-
--   ✅ Use domain language from spec.md
--   ✅ Functions: verb + noun (e.g., `validateUserInput`, `fetchOrderData`)
--   ✅ Variables: descriptive nouns (e.g., `userId` ✅, `uid` ❌)
--   ✅ No abbreviations unless industry-standard (API, HTTP, JWT ✅)
-
-**Enforcement**:
-
--   ESLint/Pylint rules: `max-lines`, `max-statements`, `complexity`
--   `/ms.analyze` Level 2 checks file/function size
--   Linter violations block `/ms.implement` execution
-
-**Exceptions**:
-
--   Configuration files (e.g., Webpack config)
--   Generated code (mark with `@generated` tag)
+| Area | Owner | Default Blocking Behavior |
+| --- | --- | --- |
+| Document consistency | `/ms.analyze` | Blocks `/ms.implement` on FAIL |
+| Tests/lint/type/build | `/ms.review` or CI | Blocks when executable gates fail |
+| Coverage | `/ms.review` or CI | Blocks only when tooling and threshold are active |
+| Security scan | `/ms.review` or CI | Blocks HIGH/CRITICAL findings when tooling exists |
+| TAG integrity | `/ms.review` report | Warning by default |
 
 ---
 
-#### U - Unified
+## V. TAGS: Best-Effort Traceability
 
-**SPEC-Driven Architecture**:
+### Purpose
 
--   ✅ All implementations start from SPEC
--   ✅ Code structure mirrors SPEC organization
--   ✅ @TAG system ensures SPEC↔Code traceability
+TAGS exist to make requirement/test/code/doc relationships easy to find with
+`rg`. They are not a substitute for tests, code review, or executable gates.
 
-**Type Safety**:
+### Canonical Chain
 
--   ✅ TypeScript: `strict: true` in tsconfig.json (MANDATORY)
--   ✅ Python: mypy with `--strict` flag (MANDATORY)
--   ✅ Type checking passes with zero errors
+Use ASCII separators in machine-readable TAG chains:
 
-**Consistent Style**:
-
--   ✅ Linting passes with zero warnings
--   ✅ Unified code formatting (Prettier, Black)
--   ✅ Same patterns throughout project
-
-**Enforcement**:
-
--   `tsconfig.json` or `mypy.ini` with strict settings
--   CI/CD runs type checker
--   Pre-commit hooks format code
-
-**No Exceptions**: Type safety is MANDATORY.
-
----
-
-#### S - Secured
-
-**Input Validation**:
-
--   ✅ Validate ALL user inputs (regex, whitelist)
--   ✅ File upload restrictions (extension, size, MIME type)
--   ✅ Sanitize data before database queries
-
-**Vulnerability Prevention**:
-
--   ✅ **SQL Injection**: Use Prepared Statements or ORM
--   ✅ **XSS**: HTML escaping, CSP headers
--   ✅ **CSRF**: CSRF tokens, SameSite cookies
--   ✅ **Passwords**: bcrypt/argon2 hashing (≥10 rounds)
--   ✅ **Secrets**: Environment variables only (NEVER hardcode)
-
-**Security Scanning**:
-
--   ✅ Static analysis tools (Snyk, OWASP Dependency-Check)
--   ✅ `.env` file MUST be in `.gitignore` (CRITICAL)
--   ✅ Regular dependency updates (npm audit, pip-audit)
-
-**Forbidden Practices**:
-
--   ❌ Plaintext password storage
--   ❌ `eval()` or `exec()` with user input
--   ❌ Disabled SSL/TLS verification
--   ❌ Weak encryption (MD5, SHA1)
-
-**Enforcement**:
-
--   `/ms.analyze` Level 3 runs security scan (Snyk, OWASP)
--   `npm audit` / `pip-audit` in CI/CD
--   HIGH/CRITICAL vulnerabilities block execution
-
----
-
-#### T - Trackable
-
-**@TAG System (CODE-FIRST Principle)**:
-
--   ✅ Complete traceability chain: `@SPEC → @TEST → @CODE → @DOC`
--   ✅ Every code file has TAG block (inserted by `/ms.implement`)
--   ✅ ripgrep-based TAG scanning (no intermediate database)
-
-**TAG Integrity**:
-
--   ✅ No orphaned TAGs (TAG exists but file missing)
--   ✅ No duplicate TAG IDs (unique across project)
--   ✅ Complete chains (every @SPEC has @TEST and @CODE)
-
-**TAG Validation**:
-
-```bash
-# Scan all TAGs
-rg '@(SPEC|TEST|CODE|DOC):' -n
-
-# Find orphaned TAGs
-rg '@CODE:AUTH-001' -l  # Should return at least one file
+```text
+@SPEC:TAG-ID -> @TEST:TAG-ID -> @CODE:TAG-ID -> @DOC:TAG-ID
 ```
 
-**Enforcement**:
+`@DOC` is optional.
 
--   `/ms.analyze` Level 3 checks TAG integrity
--   CI/CD validates TAG chains
--   `/ms.implement` auto-inserts TAG blocks
+### Placement
 
-**TAG Block Format** (auto-generated):
+- `@SPEC:TAG-ID`: placed in `spec.md` near the relevant requirement or Feature
+  section.
+- `@TEST:TAG-ID`: placed once at the top of a relevant test file.
+- `@CODE:TAG-ID`: placed once at the top of a relevant implementation file.
+- `@DOC:TAG-ID`: placed in generated or maintained docs when useful.
+
+### File-Level Only
+
+- Use file-level TAG blocks only.
+- Do not add line-level `@TEST` docstrings to every test function.
+- When one test file covers multiple FR groups, use one file-level TAG block plus
+  a short `Covers:` line listing the relevant FR/TAG groups.
+
+### Multi-File Work
+
+- Multiple code files may share the same `@CODE:TAG-ID` when they implement the
+  same requirement or Feature slice.
+- Multiple test files may share the same `@TEST:TAG-ID` when they verify the same
+  requirement or Feature slice.
+- Duplicate TAG IDs are only errors when they point to conflicting requirements,
+  unrelated behaviors, or stale references.
+
+### TAG Block Format
 
 ```typescript
 /**
  * @CODE:AUTH-001
  * @SPEC: specs/001-auth-spec/spec.md
  * @TEST: tests/auth/service.test.ts
- * @CHAIN: @SPEC:AUTH-001 → @TEST:AUTH-001 → @CODE:AUTH-001
+ * @CHAIN: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
  * @STATUS: implemented
- * @CREATED: 2025-10-10
- * @UPDATED: 2025-10-10
  */
 ```
 
----
+`@CREATED` and `@UPDATED` are optional. If `@UPDATED` is present, it must reflect
+git reality or be omitted. Do not hand-stamp today's date on unchanged files.
 
-**TRUST Metrics Summary**:
+### Validation
 
-| Principle  | Metric              | Threshold | Enforcement      |
-| ---------- | ------------------- | --------- | ---------------- |
-| Test First | Coverage            | ≥85%      | CI/CD blocking   |
-| Readable   | File size           | ≤700 SLOC prod / test: no limit | Linter rules     |
-| Readable   | Function size       | ≤100 LOC  | Linter rules     |
-| Readable   | Complexity          | ≤10       | Linter rules     |
-| Unified    | Type errors         | 0         | CI/CD blocking   |
-| Unified    | Lint warnings       | 0         | CI/CD blocking   |
-| Secured    | High/Critical vulns | 0         | Security scan    |
-| Trackable  | Orphaned TAGs       | 0         | `/ms.analyze` L3 |
-| Trackable  | Duplicate TAGs      | 0         | `/ms.analyze` L3 |
-
-**Validation Command**:
-
-```bash
-/ms.analyze  # Runs full TRUST validation (3 levels)
-```
+- Broken chains, orphaned TAGs, and missing references are reported by
+  `/ms.review` or TAG tooling.
+- TAG issues are warnings by default.
+- A project may promote TAG integrity to blocking only through an explicit
+  Section IX rule or user decision.
 
 ---
 
-### VI. Explicit Over Implicit
+## VI. File, Architecture, And Tooling Governance
 
-**Rule**: Code behavior must be explicit and predictable. Avoid "magic" and hidden side effects.
+### File Size And Complexity
 
-**Practices**:
+- Production code: <=700 SLOC per file.
+- Test code: no SLOC limit.
+- Function length: <=100 LOC target.
+- Cyclomatic complexity: <=10 target.
+- Documentation, specs, command prompts, and generated reference docs have no
+  SLOC limit unless Section IX adds one.
 
--   ✅ Explicit function parameters over global state
--   ✅ Named constants over magic numbers
--   ✅ Descriptive variable names over abbreviations
--   ✅ Explicit error handling over silent failures
--   ✅ Direct dependencies over hidden coupling
+Exceeding a target requires either a planned split task, an explicit rationale, or
+a project-specific exception.
 
-**Anti-Patterns**:
+### Simplicity And External Tools
 
--   ❌ Modifying parameters as side effects
--   ❌ Global variables affecting behavior
--   ❌ Framework "magic" without understanding
--   ❌ Implicit type conversions
--   ❌ Hidden configuration files
+Prefer mature existing tools over custom implementations:
 
-**Example**:
+- use `rg` for code search
+- use project linters for style and complexity
+- use type checkers for static typing
+- use existing test runners for verification
+- use git for history instead of custom state tracking
 
-```javascript
-// ❌ Bad: Implicit, side effects
-function processUser(user) {
-    user.processed = true; // Mutation
-    globalConfig.lastUser = user.id; // Side effect
-    return user;
-}
+### AST Parser Policy
 
-// ✅ Good: Explicit, pure
-function processUser(user, config) {
-    return {
-        ...user,
-        processed: true,
-        processedAt: new Date(),
-        processedBy: config.systemId,
-    };
-}
-```
+AST tooling is allowed when it follows one of these safety models:
 
-**Rationale**: Explicit code is easier to understand, test, debug, and maintain.
+1. Read-only analysis.
+2. Sandboxed transformation where original files remain reviewable.
+3. Sandboxed execution with no filesystem/network escape.
+4. AST diffing for structural comparison.
+
+Do not build custom parsers when a mature parser already exists for the language
+or framework.
 
 ---
 
-### VII. Security by Default
+## VII. Security Governance
 
-**Rule**: Security is not optional. All features must consider security from the start.
+Security findings must be turned into verifiable behavior requirements or review
+findings, not vague TODOs.
 
-**Mandatory Practices**:
+Required security posture for `/ms.*` work:
 
--   ✅ Input validation and sanitization
--   ✅ Authentication required (unless explicitly public)
--   ✅ Authorization checks before data access
--   ✅ Secrets in environment variables (never in code)
--   ✅ HTTPS for all external communication
--   ✅ SQL parameterization (prevent injection)
--   ✅ Content Security Policy headers
--   ✅ Rate limiting on public endpoints
+- validate external input and file uploads
+- bind authorization to the authenticated principal and resource owner
+- prevent IDOR/BOLA and tenant-boundary leaks
+- avoid mass assignment by whitelisting writable fields
+- parameterize database access
+- avoid plaintext passwords and weak crypto
+- keep secrets out of source code and logs
+- run configured dependency or static security checks during `/ms.review` or CI
 
-**Forbidden**:
-
--   ❌ Passwords in plaintext
--   ❌ Eval / exec with user input
--   ❌ Disabled CORS (configure properly instead)
--   ❌ Disabled SSL verification
--   ❌ Weak cryptographic algorithms (MD5, SHA1)
-
-**Enforcement**:
-
--   `/ms.analyze` Level 3 runs automated security scan
--   CI/CD runs security checks (`npm audit`, `pip-audit`)
--   Regular dependency vulnerability checks
-
-**When Unsure**: Default to more restrictive and document why.
+If a security requirement is ambiguous, express it as GEARS and clarify it before
+implementation.
 
 ---
 
-### VIII. Documentation as Code
+## VIII. Documentation As Code
 
-**Rule**: Documentation lives with the code and updates with changes.
+Documentation should update when behavior, APIs, setup, architecture, or workflow
+contracts change.
 
-**Required Documentation**:
-
--   README with setup instructions
--   API contracts (OpenAPI/Swagger)
--   Architecture Decision Records (ADRs) for major choices
--   Inline comments for complex logic (not obvious code)
--   CHANGELOG for user-facing changes
-
-**Anti-Patterns**:
-
--   ❌ Documentation in separate wikis (gets outdated)
--   ❌ Comments explaining "what" (code should be self-explanatory)
--   ❌ Documentation without examples
--   ❌ Outdated diagrams
-
-**Enforcement**:
-
--   `/ms.analyze` checks doc-code consistency
--   User reviews documentation completeness
-
----
-
-## Delivery Standards
-
-### Definition of Done
-
-A feature is complete when ALL criteria are met:
-
-**Quality Checks**:
-
--   [ ] All acceptance criteria satisfied
--   [ ] Tests: Coverage ≥85%, all passing (unit + integration)
--   [ ] `/ms.analyze` Level 2: PASS (zero type errors)
--   [ ] Security: No HIGH/CRITICAL vulnerabilities
-
-**Validation Gates**:
-
--   [ ] No regressions in existing features
--   [ ] CI/CD: All checks green
--   [ ] Performance: Benchmarks pass (if applicable)
--   [ ] User: Reviewed and approved
-
-### Release Checklist
-
--   [ ] Feature sign-off obtained
--   [ ] Release notes documented
--   [ ] Rollback plan ready
--   [ ] Monitoring configured
-
----
-
-## Amendment Process
-
-### Proposing Changes
-
-1. **Identify Need**: Document why current Constitution is inadequate
-2. **Draft Amendment**: Propose specific change with rationale
-3. **Impact Analysis**: Assess effect on existing code/processes
-4. **User Decision**: User reviews and approves/rejects amendment
-5. **Version Update**: Increment version (MAJOR.MINOR.PATCH)
-
-### Version Semantics
-
--   **MAJOR**: Breaking change (removes/redefines principles)
--   **MINOR**: Additive change (new principles)
--   **PATCH**: Clarification (no behavior change)
-
-### Amendment History
-
-| Version | Date   | Change               | Rationale         |
-| ------- | ------ | -------------------- | ----------------- |
-| 1.0.0   | {DATE} | Initial Constitution | Project inception |
-
----
-
-## Governance
-
-### Enforcement Matrix
-
-| Type          | Method                                | Frequency          |
-| ------------- | ------------------------------------- | ------------------ |
-| **Automated** | Linting, type checking, coverage      | Every commit       |
-| **Automated** | `/ms.analyze` 3-level validation      | Pre-implementation |
-| **Manual**    | User review of AI outputs             | Each phase         |
-| **Manual**    | User approval for critical operations | As needed          |
-
-### Exception Handling
-
-**Allowed Exceptions** (with user approval):
-
--   Prototyping/spikes → Must refactor before merge
--   Emergency hotfixes → Create tech debt ticket
--   Impossible constraints → Requires Constitution amendment
-
-**Exception Protocol**:
-
-1. Document violation + rationale
-2. Get user approval
-3. Track in tech debt log
-
-### Conflict Resolution
-
-**Priority**: Security > Safety > Tests > Simplicity > Performance
-
-If unclear → Ask user → Document as ADR
+- Keep documentation concise and current-state oriented.
+- Document why decisions exist, not every line of what code does.
+- Use `/ms.up-docs` or manual updates for docs affected by implementation.
+- Documentation sync is fail-open by default unless Section IX makes it blocking.
 
 ---
 
 ## IX. Project-Specific Constraints
 
-<!-- This section is auto-generated by `/ms.constitution` command from spec.md and plan.md -->
+This section is empty by default.
 
-_Auto-generated by `/ms.constitution` from spec.md and plan.md on {DATE}_
+`/ms.constitution` may populate it only with durable project-wide constraints
+proven by the checked PRD Feature Map or an explicit user decision. Do not invent
+constraints to fill categories.
 
-### Technology Stack
+If no durable project-specific constraints exist, keep exactly:
 
-✅ **Required**:
+```text
+_No project-specific constraints established yet._
+```
 
--   {constraint 1}
--   {constraint 2}
+When durable constraints exist:
 
-❌ **Forbidden**:
+- cite the source PRD, product-principles section, or Feature Map section for
+  each rule
+- include only headings that contain actual rules
+- omit empty Technology, Dependency, Architecture, Security, Performance, or
+  Workflow sections
+- keep temporary Feature decisions in the Feature spec, not in this Constitution
+- promote TAG, documentation, coverage, or security findings to blocking only
+  when this section explicitly says so
 
--   {constraint 1}
+Suggested headings, when applicable:
 
-### Dependencies
-
-✅ **Required**:
-
--   {constraint 1}
-
-❌ **Forbidden**:
-
--   {constraint 1}
-
-### Architecture
-
-✅ **Required**:
-
--   {constraint 1}
-
-### Security
-
-✅ **Required**:
-
--   {constraint 1}
-
-### Performance
-
-✅ **Required**:
-
--   {constraint 1}
+- Source Artifacts
+- Product-Wide Rules
+- Architecture And Integration Constraints
+- Security And Data Rules
+- Quality Gates
+- Workflow Overrides
 
 ---
 
-## X. Agentic Behavior Standards
+## X. Amendment Process
 
-**Rule**: AI agents must operate transparently, safely, and truthfully. No deceptive or destructive behavior is permitted.
+Amend the Constitution only when the current rule set is inadequate for a durable
+project constraint.
 
-### Mandatory Confirmation Protocol
+1. Identify the rule gap.
+2. Draft the amendment with rationale.
+3. Assess impact on existing specs, plans, tasks, code, and commands.
+4. Get explicit user approval.
+5. Update version metadata and Section IX if project-specific.
 
-**Three-Step Verification for Destructive Operations**:
+Version semantics:
 
-```markdown
-BEFORE executing destructive operations, agent SHALL:
+- MAJOR: removes or redefines a principle.
+- MINOR: adds a new durable rule.
+- PATCH: clarifies wording without changing behavior.
 
-1. Display exact command to be executed
-2. List all affected files/data with sizes
-3. Request explicit confirmation: "Type YES to proceed, NO to cancel"
+### Amendment History
 
-Example:
-
-> About to execute: rm -rf ./src/legacy/
-> This will delete 47 files (2.3MB) permanently
-> Affected directories: /src/legacy/controllers/, /src/legacy/models/
-> Type YES to proceed, NO to cancel: \_
-```
-
-**Production Environment Triple Lock**:
-
-```markdown
-IF environment contains "prod" OR database contains "production":
-
-1. Display WARNING in red: "⚠️ PRODUCTION ENVIRONMENT DETECTED"
-2. Show environment name 3 times
-3. Require typed confirmation: "I understand this is PRODUCTION"
-4. Wait 5 seconds before execution
-5. Log all operations with timestamp
-```
-
-### Truth Verification Chain
-
-**Mandatory Execution Reporting Format**:
-
-```typescript
-interface ExecutionReport {
-    command: string; // Exact command executed
-    startTime: Date; // When execution started
-    endTime: Date; // When execution completed
-    exitCode: number; // Process exit code
-    stdout: string; // Complete stdout (no truncation)
-    stderr: string; // Complete stderr (no truncation)
-    interpretation: string; // Objective description only
-}
-
-// PROHIBITED phrases in interpretation:
-const BANNED_PHRASES = [
-    "successfully completed", // Unless exitCode === 0
-    "should be working", // Must verify, not assume
-    "appears to be fixed", // Must prove with tests
-    "rollback not possible", // Must attempt first
-    "production ready", // Requires full test suite pass
-];
-```
-
-### Anti-Deception Rules
-
-**Prohibited Behaviors** (ZERO TOLERANCE):
-
--   ❌ Claiming test success without running tests
--   ❌ Summarizing errors instead of showing full stack traces
--   ❌ Using phrases like "minor issues" to downplay failures
--   ❌ Skipping failed steps without explicit acknowledgment
--   ❌ Generating mock outputs when actual execution fails
-
-**Required Behaviors**:
-
--   ✅ Show raw command outputs without interpretation
--   ✅ Display complete error messages with line numbers
--   ✅ Report partial successes as "X of Y completed, Z failed"
--   ✅ Include failed test names and assertion details
--   ✅ Provide rollback commands for every destructive operation
-
-### Failure Transparency Protocol
-
-```typescript
-// Required failure report structure
-class FailureReport {
-    reportFailure(error: Error) {
-        console.log("❌ OPERATION FAILED");
-        console.log("Command:", this.lastCommand);
-        console.log("Error Type:", error.constructor.name);
-        console.log("Error Message:", error.message);
-        console.log("Stack Trace:", error.stack);
-        console.log("Attempted Fixes:", this.attemptedFixes);
-        console.log("Suggested Next Steps:");
-        this.suggestRecovery();
-    }
-
-    // NEVER hide errors in try-catch without reporting
-    async executeWithTransparency(fn: Function) {
-        try {
-            const result = await fn();
-            console.log("✅ Execution completed");
-            console.log("Result:", JSON.stringify(result, null, 2));
-            return result;
-        } catch (error) {
-            this.reportFailure(error);
-            throw error; // Re-throw, never swallow
-        }
-    }
-}
-```
+| Version | Date | Change | Rationale |
+| --- | --- | --- | --- |
+| 2.0.0 | {DATE} | Split AGENTS baseline from workflow governance | Reduce ceremony and drift |
 
 ---
 
-## XI. Architecture Validation
+## XI. Delivery Standards
 
-**Rule**: Code architecture must be validated against common anti-patterns and design flaws.
+A Feature is ready for user review when:
 
-### Automated Architecture Checks
+- acceptance criteria are satisfied or explicitly amended
+- relevant tests or verification cases pass
+- `/ms.analyze` has no blocking document consistency failures before
+  implementation
+- `/ms.review` has run post-implementation gates where tooling exists
+- security-sensitive paths have been reviewed
+- docs are updated or intentionally deferred
+- unresolved warnings are reported honestly
 
-**Circular Dependencies** (CI/CD BLOCKING):
-
-```bash
-# JavaScript/TypeScript
-npx madge --circular --extensions ts,tsx,js,jsx src/
-# If cycles detected, build MUST fail
-
-# Python
-pydeps --max-depth=10 --show-cycles src/
-# Non-zero exit on circular dependencies
-```
-
-**DRY Principle Enforcement**:
-
-```yaml
-# .jscpd.json configuration
-{
-    "threshold": 0,
-    "reporters": ["html", "console"],
-    "minLines": 6, # Minimum duplicate block
-    "minTokens": 50, # Minimum similarity tokens
-    "exitCode": 1, # Fail on duplicates
-    "strict": true,
-}
-```
-
-**Layer Separation Validation**:
-
-```typescript
-// Forbidden import patterns
-const LAYER_RULES = {
-    "src/presentation/**": {
-        forbidden: ["src/data/**", "src/infrastructure/**"],
-        allowed: ["src/domain/**", "src/application/**"],
-    },
-    "src/domain/**": {
-        forbidden: ["src/presentation/**", "src/infrastructure/**"],
-        allowed: [], // Domain should have no dependencies
-    },
-};
-```
-
-### Architecture Metrics Dashboard
-
-| Check                 | Tool          | Threshold | Frequency    | Blocking |
-| --------------------- | ------------- | --------- | ------------ | -------- |
-| Circular Dependencies | madge/pydeps  | 0         | Every commit | YES      |
-| Code Duplication      | jscpd         | <5%       | Every commit | YES      |
-| Function Complexity   | ESLint/Pylint | ≤10       | Every commit | YES      |
-| File Size             | Custom script | ≤700 SLOC prod / test: no limit | Every commit | NO       |
-| Test Coverage         | Jest/Pytest   | ≥85%      | Every commit | YES      |
+Do not describe a Feature as production-ready unless the relevant executable
+checks have actually passed.
 
 ---
 
-## XII. Context Management (Long-Running Tasks)
+## XII. Priority And Conflict Resolution
 
-**Rule**: Optimize context window usage through strategic loading and compression.
+When rules conflict, use this priority order:
 
-### Just-in-Time Context Loading
+| Priority | Principle | Default |
+| --- | --- | --- |
+| P0 | User safety and data integrity | Never override |
+| P1 | Security | Override only with explicit risk acceptance |
+| P2 | Agentic safety and permissions | Follow `AGENTS.md` |
+| P3 | Tests and executable verification | Do not skip silently |
+| P4 | Requirements clarity | Clarify before implementing ambiguous behavior |
+| P5 | Simplicity and maintainability | Prefer the simpler sufficient design |
+| P6 | Traceability and documentation | Best effort unless promoted |
 
-**File Access Strategy**:
-
-```markdown
-DO NOT pre-load all files at task start
-DO: Load files only when needed
-DO: Release files after subtask completion
-
-Maximum Active Files: 3
-When limit reached: Summarize and release oldest
-
-Example workflow:
-
-1. View project structure (tree command only)
-2. Identify target file from structure
-3. Load specific file when needed
-4. Complete modifications
-5. Save and release from context
-6. Load next file (repeat)
-```
-
-### Progressive Disclosure Pattern
-
-```markdown
-## Information Hierarchy
-
-Level 1: Project Overview
-├── Directory structure (tree -L 2)
-├── Key file list (README, package.json)
-└── Current task from tasks.md
-
-Level 2: Working Set (load on demand)
-├── Currently editing file
-├── Related test file
-└── Interface/type definitions
-
-Level 3: Reference Set (load for specific questions)
-├── Dependencies
-├── Configuration files
-└── Documentation
-
-NEVER load Level 2/3 without completing Level 1 scan
-```
-
-### Context Compression Protocol
-
-**Automatic Compression Triggers**:
-
--   Context usage >70% of limit
--   Task completion milestones
--   Before starting new major task
-
-**Compression Strategy**:
-
-```typescript
-class ContextCompressor {
-    compress() {
-        // 1. Remove old tool outputs
-        this.removeToolOutputsOlderThan("5_messages");
-
-        // 2. Summarize completed tasks
-        this.summarizeCompleted();
-
-        // 3. Extract key decisions to NOTES.md
-        this.persistKeyDecisions();
-
-        // 4. Keep only essential state
-        return {
-            currentTask: this.getCurrentTask(),
-            recentFiles: this.getRecentFiles(3),
-            blockingIssues: this.getBlockers(),
-            nextSteps: this.getNextSteps(),
-        };
-    }
-}
-```
-
-### Structured Note-Taking
-
-**Mandatory NOTES.md Format**:
-
-```markdown
-# Project Notes
-
-## Current Sprint Focus
-
--   Task: [Current task ID and description]
--   Branch: [Git branch name]
--   Started: [Timestamp]
-
-## Completed Today
-
--   [x] AUTH-001: Setup authentication module
--   [x] AUTH-002: Add JWT token generation
--   [ ] AUTH-003: Add refresh token logic (blocked)
-
-## Active Context
-
--   Editing: src/auth/jwt.service.ts
--   Testing: src/auth/jwt.service.spec.ts
--   Config: .env.example updated
-
-## Blocking Issues
-
-1. Missing dependency: jsonwebtoken types
-    - Action: Run `npm install --save-dev @types/jsonwebtoken`
-2. Database migration pending
-    - Action: Await user approval for migration
-
-## Key Decisions
-
--   2024-01-10: Use JWT over sessions (performance)
--   2024-01-10: Store refresh tokens in Redis (security)
-
-## Next Session Checklist
-
--   [ ] Resolve jsonwebtoken types issue
--   [ ] Complete AUTH-003 implementation
--   [ ] Run full test suite
-```
-
-### Sub-Agent Delegation Criteria
-
-**Automatic Delegation Triggers**:
-
-```markdown
-WHEN task requires >5 file modifications:
-→ Delegate to sub-agent with focused context
-
-WHEN estimated time >30 minutes:
-→ Break into sub-tasks, delegate each
-
-WHEN crossing domain boundaries:
-→ One sub-agent per domain (auth, payment, UI)
-
-Sub-Agent Output Requirements:
-
--   Maximum 2000 tokens summary
--   Key changes list
--   Test results
--   Any new dependencies
-```
+If the conflict cannot be resolved from these priorities, stop and ask the user.
 
 ---
 
-## XIII. Enhanced Security Standards
-
-**Rule**: Implement defense-in-depth with mandatory boundary testing.
-
-### Boundary Test Matrix (MANDATORY)
-
-```typescript
-// Required test template for EVERY input function
-describe("Input Validation Tests", () => {
-    const testMatrix = {
-        strings: [
-            { input: null, expect: "error" },
-            { input: undefined, expect: "error" },
-            { input: "", expect: "error" },
-            { input: " ", expect: "error" },
-            { input: "a".repeat(10000), expect: "error" },
-            { input: "<script>alert(1)</script>", expect: "sanitized" },
-            { input: "'; DROP TABLE users;--", expect: "escaped" },
-            { input: "../../../etc/passwd", expect: "blocked" },
-            { input: "你好世界🌍", expect: "valid" },
-        ],
-        numbers: [
-            { input: 0, expect: "valid" },
-            { input: -1, expect: "error" },
-            { input: Number.MAX_SAFE_INTEGER, expect: "error" },
-            { input: Number.MIN_SAFE_INTEGER, expect: "error" },
-            { input: NaN, expect: "error" },
-            { input: Infinity, expect: "error" },
-        ],
-        arrays: [
-            { input: null, expect: "error" },
-            { input: undefined, expect: "error" },
-            { input: [], expect: "valid_empty" },
-            { input: new Array(10000), expect: "error" },
-        ],
-    };
-
-    // Test execution is MANDATORY, not optional
-    testMatrix.strings.forEach((test) => {
-        it(`handles string input: ${JSON.stringify(test.input)}`, () => {
-            // Implementation required
-        });
-    });
-});
-```
-
-### Environment Isolation (CRITICAL)
-
-**Three-Environment Mandate with Color Coding**:
-
-```javascript
-class EnvironmentGuard {
-    constructor() {
-        this.env = process.env.NODE_ENV;
-        this.dbUrl = process.env.DATABASE_URL;
-    }
-
-    validateConnection() {
-        // Color-coded console output
-        const colors = {
-            production: "\x1b[31m", // RED
-            staging: "\x1b[33m", // YELLOW
-            development: "\x1b[32m", // GREEN
-        };
-
-        console.log(
-            `${colors[this.env]}[${this.env.toUpperCase()}] Environment\x1b[0m`
-        );
-
-        // Production safeguards
-        if (this.env === "production") {
-            if (!process.env.PRODUCTION_CONFIRMED) {
-                throw new Error(
-                    "Production access requires PRODUCTION_CONFIRMED=true"
-                );
-            }
-            console.log("⚠️ PRODUCTION MODE - All operations logged");
-            this.enableAuditLog();
-        }
-
-        // Connection string validation
-        const expectedPrefix = `${this.env}_DATABASE_URL`;
-        if (!process.env[expectedPrefix]) {
-            throw new Error(
-                `Missing ${expectedPrefix} for ${this.env} environment`
-            );
-        }
-    }
-}
-```
-
-### Input Sanitization Pipeline
-
-```typescript
-class InputSanitizer {
-    // Layer 1: Type validation
-    validateType(input: any, expectedType: string): boolean {
-        if (input === null || input === undefined) return false;
-        return typeof input === expectedType;
-    }
-
-    // Layer 2: Boundary checking
-    checkBoundaries(input: any, rules: BoundaryRules): boolean {
-        if (rules.minLength && input.length < rules.minLength) return false;
-        if (rules.maxLength && input.length > rules.maxLength) return false;
-        if (rules.min && input < rules.min) return false;
-        if (rules.max && input > rules.max) return false;
-        return true;
-    }
-
-    // Layer 3: Pattern validation
-    validatePattern(input: string, pattern: RegExp): boolean {
-        return pattern.test(input);
-    }
-
-    // Layer 4: Sanitization
-    sanitize(input: string): string {
-        return input
-            .replace(/[<>]/g, "") // Remove HTML brackets
-            .replace(/['";]/g, "") // Remove SQL meta-characters
-            .replace(/\.\.\//g, "") // Remove path traversal
-            .trim();
-    }
-}
-```
-
----
-
-## XIV. Priority Matrix
-
-**WHEN Constitution principles conflict or resources are constrained, use this priority order:**
-
-| Priority | Principle                          | Rationale                          | Override Condition                         |
-| -------- | ---------------------------------- | ---------------------------------- | ------------------------------------------ |
-| **P0**   | User Safety & Data Integrity       | Prevents data loss, corruption     | NEVER override                             |
-| **P1**   | Security (Section VII)             | Prevents breaches, legal liability | Only with explicit user acceptance of risk |
-| **P2**   | Agentic Safety (Section X)         | Ensures trustworthiness            | Only with user "force" flag                |
-| **P3**   | Test First (Section I)             | Quality foundation                 | NO exceptions                              |
-| **P4**   | TRUST Principles (Section V)       | Long-term maintainability          | Technical debt ticket required             |
-| **P5**   | Context Optimization (Section XII) | Performance and efficiency         | May defer in prototypes                    |
-| **P6**   | Architecture (Section XI)          | Prevents technical debt            | May accumulate with payback plan           |
-| **P7**   | Simplicity (Section II)            | Reduces complexity                 | May add complexity with justification      |
-| **P8**   | Documentation (Section VIII)       | Knowledge transfer                 | May defer until stabilization              |
-
-### Conflict Resolution Protocol
-
-```markdown
-WHEN principles conflict:
-
-1. Check if P0 (User Safety) is involved → ALWAYS choose safety
-2. Check if security is involved → Choose security unless user accepts risk
-3. Apply this decision tree:
-
-Does it risk data loss?
-├─ YES → STOP. Require backup first
-└─ NO → Continue
-│
-Does it skip tests?
-├─ YES → STOP. Write tests first
-└─ NO → Continue
-│
-Does it violate security?
-├─ YES → STOP. Fix security first
-└─ NO → Continue
-│
-Does it exceed complexity budget?
-├─ YES → Simplify or document why
-└─ NO → Proceed with implementation
-```
-
-### Emergency Override Protocol
-
-```markdown
-In emergency situations (production down, data breach in progress):
-
-1. Document the emergency in EMERGENCY.md
-2. Get written approval from user
-3. Apply minimum viable fix
-4. Create immediate follow-up ticket for proper fix
-5. Schedule post-mortem within 48 hours
-```
-
----
-
-_This Constitution is a living document. It evolves with the project but changes deliberately and with user approval._
+_This Constitution is a living workflow document. It evolves deliberately, with
+user approval, and sits on top of the always-on `AGENTS.md` baseline._

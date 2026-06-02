@@ -21,7 +21,7 @@ Performs deep code quality review and executable code-gate validation after `/ms
 - ✅ Performance issues (N+1 queries, unnecessary computations)
 - ✅ Security deep-dive (auth gaps, logging leaks, error exposure)
 - ✅ Test quality (AAA pattern, boundary tests, mock overuse)
-- ✅ Post-implementation code gates (lint, typecheck, tests, build, coverage, TAG integrity)
+- ✅ Post-implementation code gates (lint, typecheck, tests, build, coverage) plus TAG integrity reporting
 
 ## Workflow Position
 
@@ -43,7 +43,7 @@ review findings and executable gates:
 - local CI gates via the `local-ci` agent: lint → types → tests → build, using the
   repository's own workflow commands
 - TRUST code checks via the `quality-gate` or `trust-validator` agent: coverage,
-  file/function size, complexity, strict typing, security scan, TAG integrity
+  file/function size, complexity, strict typing, security scan, TAG integrity reporting
 - unresolved HIGH/CRITICAL review issues persisted to `.specify/review-state.txt`
   so `/fin` can block or require explicit acknowledgement
 
@@ -397,12 +397,13 @@ Run `quality-gate` or `trust-validator` for code-level TRUST checks:
 - function complexity limits
 - strict typing and zero-warning lint policy
 - security scan results where tooling exists
-- TAG chain integrity: `@SPEC → @TEST → @CODE → @DOC`
+- TAG integrity report: `@SPEC -> @TEST -> @CODE` with optional `@DOC`; warning by default unless Section IX or CI promotes it
 
 #### C. Gate Result Handling
 
-- If CRITICAL gates fail, mark review as **NOT READY** and write
-  `.specify/review-state.txt`.
+- If CRITICAL executable gates fail, mark review as **NOT READY** and write
+  `.specify/review-state.txt`. TAG-only findings do not make the review NOT READY
+  unless Section IX or CI explicitly promotes TAG integrity to blocking.
 - If only HIGH/MEDIUM warnings remain, mark review as **READY WITH WARNINGS** and
   persist the warning summary for `/fin` acknowledgement.
 - If all executable gates and deep review checks pass, remove stale

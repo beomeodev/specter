@@ -333,7 +333,7 @@ This specification follows the project [Constitution](../../.specify/memory/cons
 **Key Sections:**
 - **Section IV**: GEARS Requirements Standards
 - **Section V**: TRUST 5 Quality Principles
-- **TAG System**: Traceability (SPEC → TEST → CODE)
+- **TAG System**: Best-effort traceability (SPEC -> TEST -> CODE, DOC optional)
 
 _Auto-added by `/ms.specify`_
 ```

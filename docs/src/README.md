@@ -1,306 +1,116 @@
 # My-Spec Helper Libraries
 
-TypeScript helper libraries for TAG system management and TRUST verification.
+TypeScript helper libraries for TAG traceability reporting and TRUST checks.
 
-## 📦 Installation
+These helpers support the `/ms.*` workflow, but the active Constitution remains
+the source of truth for policy. The helpers report findings; `/ms.review`, CI, or
+explicit project rules decide whether findings block delivery.
 
-```bash
-# Install dependencies
-npm install
+## Current Policy
 
-# Build TypeScript to JavaScript
-npm run build
-```
+- TAGS are best-effort grep traceability, not a substitute for tests or review.
+- TAG integrity findings are warnings by default unless Section IX of the active
+  Constitution or CI explicitly promotes them to blockers.
+- Use file-level TAG blocks only. Do not add line-level `@TEST` tags to every
+  test function.
+- Multiple implementation files may share the same `@CODE:TAG-ID`.
+- Multiple test files may share the same `@TEST:TAG-ID`.
+- `@DOC` is optional.
+- Prefer ASCII chains: `@SPEC:ID -> @TEST:ID -> @CODE:ID -> @DOC:ID`.
+- `@CREATED` and `@UPDATED` are optional. If present, `@UPDATED` must reflect git
+  reality or be omitted.
+- Production files target `<=700` SLOC. Test files have no SLOC limit.
 
-This compiles TypeScript files from `src/` to `dist/`.
+## TAG Helpers
 
-## 🏷️ TAG System
+### Capabilities
 
-### Features
+- Generate TAG IDs from Functional Requirement domains.
+- Scan files with `rg` for `@SPEC`, `@TEST`, `@CODE`, and `@DOC` tags.
+- Parse TAG chains written with `->` or the legacy unicode arrow.
+- Report orphaned TAGs, duplicate SPEC TAGs, broken chain references, and chain
+  format issues.
+- Generate human-readable TAG integrity reports for `/ms.review` or CI.
 
-- **Automatic TAG ID generation** with domain extraction
-- **ripgrep-based TAG scanning** (blazing fast)
-- **TAG integrity validation** (orphaned TAGs, duplicates, broken chains)
-- **MoAI-style TAG blocks** with CHAIN and @IMMUTABLE support
-
-### Usage Examples
-
-#### Generate TAG IDs
+### Example
 
 ```typescript
 import { TAG } from './index';
 
-// Extract domain from FR title
-const domainResult = TAG.extractDomain('User Authentication', 'FR-1');
-// => { domain: 'AUTH', confidence: 1.0, matchedKeyword: 'authentication', fallback: false }
+const domain = TAG.extractDomain('User Authentication', 'FR-1');
+const count = await TAG.countTAGsForDomain(domain.domain);
+const tagId = TAG.generateNextTAGID(domain.domain, count);
+const chain = TAG.generateTAGChain(tagId);
 
-// Count existing TAGs for this domain
-const count = await TAG.countTAGsForDomain('AUTH');
-// => 5 (AUTH-001 to AUTH-005 exist)
-
-// Generate next TAG ID
-const newTagId = TAG.generateNextTAGID('AUTH', count);
-// => 'AUTH-006'
-
-// Generate TAG chain
-const chain = TAG.generateTAGChain('AUTH-006');
-// => '@SPEC:AUTH-006 → @TEST:AUTH-006 → @CODE:AUTH-006'
+console.log(tagId); // AUTH-001
+console.log(chain); // @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
 ```
 
-#### Generate MoAI-style TAG Blocks
+### File-Level TAG Block
 
 ```typescript
-const tagBlock = TAG.generateTAGBlock('AUTH-001', 'SPEC', {
-  immutable: true,
-  chain: ['@SPEC:AUTH-001', '@TEST:AUTH-001', '@CODE:AUTH-001'],
-  status: 'active',
-});
-
-console.log(tagBlock);
-// /**
-//  * @SPEC:AUTH-001
-//  * CHAIN: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
-//  * DEPENDS: NONE
-//  * STATUS: active
-//  * CREATED: 2025-10-16
-//  * @IMMUTABLE
-//  */
+/**
+ * @CODE:AUTH-001
+ * @SPEC: specs/001-auth/spec.md
+ * @TEST: tests/auth.test.ts
+ * @CHAIN: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
+ * @STATUS: implemented
+ */
 ```
 
-#### Scan and Validate TAGs
+## TRUST Helpers
 
-```typescript
-// Scan all TAGs in project
-const allTags = await TAG.scanAllTAGs();
-// => [
-//   { id: 'AUTH-001', type: 'SPEC', file: 'specs/auth.md', line: 10 },
-//   { id: 'AUTH-001', type: 'TEST', file: 'tests/auth.test.ts', line: 5 },
-//   ...
-// ]
+TRUST is a review model, not a claim that every check is available in every
+repository.
 
-// Find orphaned TAGs (CODE/TEST without SPEC)
-const orphaned = await TAG.findOrphanedTAGs();
-// => ['USER-005', 'PAY-003']
+### Levels
 
-// Find duplicate TAGs
-const duplicates = await TAG.findDuplicateTAGs();
-// => Map { 'AUTH-001:SPEC' => [{ file: 'specs/a.md', line: 10 }, { file: 'specs/b.md', line: 15 }] }
+- Level 1: structure checks, `.env` ignore checks, production file SLOC checks.
+- Level 2: project test, lint, and typecheck commands where available.
+- Level 3: coverage, complexity, circular dependency, security, and TAG reports
+  where tooling exists.
 
-// Validate complete TAG integrity
-const validation = await TAG.validateTAGIntegrity();
-// => {
-//   passed: false,
-//   blocked: true,
-//   violations: [{ level: 'CRITICAL', category: 'Orphaned TAG', message: '...' }],
-//   summary: { CRITICAL: 2, HIGH: 1, MEDIUM: 0, LOW: 0 }
-// }
-
-// Generate TAG integrity report
-const report = await TAG.generateTAGIntegrityReport();
-console.log(report);
-// => Markdown report with all violations
-```
-
-#### Check Immutability (MoAI Extension)
-
-```typescript
-const oldContent = await fs.readFile('src/auth.ts', 'utf-8');
-const newContent = '...'; // Modified content
-
-const immutabilityCheck = await TAG.checkImmutability(
-  'src/auth.ts',
-  oldContent,
-  newContent
-);
-
-if (immutabilityCheck.violated) {
-  console.error('❌ @IMMUTABLE TAG was modified:', immutabilityCheck.modifiedTag);
-  console.error('Details:', immutabilityCheck.violationDetails);
-}
-```
-
-## ✅ TRUST Verification
-
-### TRUST 5 Principles
-
-- **T**est-First: TDD with passing tests
-- **R**eadable: Clean, maintainable code
-- **U**nified: Consistent structure and style
-- **S**ecured: No security vulnerabilities
-- **T**rackable: Complete TAG traceability
-
-### Usage Examples
-
-#### Run Complete TRUST Verification
+### Example
 
 ```typescript
 import { TRUST } from './index';
 
-// Run all TRUST levels and generate report
 const result = await TRUST.runTRUSTVerification('/project/root');
-
 console.log(result.report);
-// => Full markdown report
-
-console.log('Passed:', result.passed);
-console.log('Blocked:', result.blocked);
-console.log('Summary:', result.summary);
-// => { CRITICAL: 2, HIGH: 3, MEDIUM: 1, LOW: 0 }
+console.log(result.summary);
 ```
 
-#### Run Individual Levels
+Use this result as input to `/ms.review` or CI. Do not claim the branch is ready
+unless the relevant executable checks actually ran and passed.
 
-```typescript
-// Level 1: Structure verification
-const level1 = await TRUST.runLevel1Checks('/project/root');
-// Checks:
-// - tests/ directory exists
-// - .env in .gitignore
-// - File sizes ≤500 SLOC
+## Project Structure
 
-// Level 2: Quality verification
-const level2 = await TRUST.runLevel2Checks('/project/root');
-// Checks:
-// - Tests pass
-// - Linting zero warnings
-// - Type checking passes
-
-// Level 3: Deep analysis
-const level3 = await TRUST.runLevel3Checks('/project/root');
-// Checks:
-// - Coverage ≥85%
-// - Complexity ≤10 per function
-// - Security scan (npm audit / pip-audit)
-// - TAG integrity (calls TAG validator)
+```text
+lib/
+  scripts/
+    check-prerequisites.sh
+  tag/
+    types.ts
+    generator.ts
+    scanner.ts
+    validator.ts
+    index.ts
+  trust/
+    types.ts
+    level1.ts
+    level2.ts
+    level3.ts
+    reporter.ts
+    index.ts
+README.md
 ```
 
-#### Custom Reporting
-
-```typescript
-// Summarize violations
-const summary = TRUST.summarizeViolations(level1, level2, level3);
-
-// Generate full report
-const fullReport = TRUST.generateReport(summary);
-
-// Generate compact summary
-const compactSummary = TRUST.generateCompactSummary(summary);
-
-// Generate JSON report
-const jsonReport = TRUST.generateJSONReport(result);
-
-// Save to file
-await TRUST.saveReportToFile(result, 'trust-report.md');
-```
-
-## 📁 Project Structure
-
-```
-src/
-├── lib/
-│   ├── tag/
-│   │   ├── types.ts          # TAG type definitions
-│   │   ├── generator.ts      # TAG ID generation + MoAI blocks
-│   │   ├── scanner.ts        # ripgrep-based scanning + chains
-│   │   ├── validator.ts      # Integrity + immutability validation
-│   │   └── index.ts          # Unified export
-│   └── trust/
-│       ├── types.ts          # TRUST type definitions
-│       ├── level1.ts         # Structure verification
-│       ├── level2.ts         # Quality verification
-│       ├── level3.ts         # Deep analysis + TAG integration
-│       ├── reporter.ts       # Report generation
-│       └── index.ts          # Unified export
-├── index.ts                  # Main entry point
-└── README.md                 # This file
-
-dist/                         # Compiled JavaScript (auto-generated)
-```
-
-## 🚀 Quick Start
-
-### For My-Spec Commands
-
-The helpers are designed to be called from `.claude/commands/ms.*.md` commands:
-
-#### Example: `/ms.tasks` command
-
-```markdown
-### 2. TAG ID Generation
-
-For each Functional Requirement (FR) in spec.md:
-
-**Extract Domain**:
-- Use `TAG.extractDomain(frTitle, frNumber)`
-- Match against domain keywords: AUTH, USER, PAY, CART, etc.
-
-**Count Existing TAGs**:
-- Use `TAG.countTAGsForDomain(domain)`
-
-**Generate TAG ID**:
-- Use `TAG.generateNextTAGID(domain, count)`
-- Format: `{DOMAIN}-{count+1:03d}`
-```
-
-#### Example: `/ms.analyze` command
-
-```markdown
-### TRUST Verification
-
-Run complete TRUST verification:
+## Development
 
 ```bash
-# Run TRUST verification
-node -e "
-  const { TRUST } = require('./dist/index');
-  (async () => {
-    const result = await TRUST.runTRUSTVerification('.');
-    console.log(result.report);
-    process.exit(result.blocked ? 1 : 0);
-  })();
-"
+# Scan TAGs, requires ripgrep
+node -e "const { TAG } = require('./dist/index'); TAG.scanAllTAGs('.').then(console.log)"
+
+# Run TRUST report
+node -e "const { TRUST } = require('./dist/index'); TRUST.runTRUSTVerification('.').then(r => console.log(r.report))"
 ```
-
-If CRITICAL violations found → Block execution
-```
-
-## 🔧 Development
-
-### Build
-
-```bash
-npm run build        # Compile TypeScript
-npm run build:watch  # Watch mode
-```
-
-### Testing
-
-```bash
-# Test TAG scanner (requires ripgrep)
-node -e "
-  const { TAG } = require('./dist/index');
-  (async () => {
-    const tags = await TAG.scanAllTAGs('.');
-    console.log('Found', tags.length, 'TAGs');
-  })();
-"
-
-# Test TRUST verification
-node -e "
-  const { TRUST } = require('./dist/index');
-  (async () => {
-    const result = await TRUST.runTRUSTVerification('.');
-    console.log(result.report);
-  })();
-"
-```
-
-## 📄 License
-
-MIT
-
-## 🙏 Credits
-
-- **TAG System**: Inspired by [MoAI-ADK](https://github.com/modu-ai/moai-adk)
-- **TRUST Principles**: My-Spec Constitution
-- **ripgrep**: Fast TAG scanning powered by [ripgrep](https://github.com/BurntSushi/ripgrep)

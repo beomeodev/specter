@@ -129,7 +129,7 @@ EXIT: Code 0
    {code_examples}
 
    ## TAG Chain
-   @SPEC:{TAG_ID} → @TEST:{TAG_ID} → @CODE:{TAG_ID} → @DOC:{TAG_ID}
+   @SPEC:{TAG_ID} -> @TEST:{TAG_ID} -> @CODE:{TAG_ID} -> @DOC:{TAG_ID} (optional)
    ```
 
 **Output**: List of updated API doc files
@@ -190,27 +190,28 @@ EXIT: Code 0
 
 **Output**: README.md updated
 
-### Step 3: Validate TAG Chain (unless --skip-tags)
+### Step 3: Report TAG Traceability (unless --skip-tags)
 
 **Scan TAG system**:
 ```bash
 # Find all TAGs
 rg '@(SPEC|TEST|CODE|DOC):([A-Z]+-[0-9]+)' -n
 
-# Verify chains:
-# - @SPEC exists → @TEST must exist → @CODE must exist
-# - Orphan TAGs (no chain)
-# - Broken references
+# Report warnings:
+# - duplicate @SPEC declarations
+# - @CODE/@TEST without any @SPEC
+# - broken CHAIN references
+# - missing @DOC as informational only
 ```
 
-**Calculate TAG integrity**:
-```
-Integrity = (Complete Chains / Total TAGs) * 100%
+**TAG policy**:
+- TAG integrity is best-effort by default.
+- `@DOC` is optional.
+- Multiple `@CODE:ID` and `@TEST:ID` occurrences are allowed for multi-file work.
+- Do not block documentation sync on TAG warnings unless the active Constitution
+  Section IX or CI explicitly promotes TAG integrity to blocking.
 
-Complete Chain: @SPEC:ID → @TEST:ID → @CODE:ID → @DOC:ID (all exist)
-```
-
-**Output**: TAG integrity score (0-100%)
+**Output**: TAG warning summary and traceability percentage when calculable.
 
 ### Step 4: Generate Sync Report
 
@@ -224,9 +225,9 @@ Complete Chain: @SPEC:ID → @TEST:ID → @CODE:ID → @DOC:ID (all exist)
   ],
   "tag_integrity": {
     "total_tags": 25,
-    "complete_chains": 23,
-    "orphan_tags": 2,
-    "integrity_score": 92.0
+    "linked_tags": 23,
+    "tag_warnings": 2,
+    "traceability_score": 92.0
   },
   "duration_seconds": 8.5,
   "warnings": [
@@ -244,7 +245,7 @@ Complete Chain: @SPEC:ID → @TEST:ID → @CODE:ID → @DOC:ID (all exist)
 - docs/api/USER-002.md (updated)
 - docs/dev_daily.md (appended)
 
-📋 TAG Integrity: 92.0% (23/25 complete chains)
+📋 TAG Traceability: 92.0% (23/25 linked tags; warnings reported)
 ⚠️  Warnings:
 - Orphan TAG: @CODE:PAY-003 (no @SPEC found)
 
@@ -303,17 +304,17 @@ Example: /ms.up-docs --docs=api
 
 ### Error 4: TAG Integrity Low
 
-**Symptom**: TAG integrity <80%
+**Symptom**: TAG traceability has many warnings
 
 **Message**:
 ```
-⚠️ Warning: TAG integrity is low (65%)
+⚠️ Warning: TAG traceability warning rate is high
 
-15/23 TAGs have incomplete chains.
+15/23 TAGs have traceability warnings.
 
-Recommendation: Run '/ms.analyze' to identify and fix broken TAG references.
+Recommendation: Run '/ms.review' to include TAG findings in the post-implementation review.
 
-Continue anyway? (sync completed, but TAG issues detected)
+Continue anyway? (sync completed; TAG findings are warnings unless promoted by Section IX or CI)
 ```
 
 **Exit**: Code 0 (warning, not error)

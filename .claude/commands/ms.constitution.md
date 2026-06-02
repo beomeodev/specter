@@ -138,7 +138,18 @@ If a conflict cannot be resolved from the source documents, stop and ask the use
 
 ### Step 5: Update Section IX
 
-Replace placeholder Section IX with generated content. Use this structure:
+Replace placeholder Section IX with generated content. Keep it empty when no
+actual durable constraints exist.
+
+If no durable constraints are found, use exactly:
+
+```markdown
+## IX. Project-Specific Constraints
+
+_No project-specific constraints established yet._
+```
+
+If durable constraints exist, use only headings that contain actual rules:
 
 ```markdown
 ## IX. Project-Specific Constraints
@@ -155,27 +166,23 @@ Replace placeholder Section IX with generated content. Use this structure:
 
 ### Product-Wide Rules
 
-✅ **Required**:
-- ... (cite source)
-
-❌ **Forbidden**:
-- ... (cite source)
+- <durable rule> (source: ...)
 
 ### Architecture And Integration Constraints
 
-✅ **Required**:
-- ... (cite source)
+- <durable rule> (source: ...)
 
 ### Security And Data Rules
 
-✅ **Required**:
-- ... (cite source)
+- <durable rule> (source: ...)
 
 ### Quality Gates
 
-✅ **Required**:
-- ... (cite source)
+- <durable rule> (source: ...)
 ```
+
+Omit empty categories. Do not invent Technology, Dependency, Architecture,
+Security, Performance, or Workflow rules just to fill a template.
 
 ### Step 6: Update AGENTS.md
 

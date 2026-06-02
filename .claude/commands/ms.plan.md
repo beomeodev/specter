@@ -55,7 +55,7 @@ When executing /speckit.plan, the agent must read and strictly adhere to constit
      → Readable: Clear naming, minimal complexity
      → Unified: Consistent patterns across codebase
      → Secured: Security by default
-     → Trackable: TAG traceability (SPEC → TEST → CODE)
+     → Trackable: TAG traceability (SPEC -> TEST -> CODE, DOC optional)
 
 2. **Apply Project-Specific Constraints** (if exists):
    - **Section IX**: Project-specific baseline established by `/ms.constitution` from the checked PRD Feature Map

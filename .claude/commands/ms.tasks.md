@@ -16,11 +16,11 @@ Extends `/speckit.tasks` to generate implementation tasks with automatic TAG ID 
 - Library documentation research via `library-researcher` agent (Haiku + Context7 MCP)
 - Automatic TAG ID generation for each Functional Requirement
 - Domain extraction from FR titles (AUTH, USER, PAY, etc.)
-- TAG chain insertion (@SPEC → @TEST → @CODE) for traceability
+- TAG metadata insertion (@SPEC -> @TEST -> @CODE, @DOC optional)
 - Constitution-aware task breakdown (respects file size limits)
 - Library-informed task structure (tasks reflect actual implementation patterns)
 
-**Purpose**: Creates a detailed task breakdown with full traceability support, ensuring each User Story has a unique TAG ID for the My-Spec workflow.
+**Purpose**: Creates a detailed task breakdown with best-effort traceability support, ensuring each User Story has a unique TAG ID for the My-Spec workflow.
 
 ## Execution Steps
 
@@ -160,7 +160,7 @@ Add TAG chains to tasks.md for each User Story:
 ```markdown
 ## Phase 3: FR-1 Authentication (Priority: P0)
 
-**TAG**: @SPEC:AUTH-001 → @TEST:AUTH-001 → @CODE:AUTH-001
+**TAG**: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
 
 **Goal**: Implement user authentication
 **Independent Test**: Users can log in with email/password
@@ -206,7 +206,7 @@ Display next steps:
 **Chain Format**:
 
 ```
-@SPEC:{TAG_ID} → @TEST:{TAG_ID} → @CODE:{TAG_ID}
+@SPEC:{TAG_ID} -> @TEST:{TAG_ID} -> @CODE:{TAG_ID}
 ```
 
 **Domain Extraction Examples**:
@@ -220,7 +220,7 @@ Display next steps:
 -   **SPEC_NOT_FOUND**: Run `/ms.specify` first
 -   **TASKS_GENERATION_FAILED**: Base command failed
 -   **RIPGREP_NOT_FOUND**: Install ripgrep ≥13.0
--   **DUPLICATE_TAG**: TAG ID collision detected
+-   **DUPLICATE_SPEC_TAG**: duplicate @SPEC TAG detected; CODE/TEST multi-file TAGs are allowed
 
 ## Next Steps
 

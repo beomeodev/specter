@@ -15,11 +15,11 @@ Implements features with automatic TAG selection and TAG block insertion.
 **Additional Features** (provided by `/ms.implement`):
 - TAG auto-selection from tasks.md (first uncompleted task)
 - Library documentation research via `library-researcher` agent (Haiku + Context7 MCP)
-- TAG block insertion for traceability (@SPEC → @TEST → @CODE chains)
+- TAG block insertion for best-effort traceability (@SPEC -> @TEST -> @CODE, @DOC optional)
 - Living Documentation sync via `doc-updater` agent (Haiku)
 - tasks.md checklist auto-update
 
-**Purpose**: Implements features with complete traceability and automatic documentation synchronization, ensuring each implementation has full TAG chain coverage and up-to-date docs.
+**Purpose**: Implements features with best-effort TAG traceability and automatic documentation synchronization, keeping implementation, tests, and docs easy to find without treating TAGS as a substitute for tests or review.
 
 ## Usage
 
@@ -77,14 +77,14 @@ Example:
 1. Read `tasks.md`
 2. Scan for uncompleted tasks: `[ ]` checkboxes
 3. Extract TAG ID from first uncompleted task's `**TAG**:` line
-4. Use format: `@SPEC:{TAG_ID} → @TEST:{TAG_ID} → @CODE:{TAG_ID}`
+4. Use format: `@SPEC:{TAG_ID} -> @TEST:{TAG_ID} -> @CODE:{TAG_ID}`
 
 **Example**:
 
 ```markdown
 ## Phase 3: FR-1 Authentication
 
-**TAG**: @SPEC:AUTH-001 → @TEST:AUTH-001 → @CODE:AUTH-001
+**TAG**: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
 
 ### Implementation
 
@@ -247,7 +247,7 @@ generate_tag_block() {
  * @CODE:${tag_id}
  * @SPEC: ${spec_path}
  * @TEST: ${test_path}
- * @CHAIN: @SPEC:${tag_id} → @TEST:${tag_id} → @CODE:${tag_id}
+ * @CHAIN: @SPEC:${tag_id} -> @TEST:${tag_id} -> @CODE:${tag_id}
  * @STATUS: implemented
  * @CREATED: ${date}
  * @UPDATED: ${updated}
@@ -260,7 +260,7 @@ EOF
 @CODE:${tag_id}
 @SPEC: ${spec_path}
 @TEST: ${test_path}
-@CHAIN: @SPEC:${tag_id} → @TEST:${tag_id} → @CODE:${tag_id}
+@CHAIN: @SPEC:${tag_id} -> @TEST:${tag_id} -> @CODE:${tag_id}
 @STATUS: implemented
 @CREATED: ${date}
 @UPDATED: ${updated}
@@ -271,7 +271,7 @@ EOF
 }
 ```
 
-For each generated file, insert TAG block at top using Edit tool.
+For each generated or meaningfully modified file, insert at most one file-level TAG block at the top using Edit tool. Use @CODE for implementation files and @TEST for test files. Multiple files may share the same TAG_ID. Do not add line-level @TEST tags inside individual test functions.
 
 ### Step 3.5: Update Documentation (Living Docs)
 
@@ -327,7 +327,7 @@ Task(
 **Documentation Principles** (from `doc-updater` agent):
 - **CODE-FIRST**: Documentation generated from code, not maintained separately
 - **Living Docs**: Real-time sync between code and documentation
-- **TAG Traceability**: @SPEC → @TEST → @CODE → @DOC chain complete
+- **TAG Traceability**: @SPEC -> @TEST -> @CODE with optional @DOC; report warnings by default
 
 **Notes**:
 - **dev_daily.md**: Always updated (implementation log)
@@ -349,7 +349,7 @@ Task(
 ```markdown
 ## Phase 3: FR-1 Authentication
 
-**TAG**: @SPEC:AUTH-001 → @TEST:AUTH-001 → @CODE:AUTH-001
+**TAG**: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
 
 ### Implementation
 
@@ -399,7 +399,7 @@ Display next steps:
 - tests/unit/auth.test.ts (with @TEST:AUTH-001 block)
 
 📋 Traceability:
-@SPEC:AUTH-001 → @TEST:AUTH-001 → @CODE:AUTH-001
+@SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
 
 🎯 Next Steps:
 1. Review generated code and tests
@@ -417,7 +417,7 @@ Display next steps:
  * @CODE:AUTH-001
  * @SPEC: specs/001-auth-spec/spec.md
  * @TEST: tests/unit/auth.test.ts
- * @CHAIN: @SPEC:AUTH-001 → @TEST:AUTH-001 → @CODE:AUTH-001
+ * @CHAIN: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
  * @STATUS: implemented
  * @CREATED: 2025-10-09
  * @UPDATED: 2025-10-09
@@ -431,7 +431,7 @@ Display next steps:
 @CODE:AUTH-001
 @SPEC: specs/001-auth-spec/spec.md
 @TEST: tests/unit/test_auth.py
-@CHAIN: @SPEC:AUTH-001 → @TEST:AUTH-001 → @CODE:AUTH-001
+@CHAIN: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
 @STATUS: implemented
 @CREATED: 2025-10-09
 @UPDATED: 2025-10-09
@@ -520,7 +520,7 @@ After `/ms.implement`:
 -   **Manual TAG option**: Can specify TAG explicitly if needed
 -   **Automatic TAG blocks**: Inserted in all generated files
 -   **Living Documentation**: Auto-syncs code changes to docs via doc-updater agent
--   **100% traceability**: SPEC→TEST→CODE→DOC chain complete
+-   **Best-effort traceability**: SPEC -> TEST -> CODE, with DOC optional and warnings reported
 
 ## Implementation Details
 

@@ -176,7 +176,7 @@ export async function checkImmutability(
  * @returns True if valid chain format
  */
 export function validateTAGChainFormat(chainString: string): boolean {
-  const tags = chainString.split(/\s*->\s*/).map((t) => t.trim());
+  const tags = chainString.split(/\s*(?:->|→)\s*/).map((t) => t.trim());
 
   // Must have at least 2 tags
   if (tags.length < 2) {
@@ -271,11 +271,11 @@ export function detectCircularDependencies(
  * await validateTAGIntegrity()
  * // => {
  * //   passed: false,
- * //   blocked: true,
+ * //   blocked: false,
  * //   violations: [
- * //     { level: "CRITICAL", category: "Orphaned TAG", message: "..." }
+ * //     { level: "MEDIUM", category: "Orphaned TAG", message: "..." }
  * //   ],
- * //   summary: { CRITICAL: 2, HIGH: 1, MEDIUM: 0, LOW: 0 }
+ * //   summary: { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 0 }
  * // }
  */
 export async function validateTAGIntegrity(
@@ -284,25 +284,25 @@ export async function validateTAGIntegrity(
   const violations: Violation[] = [];
 
   try {
-    // 1. Find orphaned TAGs (CRITICAL)
+    // 1. Find orphaned TAGs (warning by default)
     const orphaned = await findOrphanedTAGs(searchPath);
     for (const tagId of orphaned) {
       violations.push({
-        level: 'CRITICAL',
+        level: 'MEDIUM',
         category: 'Orphaned TAG',
         message: `TAG ${tagId} has @CODE or @TEST but no @SPEC`,
         fixCommand: `Create SPEC for TAG ${tagId}`,
       });
     }
 
-    // 2. Find duplicate TAGs (CRITICAL)
+    // 2. Find duplicate SPEC TAGs. CODE/TEST multi-file TAGs are allowed.
     const duplicates = await findDuplicateTAGs(searchPath);
     for (const [key, locations] of duplicates.entries()) {
       const [tagId, type] = key.split(':');
       violations.push({
-        level: 'CRITICAL',
+        level: 'HIGH',
         category: 'Duplicate TAG',
-        message: `TAG ${tagId} (${type}) appears in ${locations.length} files`,
+        message: `SPEC TAG ${tagId} (${type}) appears in ${locations.length} files`,
         file: locations[0].file,
         line: locations[0].line,
       });
@@ -366,7 +366,7 @@ export async function validateTAGIntegrity(
 
   return {
     passed: violations.length === 0,
-    blocked: summary.CRITICAL > 0, // Block on CRITICAL violations
+    blocked: false, // TAG integrity is best-effort unless promoted by project policy or CI
     violations,
     summary,
   };
@@ -417,10 +417,10 @@ export async function checkTAGConsistency(
 
   const types = new Set(matchingTags.map((t) => t.type));
 
-  // Check for complete chain: SPEC -> TEST -> CODE
+  // Report chain coverage. TAG integrity is warning-only by default.
   if (!types.has('SPEC')) {
     violations.push({
-      level: 'CRITICAL',
+      level: 'HIGH',
       category: 'Incomplete TAG Chain',
       message: `TAG ${tagId} missing @SPEC`,
     });
@@ -428,7 +428,7 @@ export async function checkTAGConsistency(
 
   if (!types.has('TEST')) {
     violations.push({
-      level: 'HIGH',
+      level: 'MEDIUM',
       category: 'Incomplete TAG Chain',
       message: `TAG ${tagId} missing @TEST`,
     });
@@ -436,7 +436,7 @@ export async function checkTAGConsistency(
 
   if (!types.has('CODE')) {
     violations.push({
-      level: 'MEDIUM',
+      level: 'LOW',
       category: 'Incomplete TAG Chain',
       message: `TAG ${tagId} missing @CODE (may not be implemented yet)`,
     });
@@ -497,7 +497,7 @@ export async function generateTAGIntegrityReport(
   } else {
     lines.push('## ✅ No violations found');
     lines.push('');
-    lines.push('All TAGs are properly formatted and connected.');
+    lines.push('No TAG integrity warnings found.');
   }
 
   return lines.join('\n');

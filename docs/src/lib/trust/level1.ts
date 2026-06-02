@@ -4,7 +4,7 @@
  * Checks fundamental project structure requirements:
  * - Tests directory exists
  * - .env files are in .gitignore
- * - File sizes ≤500 SLOC
+ * - Production file sizes <=700 SLOC; test files are excluded
  */
 
 import * as fs from 'fs/promises';
@@ -16,7 +16,7 @@ import type { Violation } from '../tag/types';
 /**
  * File size limit (SLOC)
  */
-const MAX_FILE_SLOC = 500;
+const MAX_PRODUCTION_FILE_SLOC = 700;
 
 /**
  * Extensions to check for file size
@@ -35,6 +35,23 @@ const CODE_EXTENSIONS = [
   '.h',
   '.hpp',
 ];
+
+function isTestFile(filePath: string): boolean {
+  const normalized = filePath.replace(/\\/g, '/');
+  const baseName = normalized.split('/').pop() || normalized;
+
+  return (
+    normalized.startsWith('tests/') ||
+    normalized.startsWith('test/') ||
+    normalized.includes('/tests/') ||
+    normalized.includes('/test/') ||
+    normalized.includes('/__tests__/') ||
+    baseName.includes('.test.') ||
+    baseName.includes('.spec.') ||
+    baseName.startsWith('test_') ||
+    baseName.includes('_test.')
+  );
+}
 
 /**
  * Count Source Lines of Code (SLOC)
@@ -170,12 +187,17 @@ async function checkFileSizes(rootPath: string): Promise<FileSizeCheck[]> {
   const results: FileSizeCheck[] = [];
 
   for (const file of files) {
+    const relativeFile = path.relative(rootPath, file);
+    if (isTestFile(relativeFile)) {
+      continue;
+    }
+
     const sloc = await countSLOC(file);
     results.push({
-      file: path.relative(rootPath, file),
+      file: relativeFile,
       lines: sloc,
-      exceeds: sloc > MAX_FILE_SLOC,
-      limit: MAX_FILE_SLOC,
+      exceeds: sloc > MAX_PRODUCTION_FILE_SLOC,
+      limit: MAX_PRODUCTION_FILE_SLOC,
     });
   }
 
@@ -227,7 +249,7 @@ export async function runLevel1Checks(rootPath: string = '.'): Promise<Level1Res
     });
   }
 
-  // Check 3: File sizes ≤500 SLOC (MEDIUM)
+  // Check 3: Production file sizes <=700 SLOC (MEDIUM)
   const fileSizeChecks = await checkFileSizes(rootPath);
   const oversizedFiles = fileSizeChecks.filter((f) => f.exceeds);
 

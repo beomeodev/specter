@@ -1,557 +1,165 @@
 # AI Coding Assistant Rules (AGENTS.md)
 
----
+This file is the always-on fallback contract for AI coding agents. It applies to
+ordinary coding tasks, small projects, and `/ms.*` workflow projects alike.
 
-## 1. Core Principles
+`AGENTS.md` must stand alone: if no Constitution exists, agents still have enough
+guidance to work safely and pragmatically.
 
-### ✅ Required
-
-- **Code comments and documentation**
-- **Small units** (1-2 files only)
-- **Follow existing patterns**
-- **Explicit typing required**
-- **Tests before implementation**
-- **Update AGENTS.md when needed during project**
-
-### ❌ Prohibited
-
-- Modifying multiple files simultaneously
-- Ignoring existing patterns
-- Code duplication
-- Type omission (any abuse)
-- Implementation without tests
+These instructions guide agent behavior; they are not a hard enforcement layer.
+Use hooks, settings, CI, or command permissions for rules that must be enforced
+regardless of agent judgment.
 
 ---
 
-## 2. Operational Guardrails
+## 1. Constitution Handling
 
-### Context Management (CRITICAL)
-
-**Rule**: Always read relevant files BEFORE planning changes
-
-- Search for similar existing features first
-- Check current implementation patterns
-- Verify types/constants already defined
-- Never guess - always verify by reading files
-
-**Anti-pattern**: Planning changes without understanding current codebase state
-
-### Documentation Updates
-
-- Keep updates concise and on point to prevent bloat
-- Document "why" not "what"
-
-### Development Restrictions
-
-- Do not commit to git without user approval
-- Do not run local servers - tell user to run them
-- Never use placeholders - implement complete solutions
+- If `.specify/memory/constitution.md` exists, read it for detailed workflow and
+  project governance rules.
+- If no Constitution exists, do not block ordinary coding work and do not create
+  one unless the user asks or an `/ms.*` workflow command requires it.
+- For non-`/ms` tasks, use lightweight acceptance criteria when requirements are
+  ambiguous; do not force GEARS, TRUST reports, or TAG blocks.
+- For `/ms.*` tasks, the active Constitution and command files define the
+  workflow gates and artifacts.
+- If this file conflicts with the Constitution, the more specific active
+  Constitution rule wins for workflow details, but safety, permissions, and
+  surgical-scope rules in this file always remain binding.
 
 ---
 
-## 3. Requirements Clarification (GEARS)
+## 2. Required Working Style
 
-**Problem**: Ambiguous requirements lead to wrong implementations
-
-**Rule**: Write every requirement in the **GEARS** canonical form before implementation (Constitution Section IV). GEARS = canonical; classic EARS = legacy-compatible subset.
-
-```
-[Where <static condition>]   # config / feature flag / deploy env / permission
-[While <runtime state>]      # job running / session active / connection open / edit mode
-[When <trigger>]             # triggering event, incl. error/exception events
-the <subject> shall <behavior>.
-```
-
-Rules: concrete subject (not "the system" unless product-wide) · `Where`=static, `While`=runtime · no `IF...then` (use `[Error Handling] When …`) · maps 1:1 to Given-When-Then.
-
-**Application Example**:
-
-```
-❌ "Build login feature"
-
-✅ Clear requirements (GEARS):
-- the auth service shall expose a login endpoint at /api/auth/login.
-- When a user submits credentials, the auth service shall validate them against the user store.
-- [Error Handling] When credentials are invalid, the auth service shall return 401 with a generic message.
-- While a session is active, the API gateway shall allow access to protected routes.
-- Where a refresh token is provided, the auth service shall issue a new access token.
-```
-
-**Forbidden phrases**: "quickly", "securely", "well", "appropriately" → Replace with specific criteria
+- Read relevant files before planning or editing. Search for existing patterns,
+  types, constants, tests, and similar features before making changes.
+- Do not guess through ambiguity. State assumptions, surface tradeoffs, and ask
+  before taking broad, risky, or irreversible action.
+- Push back when the requested approach is unsafe, overcomplicated, or
+  inconsistent with the existing codebase; propose the simpler sufficient path.
+- Follow existing project structure, naming, import order, error handling, and
+  testing style.
+- Keep changes surgical: touch only what the request requires. Do not refactor,
+  reformat, or "improve" adjacent code unless the task explicitly requires it.
+- Every changed line should trace directly to the request or to cleanup required
+  by that change.
+- Clean up only the imports, variables, files, or helpers that your own change
+  made obsolete. Mention unrelated dead code; do not delete it.
+- Prefer simple functions and standard patterns before introducing abstractions,
+  frameworks, or new dependencies.
+- Do not add speculative features, future-proofing, configurability, or
+  abstractions for single-use code.
+- Preserve a single source of truth for important constants, types, validation
+  rules, and shared utilities.
+- Do not leave placeholders, stubs, mock outputs, or partial implementations
+  unless the user explicitly asks for them.
 
 ---
 
-## 4. Clean Code Core Principles
+## 3. Tests And Verification
 
-### 0. ⚠️ Zero Tolerance (Absolute Prohibition)
-
-**Never** use workarounds that avoid root causes:
-
-- `setTimeout` for state synchronization (timing hack)
-- `window.location.reload()` to fix issues
-- Fallback patterns masking real problems
-- Catching errors without handling them
-- `any` type to bypass type checking
-
-**Rule**: Always find and fix the root cause
-
----
-
-### 1. Planning First
-
-**Problem**: AI implements features without considering structure
-
-**Rule**: Present plan before modifying 3+ files
-
-- List of files to modify
-- Changes for each file
-- Expected risks
-- **Proceed after approval**
+- Prefer test-first: write the failing test, implement the minimum fix, then
+  refactor while keeping tests green.
+- Convert implementation requests into verifiable goals before coding. Define
+  the success criteria and the smallest check that proves them.
+- If a task is a bug fix, reproduce the bug with a test when practical.
+- For multi-step tasks, keep a brief plan where each step has an associated
+  verification check.
+- If a task is documentation-only or the project has no test infrastructure,
+  state that clearly instead of inventing tests.
+- Run the smallest relevant verification command available for the touched
+  area. Do not claim tests, lint, typecheck, or build passed unless you ran them.
 
 ---
 
-### 2. Test-First Development
+## 4. Code Quality Baseline
 
-**Problem**: AI forgets tests or writes them superficially
-
-**Rule**: All features follow: Write test → Implement → Refactor
-
-```python
-# 1. Write failing test first
-def test_user_login():
-    response = client.post("/login", json={"email": "test@test.com"})
-    assert response.status_code == 200
-
-# 2. Implement minimum code to pass
-@app.post("/login")
-def login(data: LoginData):
-    # Implementation...
-    return {"token": "..."}
-
-# 3. Refactor
-```
-
-**Apply**: Always think "how to test this" before implementing
-
-**Goal-Driven Execution** (Karpathy): transform imperative tasks into verifiable goals, then loop until they pass.
-
-| Instead of... | Transform to... |
-|---|---|
-| "Add validation" | "Write tests for invalid inputs, then make them pass" |
-| "Fix the bug" | "Write a test that reproduces it, then make it pass" |
-| "Refactor X" | "Ensure tests pass before AND after" |
-
-GEARS requirements already give the success criteria (Given-When-Then). Strong criteria let the agent loop independently; weak criteria ("make it work") force constant clarification.
+- Use explicit types. Do not use `any` or equivalent escape hatches to bypass
+  type checking.
+- Avoid meaningful magic strings and numbers. Reuse existing constants/config or
+  define a single source of truth when the value matters.
+- Avoid hidden side effects, global mutable state, direct parameter mutation, and
+  implicit dependencies.
+- Use clear names, early returns, and straightforward control flow. Avoid clever
+  one-liners when simple code is clearer.
+- Add comments only when they explain why a non-obvious decision exists. Do not
+  comment obvious code.
+- Keep production files and functions reasonably small. If a file or function is
+  becoming hard to reason about, split it deliberately as part of the task.
 
 ---
 
-### 3. Simplicity First
+## 5. Zero-Tolerance Workarounds
 
-**Problem**: AI uses unnecessarily complex patterns
+Never use workarounds that hide root causes:
 
-**Rule**: Use complex patterns only when necessity is proven
+- `setTimeout` or timing hacks for state synchronization
+- `window.location.reload()` to mask state bugs
+- fallback branches that silently hide invalid states
+- catching errors without handling or rethrowing them
+- disabling type, lint, test, or security checks to make a change pass
 
-```
-Decision sequence:
-1. Solvable with simple function? → Use function
-2. Exists in library? → Use library
-3. Standard pattern sufficient? → Use standard
-4. Really need custom? → Document why, then implement
-```
-
-**Avoid unnecessary complexity**:
-
-- Microservices (when monolith suffices)
-- GraphQL (when REST suffices)
-- Custom frameworks
-- Over-abstraction
-
-**File Size Constraints** (from Constitution):
-
--   ✅ Production file ≤700 SLOC (Source Lines of Code, excluding comments and blank lines)
--   ✅ Test file SLOC: NO LIMIT (case coverage prioritized over file length)
--   ✅ Function ≤100 LOC
--   ✅ Complexity ≤10 per function
--   ✅ Nesting depth ≤4 levels
--   **Split files when limits exceeded**
+Find and fix the root cause, or report the blocker explicitly.
 
 ---
 
-### 4. Pattern Consistency
+## 6. Security Baseline
 
-**Problem**: AI ignores existing project patterns and uses its own style
-
-**Rule**: Always check existing patterns before writing code
-
-- Folder structure (where to create files)
-- Naming conventions (snake_case, camelCase, etc.)
-- Import order
-- Error handling approach
-- CRUD patterns
-
-**Verify**: Find similar features and compare patterns
+- Validate and sanitize user-controlled input at boundaries.
+- Require authentication and authorization unless a route or action is
+  explicitly public.
+- Keep secrets in environment/configuration, never in source code.
+- Never log passwords, tokens, credentials, or sensitive personal data.
+- Use parameterized database access or trusted ORM APIs.
+- Do not use `eval`, `exec`, disabled SSL verification, or broad CORS unless the
+  user explicitly accepts the risk.
 
 ---
 
-### 5. Single Source of Truth (OSOT)
+## 7. Permissions And Scope
 
-**Problem**: AI redefines same information everywhere
+Ask for user approval before:
 
-**Rule**: Define important information once, import elsewhere
+- modifying 3 or more files in one task
+- installing packages or changing dependency versions
+- deleting or moving files
+- running database migrations
+- changing environment configuration or secrets
+- starting local servers
+- committing, amending commits, pushing, merging, or creating releases
 
-```python
-# ❌ Bad: Duplicated definitions
-# user.py
-MAX_LENGTH = 50
-
-# post.py
-MAX_LENGTH = 50  # Duplicate!
-
-# ✅ Good: Define once
-# config.py
-MAX_LENGTH = 50
-
-# Reuse elsewhere
-from config import MAX_LENGTH
-```
-
-**Applies to**: Constants, type definitions, utility functions, validation logic
+Do not run destructive commands such as `git reset --hard` or broad deletes
+unless the user explicitly requests and confirms them.
 
 ---
 
-### 6. No Magic Strings/Numbers
+## 8. TAGS, GEARS, And TRUST Outside `/ms`
 
-**Problem**: AI hardcodes status values ("cancelled", "completed") and magic numbers
-
-**Rule**: Extract status values and important numbers as constants
-
-```python
-# ❌ Hardcoded
-if status == "completed":  # Typo risk
-
-# ✅ Constant extraction
-# config.py
-STATUS_COMPLETED = "completed"
-
-# Usage
-if status == STATUS_COMPLETED:
-```
-
-**Config file locations**:
-
-- **Simple projects**: `docs/src/config.{py,ts}`
-- **Backend**: `backend/src/config.py`
-- **Frontend**: `frontend/src/config.ts`
-
-**Note**: TAG utilities and CI scripts scan all of: `docs/src/`, `backend/src/`, `frontend/src/`, `tests/`, `backend/tests/`, `frontend/tests/`
+- TAGS are optional outside `/ms.*` workflows. Preserve existing TAG blocks when
+  editing tagged code, but do not introduce TAG ceremony into untagged ordinary
+  work unless requested.
+- GEARS is useful for ambiguous behavior contracts, but plain acceptance
+  criteria are enough for small or non-workflow tasks.
+- TRUST is a quality review rubric outside `/ms.*`; executable checks still come
+  from the project's actual lint, type, test, build, and security tooling.
 
 ---
 
-### 7. Explicit Over Implicit
-
-**Problem**: AI creates implicit behavior, side effects, and "magic"
-
-**Rule**: All behavior must be explicit
-
-```python
-# ❌ Implicit side effects
-def process_user(user):
-    user.processed = True  # Mutates parameter
-    global_state.last = user  # Global state change
-    return user
-
-# ✅ Explicit
-def process_user(user: User, state: State) -> ProcessedUser:
-    return ProcessedUser(
-        ...user,
-        processed=True,
-        processed_at=now()
-    )
-```
-
-**Forbidden patterns**:
-
-- Global variables for state
-- Direct parameter mutation
-- Hidden dependencies
-- Magic numbers/strings
-
----
-
-### 8. Single Responsibility & Reusability
-
-**Problem**: AI puts everything in one file and duplicates same logic everywhere
-
-**Rule**: One function/component = one responsibility + extract reusable logic
-
-**File Size Guidelines**:
-
-- Target: Under 300-350 lines per file
-- **Maximum: 700 SLOC for production (hard limit from Constitution); test files: NO LIMIT**
-- One file = one clear responsibility
-- Prefer composition over inheritance (use inheritance only for true 'is-a' relationships)
-
-**When file exceeds limits, extract**:
-
-- Utilities → `utils/` or `lib/`
-- Constants → `config.ts` or `constants.ts`
-- Types → `types/` or `models/`
-- Reusable logic → `composables/` or `hooks/`
-
-```python
-# ❌ Multiple responsibilities + duplication
-def process_user(data):
-    validate(data)
-    transform(data)
-    save(data)
-    send_email(data)
-
-def process_order(data):
-    validate(data)  # Duplicate!
-    transform(data)  # Duplicate!
-    save(data)
-    send_notification(data)
-
-# ✅ Separation + reusability
-# utils/validation.py
-def validate_data(data): pass
-
-# utils/transform.py
-def transform_data(data): pass
-
-# user.py
-def process_user(data):
-    validated = validate_data(data)
-    transformed = transform_data(validated)
-    saved = save_user(transformed)
-    send_welcome_email(saved)
-```
-
-**Structure for reusable code**:
-
-```
-backend/src/
-  utils/              # Reusable functions
-    format.py         # Date, string formatting
-    validate.py       # Common validation logic
-    transform.py      # Data transformation
-
-frontend/src/
-  components/
-    shared/           # Reusable components
-      Button.vue
-      Input.vue
-      Modal.vue
-  utils/              # Reusable functions
-    format.ts
-    validate.ts
-```
-
-**Extraction criteria**:
-
-1. "Will I use this elsewhere?" → Yes = move to `utils/shared`
-2. "Copied twice already?" → Immediately move to `utils/shared`
-3. "Domain-specific only?" → No = move to `utils/shared`
-
-**Before working**: Check if similar functionality already exists in `utils/shared`
-
----
-
-### 9. Security by Default
-
-**Rule**: Security from the start, not later
-
-**Required**:
-
-- ✅ Input validation/sanitization
-- ✅ Authentication required (except explicit public)
-- ✅ Authorization check before data access
-- ✅ Secrets in environment variables
-- ✅ SQL parameterization
-- ✅ **Structured logging with correlation IDs (JSON format)**
-- ✅ **Never log sensitive data (tokens, passwords, PII)**
-
-**Forbidden**:
-
-- ❌ Plaintext passwords
-- ❌ eval/exec with user input
-- ❌ CORS allow all
-- ❌ Disable SSL verification
-
----
-
-### 10. Thorough Exception Handling
-
-**Problem**: AI only considers happy path
-
-**Rule**: Always handle exceptional cases
-
-```python
-# ❌ Ignoring errors
-try:
-    user = get_user()
-except:
-    print("error")
-
-# ✅ Clear error handling
-try:
-    user = get_user()
-except UserNotFound:
-    raise HTTPException(404, "User not found")
-except DatabaseError as e:
-    logger.error(f"DB error: {e}")
-    raise HTTPException(500, "Internal server error")
-```
-
-**Review**: Network failures, validation failures, abnormal user behavior
-
----
-
-### 11. AI-Assisted Development Patterns
-
-**Write code that AI can maintain:**
-
-- **Early returns** over nested ternaries
-- **Explicit types** over implicit any
-- **Clear variable names** over abbreviations
-- **Simple patterns** over clever one-liners
-- **Comments on "why"** not "what" (explain business logic)
-
-**Example**:
-
-```python
-# ❌ AI struggles with this
-result = a if x else b if y else c if z else d
-
-# ✅ AI understands this
-if x:
-    result = a
-    return result
-if y:
-    result = b
-    return result
-if z:
-    result = c
-    return result
-result = d
-```
-
----
-
-### 12. Surgical Changes (Karpathy)
-
-**Problem**: AI edits/refactors code orthogonal to the task, breaking things it didn't understand.
-
-**Rule**: Touch only what the request requires. Clean up only your own mess.
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, **mention it — don't delete it**.
-
-When your changes create orphans:
-- Remove imports/variables/functions that **YOUR** changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-**The test**: every changed line should trace directly to the request.
-
-**Reconciliation with Specter's refactor culture** (IMPORTANT — avoids a contradiction): Specter *does* mandate broader changes — splitting >700-SLOC files, migrating to shared primitives, TRUST quality gates. Those are **explicit, planned tasks** (authored in `/ms.tasks` / requested by the user), NOT silent side-effects of an unrelated task. So "surgical" means **no unrequested/unplanned adjacent changes** — a planned refactor task is itself the request, and within it you stay surgical to that task's scope.
-
----
-
-## 5. MCP Server Integration
-
-**Context7 MCP** - Up-to-date library documentation:
-
-- Working with external libraries (React, FastAPI, Stripe, etc.)
-- Need current docs beyond AI training cutoff
-- Implementing new integrations
-
-**Usage Example**:
-
-```python
-# Get latest library docs
-lib_id = mcp__context7__resolve_library_id("fastapi")
-docs = mcp__context7__get_library_docs(
-    context7CompatibleLibraryID=lib_id,
-    topic="background tasks",
-    tokens=8000
-)
-```
-
-**Gemini Consultation** (if enabled):
-
-- Complex architectural decisions
-- Security-critical implementations
-- Deep code reviews
-
-**Rule**: Always verify MCP suggestions against project patterns.
-
----
-
-## 6. Permissions
-
-### Auto-Approved
-
-- Reading files
-- Single file: format, lint, typecheck, test
-
-### Require Confirmation
-
-- Installing packages
-- Deleting/moving files
-- Git push
-- Environment config changes
-- Full build/test suite
-- DB migrations
-- **Modifying 3+ files**
-
-### When Uncertain
-
-- **No guessing**
-- **Ask questions**
-- **Present options**
-- **Plan first**
-
----
-
-## ✅ Pre-Work Checklist
-
-**Before starting any task**:
-
-- [ ] Requirements clarified in EARS format?
-- [ ] Plan to write tests first?
-- [ ] Searched for similar existing features?
-- [ ] If exists, checked and following same pattern?
-- [ ] Checked if types/constants already defined?
-- [ ] If not, define in config/types (OSOT)
-- [ ] Chosen simplest solution?
-- [ ] Extracting reusable logic to utils/shared?
-- [ ] Plan for handling edge cases?
-- [ ] Security considerations checked?
-
----
-
-## 📊 Code Quality Standards
-
-**Required before merge**:
-
-- [ ] Linter passes (0 warnings)
-- [ ] Type checker passes
-- [ ] All tests pass
-- [ ] console.log/print removed
-- [ ] Commented code removed
-- [ ] No TODOs (or linked to issues)
+## 9. Pre-Work Checklist
+
+- Have I read the relevant files?
+- Have I checked existing patterns, tests, types, and constants?
+- Is the requirement clear enough to implement and verify?
+- Is this change small enough to proceed without a 3+ file plan?
+- What is the smallest relevant test or verification command?
+- Are there security, permissions, or data-integrity risks?
 
 ---
 
 <!-- PROJECT_RULES_START -->
-<!-- This section will be populated by /ms.constitution with project-specific rules -->
-<!-- DO NOT manually edit this section -->
+<!-- This section may be populated by /ms.constitution with project-specific rules. -->
+<!-- Keep generated project rules concise and do not manually edit generated content. -->
 <!-- PROJECT_RULES_END -->
 
 ---
 
-**Template Version**: 1.0.0
-**Note**: This is a template file. Project-specific rules will be added by `/ms.constitution` command.
+**Template Version**: 2.0.0

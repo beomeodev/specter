@@ -17,7 +17,7 @@ Execute the following tasks in order:
 **Operations**:
 - **Analyze Git changes**: `git diff --cached` (staged files only)
 - **Auto-update dev_daily.md**: Append Git diff summary with timestamp
-- **Validate TAG chains**: Verify @SPEC → @TEST → @CODE integrity
+- **Validate TAG chains**: Report best-effort @SPEC -> @TEST -> @CODE traceability warnings
 - **Sync API docs** (if staged changes exist): Generate/update `docs/api/{TAG}.md`
 
 **Example output**:
@@ -28,14 +28,14 @@ Execute the following tasks in order:
 - docs/dev_daily.md (appended)
 - docs/api/AUTH-001.md (updated)
 
-📋 TAG Integrity: 95.0% (23/24 complete chains)
+📋 TAG Traceability: 95.0% (23/24 linked tags; warnings reported)
 
 ⏱️ Duration: 3.2 seconds
 ```
 
 **Error handling**:
 - **No staged changes**: ⚠️ Show warning and proceed (fallback to manual dev_daily.md update)
-- **Low TAG integrity** (<80%): ⚠️ Show warning but continue workflow
+- **Many TAG warnings**: ⚠️ Show warning but continue workflow
 
 ---
 

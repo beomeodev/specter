@@ -18,6 +18,7 @@ const TAG_PATTERN = '@([A-Z]+):([A-Z0-9-]+)';
 /**
  * CHAIN pattern for ripgrep (MoAI extension)
  * Matches: CHAIN: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
+ * Also accepts the legacy unicode arrow.
  */
 const CHAIN_PATTERN = 'CHAIN:\\s*(.+)';
 
@@ -192,7 +193,7 @@ export async function scanTAGChains(
 
       const chainStr = chainMatch[1].trim();
       const chainTags = chainStr
-        .split(/\s*->\s*/)
+        .split(/\s*(?:->|→)\s*/)
         .map((t) => t.trim())
         .filter((t) => t.startsWith('@'));
 
@@ -261,7 +262,11 @@ export async function findOrphanedTAGs(
 }
 
 /**
- * Find duplicate TAG IDs (same TAG ID in multiple files of same type)
+ * Find duplicate SPEC TAG IDs.
+ *
+ * Multi-file CODE and TEST TAGs are allowed by policy. Static scanning cannot
+ * prove whether repeated DOC TAGs are conflicting, so this helper reports only
+ * duplicate SPEC declarations.
  *
  * @param searchPath - Root path to search
  * @returns Map of TAG ID to duplicate locations
@@ -280,10 +285,15 @@ export async function findDuplicateTAGs(
 ): Promise<Map<string, Array<{ file: string; line: number }>>> {
   const allTags = await scanAllTAGs(searchPath);
 
-  // Group by TAG ID + Type
+  // Group duplicate SPEC declarations only. CODE/TEST duplicates are valid for
+  // multi-file implementations and multi-file test coverage.
   const tagMap = new Map<string, Array<{ file: string; line: number }>>();
 
   for (const tag of allTags) {
+    if (tag.type !== 'SPEC') {
+      continue;
+    }
+
     const key = `${tag.id}:${tag.type}`;
     if (!tagMap.has(key)) {
       tagMap.set(key, []);
