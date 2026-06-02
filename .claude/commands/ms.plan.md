@@ -40,17 +40,17 @@ When executing /speckit.plan, the agent must read and strictly adhere to constit
 **Constitution Reading Guidelines**:
 
 1. **Focus on Architecture Sections** (Priority Order):
-   - **Section II**: Simplicity-First Architecture
+   - **Section VI**: File, Architecture, And Tooling Governance
      → Prefer built-in tools over external dependencies
      → Files ≤700 SLOC, functions ≤100 LOC
      → Choose simplest solution first
 
-   - **Section III**: Modular Design
+   - **Section VII**: Security Governance
      → Independent modules with clear interfaces
      → Dependency injection over hardcoded dependencies
      → Separation of concerns
 
-   - **Section V**: TRUST 5 Principles
+   - **Section IV**: TRUST Review Model
      → Test-First: TDD with ≥85% coverage
      → Readable: Clear naming, minimal complexity
      → Unified: Consistent patterns across codebase
@@ -363,10 +363,9 @@ After plan.md is created, append Constitution reference section to document:
 This plan follows the project [Constitution](.specify/memory/constitution.md).
 
 **Key Sections:**
-
--   **Section II**: Simplicity-First Architecture
--   **Section III**: Modular Design
--   **Section V**: TRUST 5 Quality Principles
+-   **Section IV**: TRUST Review Model
+-   **Section VI**: File, Architecture, And Tooling Governance
+-   **Section VII**: Security Governance
 
 _Auto-added by `/ms.plan`_
 ```
@@ -474,3 +473,4 @@ Please check the error message above and retry.
 ## Next Command
 
 After `/ms.plan`: Run `/ms.tasks`. Section IX baseline should already be established by `/ms.constitution` before the per-Feature cycle starts.
+ture cycle starts.

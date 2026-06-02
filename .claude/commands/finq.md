@@ -492,7 +492,7 @@ Output after all steps complete:
 1. **/ms.up-docs integration (Quick mode)**:
    - **NEW**: Step 1 auto-runs `/ms.up-docs --docs=dev`
    - dev_daily.md auto-updates (based on Git diff)
-   - Quick TAG chain integrity validation (detailed validation in /fin)
+   - Quick TAG chain traceability warnings (detailed scanning in /fin)
    - If no staged changes, show warning and proceed (fallback to manual update)
    - **Performance**: Process only staged changes for speed optimization (~2 seconds)
 

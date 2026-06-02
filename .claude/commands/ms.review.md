@@ -435,8 +435,8 @@ Report structure (console + file):
 
 **Only if HIGH/CRITICAL issues exist**, prompt user:
 
-- Auto-fix options for high-confidence issues (N+1 queries, missing auth guards)
-- Re-run verification after applying fixes
+- Do NOT attempt to auto-fix issues. Leave fixes to `/ms.implement --mode=refactor` or the main conversation.
+- Ask user if they want to abort to fix the issues manually.
 - Or continue without fixes (flagged in `/fin`)
 
 ---

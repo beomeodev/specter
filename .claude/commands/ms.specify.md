@@ -365,8 +365,9 @@ Display next steps:
 3. Then proceed to `/ms.plan` for implementation planning
 
 📖 Constitution Sections Applied:
-- Section IV: GEARS (5 requirement patterns)
-- Section V: TRUST (5 quality principles)
+- Section II: GEARS (5 requirement patterns)
+- Section IV: TRUST (5 quality principles)
+- Section V: TAGS (Traceability)
 ```
 
 ## Error Handling
@@ -398,3 +399,4 @@ After `/ms.specify`:
 
 `/ms.checklist --global` and the per-Feature `/ms.checklist` are pre-spec gates
 and should already have passed before this command ran.
+ommand ran.

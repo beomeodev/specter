@@ -253,7 +253,7 @@ Fix any Blocking Fixes in docs/prd/feature-map.checklist.md, re-run the global a
 then retry /ms.checklist for the next Feature.
 ```
 
-If Section IX is not established, stop:
+If Section IX is not established (i.e. `/ms.constitution` has never been run), stop:
 
 ```text
 ⛔ Project Constitution baseline is not established.

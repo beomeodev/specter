@@ -377,7 +377,7 @@ Output after all steps complete:
 1. **/ms.up-docs integration**:
    - **NEW**: Step 1 auto-runs `/ms.up-docs --docs=dev`
    - dev_daily.md auto-updates (based on Git diff)
-   - Automatic TAG chain integrity validation
+   - Best-effort TAG chain traceability warnings
    - If no staged changes, show warning and proceed (fallback to manual update)
 
 2. **When updating dev_daily.md** (fallback only):

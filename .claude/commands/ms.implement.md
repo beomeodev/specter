@@ -181,7 +181,7 @@ You are implementing code that MUST follow the project Constitution.
 
 **Goal-Driven**: the task's GEARS acceptance criteria are the success bar — write the test, then loop until it passes.
 
-**Refer to Constitution (Section II, Change Discipline, Section V) for details.**
+**Refer to Constitution (Section VI, Change Discipline, Section IV) for details.**
 
 Now implement TAG: {TAG_ID}
 ```
@@ -229,6 +229,13 @@ generate_tag_block() {
   local spec_path="$3"
   local test_path="$4"
   local code_path="${5:-}"
+  
+  # Determine tag type based on the file being written
+  local tag_type="CODE"
+  if [[ "$code_path" == *"test"* ]] || [[ "$code_path" == *"spec.ts"* ]] || [[ "$code_path" == *"spec.tsx"* ]] || [[ "$code_path" == *"/tests/"* ]]; then
+    tag_type="TEST"
+  fi
+
   local date=$(date +%Y-%m-%d)
   # @UPDATED reflects git reality, not creation time. For an already-tracked
   # file use its last-commit date; for a new file it equals @CREATED (today).
@@ -244,7 +251,7 @@ generate_tag_block() {
     ts|js|tsx|jsx)
       cat <<EOF
 /**
- * @CODE:${tag_id}
+ * @${tag_type}:${tag_id}
  * @SPEC: ${spec_path}
  * @TEST: ${test_path}
  * @CHAIN: @SPEC:${tag_id} -> @TEST:${tag_id} -> @CODE:${tag_id}
@@ -257,7 +264,7 @@ EOF
     py)
       cat <<EOF
 """
-@CODE:${tag_id}
+@${tag_type}:${tag_id}
 @SPEC: ${spec_path}
 @TEST: ${test_path}
 @CHAIN: @SPEC:${tag_id} -> @TEST:${tag_id} -> @CODE:${tag_id}
@@ -544,3 +551,4 @@ After `/ms.implement`:
 - Edit (generated files) - Insert TAG blocks
 - Write (TAG metadata) - Create traceability chains
 - Bash (ripgrep) - Scan for existing TAGs
+ - Scan for existing TAGs

@@ -37,7 +37,7 @@ This command performs **document synchronization** with 3 modes:
 |----------|-------------|---------|
 | `--docs=<type>` | Sync specific doc type (`api`, `dev`, `readme`) | None (staged changes) |
 | `--all` | Sync all documents (ignore staging) | False |
-| `--skip-tags` | Skip TAG chain validation | False |
+| `--skip-tags` | Skip TAG traceability warnings | False |
 
 ## Execution Steps
 
@@ -48,7 +48,7 @@ This command performs **document synchronization** with 3 modes:
 - `AGENTS.md` (AI instructions - if exists)
 
 **Reference key sections**:
-- Constitution Section V (TRUST 5 Principles - Trackable)
+- Constitution Section V (TAGS: Best-Effort Traceability)
 - TAG system requirements and traceability standards
 
 ### Step 1: Analyze Sync Scope
@@ -78,7 +78,7 @@ EXIT: Code 0
 
 **Determine affected docs**:
 - Staged `.py` files → API docs
-- Staged code files → TAG chain validation
+- Staged code files → TAG traceability warnings
 - Implementation changes → dev_daily.md update
 - Major features → README.md update
 
@@ -367,7 +367,7 @@ CHANGELOG.md           # Change history (manual, updated by /fin)
 ## Constitution Compliance
 
 **TRUST 5 Principles**:
-- **Trackable**: TAG chain validation ensures traceability
+- **Trackable**: Best-effort TAG validation tracks traceability
 - **Readable**: Generated docs follow markdown standards
 - **Unified**: Consistent doc structure across all APIs
 - **Secured**: No sensitive data in auto-generated docs
@@ -406,11 +406,11 @@ CHANGELOG.md           # Change history (manual, updated by /fin)
 2. TAG extraction via ripgrep
 3. Markdown generation
 4. File write/update
-5. TAG chain validation
+5. TAG traceability warnings
 
 ## References
 
-- My-Spec TRUST 5 Principles: `.specify/memory/constitution.md` Section V
+- My-Spec TAGS: `.specify/memory/constitution.md` Section V
 - TAG System: `ms-workflow-tag-manager` Skill
 - Living Docs: `ms-workflow-living-docs` Skill
 - Document standards: `AGENTS.md` Section 2 (Documentation Updates)
