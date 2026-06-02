@@ -63,8 +63,10 @@ Example:
 - Exit
 
 **Reference key sections**:
-- Constitution Section II (Simplicity-First Architecture - Files ≤700 SLOC, Functions ≤100 LOC)
-- Constitution Section V (TRUST 5 Principles - Test-First, Readable, Unified, Secured, Trackable)
+- Constitution Section III (Test-First Implementation)
+- Constitution Section IV (TRUST Review Model)
+- Constitution Section V (TAGS: Best-Effort Traceability)
+- Constitution Section VI (File, Architecture, And Tooling Governance - Files ≤700 SLOC, Functions ≤100 LOC)
 - Constitution Section IX (Project-specific baseline established from the checked PRD Feature Map by `/ms.constitution`)
 - AGENTS.md (coding standards, patterns to follow - if exists)
 
@@ -160,18 +162,22 @@ You are implementing code that MUST follow the project Constitution.
 
 **CRITICAL: Read and apply these sections**:
 
-**Section II - Simplicity-First (MANDATORY)**:
-- Files ≤700 SLOC (code files only - split if larger)
-- Functions ≤100 lines (extract helper functions if needed)
-- Complexity ≤10 per function
-- Prefer built-in tools over external dependencies
+**Section III - Test-First Implementation (MANDATORY)**:
+- Define the behavior contract before coding
+- Write or update the relevant test or verification case first
+- Implement the smallest change that satisfies it
 
-**Section V - TRUST 5 Principles (MANDATORY)**:
-- **Test-First**: Write tests BEFORE implementation code
-- **Readable**: Clear naming, ≤5 parameters per function, ≤4 nesting levels
-- **Unified**: Strict typing (TypeScript strict mode, Python type hints)
-- **Secured**: Input validation, environment variables for secrets
-- **Trackable**: Code structure mirrors spec.md organization
+**Section VI - File, Architecture, And Tooling Governance (MANDATORY)**:
+- Production files ≤700 SLOC; test files have no SLOC limit
+- Functions target ≤100 LOC and complexity ≤10
+- Prefer mature built-in/project tools over new custom implementations
+
+**Section IV - TRUST Review Model (MANDATORY)**:
+- **Test-First**: touched behavior has tests or verification cases
+- **Readable**: clear naming, ≤5 parameters target, ≤4 nesting target
+- **Unified**: strict typing and existing project patterns
+- **Secured**: input validation, authorization checks, no secret leakage
+- **Trackable**: TAGS are best-effort metadata, not a substitute for tests or review
 
 **Change Discipline — Surgical (MANDATORY)**:
 - Touch ONLY what this TAG/task requires. Every changed line traces to the task.
@@ -181,7 +187,7 @@ You are implementing code that MUST follow the project Constitution.
 
 **Goal-Driven**: the task's GEARS acceptance criteria are the success bar — write the test, then loop until it passes.
 
-**Refer to Constitution (Section VI, Change Discipline, Section IV) for details.**
+**Refer to Constitution Sections III, IV, V, VI, and AGENTS.md change discipline for details.**
 
 Now implement TAG: {TAG_ID}
 ```
@@ -228,11 +234,13 @@ generate_tag_block() {
   local tag_id="$2"
   local spec_path="$3"
   local test_path="$4"
-  local code_path="${5:-}"
-  
-  # Determine tag type based on the file being written
+  local target_path="${5:-}"
+
+  # Determine tag type from the target file. Keep this file-level only.
   local tag_type="CODE"
-  if [[ "$code_path" == *"test"* ]] || [[ "$code_path" == *"spec.ts"* ]] || [[ "$code_path" == *"spec.tsx"* ]] || [[ "$code_path" == *"/tests/"* ]]; then
+  local normalized_path="${target_path//\\//}"
+  local base_name="${normalized_path##*/}"
+  if [[ "$normalized_path" == tests/* ]] || [[ "$normalized_path" == test/* ]] || [[ "$normalized_path" == */tests/* ]] || [[ "$normalized_path" == */test/* ]] || [[ "$normalized_path" == */__tests__/* ]] || [[ "$base_name" == *.test.* ]] || [[ "$base_name" == *.spec.* ]] || [[ "$base_name" == test_* ]] || [[ "$base_name" == *_test.* ]]; then
     tag_type="TEST"
   fi
 
@@ -241,9 +249,9 @@ generate_tag_block() {
   # file use its last-commit date; for a new file it equals @CREATED (today).
   # A hand-stamped "today" on an unchanged file is a false Trackable signal.
   local updated="$date"
-  if [ -n "$code_path" ]; then
+  if [ -n "$target_path" ]; then
     local git_date
-    git_date=$(git log -1 --format=%cs -- "$code_path" 2>/dev/null)
+    git_date=$(git log -1 --format=%cs -- "$target_path" 2>/dev/null)
     [ -n "$git_date" ] && updated="$git_date"
   fi
 
@@ -321,7 +329,7 @@ Task(
 
     Follow CODE-FIRST principle:
     - Extract documentation from code comments/docstrings
-    - Maintain TAG chain integrity
+    - Report TAG traceability warnings without treating them as implementation blockers
     - Use auto-generated markers to preserve manual content
 
     Return: List of docs updated, TAG integrity report"""
@@ -517,7 +525,7 @@ After `/ms.implement`:
 1. Verify TAG blocks in generated files.
 2. Verify tasks.md was marked complete by the command's mandatory read-back check.
 3. Run `/ms.implement` again until no pending TAGs remain.
-4. Run `/ms.review` before `/fin`; review owns tests, lint, typecheck, build, coverage, and TAG integrity gates.
+4. Run `/ms.review` before `/fin`; review owns tests, lint, typecheck, build, coverage, and TAG traceability reporting.
 
 ## Notes
 
@@ -525,7 +533,7 @@ After `/ms.implement`:
 -   **Multi-Agent Orchestration**: Coordinates tdd-implementer (Sonnet), library-researcher (Haiku), doc-updater (Haiku)
 -   **Auto TAG selection**: No manual TAG specification needed (scans tasks.md)
 -   **Manual TAG option**: Can specify TAG explicitly if needed
--   **Automatic TAG blocks**: Inserted in all generated files
+-   **Automatic TAG blocks**: Inserted as one file-level block in generated or meaningfully modified files
 -   **Living Documentation**: Auto-syncs code changes to docs via doc-updater agent
 -   **Best-effort traceability**: SPEC -> TEST -> CODE, with DOC optional and warnings reported
 

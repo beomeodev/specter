@@ -207,8 +207,9 @@ Then continue to Step 1.
 - Continue
 
 **Reference key sections**:
-- Constitution Section IV (GEARS Standards)
-- Constitution Section V (TRUST Principles)
+- Constitution Section II (Requirements Clarity: GEARS Standard)
+- Constitution Section IV (TRUST Review Model)
+- Constitution Section V (TAGS: Best-Effort Traceability)
 - Constitution Section IX (Project-specific baseline established from the checked PRD Feature Map by `/ms.constitution`)
 - project-structure.md (understand existing tech stack - **if exists**)
 
@@ -222,8 +223,9 @@ You are creating a specification that MUST follow the project Constitution.
 **Constitution**: .specify/memory/constitution.md
 
 **Read and apply these sections**:
-- **Section IV**: Requirements Clarity (GEARS Standards) - Use the GEARS canonical form ([Where][While][When] the <subject> shall <behavior>)
-- **Section V**: TRUST 5 Principles - Design for testability, readability, security, traceability
+- **Section II**: Requirements Clarity (GEARS Standard) - Use the GEARS canonical form ([Where][While][When] the <subject> shall <behavior>) for behavioral requirements
+- **Section IV**: TRUST Review Model - Design for testability, readability, security, and reviewability
+- **Section V**: TAGS - Treat traceability as best-effort metadata, not a substitute for tests or review
 
 **Language Policy**:
 - Write ALL requirements in ENGLISH
@@ -331,9 +333,9 @@ After spec.md is created, append Constitution reference section to document:
 This specification follows the project [Constitution](../../.specify/memory/constitution.md).
 
 **Key Sections:**
-- **Section IV**: GEARS Requirements Standards
-- **Section V**: TRUST 5 Quality Principles
-- **TAG System**: Best-effort traceability (SPEC -> TEST -> CODE, DOC optional)
+- **Section II**: GEARS Requirements Standards
+- **Section IV**: TRUST Review Model
+- **Section V**: TAGS Best-Effort Traceability
 
 _Auto-added by `/ms.specify`_
 ```

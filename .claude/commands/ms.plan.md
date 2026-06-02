@@ -39,23 +39,19 @@ When executing /speckit.plan, the agent must read and strictly adhere to constit
 
 **Constitution Reading Guidelines**:
 
-1. **Focus on Architecture Sections** (Priority Order):
+1. **Focus on Planning-Relevant Sections** (Priority Order):
    - **Section VI**: File, Architecture, And Tooling Governance
-     → Prefer built-in tools over external dependencies
-     → Files ≤700 SLOC, functions ≤100 LOC
-     → Choose simplest solution first
+     → Prefer mature tools over custom implementations
+     → Production files ≤700 SLOC, functions ≤100 LOC
+     → Choose the simplest sufficient design
 
    - **Section VII**: Security Governance
-     → Independent modules with clear interfaces
-     → Dependency injection over hardcoded dependencies
-     → Separation of concerns
+     → Validate security-sensitive paths early
+     → Bind authorization to resource ownership
+     → Keep secrets out of source code and logs
 
    - **Section IV**: TRUST Review Model
-     → Test-First: TDD with ≥85% coverage
-     → Readable: Clear naming, minimal complexity
-     → Unified: Consistent patterns across codebase
-     → Secured: Security by default
-     → Trackable: TAG traceability (SPEC -> TEST -> CODE, DOC optional)
+     → Plan for tests, readability, consistency, security, and best-effort traceability
 
 2. **Apply Project-Specific Constraints** (if exists):
    - **Section IX**: Project-specific baseline established by `/ms.constitution` from the checked PRD Feature Map

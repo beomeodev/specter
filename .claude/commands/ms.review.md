@@ -392,7 +392,7 @@ Rules:
 
 Run `quality-gate` or `trust-validator` for code-level TRUST checks:
 
-- coverage threshold from Constitution Section V
+- coverage threshold from Constitution Section III (Test-First Implementation) or the active project threshold
 - production file SLOC and function length limits
 - function complexity limits
 - strict typing and zero-warning lint policy
@@ -521,8 +521,8 @@ For quick review during development:
 # Still runs: local CI gate + TRUST critical checks in Step 6.5
 ```
 
-`--fast` must never skip lint, typecheck, tests, build, or critical TAG checks.
-Those are the post-implementation gate owned by `/ms.review`.
+`--fast` must never skip lint, typecheck, tests, or build. TAG findings remain warning/report-only unless Section IX or CI explicitly promotes them to blocking.
+Those executable gates are owned by `/ms.review`.
 
 ### Focus on Category
 
