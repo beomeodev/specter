@@ -70,11 +70,13 @@ never from inline text, never from a pre-existing spec.md.
 
 Do this first:
   1. /ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]   → generates docs/prd/feature-map.md
-  2. /ms.checklist --global
-  3. /ms.constitution
-  4. /ms.checklist
-  5. Open docs/prd/feature-map.md, copy the checked "Feature NNN" section you want to build
-  6. /ms.specify  + paste that Feature section
+  2. /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
+  3. /ms.verify
+  4. /ms.constitution
+  5. /ms.checklist
+  6. /ms.codex-verify
+  7. Open docs/prd/feature-map.md, copy the checked "Feature NNN" section you want to build
+  8. /ms.specify  + paste that Feature section
 
 Stopping now.
 ```
@@ -83,9 +85,7 @@ Stopping now.
 
 ### 0.2 REQUIRE Global And Per-Feature Checklists (HARD GATE)
 
-Before creating a spec, verify that `/ms.checklist --global` has validated the
-whole Feature Map and `/ms.checklist` has validated the selected Feature. This
-keeps Spec-Kit's native checklist from becoming the first real validation point,
+Before creating a spec, verify that `/ms.verify` has validated the whole Feature Map, `/ms.checklist` has validated the selected Feature, and `/ms.codex-verify` has produced the per-Feature Codex verification. This keeps Spec-Kit's native checklist from becoming the first real validation point,
 which would be too late.
 
 **Checks:**
@@ -104,7 +104,10 @@ which would be too late.
 10. The per-Feature audit does not contain `**Result**: FAIL`.
 11. The per-Feature audit's `Feature Map SHA256` matches the current
     `docs/prd/feature-map.md` SHA256.
-12. `.specify/memory/constitution.md` has an established Section IX baseline from `/ms.constitution`
+12. `docs/prd/checklists/feature-NNN.codex-verify.md` exists for the selected Feature.
+13. The Codex verification contains `**Result**: PASS` or `**Result**: WARN`.
+14. The Codex verification does not contain `**Result**: FAIL`.
+15. `.specify/memory/constitution.md` has an established Section IX baseline from `/ms.constitution`
     or explicitly records that no durable project-specific constraints were found.
 
 **If the global audit is missing, failed, or stale**, refuse and exit:
@@ -113,9 +116,10 @@ which would be too late.
 ⛔ /ms.specify requires a passing global Feature Map checklist.
 
 Run this first:
-  /ms.checklist --global
+  /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
+  /ms.verify
 
-Fix any Blocking Fixes in docs/prd/feature-map.checklist.md, re-run /ms.checklist --global,
+Fix any Blocking Fixes in docs/prd/feature-map.checklist.md, re-run /ms.verify,
 then retry the Feature checklist.
 Stopping now.
 ```
@@ -131,6 +135,19 @@ Run this first:
 This validates the selected Feature against its PRD references and PRD Commitment Index rows.
 Fix any Blocking Fixes in docs/prd/checklists/feature-NNN.checklist.md, re-run /ms.checklist,
 then retry /ms.specify.
+Stopping now.
+```
+
+
+**If the Codex per-Feature verification is missing, failed, or still running**, refuse and exit:
+
+```text
+⏳ /ms.specify requires Codex verification for this Feature.
+
+Run this first:
+  /ms.codex-verify
+
+If it is still running, wait briefly and retry /ms.specify after the result file appears.
 Stopping now.
 ```
 
@@ -304,9 +321,11 @@ If the user provides new source material here, stop and tell them to update the 
 
 ```text
 /ms.featuremap
-/ms.checklist --global
+/ms.codex-checklist
+/ms.verify
 /ms.constitution
 /ms.checklist
+/ms.codex-verify
 ```
 
 #### 3.2. Execute Speckit Specify
@@ -399,6 +418,5 @@ After `/ms.specify`:
 1. Run `/ms.clarify` to settle or explicitly confirm remaining decisions.
 2. Then proceed to `/ms.plan` for implementation planning.
 
-`/ms.checklist --global` and the per-Feature `/ms.checklist` are pre-spec gates
+`/ms.verify`, `/ms.checklist`, and `/ms.codex-verify` are pre-spec gates
 and should already have passed before this command ran.
-ommand ran.

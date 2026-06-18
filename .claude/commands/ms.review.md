@@ -29,6 +29,26 @@ Performs deep code quality review and executable code-gate validation after `/ms
 /ms.implement → /ms.review → /fin
 ```
 
+## Usage
+
+```bash
+/ms.review
+/ms.review --background
+/ms.review --skip-codex
+/ms.review --adversarial
+/ms.review --model gpt-5.4-mini --effort high
+```
+
+Codex runs in the foreground by default. Use `--background` only when the review
+is large and the user explicitly wants to resume later.
+
+Default Codex runtime:
+
+```text
+model: gpt-5.5
+effort: medium
+```
+
 **When to run**: After implementing all tasks, before final commit.
 
 `/ms.analyze` remains the pre-implementation document gate: spec ↔ plan ↔ tasks,
@@ -44,6 +64,7 @@ review findings and executable gates:
   repository's own workflow commands
 - TRUST code checks via the `quality-gate` or `trust-validator` agent: coverage,
   file/function size, complexity, strict typing, security scan, TAG integrity reporting
+- advisory Codex code review persisted to `docs/review/{spec-id}.codex-review.md` unless `--skip-codex` is supplied
 - unresolved HIGH/CRITICAL review issues persisted to `.specify/review-state.txt`
   so `/fin` can block or require explicit acknowledgement
 
@@ -409,6 +430,91 @@ Run `quality-gate` or `trust-validator` for code-level TRUST checks:
 - If all executable gates and deep review checks pass, remove stale
   `.specify/review-state.txt` if it exists.
 
+
+---
+
+### Step 6.6: Codex Code Review
+
+Unless `--skip-codex` is supplied, invoke Codex after the local CI and TRUST gates
+have produced enough context for a focused review.
+
+Default invocation:
+
+```text
+/codex:rescue --fresh --model gpt-5.5 --effort medium <prompt>
+```
+
+If the user supplied `--background`, add `--background` and report that
+`/ms.review` must be rerun after the Codex output file appears. If the user
+supplied `--model` or `--effort`, pass those values through instead of the
+defaults. If the user supplied `--adversarial`, ask Codex to challenge design
+choices and risk assumptions more aggressively; otherwise request a normal code
+review.
+
+Codex must read:
+
+- `.specify/memory/constitution.md`
+- `AGENTS.md` if it exists
+- `specs/[spec-id]/spec.md`
+- `specs/[spec-id]/plan.md`
+- `specs/[spec-id]/tasks.md`
+- `docs/prd/checklists/feature-NNN.checklist.md`
+- the current git diff against the review base
+- changed production files and changed tests
+
+Codex must write:
+
+```text
+docs/review/{spec-id}.codex-review.md
+```
+
+Codex prompt:
+
+```text
+You are performing an advisory SPECTER post-implementation code review.
+
+Review the current implementation against spec.md, plan.md, tasks.md,
+Constitution, AGENTS.md, and the changed code/tests. Do not edit files except
+writing docs/review/{spec-id}.codex-review.md.
+
+Focus on:
+- implementation drift from spec/task intent
+- missing or weak behavior tests
+- auth, authorization, input validation, logging, and sensitive data exposure
+- data loss, race condition, rollback, idempotency, and migration risks
+- overcomplicated abstractions or non-surgical changes
+- architecture violations against plan.md
+
+If --adversarial was requested, also challenge whether the implementation
+approach is simpler, safer, or better scoped than available alternatives.
+
+Write:
+
+# Codex Code Review
+
+**Mode**: codex-code-review | codex-adversarial-code-review
+**Result**: PASS | WARN | FAIL
+
+## Findings
+
+| Severity | Finding | Evidence | Required Fix |
+| --- | --- | --- | --- |
+
+## Verdict
+
+One concise paragraph.
+```
+
+Codex result handling:
+
+- `PASS`: keep the SPECTER review result unchanged.
+- `WARN`: final `/ms.review` result is at least READY WITH WARNINGS unless
+  Claude/SPECTER explicitly explains why every warning is a false positive.
+- `FAIL`: final `/ms.review` result is NOT READY unless Claude/SPECTER explicitly
+  downgrades the finding with source evidence.
+- `PENDING`: if `--background` was used and no Codex report exists yet, stop and
+  tell the user to rerun `/ms.review` after the report appears.
+
 ---
 
 ### Step 7: Report Generation
@@ -423,7 +529,7 @@ REPORT_FILE="docs/review/review_${AGENT_NAME}_$(date +%y%m%d-%H%M%S).md"
 
 Report structure (console + file):
 
-- Summary: CRITICAL/HIGH/MEDIUM/LOW counts, overall score
+- Summary: CRITICAL/HIGH/MEDIUM/LOW counts, overall score, Codex review result
 - Intent & Focus Charter (inline copy of Step 2.5 so report is self-contained)
 - Production Risks, Strategic Unlocks, Quick Wins
 - Coverage Checklist
@@ -511,6 +617,20 @@ Skip action prompts for CI/CD:
 # Useful for: Automated pipelines
 ```
 
+### Codex Review Controls
+
+```bash
+/ms.review --skip-codex
+/ms.review --background
+/ms.review --adversarial
+/ms.review --model gpt-5.4-mini --effort high
+```
+
+- `--skip-codex`: skip advisory Codex code review.
+- `--background`: start Codex review in the background and require a later `/ms.review` rerun.
+- `--adversarial`: ask Codex to challenge design choices and hidden risks.
+- `--model` / `--effort`: override the default `gpt-5.5` / `medium` runtime.
+
 ### Skip Slow Checks
 
 For quick review during development:
@@ -596,13 +716,17 @@ The review state file contains:
 
 | Command | Purpose | Checks | When to Run |
 |---------|---------|--------|-------------|
-| `/ms.checklist` | Feature Map gate | PRD coverage, Feature ownership, DAG, stub-forward, template completeness | After `/ms.featuremap`, before `/ms.specify` |
+| `/ms.verify` | Global Feature Map gate | PRD coverage, Feature ownership, DAG, stub-forward, template completeness | After `/ms.codex-checklist`, before `/ms.constitution` |
+| `/ms.checklist` | Per-Feature gate | Selected Feature PRD fidelity, ownership, scope, done criteria | After `/ms.constitution`, before `/ms.codex-verify` |
+| `/ms.codex-verify` | Per-Feature Codex gate | Concise Codex check of the Feature checklist | After `/ms.checklist`, before `/ms.specify` |
 | `/ms.analyze` | Pre-implementation document gate | spec ↔ plan ↔ tasks consistency, Constitution alignment, drift detection | Before `/ms.implement` |
-| `/ms.review` | Post-implementation code gate | Design review, lint/types/tests/build, coverage, security, TAG integrity | After `/ms.implement` |
+| `/ms.review` | Post-implementation code gate | Design review, Codex code review, lint/types/tests/build, coverage, security, TAG integrity | After `/ms.implement` |
 | `/fin` | Final commit | Review-state acknowledgement, docs sync, commit, push, PR | After `/ms.review` passes |
 
 **Mental model**:
-- `/ms.checklist` = "Did the PRD become the right Features?"
+- `/ms.verify` = "Did the PRD become the right Feature Map?"
+- `/ms.checklist` = "Is this Feature ready to become a spec?"
+- `/ms.codex-verify` = "Did a second reviewer find a blocking Feature checklist issue?"
 - `/ms.analyze` = "Are the implementation documents coherent enough to build?"
 - `/ms.review` = "Is the implemented branch ready to publish?"
 - `/fin` = "Commit, push, and open/update the PR."

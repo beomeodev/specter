@@ -420,7 +420,7 @@ Display next steps:
 1. Review generated code and tests
 2. Confirm tasks.md was auto-updated and read-back verified
 3. Run `/ms.implement` again for the next pending TAG
-4. When all tasks are complete, run `/ms.review` for code quality and executable gates
+4. When all tasks are complete, run `/ms.review` for code quality, Codex advisory review, and executable gates
 ```
 
 ## TAG Block Format
@@ -525,7 +525,7 @@ After `/ms.implement`:
 1. Verify TAG blocks in generated files.
 2. Verify tasks.md was marked complete by the command's mandatory read-back check.
 3. Run `/ms.implement` again until no pending TAGs remain.
-4. Run `/ms.review` before `/fin`; review owns tests, lint, typecheck, build, coverage, and TAG traceability reporting.
+4. Run `/ms.review` before `/fin`; review owns Codex advisory review, tests, lint, typecheck, build, coverage, and TAG traceability reporting.
 
 ## Notes
 

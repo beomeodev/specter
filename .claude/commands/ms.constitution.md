@@ -10,7 +10,7 @@ Extract durable project-specific constraints from the PRD set and checked Featur
 2. **AGENTS.md**: concrete coding rules and verification checks
 3. **README.md**: project README initialization, if the root README is still the SPECTER template
 
-This command normally runs **once**, after `/ms.checklist --global` and before the per-Feature cycle
+This command normally runs **once**, after `/ms.verify` and before the per-Feature cycle
 starts. It is not a per-Feature ceremony. Later Features should use the established Constitution and
 only re-run this command when the user explicitly wants to revise durable project rules.
 
@@ -28,8 +28,8 @@ are already visible at the PRD/Feature Map level and should constrain every late
 ## Workflow Position
 
 ```text
-/ms.featuremap → /ms.checklist --global → /ms.constitution
-                                      → /ms.checklist → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks
+/ms.featuremap → /ms.codex-checklist → /ms.verify → /ms.constitution
+                                      → /ms.checklist → /ms.codex-verify → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks
 ```
 
 ## GEARS Contract
@@ -37,7 +37,7 @@ are already visible at the PRD/Feature Map level and should constrain every late
 - When Section IX is empty or still contains template placeholders, `/ms.constitution` shall extract
   durable project-wide constraints from the PRD set and `docs/prd/feature-map.md`.
 - When the global Feature Map audit is missing, failed, or stale, `/ms.constitution` shall stop and
-  require `/ms.checklist --global` first.
+  require `/ms.codex-checklist` and `/ms.verify` first.
 - When Section IX is already populated, `/ms.constitution` shall not silently accumulate new rules; it
   shall stop and ask for explicit user intent before replacing or amending the baseline.
 - When a decision is Feature-local or implementation-specific, `/ms.constitution` shall leave it to the
@@ -58,7 +58,7 @@ Read these files in full:
 - `docs/prd/product-principles.md` if it exists
 - `AGENTS.md` if it exists
 
-If Constitution, Feature Map, Source PRDs, or the global checklist is missing, stop and tell the user
+If Constitution, Feature Map, Source PRDs, or the global verification is missing, stop and tell the user
 which upstream command must run first.
 
 ### Step 1: Global Audit Guard
@@ -77,7 +77,8 @@ If this fails, stop:
 ⛔ Project baseline cannot be established before the global Feature Map audit passes.
 
 Run this first:
-  /ms.checklist --global
+  /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
+  /ms.verify
 
 Fix any Blocking Fixes in docs/prd/feature-map.checklist.md, then retry /ms.constitution.
 ```
@@ -241,7 +242,7 @@ Display in Korean:
 🎯 다음 단계: /ms.checklist
 
 참고: /ms.constitution은 매 Feature마다 실행하지 않습니다. 이후 Feature는
-기존 Section IX를 기준으로 /ms.checklist → /ms.specify → /ms.clarify → /ms.plan 흐름을 탑니다.
+기존 Section IX를 기준으로 /ms.checklist → /ms.codex-verify → /ms.specify → /ms.clarify → /ms.plan 흐름을 탑니다.
 ```
 
 ## Error Handling
@@ -258,10 +259,10 @@ Display in Korean:
 ❌ Source documents not found. Run /ms.featuremap first.
 ```
 
-### Global Checklist Missing Or Stale
+### Global Verification Missing Or Stale
 
 ```text
-❌ Global Feature Map checklist missing or stale. Run /ms.checklist --global first.
+❌ Global Feature Map verification missing or stale. Run /ms.codex-checklist, then /ms.verify first.
 ```
 
 ### No Durable Constraints Found
@@ -276,5 +277,7 @@ ask the user to choose. Do not silently pick one.
 
 ## Next Command
 
-After `/ms.constitution`, run `/ms.checklist` for the first eligible Feature. For later Features, skip
-`/ms.constitution` unless the user intentionally revises the project baseline.
+After `/ms.constitution`, run `/ms.checklist` for the first eligible Feature. If that checklist
+passes, run `/ms.codex-verify`, then `/ms.specify`, then continue with `/ms.clarify` and the rest of
+the per-Feature cycle. For later Features, skip `/ms.constitution` unless the user intentionally
+revises the project baseline.

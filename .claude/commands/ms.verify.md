@@ -1,0 +1,222 @@
+---
+description: "Verify Feature Map against PRDs and the independent Codex checklist"
+---
+
+# /ms.verify - Global Feature Map Verification
+
+Verify `docs/prd/feature-map.md` against the source PRDs and the independent
+Codex PRD checklist created by `/ms.codex-checklist`.
+
+This command replaces the old `/ms.checklist --global` flow. It owns the global
+gate artifact consumed by `/ms.constitution`, `/ms.checklist`, and
+`/ms.specify`.
+
+## Usage
+
+```bash
+/ms.verify
+```
+
+## Required Inputs
+
+Read these files in full:
+
+- `docs/prd/feature-map.md`
+- `docs/prd/codex/checklist.md`
+- every source PRD recorded in `docs/prd/feature-map.md`
+- `.specify/memory/constitution.md` if it exists
+- `AGENTS.md` if it exists
+
+If `docs/prd/codex/checklist.md` is missing, stop:
+
+```text
+⏳ Codex PRD checklist is not available yet.
+
+Run or wait for:
+  /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
+
+Then retry:
+  /ms.verify
+```
+
+## Verification Contract
+
+`/ms.verify` shall compare three sources:
+
+1. The original PRD set.
+2. The independent Codex PRD checklist.
+3. `docs/prd/feature-map.md`.
+
+The command shall write the canonical global gate:
+
+```text
+docs/prd/feature-map.checklist.md
+```
+
+## Execution Steps
+
+### Step 1: Validate Feature Map Structure
+
+Check that `docs/prd/feature-map.md` contains:
+
+- Header with every PRD source path/version.
+- Usage section.
+- `## PRD Commitment Index`.
+- Full Feature dependency graph.
+- Progress Ledger.
+- All Feature sections.
+- Global rules and reference priority.
+
+### Step 2: Verify Codex Checklist Coverage
+
+For every Codex checklist item:
+
+- Every `C###` commitment appears in the PRD Commitment Index or has an explicit
+  false-positive explanation.
+- Every acceptance criterion appears in a Feature done criterion, test
+  expectation, or explicit out-of-scope destination.
+- Every NFR/security/privacy/logging/audit promise survives as a Feature-owned
+  commitment or a project-wide baseline candidate.
+- Every explicit exclusion or deferred item points to a destination Feature.
+- Every data, migration, and integration promise has one owning Feature.
+- Every ambiguity remains visible for `/ms.clarify` or is resolved by explicit
+  PRD evidence.
+
+### Step 3: Verify PRD Against Feature Map Directly
+
+Do not trust the Codex checklist blindly. Re-read the PRD set and check:
+
+- Every functional requirement, user journey, milestone, acceptance criterion,
+  constraint, non-functional requirement, integration promise, data/migration
+  promise, and explicit exclusion has an index row.
+- Every index row has a source PRD, stable PRD reference, and exactly one owning
+  Feature.
+- Cross-cutting commitments have one real owner, with earlier stubs called out
+  as stubs only.
+- No PRD commitment is silently dropped because it is small, operational, or
+  cross-cutting.
+- No PRD commitment is owned by multiple Features.
+- Feature Map does not invent product behavior absent from the PRD set,
+  product-principles, or Constitution.
+
+### Step 4: Verify Boundaries, DAG, And Stub-And-Forward
+
+Check:
+
+- Each Feature is independently implementable, mergeable, and verifiable.
+- Each Feature is larger than a trivial chore but smaller than a multi-phase
+  project.
+- Engine/backend capabilities and UI/screen work are split when that makes each
+  slice independently shippable.
+- The dependency graph has no cycle.
+- Parallel Features are marked only when genuinely independent.
+- The first eligible Feature is unambiguous.
+- Shared foundations laid down early are explicitly marked as stubs.
+- Every stub names the later Feature that activates real behavior.
+- Migration numbers or shared structure ownership are pre-allocated where
+  needed.
+- Each Phase has a concrete E2E scenario.
+- Each Phase E2E scenario appears in the done criteria of that Phase's last
+  Feature.
+
+### Step 5: Write The Canonical Global Gate
+
+Write:
+
+```text
+docs/prd/feature-map.checklist.md
+```
+
+Use this structure:
+
+```markdown
+# Feature Map Global Verification
+
+**Mode**: global
+**Source Command**: /ms.verify
+**Codex Checklist**: docs/prd/codex/checklist.md
+**PRDs**: <source label -> path list>
+**Feature Map**: docs/prd/feature-map.md
+**Feature Map SHA256**: <sha256 of docs/prd/feature-map.md at audit time>
+**Result**: PASS | WARN | FAIL
+**Generated**: YYYY-MM-DD
+
+## Summary
+
+- PASS: N
+- WARN: N
+- FAIL: N
+
+## Codex Checklist Reconciliation
+
+| Codex ID | Result | Feature Map Handling | Evidence | Required Fix |
+| --- | --- | --- | --- | --- |
+
+## Direct PRD Verification
+
+| Category | Check | Result | Evidence | Required Fix |
+| --- | --- | --- | --- | --- |
+
+## Boundary And DAG Verification
+
+| Category | Check | Result | Evidence | Required Fix |
+| --- | --- | --- | --- | --- |
+
+## Blocking Fixes
+
+- [ ] ...
+
+## Non-Blocking Improvements
+
+- [ ] ...
+```
+
+### FAIL Conditions
+
+- `docs/prd/codex/checklist.md` is missing.
+- PRD Commitment Index is missing.
+- Any PRD commitment in any source PRD has no index row and no justified
+  false-positive explanation.
+- Any Codex checklist commitment has no Feature Map handling and no justified
+  false-positive explanation.
+- Any index row lacks a source PRD, stable PRD reference, or owning Feature.
+- Any PRD commitment has multiple owning Features.
+- Any out-of-scope item lacks a destination Feature.
+- The DAG contains a cycle.
+- A Feature lacks required template sections.
+- A Phase's final Feature lacks the Phase E2E scenario.
+- The Feature Map is not in English.
+
+## Report
+
+If `PASS`:
+
+```text
+✅ Global Feature Map verification passed.
+
+📄 Audit: docs/prd/feature-map.checklist.md
+🎯 Next step: /ms.constitution
+```
+
+If `WARN`:
+
+```text
+⚠️ Global Feature Map verification passed with warnings.
+
+📄 Audit: docs/prd/feature-map.checklist.md
+권장 개선사항을 확인한 뒤 /ms.constitution으로 진행할 수 있습니다.
+```
+
+If `FAIL`:
+
+```text
+⛔ Global Feature Map verification failed.
+
+📄 Audit: docs/prd/feature-map.checklist.md
+Blocking Fixes를 반영한 뒤 /ms.featuremap 또는 docs/prd/feature-map.md를 수정하고 /ms.verify를 다시 실행하세요.
+/ms.constitution은 아직 진행하지 마세요.
+```
+
+## Next Command
+
+After `/ms.verify` passes, run `/ms.constitution`.

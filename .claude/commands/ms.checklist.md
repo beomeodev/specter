@@ -1,50 +1,48 @@
 ---
-description: "Validate PRD coverage for the global Feature Map or the next Feature cycle"
+description: "Validate the next Feature against its PRD evidence before /ms.specify"
 ---
 
-# /ms.checklist - Feature Map Audit Gate
+# /ms.checklist - Per-Feature Readiness Gate
 
-Validate that the PRD set is preserved through the Feature Map before any spec is
-created. The command has two modes:
+Validate that the next Feature in `docs/prd/feature-map.md` is ready to become
+a `spec.md`. This command is now per-Feature only.
 
-- `/ms.checklist --global`: one-time global audit after `/ms.featuremap`.
-- `/ms.checklist`: default per-Feature audit at the start of every DAG cycle.
+The old `/ms.checklist --global` flow is removed. Global Feature Map validation
+is handled by:
 
-This command intentionally does **not** validate `spec.md`; there is no `spec.md`
-prerequisite. It exists before `/ms.specify` so PRD loss is caught before a weak
-Feature section becomes a formal spec.
+```text
+/ms.codex-checklist -> /ms.verify
+```
 
 ## Purpose
 
-Feature Map quality is the upstream control point for the whole SPECTER pipeline.
-If a PRD commitment is lost, duplicated, diluted, or assigned to the wrong
-Feature, every downstream `spec.md`, `plan.md`, and `tasks.md` will inherit that
-mistake.
+The global gate proves that the whole PRD set was preserved in the Feature Map.
+This command proves that one selected Feature is ready to be specified and still
+reflects the PRD sections and commitment rows it claims to own.
 
-The split is deliberate:
-
-1. **Global audit** (`--global`) proves the whole PRD set has been mapped into the
-   Feature Map once.
-2. **Per-Feature audit** (default) proves the next DAG Feature is ready to become
-   a spec and still reflects the PRD sections it claims to own.
+It intentionally does **not** validate an existing `spec.md`; there is no
+`spec.md` prerequisite. It exists before `/ms.specify` so weak Feature sections
+are caught before they become formal specs.
 
 ## Usage
 
 ```bash
-/ms.checklist --global       # run once after /ms.featuremap
-/ms.checklist                # run at the start of each Feature cycle
-/ms.checklist Feature 003    # optional explicit Feature target
+/ms.checklist
+/ms.checklist Feature 003
+/ms.checklist 003
 ```
 
 Workflow position:
 
 ```text
 /ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]
-/ms.checklist --global
+/ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
+/ms.verify
 /ms.constitution
 
 # Repeat in DAG order:
 /ms.checklist
+/ms.codex-verify
 /ms.specify
 /ms.clarify
 /ms.plan
@@ -56,41 +54,17 @@ Workflow position:
 
 ## GEARS Contract
 
-- When `/ms.checklist --global` runs, the command shall validate that every PRD
-  commitment has exactly one owning Feature in the PRD Commitment Index.
-- When `/ms.checklist` runs without `--global`, the command shall select the
-  next eligible Feature from the dependency DAG unless the user names a Feature.
+- When `/ms.checklist` runs without an explicit Feature, the command shall
+  select the next eligible Feature from the dependency DAG unless the user names
+  a Feature.
 - When a selected Feature references PRD sections, the command shall read those
   PRD sections and verify that the Feature scope, out-of-scope list, decisions,
   and done criteria preserve the referenced commitments without overreach.
+- When `docs/prd/codex/checklist.md` exists, the command shall use its C-IDs as
+  additional evidence for the selected Feature, but the PRD text remains
+  authoritative.
 - When validation completes, the command shall write an audit file with PASS,
   WARN, or FAIL and the current Feature Map SHA256.
-
-## Mode Selection
-
-### `--global`: Global Feature Map Audit
-
-Use this immediately after `/ms.featuremap` and whenever `docs/prd/feature-map.md`
-changes. It writes:
-
-```text
-docs/prd/feature-map.checklist.md
-```
-
-### Default: Per-Feature Readiness Audit
-
-Use this at the start of every Feature cycle before `/ms.specify`. It writes:
-
-```text
-docs/prd/checklists/feature-NNN.checklist.md
-```
-
-The default mode requires a passing, non-stale global audit first. If the global
-audit is missing, failed, or stale, stop and tell the user to run:
-
-```bash
-/ms.checklist --global
-```
 
 ## Execution Steps
 
@@ -98,12 +72,28 @@ audit is missing, failed, or stale, stop and tell the user to run:
 
 Read these files in full:
 
-- Every source PRD recorded in `docs/prd/feature-map.md` (or the PRD path list passed to `/ms.featuremap`)
 - `docs/prd/feature-map.md`
-- `.specify/memory/constitution.md` if it exists
+- `docs/prd/feature-map.checklist.md`
+- every source PRD recorded in `docs/prd/feature-map.md`
+- `docs/prd/codex/checklist.md` if it exists
+- `.specify/memory/constitution.md`
 - `AGENTS.md` if it exists
 
-**If `docs/prd/feature-map.md` is missing**, stop:
+If `--global` is supplied, refuse:
+
+```text
+⛔ /ms.checklist --global has been removed.
+
+Use the new global flow:
+  /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
+  /ms.verify
+
+Then run:
+  /ms.constitution
+  /ms.checklist
+```
+
+If `docs/prd/feature-map.md` is missing, stop:
 
 ```text
 ⛔ Feature Map not found.
@@ -114,146 +104,38 @@ Run this first:
 Stopping now.
 ```
 
-**If no complete PRD source set can be identified**, ask the user for the PRD path and stop. Do not
-guess from memory.
+If no complete PRD source set can be identified, ask the user for the PRD path
+and stop. Do not guess from memory.
 
----
-
-## Global Audit: `/ms.checklist --global`
-
-### Step G1: Validate Required Feature Map Structure
-
-Check that `docs/prd/feature-map.md` contains:
-
-- Header with every PRD source path/version.
-- Usage section.
-- `## PRD Commitment Index`.
-- Full Feature dependency graph.
-- Progress Ledger.
-- All Feature sections.
-- Global rules and reference priority.
-
-### Step G2: Audit PRD Commitment Coverage
-
-Evaluate the PRD Commitment Index against the full PRD source set:
-
-- Every functional requirement, user journey, milestone, acceptance criterion,
-  constraint, non-functional requirement, integration promise, data/migration
-  promise, and explicit exclusion has an index row.
-- Every index row has a source PRD, stable PRD reference, and exactly one owning Feature.
-- Cross-cutting commitments have one real owner, with earlier stubs called out
-  as stubs only.
-- No PRD commitment is silently dropped because it is small, operational, or
-  cross-cutting.
-- No PRD commitment is owned by multiple Features.
-
-### Step G3: Audit Feature Boundaries And DAG
-
-Check:
-
-- Each Feature is independently implementable, mergeable, and verifiable.
-- Each Feature is larger than a trivial chore but smaller than a multi-phase
-  project.
-- Engine/backend capabilities and UI/screen work are split when that makes each
-  slice independently shippable.
-- The dependency graph has no cycle.
-- Parallel Features are marked only when genuinely independent.
-- The first eligible Feature is unambiguous.
-
-### Step G4: Audit Stub-And-Forward And Phase Completion
-
-Check:
-
-- Shared foundations laid down early are explicitly marked as stubs.
-- Every stub names the later Feature that activates real behavior.
-- Migration numbers or shared structure ownership are pre-allocated where needed.
-- Each Phase has a concrete E2E scenario.
-- Each Phase E2E scenario appears in the done criteria of that Phase's last
-  Feature.
-
-### Step G5: Write The Global Audit
-
-Write:
-
-```text
-docs/prd/feature-map.checklist.md
-```
-
-Use this structure:
-
-```markdown
-# Feature Map Global Checklist
-
-**Mode**: global
-**PRDs**: <source label → path list>
-**Feature Map**: docs/prd/feature-map.md
-**Feature Map SHA256**: <sha256 of docs/prd/feature-map.md at audit time>
-**Result**: PASS | WARN | FAIL
-**Generated**: YYYY-MM-DD
-
-## Summary
-
-- PASS: N
-- WARN: N
-- FAIL: N
-
-## Checklist Results
-
-| Category | Check | Result | Evidence | Required Fix |
-| --- | --- | --- | --- | --- |
-| PRD Coverage | ... | PASS | Product PRD §... → Feature 003 | - |
-
-## Blocking Fixes
-
-- [ ] Feature NNN: ...
-
-## Non-Blocking Improvements
-
-- [ ] ...
-```
-
-### Global FAIL Conditions
-
-- PRD Commitment Index is missing.
-- Any PRD commitment in any source PRD has no index row.
-- Any index row lacks a source PRD, stable PRD reference, or owning Feature.
-- Any PRD commitment has multiple owning Features.
-- Any out-of-scope item lacks a destination Feature.
-- The DAG contains a cycle.
-- A Feature lacks required template sections.
-- A Phase's final Feature lacks the Phase E2E scenario.
-- The Feature Map is not in English.
-
----
-
-## Per-Feature Audit: `/ms.checklist`
-
-### Step F1: Verify Global Audit And Constitution Baseline First
+### Step 1: Verify Global Gate And Constitution Baseline First
 
 Before auditing a Feature, require:
 
 1. `docs/prd/feature-map.checklist.md` exists.
 2. The global audit contains `**Mode**: global`.
-3. The global audit contains `**Result**: PASS` or `**Result**: WARN`.
-4. The global audit does not contain `**Result**: FAIL`.
-5. The global audit's `Feature Map SHA256` matches the current
+3. The global audit contains `**Source Command**: /ms.verify` or otherwise
+   clearly records that it was produced by the new `/ms.verify` flow.
+4. The global audit contains `**Result**: PASS` or `**Result**: WARN`.
+5. The global audit does not contain `**Result**: FAIL`.
+6. The global audit's `Feature Map SHA256` matches the current
    `docs/prd/feature-map.md` SHA256.
-6. `.specify/memory/constitution.md` has an established Section IX baseline from `/ms.constitution`
-   or explicitly records that no durable project-specific constraints were found.
+7. `.specify/memory/constitution.md` has an established Section IX baseline from
+   `/ms.constitution` or explicitly records that no durable project-specific
+   constraints were found.
 
-If this fails, stop:
+If the global gate fails, stop:
 
 ```text
-⛔ Global Feature Map audit is missing, failed, or stale.
+⛔ Global Feature Map verification is missing, failed, stale, or from the removed legacy flow.
 
 Run this first:
-  /ms.checklist --global
+  /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
+  /ms.verify
 
-Fix any Blocking Fixes in docs/prd/feature-map.checklist.md, re-run the global audit,
-then retry /ms.checklist for the next Feature.
+Fix any Blocking Fixes in docs/prd/feature-map.checklist.md, then retry /ms.checklist.
 ```
 
-If Section IX is not established (i.e. `/ms.constitution` has never been run), stop:
+If Section IX is not established, stop:
 
 ```text
 ⛔ Project Constitution baseline is not established.
@@ -264,7 +146,7 @@ Run this first:
 Then retry /ms.checklist for the next Feature.
 ```
 
-### Step F2: Select The Target Feature
+### Step 2: Select The Target Feature
 
 If the user names a Feature (`Feature 003`, `003`, or a matching Feature title),
 audit that Feature.
@@ -274,13 +156,13 @@ Otherwise, select the next eligible Feature:
 1. Read the dependency DAG and Progress Ledger.
 2. List existing `specs/<NNN>-*` directories.
 3. Pick the lowest-order Feature whose dependencies are already specified or
-   shipped and which has no `specs/<NNN>-*` directory.
+   shipped and which has no `specs/` directory of its own.
 4. If multiple parallel Features are eligible, choose the lowest Feature number
    and report the alternatives.
 5. If no Feature is eligible, report that all planned Features are already
    specified or blocked by unmet dependencies.
 
-### Step F3: Load The Feature's PRD Evidence
+### Step 3: Load The Feature's PRD Evidence
 
 For the selected Feature:
 
@@ -289,17 +171,21 @@ For the selected Feature:
 - Extract its `### PRD references` list.
 - Extract every PRD Commitment Index row where `Owning Feature = Feature NNN`.
 - Read all listed Source PRD documents and the referenced PRD sections in full.
+- If `docs/prd/codex/checklist.md` exists, extract any Codex C-IDs whose PRD
+  references, labels, or expected Feature Map handling correspond to this
+  Feature's owned PRD rows.
 
-If the Feature has no Source PRDs, no PRD references, or no owned commitment rows, mark FAIL.
+If the Feature has no Source PRDs, no PRD references, or no owned commitment
+rows, mark FAIL.
 
-### Step F4: Audit Feature Readiness Against The PRD
-
-Check:
+### Step 4: Audit Feature Readiness Against The PRD
 
 #### 1. PRD Fidelity
 
 - Every owned commitment row is represented in `### In scope`, `### Explicitly
   out of scope`, `### Key decisions`, or `### Done criteria`.
+- Every matching Codex C-ID is represented or explicitly explained as a false
+  positive or handled by another owning Feature.
 - The Feature does not dilute PRD language into vague implementation labels.
 - The Feature does not invent behavior that is absent from the PRD, product
   principles, Constitution, or dependency Feature specs.
@@ -323,7 +209,7 @@ Check:
 - `### Done criteria` are observable and tied to the PRD acceptance evidence.
 - The last done criterion is `CI passes green`.
 
-### Step F5: Write The Per-Feature Audit
+### Step 5: Write The Per-Feature Audit
 
 Create the directory if needed:
 
@@ -344,10 +230,11 @@ Use this structure:
 
 **Mode**: per-feature
 **Feature**: Feature NNN: <name>
-**PRDs**: <source label → path list>
+**PRDs**: <source label -> path list>
 **Feature Map**: docs/prd/feature-map.md
 **Feature Map SHA256**: <sha256 of docs/prd/feature-map.md at audit time>
 **Global Audit**: docs/prd/feature-map.checklist.md
+**Codex Checklist**: docs/prd/codex/checklist.md | not available
 **Result**: PASS | WARN | FAIL
 **Generated**: YYYY-MM-DD
 
@@ -355,13 +242,16 @@ Use this structure:
 
 | Source PRD | PRD Ref | Commitment Type | Short Label | Handling In This Feature |
 | --- | --- | --- | --- | --- |
-| Product PRD | §3.1 | Functional | User login | In scope |
+
+## Codex Checklist Evidence
+
+| Codex ID | PRD Ref | Expected Handling | Handling In This Feature |
+| --- | --- | --- | --- |
 
 ## Checklist Results
 
 | Category | Check | Result | Evidence | Required Fix |
 | --- | --- | --- | --- | --- |
-| PRD Fidelity | ... | PASS | PRD §... / Feature NNN | - |
 
 ## Blocking Fixes
 
@@ -372,7 +262,7 @@ Use this structure:
 - [ ] ...
 ```
 
-### Per-Feature FAIL Conditions
+### FAIL Conditions
 
 - The selected Feature is not the next eligible Feature and the user did not
   explicitly confirm skipping DAG order.
@@ -383,12 +273,12 @@ Use this structure:
   or done criteria.
 - Any referenced PRD acceptance criterion or NFR is absent from done criteria or
   tests.
+- Any matching Codex C-ID is missing without a justified false-positive or
+  destination Feature explanation.
 - The Feature absorbs commitments owned by another Feature.
 - An out-of-scope item lacks a destination Feature.
 - Required Feature template sections are missing.
 - Done criteria are not observable or do not end with `CI passes green`.
-
----
 
 ## Result Model
 
@@ -401,57 +291,55 @@ Use this structure:
 If the result is `PASS`:
 
 ```text
-✅ Checklist passed.
+✅ Feature checklist passed.
 
-📄 Audit: <audit path>
-🎯 Next step: /ms.specify using the checked Feature section.
+📄 Audit: docs/prd/checklists/feature-NNN.checklist.md
+🎯 Next step: /ms.codex-verify
 ```
 
 If the result is `WARN`:
 
 ```text
-⚠️ Checklist passed with warnings.
+⚠️ Feature checklist passed with warnings.
 
-📄 Audit: <audit path>
-권장 개선사항을 확인한 뒤 /ms.specify로 진행할 수 있습니다.
+📄 Audit: docs/prd/checklists/feature-NNN.checklist.md
+권장 개선사항을 확인한 뒤 /ms.codex-verify로 진행할 수 있습니다.
 ```
 
 If the result is `FAIL`:
 
 ```text
-⛔ Checklist failed.
+⛔ Feature checklist failed.
 
-📄 Audit: <audit path>
+📄 Audit: docs/prd/checklists/feature-NNN.checklist.md
 아래 Blocking Fixes를 반영한 뒤 /ms.checklist를 다시 실행하세요.
 /ms.specify는 아직 진행하지 마세요.
 ```
 
 ## Wrapper Priority And Bypass Protection
 
-`/ms.checklist` is intentionally **not** a thin wrapper around `/speckit.checklist`.
-Spec-Kit's native checklist validates an existing spec, which is too late for this
-SPECTER gate. This command owns PRD-to-Feature-Map validation before `spec.md`
-exists.
+`/ms.checklist` is intentionally **not** a thin wrapper around
+`/speckit.checklist`. Spec-Kit's native checklist validates an existing spec,
+which is too late for this SPECTER gate. This command owns per-Feature
+PRD-to-Feature validation before `spec.md` exists.
 
 Bypass protection:
 
 - `/ms.checklist` must not delegate to `/speckit.checklist`.
 - `/speckit.checklist` may still exist after `/ms.init`, but it is not part of
   the SPECTER happy path.
-- `/ms.specify` must check both the global audit and the selected Feature audit,
-  and refuse to proceed when either audit is missing, failed, or stale against
-  the current Feature Map SHA.
+- `/ms.specify` must check the global `/ms.verify` audit, the selected Feature
+  audit, and the Codex per-Feature verification before proceeding.
 
 ## What This Command Does Not Do
 
 - It does not create or validate `spec.md`.
 - It does not edit the Feature Map automatically unless the user explicitly asks
   for fixes. The audit identifies required corrections first.
+- It does not run Codex. Use `/ms.codex-verify` after this command.
 
 ## Next Command
 
-After `/ms.checklist --global` passes, run `/ms.constitution` once. Then run `/ms.checklist` for
-the first eligible Feature.
-
-After `/ms.checklist` passes for a Feature, run `/ms.specify` and paste that
-checked Feature section from `docs/prd/feature-map.md`.
+After `/ms.checklist` passes for a Feature, run `/ms.codex-verify`. After Codex
+verification is available, run `/ms.specify` and paste the checked Feature
+section from `docs/prd/feature-map.md`.

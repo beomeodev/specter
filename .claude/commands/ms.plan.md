@@ -411,7 +411,7 @@ Display next steps:
 🎯 Next Steps:
 1. Review plan.md architecture
 2. Proceed to `/ms.tasks`
-3. If Section IX baseline is missing, stop and return to `/ms.constitution` after `/ms.checklist --global`
+3. If Section IX baseline is missing, stop and return to `/ms.constitution` after `/ms.verify`
 
 📖 Plan includes:
 - Modular architecture (independent testable units)

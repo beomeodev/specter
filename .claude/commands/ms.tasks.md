@@ -193,7 +193,7 @@ Display next steps:
 📊 통계: 총 {Total Tasks}개 태스크 / {Total Phases}개 단계
 
 🎯 다음 단계:
-👉 /ms.analyze (구현 전 문서 일관성 검증)
+👉 /ms.analyze (구현 전 문서 일관성 검증 + Codex 보조 검증)
 👉 /ms.implement (검증 통과 후 첫 번째 태스크 구현 시작)
 
 💡 참고:
@@ -227,4 +227,4 @@ Display next steps:
 After `/ms.tasks`:
 
 1. Review tasks.md with TAG assignments
-2. Run `/ms.analyze` to validate spec-plan-tasks consistency before implementation
+2. Run `/ms.analyze` to validate spec-plan-tasks consistency before implementation, including the default Codex advisory pass

@@ -10,9 +10,9 @@ graph of independently implementable, mergeable, and shippable vertical slices (
 This command is the **front of the Specter pipeline** and runs **BEFORE** `/ms.specify`.
 
 ```
-/ms.featuremap  →  /ms.checklist --global  →  /ms.constitution
+/ms.featuremap  →  /ms.codex-checklist  →  /ms.verify  →  /ms.constitution
                  →  repeat per Feature in DAG order:
-                    /ms.checklist  →  /ms.specify  →  /ms.clarify  →  /ms.plan
+                    /ms.checklist  →  /ms.codex-verify  →  /ms.specify  →  /ms.clarify  →  /ms.plan
                     →  /ms.tasks  →  /ms.analyze  →  /ms.implement  →  /ms.review
 ```
 
@@ -187,7 +187,7 @@ last Feature.**
 ## PRD Commitment Index
 
 > Thin ownership map. Details stay in the PRD; this table only proves that every PRD commitment has
-> exactly one owning Feature. `/ms.checklist --global` audits the whole table, and `/ms.checklist`
+> exactly one owning Feature. `/ms.verify` audits the whole table against the independent Codex checklist, and `/ms.checklist`
 > audits the next Feature's rows before `/ms.specify`.
 
 | Source PRD | PRD Ref | Commitment Type | Short Label | Owning Feature | Handling |
@@ -232,18 +232,20 @@ somewhere else.
 🔗 Dependency DAG: validated (no cycles)
 🧩 Stub-and-Forward points: <list>
 
-🎯 Next step — validate the whole Feature Map before starting the Feature cycle:
-   /ms.checklist --global
+🎯 Next step — start the independent Codex PRD checklist and verify the Feature Map:
+   /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
+   /ms.verify
 
-After the global checklist passes, establish the project baseline once:
+After global verification passes, establish the project baseline once:
    /ms.constitution
 
 Then validate the FIRST Feature and specify it:
    /ms.checklist
+   /ms.codex-verify
    /ms.specify  + paste the full "Feature 001" section from docs/prd/feature-map.md
 
 ⛔ Reminder: /ms.specify must be driven by a Feature section from THIS file, and
-   it will refuse to run if the global/per-Feature checklist is missing or failed,
+   it will refuse to run if the global verification, per-Feature checklist, or Codex verification is missing or failed,
    or if the Constitution baseline has not been established.
 ```
 
@@ -265,8 +267,8 @@ Then validate the FIRST Feature and specify it:
 ## Next Command
 
 After `/ms.featuremap`:
-1. Run `/ms.checklist --global` to validate PRD coverage, Feature ownership, DAG, and template completeness.
-2. Fix any blocking issues in `docs/prd/feature-map.md` and re-run `/ms.checklist --global`.
+1. Run `/ms.codex-checklist`, then `/ms.verify` to validate PRD coverage, Feature ownership, DAG, and template completeness.
+2. Fix any blocking issues in `docs/prd/feature-map.md` and re-run `/ms.verify`.
 3. Run `/ms.constitution` once to establish Section IX from the PRD set and checked Feature Map.
 4. Run `/ms.checklist` to validate the next eligible Feature against its Source PRDs, PRD references, and commitment rows.
 5. After the per-Feature checklist passes, open `docs/prd/feature-map.md`, read the selected Feature section in full.

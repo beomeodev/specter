@@ -6,7 +6,8 @@ description: "Pre-implementation document consistency and drift validation"
 
 Validate that `spec.md`, `plan.md`, and `tasks.md` are coherent before any code
 is implemented. This command is the SPECTER wrapper around `/speckit.analyze` for
-pre-implementation document validation only.
+pre-implementation document validation only, with an advisory Codex document
+consistency pass.
 
 Post-implementation code quality gates belong to `/ms.review`. Do not run tests,
 lint, typecheck, coverage, or code-level TAG scans from this command.
@@ -15,6 +16,25 @@ lint, typecheck, coverage, or code-level TAG scans from this command.
 
 ```text
 /ms.tasks → /ms.analyze → /ms.implement
+```
+
+## Usage
+
+```bash
+/ms.analyze
+/ms.analyze --background
+/ms.analyze --skip-codex
+/ms.analyze --model gpt-5.4-mini --effort high
+```
+
+Codex runs in the foreground by default. Use `--background` only when the
+document set is large and the user explicitly wants to resume later.
+
+Default Codex runtime:
+
+```text
+model: gpt-5.5
+effort: medium
 ```
 
 ## Purpose
@@ -38,6 +58,9 @@ It validates the specification chain before implementation starts:
   fail with the missing requirement ID.
 - When a task has no originating requirement or plan rationale, the command shall
   fail with the orphan task ID.
+- Unless `--skip-codex` is supplied, the command shall ask Codex to perform an
+  advisory document consistency review and write the result to
+  `specs/[spec-id]/analyze.codex.md`.
 - When all documents are consistent, the command shall allow `/ms.implement` to
   proceed.
 
@@ -85,7 +108,84 @@ Run these additional checks:
 8. **Constitution alignment**: plan/tasks acknowledge active Constitution
    constraints, including Section IX if it has been established.
 
-### Step 3: Result Model
+### Step 3: Codex Document Consistency Review
+
+Unless `--skip-codex` is supplied, invoke Codex with the same default runtime
+policy used by the SPECTER Codex commands:
+
+```text
+/codex:rescue --fresh --model gpt-5.5 --effort medium <prompt>
+```
+
+If the user supplied `--background`, add `--background` and report that
+`/ms.analyze` must be rerun after the Codex output file appears. If the user
+supplied `--model` or `--effort`, pass those values through instead of the
+defaults.
+
+Codex must read:
+
+- `.specify/memory/constitution.md`
+- `AGENTS.md` if it exists
+- `docs/prd/feature-map.md`
+- `docs/prd/feature-map.checklist.md`
+- `docs/prd/checklists/feature-NNN.checklist.md`
+- `docs/prd/checklists/feature-NNN.codex-verify.md`
+- `specs/[spec-id]/spec.md`
+- `specs/[spec-id]/plan.md`
+- `specs/[spec-id]/tasks.md`
+
+Codex must write:
+
+```text
+specs/[spec-id]/analyze.codex.md
+```
+
+Codex prompt:
+
+```text
+You are performing an advisory SPECTER document consistency review.
+
+Check spec.md, plan.md, and tasks.md against the Feature Map evidence,
+Constitution, and prior checklist gates. Do not edit files except writing
+specs/[spec-id]/analyze.codex.md.
+
+Focus on:
+- spec FRs missing from tasks
+- tasks with no spec, plan, setup, or verification source
+- plan components, migrations, APIs, or test strategies missing from tasks
+- contradictions between spec, plan, and tasks
+- stale or incomplete Amendment handling
+- migration number, file path, or contract drift
+- Feature Map commitments that no longer survive into spec/plan/tasks
+
+Write:
+
+# Codex Analyze Review
+
+**Mode**: codex-document-consistency
+**Result**: PASS | WARN | FAIL
+
+## Findings
+
+| Severity | Finding | Evidence | Required Fix |
+| --- | --- | --- | --- |
+
+## Verdict
+
+One concise paragraph.
+```
+
+Codex result handling:
+
+- `PASS`: keep the SPECTER result unchanged.
+- `WARN`: final `/ms.analyze` result is at least `WARN` unless Claude/SPECTER
+  explicitly explains why every warning is a false positive.
+- `FAIL`: final `/ms.analyze` result is `FAIL` unless Claude/SPECTER explicitly
+  downgrades the finding with source evidence.
+- `PENDING`: if `--background` was used and no Codex report exists yet, stop and
+  tell the user to rerun `/ms.analyze` after the report appears.
+
+### Step 4: Result Model
 
 Use this result model:
 
@@ -101,14 +201,17 @@ Use this result model:
 - Broken migration numbering across documents.
 - Missing Amendment block for superseded requirements.
 - Constitution violation in plan/tasks.
+- Codex `FAIL` finding that cannot be explained as a false positive.
 
-### Step 4: Report
+### Step 5: Report
 
 Display a Korean summary:
 
 ```json
 {
   "document_consistency": "PASS|WARN|FAIL",
+  "codex_analysis": "PASS|WARN|FAIL|SKIPPED|PENDING",
+  "codex_report": "specs/{id}/analyze.codex.md",
   "feature_lineage": "PASS|WARN|FAIL",
   "fr_task_coverage": "100%",
   "orphan_tasks": 0,
@@ -124,6 +227,7 @@ If `PASS`:
 - spec ↔ plan ↔ tasks 정합성 확인
 - Feature Map lineage 확인
 - Constitution alignment 확인
+- Codex document consistency review 확인
 
 🎯 다음 단계: /ms.implement
 ```
@@ -141,8 +245,9 @@ If `FAIL`:
 
 | Command | Responsibility | Timing |
 | --- | --- | --- |
-| `/ms.checklist` | PRD → Feature Map gate | Before `/ms.specify` |
-| `/ms.analyze` | spec ↔ plan ↔ tasks document gate | Before `/ms.implement` |
+| `/ms.verify` | Global PRD → Feature Map gate | Before `/ms.constitution` |
+| `/ms.checklist` + `/ms.codex-verify` | Per-Feature PRD readiness gate | Before `/ms.specify` |
+| `/ms.analyze` | spec ↔ plan ↔ tasks document gate plus Codex document review | Before `/ms.implement` |
 | `/ms.review` | code quality + executable gates | After `/ms.implement` |
 
 ## Next Command

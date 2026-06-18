@@ -112,18 +112,19 @@ if [ -f "$SPECKIT_SPECIFY" ] && ! grep -q "MS_FEATUREMAP_GATE_START" "$SPECKIT_S
 > ⛔ **FEATURE MAP + CHECKLIST GATE.** Do NOT create or update a spec unless:
 > 1. The input is a Feature section produced by `/ms.featuremap` (a `## Feature NNN:`
 >    block containing `### In scope`, `### Explicitly out of scope`, `### Done criteria`).
-> 2. `docs/prd/feature-map.checklist.md` exists, is `**Mode**: global`, and its result is PASS or WARN.
+> 2. `docs/prd/feature-map.checklist.md` exists, is `**Mode**: global`, records `/ms.verify`, and its result is PASS or WARN.
 > 3. `docs/prd/checklists/feature-NNN.checklist.md` exists for the selected Feature, is
 >    `**Mode**: per-feature`, and its result is PASS or WARN.
-> 4. Both checklist audits' Feature Map SHA256 values match the current `docs/prd/feature-map.md`.
-> 5. `.specify/memory/constitution.md` has an established Section IX baseline from `/ms.constitution`
+> 4. `docs/prd/checklists/feature-NNN.codex-verify.md` exists and its result is PASS or WARN.
+> 5. The global and per-Feature checklist audits' Feature Map SHA256 values match the current `docs/prd/feature-map.md`.
+> 6. `.specify/memory/constitution.md` has an established Section IX baseline from `/ms.constitution`
 >    or explicitly records that no durable project-specific constraints were found.
 > REFUSE if: no Feature Map file exists (`docs/prd/feature-map*.md`), OR either checklist
 > is missing/failed/stale, OR Section IX is not established, OR the per-Feature checklist is for
 > a different Feature, OR the input is freeform / inline ad-hoc text / derived from an existing `spec.md`.
 > On refusal, tell the user to run `/ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]`,
-> then `/ms.checklist --global`, then `/ms.constitution`, then `/ms.checklist`, then paste the
-> checked Feature section. Prefer the `/ms.specify` wrapper over direct calls.
+> then `/ms.codex-checklist`, then `/ms.verify`, then `/ms.constitution`, then `/ms.checklist`,
+> then `/ms.codex-verify`, then paste the checked Feature section. Prefer the `/ms.specify` wrapper over direct calls.
 <!-- MS_FEATUREMAP_GATE_END -->
 GATE
 )
@@ -164,16 +165,18 @@ Display completion message:
 
 0. (Write your PRD first, e.g. docs/prd/PRD.md)
 1. /ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md] - Decompose the PRD set into a Feature Map
-2. /ms.checklist --global - Validate whole PRD coverage, Feature ownership, and DAG
-3. /ms.constitution - Establish project baseline once from the checked PRD Feature Map
-4. /ms.checklist - Validate the next Feature against its Source PRDs and PRD references
-5. /ms.specify - Create feature specification (paste the checked Feature section from the Feature Map)
-6. /ms.clarify - Clarify requirements (if needed)
-7. /ms.plan - Create implementation plan
-8. /ms.tasks - Generate implementation tasks
-9. /ms.analyze - Validate spec-plan-tasks document consistency
-10. /ms.implement - Start implementation
-11. /ms.review - Run code review and executable gates before /fin
+2. /ms.codex-checklist - Start the PRD-only Codex checklist in background
+3. /ms.verify - Validate Feature Map against PRDs and Codex checklist
+4. /ms.constitution - Establish project baseline once from the checked PRD Feature Map
+5. /ms.checklist - Validate the next Feature against its Source PRDs and PRD references
+6. /ms.codex-verify - Start concise Codex verification for the Feature checklist
+7. /ms.specify - Create feature specification (paste the checked Feature section from the Feature Map)
+8. /ms.clarify - Clarify requirements (if needed)
+9. /ms.plan - Create implementation plan
+10. /ms.tasks - Generate implementation tasks
+11. /ms.analyze - Validate spec-plan-tasks document consistency
+12. /ms.implement - Start implementation
+13. /ms.review - Run code review and executable gates before /fin
 
 ```
 
@@ -206,4 +209,4 @@ Then run /ms.init again.
 
 ## Next Command
 
-After `/ms.init`: Write your PRD set, run `/ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]`, then run `/ms.checklist --global` and `/ms.constitution`. Each Feature cycle starts with `/ms.checklist`, and `/ms.specify` refuses to run when either the global or per-Feature audit is missing, failed, or stale.
+After `/ms.init`: Write your PRD set, run `/ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]`, then run `/ms.codex-checklist`, `/ms.verify`, and `/ms.constitution`. Each Feature cycle starts with `/ms.checklist` and `/ms.codex-verify`, and `/ms.specify` refuses to run when the global audit, per-Feature audit, or Codex verification is missing, failed, or stale.
