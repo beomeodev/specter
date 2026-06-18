@@ -184,17 +184,19 @@ if [ "$PROJECT_NAME" != "$TICKER" ] && [ -e "$TICKER_LINK" ]; then
   fail "이미 존재하는 ticker 경로입니다: $TICKER_LINK"
 fi
 
+REPO_EXISTS=0
 if gh repo view "${GITHUB_USER}/${PROJECT_NAME}" >/dev/null 2>&1; then
-  fail "GitHub repo가 이미 존재합니다: ${GITHUB_USER}/${PROJECT_NAME}"
+  REPO_EXISTS=1
 fi
 
 cat <<SUMMARY
-🚀 새 프로젝트 생성
+🚀 프로젝트 준비
 
 PROJECT_NAME : $PROJECT_NAME
 TICKER       : $TICKER
 GITHUB_USER  : $GITHUB_USER
 PROJECT_ROOT : $PROJECT_ROOT_RESOLVED
+REPO_EXISTS  : $REPO_EXISTS
 TEMPLATE_MODE: $TEMPLATE_MODE
 TEMPLATE_SRC : $TEMPLATE_SOURCE
 PROJECT_DIR  : $PROJECT_DIR
@@ -203,7 +205,10 @@ REPO_SSH     : $REPO_SSH
 
 SUMMARY
 
-if [ "$TEMPLATE_MODE" = "clone" ]; then
+if [ "$REPO_EXISTS" = "1" ]; then
+  echo "📥 기존 GitHub repo clone..."
+  git clone "$REPO_SSH" "$PROJECT_DIR"
+elif [ "$TEMPLATE_MODE" = "clone" ]; then
   echo "📥 Specter template repo clone..."
   git clone --depth 1 "$TEMPLATE_SOURCE" "$PROJECT_DIR"
   rm -rf "$PROJECT_DIR/.git"
@@ -224,9 +229,8 @@ else
 fi
 
 MAKEFILE="$PROJECT_DIR/.devcontainer/Makefile"
-[ -f "$MAKEFILE" ] || fail ".devcontainer/Makefile을 찾지 못했습니다: $MAKEFILE"
-
-python3 - "$MAKEFILE" "$TICKER" "$REPO_SSH" <<'PY'
+if [ -f "$MAKEFILE" ]; then
+  python3 - "$MAKEFILE" "$TICKER" "$REPO_SSH" <<'PY'
 import re
 import sys
 from pathlib import Path
@@ -256,6 +260,11 @@ text = re.sub(
 makefile.write_text(text)
 print("✅ .devcontainer/Makefile 업데이트 완료")
 PY
+elif [ "$REPO_EXISTS" = "1" ]; then
+  echo "ℹ️ .devcontainer/Makefile 없음: ticker/repo 자동 업데이트 건너뜀"
+else
+  fail ".devcontainer/Makefile을 찾지 못했습니다: $MAKEFILE"
+fi
 
 cd "$PROJECT_DIR"
 
@@ -274,6 +283,36 @@ if [ "$PROJECT_NAME" != "$TICKER" ]; then
   echo "✅ ticker 심볼릭 링크 생성: $TICKER_LINK -> $PROJECT_DIR"
 else
   echo "ℹ️ project_name과 ticker가 같아서 심볼릭 링크 생략"
+fi
+
+if [ "$REPO_EXISTS" = "1" ]; then
+  cat <<DONE
+
+✅ 기존 프로젝트 clone 완료
+
+실제 프로젝트 경로:
+  $PROJECT_DIR
+
+ticker 경로:
+  $TICKER_LINK
+
+GitHub repo:
+  $REPO_SSH
+DONE
+  if [ -f "$MAKEFILE" ]; then
+    cat <<DONE
+
+이제 실행:
+  pm $TICKER cc   # Claude Code
+  pm $TICKER cx   # Codex
+  pm $TICKER cr   # Codex resume
+  pm $TICKER gm   # Gemini
+DONE
+  else
+    echo ""
+    echo "ℹ️ pm 명령은 .devcontainer/Makefile이 있을 때만 사용할 수 있습니다."
+  fi
+  exit 0
 fi
 
 git init
