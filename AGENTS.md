@@ -144,8 +144,26 @@ unless the user explicitly requests and confirms them.
 
 ---
 
-## 9. Pre-Work Checklist
+## 9. System Map Handling
 
+- If `docs/SYSTEM_MAP.md` exists, read it before non-trivial coding, planning,
+  or workflow changes.
+- Treat `docs/SYSTEM_MAP.md` as a stale-prone snapshot, not as authority over
+  current code. Check its `git_head`, `generated_at`, `working_tree`, and
+  `stale_when` metadata before relying on it.
+- If the map is missing or stale for the task, use the
+  `.claude/skills/codebase-snapshot/SKILL.md` procedure to refresh it with
+  current git metadata and verified facts.
+- Use Serena MCP for symbol-level navigation when configured and useful, but do
+  not block exploration if Serena is unavailable; fall back to `rg`, `find`,
+  and `git`.
+
+---
+
+## 10. Pre-Work Checklist
+
+- Have I read `docs/SYSTEM_MAP.md` if it exists, and checked whether it is
+  stale for this task?
 - Have I read the relevant files?
 - Have I checked existing patterns, tests, types, and constants?
 - Is the requirement clear enough to implement and verify?

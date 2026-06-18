@@ -360,6 +360,7 @@ npm install  # 또는 프로젝트에 맞는 설치 명령
 ## 상세 문서
 
 - [AGENTS.md](./AGENTS.md) - AI coding rules
+- [SYSTEM_MAP.md](./docs/SYSTEM_MAP.md) - agent-facing architecture snapshot
 - [CLAUDE.md](./CLAUDE.md) - Claude Code 협업 규칙
 - [Constitution Template](./docs/templates/constitution-template.md)
 - [.claude/commands/](./.claude/commands/) - slash command definitions

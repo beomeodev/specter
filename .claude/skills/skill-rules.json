@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "description": "SPECTER Skill Auto-Activation Rules - Automatically suggests relevant skills based on user prompts and file context",
-  "lastUpdated": "2025-10-30",
+  "lastUpdated": "2026-06-18",
   "skills": {
     "ms-foundation-constitution": {
       "type": "guardrail",
@@ -339,6 +339,45 @@
       "fileTriggers": {
         "pathPatterns": ["**/middleware/**/*.py", "**/middleware/**/*.ts"],
         "contentPatterns": []
+      }
+    },
+    "codebase-snapshot": {
+      "type": "workflow",
+      "priority": "high",
+      "enforcement": "suggest",
+      "description": "Agent-facing codebase exploration and SYSTEM_MAP maintenance with git metadata, stale detection, hot paths, invariants, and optional Serena MCP symbol navigation.",
+      "promptTriggers": {
+        "keywords": [
+          "SYSTEM_MAP",
+          "system map",
+          "codebase snapshot",
+          "codebase exploration",
+          "codebase overview",
+          "architecture overview",
+          "hot path",
+          "invariant",
+          "stale map",
+          "Serena"
+        ],
+        "intentPatterns": [
+          "(start|begin).*?(new task|work|feature)",
+          "(understand|explore|map|scan).*?(codebase|repository|repo|architecture)",
+          "(create|update|refresh|maintain).*?SYSTEM_MAP",
+          "(check|detect).*?(stale|outdated).*?(system map|SYSTEM_MAP|snapshot)",
+          "(identify|document).*?(hot path|invariant|state flow|shared module)"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": [
+          "docs/SYSTEM_MAP.md",
+          ".claude/skills/codebase-snapshot/SKILL.md"
+        ],
+        "contentPatterns": [
+          "generated_at:",
+          "git_head:",
+          "stale_when:",
+          "serena:"
+        ]
       }
     }
   }
