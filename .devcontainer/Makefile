@@ -167,13 +167,35 @@ $(PROJ_TICKER)gm:
 
 
 # ======= 기존 프로젝트 내부 타겟 =======
-.PHONY: up down sh install test fmt lint precommit dbup cacheup nbup rebuild
+.PHONY: up down start stop sh install test fmt lint precommit dbup cacheup nbup rebuild
 
 up:
 	$(COMPOSE) up -d --build app
 
 down:
 	$(COMPOSE) down
+
+start:
+	@if [ -z "$$SSH_AUTH_SOCK" ]; then \
+		echo "⚠️  SSH agent not running. Run:"; \
+		echo "    eval $$(ssh-agent -s) && ssh-add ~/.ssh/id_ed25519"; \
+		echo ""; \
+	fi
+	@container_id="$$( $(COMPOSE) ps -q app 2>/dev/null || true )"; \
+	if [ -n "$$container_id" ]; then \
+		if [ "$$(docker inspect -f '{{.State.Running}}' "$$container_id" 2>/dev/null || echo false)" = "true" ]; then \
+			echo "✅ Container already running - skipping start"; \
+		else \
+			echo "🚀 Starting existing container..."; \
+			$(COMPOSE) start app; \
+		fi; \
+	else \
+		echo "🚀 Creating container..."; \
+		$(COMPOSE) up -d app; \
+	fi
+
+stop:
+	$(COMPOSE) stop app
 
 rebuild:
 	$(COMPOSE) build --no-cache app
@@ -209,18 +231,7 @@ nbup:
 .PHONY: dev-up du dev-shell ds codex cx codex-resume cr, claude cc gemini gm
 
 # Build/refresh the app container image and ensure it is running
-dev-up du:
-	@if [ -z "$$SSH_AUTH_SOCK" ]; then \
-		echo "⚠️  SSH agent not running. Run:"; \
-		echo "    eval \$$(ssh-agent -s) && ssh-add ~/.ssh/id_ed25519"; \
-		echo ""; \
-	fi
-	@if [ "$$($(COMPOSE) ps -q app 2>/dev/null)" != "" ]; then \
-		echo "✅ Container already running - skipping rebuild"; \
-	else \
-		echo "🚀 Starting container..."; \
-		$(COMPOSE) up -d --build app; \
-	fi
+dev-up du: start
 
 # Open an interactive shell inside the app container (builds first if needed)
 dev-shell ds: dev-up

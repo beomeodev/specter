@@ -89,8 +89,9 @@ pm sab cr    # Resume Codex session
 
 ### Container Management
 ```bash
-make up           # Start container
-make down         # Stop container
+make start        # Start or resume container without rebuild
+make stop         # Stop container
+make down         # Remove container completely
 make rebuild      # Force rebuild (no cache)
 make sh           # Shell into container
 ```
@@ -165,12 +166,13 @@ pm abc cc  # Start working!
 ## Rebuild Triggers
 
 **Container rebuilds when:**
-- Container is not running
+- You run `make up` or `make rebuild` explicitly
 - `Dockerfile` changed (detected by Docker)
 - `requirements.txt` changed (detected by Docker)
 - `docker-compose.yml` changed
 
 **Container does NOT rebuild when:**
+- You use `make start` or `pm <ticker> cc/cx/cr/gm`
 - Already running (for speed)
 - Use `make down && make up` to force rebuild
 
@@ -202,8 +204,13 @@ source ~/.zshrc
 
 ### Container won't rebuild
 ```bash
-make down
+make stop
 make rebuild  # Force rebuild with no cache
+```
+
+If you want to discard the container entirely:
+```bash
+make down
 ```
 
 ### Git conflicts
