@@ -161,6 +161,22 @@ Display completion message:
 - ✅ Spec-Kit (latest version from upstream)
 - ✅ My-Spec Constitution: .specify/memory/constitution.md
 
+🧩 Codex Plugin Setup (if you want Codex inside Claude Code):
+1. Enter the project container through Codex CLI.
+   - From the host, run: `pm <project_ticker> cx`
+   - For this repository, the example ticker is `pm spt cx`.
+   - This starts Codex CLI inside the app container and is the normal path for plugin setup.
+   - If `pm` is not installed yet, you can use `make ds` as a shell fallback, then run `codex` inside the container.
+2. Open the plugin directory inside Codex.
+   - Type: `/plugins`
+3. Install and log in to the plugin from the directory.
+   - Search for `Codex plugin for Claude Code` or the `openai/codex-plugin-cc` entry if it appears in your marketplace.
+   - Select `Install plugin`.
+4. If the plugin asks for external app authentication, complete that sign-in when prompted.
+5. Restart Codex inside the container, then start a new thread and ask Codex to use the plugin.
+6. If you run multiple project containers and they do not share `~/.codex`, repeat steps 1-5 per container.
+   - If you do share `~/.codex` across containers, the plugin install and login can be reused.
+
 🎯 Next Steps:
 
 0. (Write your PRD first, e.g. docs/prd/PRD.md)

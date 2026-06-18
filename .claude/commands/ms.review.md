@@ -422,9 +422,10 @@ Run `quality-gate` or `trust-validator` for code-level TRUST checks:
 
 #### C. Gate Result Handling
 
-- If CRITICAL executable gates fail, mark review as **NOT READY** and write
-  `.specify/review-state.txt`. TAG-only findings do not make the review NOT READY
-  unless Section IX or CI explicitly promotes TAG integrity to blocking.
+- If CRITICAL executable gates fail, or unresolved HIGH issues remain, mark
+  review as **NOT READY** and write `.specify/review-state.txt`. TAG-only
+  findings do not make the review NOT READY unless Section IX or CI explicitly
+  promotes TAG integrity to blocking.
 - If only HIGH/MEDIUM warnings remain, mark review as **READY WITH WARNINGS** and
   persist the warning summary for `/fin` acknowledgement.
 - If all executable gates and deep review checks pass, remove stale
@@ -568,15 +569,22 @@ for file in "${REVIEW_TMP_FILES[@]}"; do
   rm -f "$file"
 done
 
-# Save state for /fin integration (NEW)
-if [ $HIGH_COUNT -gt 0 ]; then
-  echo "$HIGH_COUNT HIGH issues unresolved" > .specify/review-state.txt
-  echo "Run /ms.review to check" >> .specify/review-state.txt
-  echo "Review report: $REPORT_FILE" >> .specify/review-state.txt
+# Save non-blocking state for /fin and /finq visibility.
+if [ "${CRITICAL_COUNT:-0}" -gt 0 ] || [ "${HIGH_COUNT:-0}" -gt 0 ]; then
+  {
+    echo "${CRITICAL_COUNT:-0} CRITICAL issues unresolved"
+    echo "${HIGH_COUNT:-0} HIGH issues unresolved"
+    echo "Run /ms.review to check"
+    echo "Review report: $REPORT_FILE"
+  } > .specify/review-state.txt
+else
+  rm -f .specify/review-state.txt
 fi
 ```
 
-**Keep warnings in memory**: Store HIGH/CRITICAL issues for `/fin` command to check
+**State policy**: `.specify/review-state.txt` is a visibility artifact for
+`/fin` and `/finq`, not a mandatory publish blocker. Executable gate failures
+inside `/ms.review` remain blocking for the review result itself.
 
 - **Artifact Policy**
   - Persists: `.specify/review-hash.cache` (used for hash-based diffing on the next run)
@@ -688,25 +696,21 @@ Review a specific qualitative aspect while still running executable gates:
 
 ### Before /fin (ENHANCED)
 
-`/fin` command should check for review state:
+`/fin` command should surface review state as a warning, but it must not make
+review-state mandatory:
 
 ```bash
 # In /fin workflow
 if [ -f .specify/review-state.txt ]; then
-  echo "⚠️ Code review found HIGH issues:"
+  echo "⚠️ Prior /ms.review state exists:"
   cat .specify/review-state.txt
   echo ""
-  echo "Continue anyway? (not recommended) [y/N]"
-  read -r response
-  if [ "$response" != "y" ]; then
-    echo "❌ Aborted. Fix issues first or run /ms.review"
-    exit 1
-  fi
+  echo "Continuing because review-state is advisory in /fin."
 fi
 ```
 
 The review state file contains:
-- Number of unresolved HIGH issues
+- Number of unresolved CRITICAL and HIGH issues
 - Path to the latest review report
 - Timestamp of last review
 

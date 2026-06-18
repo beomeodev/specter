@@ -336,9 +336,7 @@ Execute `/speckit.specify` with the checked Feature prompt bundle and Constituti
 /speckit.specify <checked Feature prompt bundle from Step 0.4>
 ```
 
-**Agent Delegation**: This internally uses the **spec-builder** agent (Sonnet model) for GEARS conversion and SPEC document generation.
-
-This creates the specification in `specs/{SPEC_ID}/spec.md` with AI automatically following GEARS and TRUST principles.
+Create the specification in `specs/{SPEC_ID}/spec.md` with GEARS and TRUST guidance applied. Do not claim that a `spec-builder` agent or a specific model ran unless it actually did.
 
 ### 4. Add Constitution Reference Footer
 

@@ -44,7 +44,7 @@ scope:
   - <paths examined>
 tools:
   - <tools used>
-serena: <used|unavailable|not_configured>
+serena: <used|configured|unavailable|not_configured>
 stale_when:
   - git_head differs from current HEAD
   - changed files overlap documented hot paths or invariants
@@ -78,8 +78,10 @@ results.
    - Use symbol overview and reference lookup for code-heavy projects.
    - Use Serena for cross-file symbol relationships, semantic navigation, and
      refactor-sensitive dependency checks.
+   - If Serena is configured but not useful for the current scan, record
+     `serena: configured`.
    - If Serena is not configured, continue with `rg`, `find`, and `git`.
-   - Record `serena: unavailable` or `serena: not_configured` in metadata.
+   - Record `serena: unavailable` or `serena: not_configured` when applicable.
 
 5. Separate facts from inference:
    - Facts must cite concrete paths, commands, or observed files.

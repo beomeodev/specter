@@ -74,278 +74,117 @@ When executing /speckit.plan, the agent must read and strictly adhere to constit
 - Ensure plan respects all Constitution constraints
 ```
 
-### 3. Adaptive Context Analysis (Quantitative Decision)
+### 3. Reality-First Context Analysis
 
-**Step 1: Analyze Spec Complexity (Mandatory)**
+`/ms.plan` must not invent architecture from the spec alone. Before writing or
+accepting `plan.md`, inspect the current codebase and record which assumptions
+were verified.
 
-Read spec.md and extract metrics:
+**Read and inspect**:
+- Existing `specs/*/plan.md` files for nearby patterns.
+- Existing source directories, tests, migrations, routes, schemas, config, and
+  fixtures that the new feature is likely to touch.
+- Official library documentation when the plan depends on current third-party
+  APIs. Use available documentation tools directly; do not promise a specific
+  subagent or model.
+
+**Reality checks to run when relevant**:
 
 ```bash
-# Count functional requirements (FRs)
-FR_COUNT=$(grep -E "^#{1,3}\s+FR-[0-9]+" specs/*/spec.md | wc -l)
+# Existing plans and nearby implementation patterns
+rg --files specs | rg '/plan\.md$'
+rg -n "<feature keyword>|<domain keyword>" src backend frontend tests specs
 
-# Count components mentioned
-COMPONENT_COUNT=$(grep -iEo "\b(service|controller|model|repository|handler|middleware|component|page)\b" specs/*/spec.md | sort -u | wc -l)
+# Next migration index, if the plan creates a migration
+ls db/migrations/00*.sql 2>/dev/null | sort | tail -1
 
-# Check for integration keywords
-INTEGRATION_KEYWORDS=$(grep -iEo "\b(external|api|integration|third-party|webhook|oauth)\b" specs/*/spec.md | wc -l)
+# Schema and column assumptions
+rg -n "CREATE TABLE <table>|ALTER TABLE <table>|<column_name>" db backend src
 
-# Check for existing similar plans
-SIMILAR_PLANS=$(find specs/ -name "plan.md" 2>/dev/null | wc -l)
+# Existing file paths mentioned by the plan
+test -f <path> || echo "MISSING: <path>"
+
+# API/status/error-message conventions
+rg -n "HTTP_401|HTTP_403|status_code=.*40|detail=.*찾을 수" backend src
+
+# Existing env/config and fixtures
+rg -n "os\.environ|getenv|process\.env|@pytest.fixture|fixture\(" backend frontend tests src
 ```
 
-**Step 2: Apply Decision Tree**
+Use the smallest relevant subset. Do not run irrelevant checks just to fill the
+table.
 
-Execute in priority order (stop at first match):
+### 3.1. Required `Reality Verified` Section
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ DECISION TREE (Priority Order)                              │
-├─────────────────────────────────────────────────────────────┤
-│ 1. IF INTEGRATION_KEYWORDS ≥ 3                              │
-│    → COMPLEX (external integration)                         │
-│                                                              │
-│ 2. IF FR_COUNT ≤ 2 AND COMPONENT_COUNT ≤ 2                  │
-│    → SIMPLE (single utility/config)                         │
-│                                                              │
-│ 3. IF COMPONENT_COUNT ≥ 5 OR FR_COUNT ≥ 8                   │
-│    → COMPLEX (multi-component system)                       │
-│                                                              │
-│ 4. IF SIMILAR_PLANS ≥ 3                                     │
-│    → MODERATE (patterns available)                          │
-│                                                              │
-│ 5. IF COMPONENT_COUNT ≥ 2 OR FR_COUNT ≥ 3                   │
-│    → MODERATE                                                │
-│                                                              │
-│ 6. FALLBACK (unable to determine)                           │
-│    → MODERATE (safe default - 2 agents)                     │
-└─────────────────────────────────────────────────────────────┘
+The final `plan.md` MUST include this section before tasks are generated:
+
+```markdown
+## Reality Verified (auto-generated, blocking)
+
+| Assumption | Verified by | Result |
+|---|---|---|
+| Next migration index = NNNN | `ls db/migrations/00*.sql | sort | tail -1` | PASS/FAIL/N/A |
+| File `<path>` exists | `test -f <path>` | PASS/FAIL/N/A |
+| Column `<table>.<column>` exists | `rg "<column>" db backend src` | PASS/FAIL/N/A |
+| Existing route/service convention | `rg "<pattern>" backend/src src` | PASS/FAIL/N/A |
+| Error/status convention | `rg "HTTP_401|HTTP_403|detail=" backend src` | PASS/FAIL/N/A |
 ```
 
-**Step 3: Execute Sub-Agent Strategy**
+Rules:
+- `PASS`: command output directly supports the assumption.
+- `FAIL`: command output contradicts or cannot support a required assumption.
+- `N/A`: not relevant to this feature. Do not use `N/A` for an unverified but
+  relevant assumption.
 
-Based on complexity determined above:
+### 3.2. Blocking Rule
 
-**IF SIMPLE**:
-  - 0 sub-agents
-  - Proceed directly to Step 4
+If any relevant assumption is `FAIL`, do not proceed silently.
 
-**IF MODERATE**:
-  - Launch 2 sub-agents in TRUE PARALLEL (using Claude Code Task tool):
+Auto-fix before continuing when the failure is mechanical:
+- stale file path
+- migration index drift
+- typo in an existing status or error-message convention
 
-    **Step 1: Launch agents in parallel with single message**
-    ```python
-    # IMPORTANT: Send SINGLE message with MULTIPLE Task tool calls
-    # This enables true parallel execution
+Stop and ask the user in Korean when the failure changes product or data design:
+- missing schema column/table
+- auth/status semantics differ from the spec
+- new dependency or environment variable conflicts with project baseline
+- implementation requires amending a clarified requirement
 
-    # Agent 1: Explore codebase for patterns
-    Task(
-        subagent_type="codebase-explorer",
-        description="Find similar patterns",
-        prompt="""Search existing codebase for similar patterns to feature: '$SPEC_FEATURE'
+Korean prompt format:
 
-        Focus on:
-        - Similar architectural implementations
-        - Existing folder structure and naming conventions
-        - Reusable components and utilities
-        - Integration patterns
+```text
+⚠️ Plan 가정 검증 실패:
+1. <assumption> → 실제: <observed reality>
 
-        Return: Similar features, architectural patterns, reusable components, integration approach"""
-    )
-
-    # Agent 2: Research library documentation (if needed)
-    Task(
-        subagent_type="library-researcher",
-        description="Research library docs",
-        prompt="""Research latest library documentation for: '$REQUIRED_LIBRARIES'
-
-        Use Context7 MCP to fetch:
-        - Latest API usage examples
-        - Best practices from official docs
-        - Version compatibility notes
-        - Breaking changes
-
-        Return: Libraries researched, API examples, best practices, compatibility notes"""
-    )
-    ```
-
-    **Step 2: Agents execute in parallel**
-    - Both agents run simultaneously in separate threads
-    - No blocking - agents work independently
-    - Claude Code orchestrates parallel execution automatically
-
-    **Step 3: Results returned when complete**
-    - Task tool returns results automatically when agents finish
-    - Results available in same conversation context
-
-**IF COMPLEX**:
-  - Launch 3 sub-agents in TRUE PARALLEL (using Claude Code Task tool):
-
-    **Step 1: Launch all agents in parallel with single message**
-    ```python
-    # CRITICAL: Send SINGLE message with THREE Task tool calls
-    # This enables true parallel execution of all agents
-
-    # Agent 1: Explore codebase for patterns
-    Task(
-        subagent_type="codebase-explorer",
-        description="Find similar patterns",
-        prompt="""Search existing codebase for similar patterns to feature: '$SPEC_FEATURE'
-
-        Focus on:
-        - Similar architectural implementations
-        - Existing folder structure and naming conventions
-        - Reusable components and utilities
-        - Integration patterns
-
-        Return: Similar features, architectural patterns, reusable components, integration approach"""
-    )
-
-    # Agent 2: Research library documentation
-    Task(
-        subagent_type="library-researcher",
-        description="Research library docs",
-        prompt="""Research latest library documentation for: '$REQUIRED_LIBRARIES'
-
-        Use Context7 MCP to fetch:
-        - Latest API usage examples
-        - Best practices from official docs
-        - Version compatibility notes
-        - Breaking changes
-
-        Return: Libraries researched, API examples, best practices, compatibility notes"""
-    )
-
-    # Agent 3: Design integration strategy
-    Task(
-        subagent_type="integration-designer",
-        description="Design integration",
-        prompt="""Design integration strategy for complex feature: '$SPEC_FEATURE'
-
-        Analyze:
-        - System architecture and dependencies
-        - Integration points and interfaces
-        - Data flow and communication patterns
-        - Security and performance considerations
-
-        Return: Integration architecture, API design, data flow, risk assessment"""
-    )
-    ```
-
-    **Step 2: All 3 agents work independently in parallel**
-    - Codebase explorer finds existing patterns
-    - Library researcher fetches latest docs via Context7 MCP
-    - Integration designer plans architecture
-    - True parallel execution - all agents run simultaneously
-
-    **Step 3: Results returned when complete**
-    - Task tool returns all results automatically
-    - Results available in same conversation context
-    - Synthesize findings in Step 3.1
-
-**⚠️ AGENT EXECUTION RULES**:
-- **codebase-explorer** → Uses Claude Code Task tool (searches codebase with Glob/Grep/Read)
-- **library-researcher** → Uses Claude Code Task tool (fetches docs via Context7 MCP)
-- **integration-designer** → Uses Claude Code Task tool (designs integration architecture)
-
-**CRITICAL - TRUE PARALLEL EXECUTION**:
-1. **MUST send SINGLE message** with multiple Task tool calls
-2. All agents launch simultaneously in separate threads
-3. No blocking - agents execute independently
-4. Results returned automatically when complete
-5. Example of parallel launch:
-   ```python
-   # CORRECT: Single message, multiple Task calls
-   Task(subagent_type="codebase-explorer", ...)
-   Task(subagent_type="library-researcher", ...)
-   Task(subagent_type="integration-designer", ...)
-
-   # WRONG: Sequential messages (blocks between calls)
-   # Message 1: Task(subagent_type="codebase-explorer", ...)
-   # (wait for result)
-   # Message 2: Task(subagent_type="library-researcher", ...)
-   ```
-
-**Debug Output** (for transparency):
-```json
-{
-  "complexity_metrics": {
-    "fr_count": 5,
-    "component_count": 4,
-    "integration_keywords": 2,
-    "similar_plans": 3
-  },
-  "decision": "MODERATE",
-  "reason": "Rule 4: SIMILAR_PLANS ≥ 3",
-  "agents_spawned": 2
-}
+선택이 필요합니다:
+1. 현실에 맞게 plan/spec를 수정하고 계속 진행
+2. 새 요구사항으로 보고 amendment를 만든 뒤 계속 진행
+3. 중단하고 /ms.clarify 또는 /ms.checklist로 되돌아가기
 ```
 
-### 3.1. Synthesize Architecture Decisions
+### 3.3. Synthesize Architecture Decisions
 
-**IF sub-agents launched** (Step 3):
-- Combine architectural insights
-- Reuse existing patterns for consistency
-- Apply latest library best practices
-- Document integration decisions
-- Ensure Constitution compliance (TRUST, file size limits)
-
-**ELSE**:
-- Skip (simple plan)
-
-### 3.2. Reality Verification (Execution & Blocking)
-
-**Before committing plan.md, the agent MUST execute these verification steps**:
-
-1. **Next Migration Index**: `ls db/migrations/00*.sql | sort | tail -1`
-2. **Schema Verification**: `grep -r "CREATE TABLE <table>" db/` (or migration files) to confirm columns.
-3. **File Path Verification**: `test -f <path>` for every existing file mentioned in the plan.
-4. **Convention Check**: `grep` for common status codes (401 vs 403) and error message formats.
-
-**IF any verification fails**:
-- ❌ **Auto-fixable** (path drift, migration index): Correct the plan automatically.
-- ❌ **Design Decision needed** (missing column, schema mismatch): **ABORT** and ask the user for guidance in KOREAN.
+After reality verification:
+- Reuse existing project patterns instead of inventing parallel structures.
+- Prefer the smallest sufficient design that satisfies the spec and Constitution.
+- Document only decisions that affect implementation, tests, security, data, or
+  public API behavior.
+- Keep plan details traceable to `spec.md`; avoid making `plan.md` a second
+  source of truth for requirement wording.
 
 ### 4. Run Base Plan Command
 
-Execute `/speckit.plan` with Constitution-enhanced context:
+Execute `/speckit.plan` with Constitution-enhanced context and the Reality
+Verification findings from Step 3:
 
 ```
 /speckit.plan
 ```
 
-**Agent Delegation Strategy**:
-
-`/speckit.plan` uses a **tiered agent model** to optimize cost and performance:
-
-**Primary Agent** (High-Value Work):
-- **implementation-planner** (Opus 4 model)
-  - Architectural design and system structure
-  - Critical technology stack decisions
-  - TAG chain planning and traceability design
-  - Integration strategy for complex features
-  - **WHY Opus**: Architecture decisions have long-term impact; require deep reasoning
-
-**Supporting Agents** (Research & Exploration):
-- **library-researcher** (Haiku 3.5 model)
-  - Fetch latest library documentation via Context7 MCP
-  - Extract API usage examples and best practices
-  - Check version compatibility and breaking changes
-  - **WHY Haiku**: Documentation lookup is straightforward; doesn't require deep reasoning
-
-- **codebase-explorer** (Haiku 3.5 model)
-  - Search existing codebase for similar patterns
-  - Identify reusable components and utilities
-  - Document current architectural conventions
-  - **WHY Haiku**: Pattern matching and code search are well-defined tasks
-
-**Cost Optimization**:
-```
-Opus (expensive) → Strategic architecture decisions only
-Haiku (economical) → Information gathering and pattern matching
-```
-
-This creates the implementation plan in `specs/{SPEC_ID}/plan.md` with AI automatically following architectural principles.
+The generated `specs/{SPEC_ID}/plan.md` must reflect verified project reality.
+Do not claim use of a specific model, subagent, or background process unless it
+actually ran in the current environment.
 
 ### 5. Add Constitution Reference Footer
 
@@ -366,26 +205,12 @@ This plan follows the project [Constitution](.specify/memory/constitution.md).
 _Auto-added by `/ms.plan`_
 ```
 
-### 6. Verify Constitution Exists
+### 6. Verify Constitution Reference
 
-Check if `.specify/memory/constitution.md` exists:
-
-```bash
-ls -la .specify/memory/constitution.md
-```
-
-**IF NOT FOUND**:
-
-```
-⚠️ Warning: Constitution not found
-
-Expected: .specify/memory/constitution.md
-
-Please run `/ms.init` first to create the project Constitution.
-Constitution defines architectural principles for this project.
-
-Continuing with plan creation, but Constitution reference will be broken.
-```
+The Constitution was already required in Step 1. Before reporting success, verify
+that the footer link points to an existing `.specify/memory/constitution.md`. If
+it is missing, treat this as a command error and stop; do not create a plan with
+a broken governance reference.
 
 ### 7. Report Success
 
@@ -469,4 +294,3 @@ Please check the error message above and retry.
 ## Next Command
 
 After `/ms.plan`: Run `/ms.tasks`. Section IX baseline should already be established by `/ms.constitution` before the per-Feature cycle starts.
-ture cycle starts.

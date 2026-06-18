@@ -219,11 +219,11 @@ SPECTER에는 Constitution 관련 개념이 두 단계 있습니다.
 | `/ms.codex-verify` | Codex per-Feature checklist 검증 | `docs/prd/checklists/feature-NNN.codex-verify.md` |
 | `/ms.specify` | 체크된 Feature 섹션 프롬프트를 GEARS spec으로 변환 | `specs/{id}/spec.md` |
 | `/ms.clarify` | 요구사항 명확화 | spec.md 업데이트 |
-| `/ms.plan` | 구현 계획 수립 | `specs/{id}/plan.md` |
+| `/ms.plan` | Reality Verified 구현 계획 수립 | `specs/{id}/plan.md` |
 | `/ms.constitution` | 체크된 PRD Feature Map 기반 project-wide baseline 확정 | Constitution Section IX, AGENTS.md |
 | `/ms.tasks` | TAG 기반 태스크 생성 | `specs/{id}/tasks.md` |
 | `/ms.analyze` | 구현 전 문서 정합성 + Codex 문서 검증 | `specs/{id}/analyze.codex.md`, pass/fail report |
-| `/ms.implement` | TDD 구현 + TAG 삽입 | code, tests, TAG blocks |
+| `/ms.implement` | 선택된 phase/task/TAG scope 구현 + TAG 삽입 | code, tests, TAG blocks |
 | `/ms.review` | 코드 리뷰 + Codex review + 실행 게이트 | `docs/review/`, review state |
 | `/ms.up-docs` | Living docs 동기화 | `docs/dev_daily.md`, API docs |
 | `/fin` | 문서 동기화 + CI + commit/push/PR | commit, PR |
@@ -316,6 +316,8 @@ specter/
 │   ├── review/
 │   ├── api/
 │   ├── dev_daily.md
+│   ├── todo.md
+│   ├── SYSTEM_MAP.md
 │   └── templates/
 ├── specs/
 │   └── 001-{feature}/
@@ -382,8 +384,8 @@ npm install  # 또는 프로젝트에 맞는 설치 명령
 ## 상세 문서
 
 - [AGENTS.md](./AGENTS.md) - AI coding rules
-- [SYSTEM_MAP.md](./docs/SYSTEM_MAP.md) - agent-facing architecture snapshot
 - [CLAUDE.md](./CLAUDE.md) - Claude Code 협업 규칙
+- [SYSTEM_MAP.md](./docs/SYSTEM_MAP.md) - agent-facing architecture snapshot
 - [Constitution Template](./docs/templates/constitution-template.md)
 - [.claude/commands/](./.claude/commands/) - slash command definitions
 - [.claude/agents/](./.claude/agents/) - subagent definitions

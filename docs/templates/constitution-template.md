@@ -35,8 +35,8 @@ recorded as an amendment or project-specific rule when durable.
 The `/ms.*` workflow is a layered process:
 
 ```text
-/ms.featuremap -> /ms.checklist --global -> /ms.constitution
-/ms.checklist -> /ms.specify -> /ms.clarify -> /ms.plan -> /ms.tasks
+/ms.featuremap -> /ms.codex-checklist -> /ms.verify -> /ms.constitution
+/ms.checklist -> /ms.codex-verify -> /ms.specify -> /ms.clarify -> /ms.plan -> /ms.tasks
 /ms.analyze -> /ms.implement -> /ms.review -> [/ms.up-docs] -> /fin
 ```
 
@@ -55,7 +55,7 @@ project-wide baseline in Section IX from the checked PRD Feature Map.
   baseline alignment.
 - `/ms.analyze` must not run post-implementation code gates such as tests, lint,
   typecheck, coverage, build, security scan, or code-level TAG scans.
-- `/ms.implement` owns test-first implementation for the current task/TAG.
+- `/ms.implement` owns test-first implementation for the selected phase/task/TAG scope.
 - `/ms.review` owns post-implementation code review and executable gates:
   lint, typecheck, tests, build, coverage, security checks, TRUST review, and
   TAG integrity reporting.
@@ -152,7 +152,7 @@ For `/ms.*` feature work, implementation follows a verifiable test-first loop:
 1. Define the behavior contract.
 2. Write or update the relevant test or verification case.
 3. Implement the smallest change that satisfies it.
-4. Refactor only within the task scope while keeping verification green.
+4. Refactor only within the selected implementation scope while keeping verification green.
 
 For audit-driven refactors, the RED phase may be a safety-net verification that
 is already green. In that case, document that the task is refactor-mode and keep
@@ -168,7 +168,7 @@ the safety net in place before making changes.
 
 ### Enforcement
 
-- `/ms.implement` owns the local test-first workflow for the current task.
+- `/ms.implement` owns the local test-first workflow for the selected implementation scope.
 - `/ms.review` owns executable verification after implementation.
 - `/ms.analyze` does not run coverage or test commands.
 

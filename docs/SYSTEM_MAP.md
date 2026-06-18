@@ -1,25 +1,20 @@
 ---
-generated_at: 2026-06-18T05:22:41Z
-git_head: 8931d5522544b3d2dd2afcc6a1bdbda5f9bf2b11
-git_head_short: 8931d55
+generated_at: 2026-06-18T13:41:11Z
+git_head: fb1d1cdd37fb101591649eb456ef386b04a46a26
+git_head_short: fb1d1cd
 git_branch: master
 working_tree: dirty
 scope:
   - AGENTS.md
   - README.md
-  - Makefile
-  - pyproject.toml
-  - frontend/package.json
   - .claude/
-  - .devcontainer/
-  - backend/
   - docs/
-  - frontend/
+  - docs/templates/
 tools:
-  - find
   - git
   - rg
   - sed
+  - find
 serena: configured
 stale_when:
   - git_head differs from current HEAD
@@ -30,232 +25,86 @@ stale_when:
 # System Map
 
 ## Snapshot Status
-
-This map describes the repository at commit
-`8931d5522544b3d2dd2afcc6a1bdbda5f9bf2b11` on branch `master`.
-
-The working tree was dirty when this snapshot was created:
-
-- `.devcontainer/Makefile`
-- `docs/DOCKER_README.md`
-- `docs/todo.md`
-
-Serena MCP is configured in `.claude/mcp_servers.json` and `.mcp.json` after
-this snapshot's initial scan. The map content was produced with `find`, `rg`,
-`sed`, and `git`; refresh with Serena for symbol-level code navigation when the
-MCP server is active.
+This is an agent-facing snapshot for the template repository. It is intentionally
+concise and should be refreshed when the command or documentation surface changes.
 
 ## System Purpose
-
-SPECTER is a workflow overlay for AI-assisted software development. It layers
-project rules, slash commands, subagents, skills, traceability conventions, and
-documentation templates on top of GitHub Spec-Kit style `/speckit.*` workflows.
-
-The repository currently behaves more like a reusable workflow/template project
-than an application codebase. The checked backend and frontend areas are mostly
-placeholders; the main implementation surface is `.claude/`, `docs/`, root
-instructions, and project setup files.
+SPECTER is a reusable workflow overlay for Spec-Kit-style Claude Code projects.
+This repository contains the command, skill, template, and guidance files that
+shape that workflow.
 
 ## Repository Shape
-
-- `AGENTS.md`: always-on coding assistant rules and fallback project contract.
-- `README.md`: user-facing entry point and canonical SPECTER workflow overview.
-- `.claude/commands/`: slash command definitions for `/ms.*`, `/fin`, and
-  `/finq`.
-- `.claude/agents/`: subagent definitions used by command workflows.
-- `.claude/skills/`: reusable skill definitions and activation metadata.
-- `.claude/mcp_servers.json`: Claude Code MCP server configuration; currently
-  includes `context7` and `serena`.
-- `.mcp.json`: project MCP server configuration mirroring the Claude Code MCP
-  server entries.
-- `.devcontainer/`: container and local development helper scripts.
-- `docs/`: workflow notes, templates, changelog, daily logs, and this system map.
-- `docs/templates/`: Constitution and spec templates.
-- `docs/src/`: helper library documentation for TAG and TRUST utilities.
-- `backend/`: contains `backend/AGENTS.md`; no backend source files were present
-  in the scan.
-- `frontend/`: contains `frontend/AGENTS.md` and a minimal `package.json` with
-  Prettier scripts.
-- `pyproject.toml`: Python package metadata and dev tooling configuration.
-- `Makefile`: delegates development environment targets to `.devcontainer`.
+- `AGENTS.md`: repository-wide agent contract.
+- `README.md`: public workflow entry point.
+- `.claude/commands/`: slash-command definitions.
+- `.claude/skills/`: reusable workflow and helper skills.
+- `.claude/agents/`: optional agent definitions.
+- `docs/templates/`: reusable Constitution and spec templates.
+- `docs/dev_daily.md`: append-only daily log template.
+- `docs/todo.md`: lightweight working TODO template.
+- `docs/SYSTEM_MAP.md`: this snapshot.
 
 ## Primary Workflows
-
-The README documents the primary SPECTER flow:
-
-1. `/ms.init`
-2. `/ms.featuremap`
-3. `/ms.checklist --global`
-4. `/ms.constitution`
-5. Per-feature cycle from `/ms.checklist` through `/ms.review`
-6. `/fin` or `/finq`
-7. `/ms.merglease`
-
-Important command files include:
-
-- `.claude/commands/ms.init.md`
-- `.claude/commands/ms.featuremap.md`
-- `.claude/commands/ms.checklist.md`
-- `.claude/commands/ms.constitution.md`
-- `.claude/commands/ms.specify.md`
-- `.claude/commands/ms.clarify.md`
-- `.claude/commands/ms.plan.md`
-- `.claude/commands/ms.tasks.md`
-- `.claude/commands/ms.analyze.md`
-- `.claude/commands/ms.implement.md`
-- `.claude/commands/ms.review.md`
-- `.claude/commands/ms.up-docs.md`
-- `.claude/commands/ms.amend.md`
-- `.claude/commands/ms.fix.md`
-- `.claude/commands/ms.merglease.md`
-- `.claude/commands/fin.md`
-- `.claude/commands/finq.md`
-
-The `/ms.plan` workflow already references `codebase-explorer` for codebase
-pattern discovery. The new `codebase-snapshot` skill complements that by
-recording durable architecture context in this file.
+- `/ms.init` bootstraps the workflow overlay.
+- `/ms.featuremap` and `/ms.codex-checklist` produce PRD-level inputs.
+- `/ms.verify` and `/ms.constitution` establish the shared baseline.
+- `/ms.checklist` and `/ms.codex-verify` validate the next Feature.
+- `/ms.specify`, `/ms.clarify`, `/ms.plan`, and `/ms.tasks` shape the feature
+  into implementation-ready artifacts.
+- `/ms.analyze`, `/ms.implement`, and `/ms.review` handle pre-implementation
+  consistency, implementation, and post-implementation checks.
+- `/fin` and `/finq` handle publish flows.
 
 ## Hot Paths
-
-- `AGENTS.md`: repository-wide safety, scope, testing, and permission rules.
-- `README.md`: public workflow contract and command sequence.
-- `.claude/commands/`: command behavior; edits can affect all generated specs,
-  plans, tasks, reviews, PR, and release flows.
-- `.claude/agents/codebase-explorer.md`: existing subagent for pattern search.
-- `.claude/agents/implementation-planner.md`: coordinates planning and
-  codebase exploration.
-- `.claude/skills/skill-rules.json`: skill auto-activation suggestions.
-- `.claude/skills/ms-*`: SPECTER workflow, language, TAG, TRUST, and review
-  behavior.
-- `docs/templates/constitution-template.md`: project governance template.
-- `docs/templates/spec-template.md`: generated spec structure.
-- `docs/ms-workflow-improvement.md`: known workflow gaps and improvement
-  rationale.
-- `.claude/mcp_servers.json`: MCP server availability for agents.
-- `.devcontainer/`: local execution environment and helper commands.
+- `README.md`
+- `AGENTS.md`
+- `.claude/commands/`
+- `.claude/skills/`
+- `.claude/agents/`
+- `docs/templates/`
+- `docs/dev_daily.md`
+- `docs/todo.md`
 
 ## State And Data Flow
-
-SPECTER's durable state is mostly file-based:
-
-- PRDs and feature maps live under `docs/prd/` in downstream projects.
-- Constitution state is expected at `.specify/memory/constitution.md` when a
-  project has been initialized.
-- Per-feature specs, plans, and tasks are expected under `specs/{feature}/`.
-- TAG chains connect requirements, tests, code, and docs through `@SPEC`,
-  `@TEST`, `@CODE`, and `@DOC` markers.
-- Living documentation updates are recorded under `docs/`, especially
-  `docs/dev_daily.md` and generated API or review docs in downstream projects.
-
-In this repository snapshot, `.specify/memory/constitution.md`, `specs/`, and
-`docs/prd/` were not present. Treat references to those paths as workflow
-expectations for initialized downstream projects, not as current files.
+- Workflow state is mostly file-based.
+- `docs/dev_daily.md` is an append-only working log.
+- `docs/todo.md` is a lightweight scratchpad for outstanding work.
+- `docs/SYSTEM_MAP.md` is a refreshable snapshot for agents.
 
 ## Shared Modules And Single Sources Of Truth
-
-- Repository rules: `AGENTS.md`.
-- Nested area rules: `backend/AGENTS.md`, `frontend/AGENTS.md`.
-- Workflow overview: `README.md`.
-- Slash command definitions: `.claude/commands/*.md`.
-- Subagent definitions: `.claude/agents/*.md`.
-- Skill definitions: `.claude/skills/*/SKILL.md`.
-- Skill activation metadata: `.claude/skills/skill-rules.json`.
-- Constitution template: `docs/templates/constitution-template.md`.
-- Spec template: `docs/templates/spec-template.md`.
-- Python tooling expectations: `pyproject.toml`.
-- Frontend formatting expectations: `frontend/package.json`.
+- `AGENTS.md`
+- `README.md`
+- `.claude/commands/*.md`
+- `.claude/skills/*/SKILL.md`
+- `docs/templates/constitution-template.md`
+- `docs/templates/spec-template.md`
 
 ## Invariants
-
-- Read relevant files before editing command, agent, skill, template, or rule
-  files.
-- Keep workflow changes surgical; command files are high blast-radius.
-- Do not require Constitution artifacts for ordinary non-`/ms` coding work when
-  no Constitution exists.
-- For `/ms.*` workflows, command files and the active Constitution define gates
-  and artifacts.
-- Preserve traceability semantics when editing TAG, TRUST, GEARS, command, or
-  template behavior.
-- Do not make optional MCP tools such as Serena hard requirements unless the
-  project configuration includes them.
-- Do not claim validation passed unless the relevant command actually ran.
+- Keep workflow changes surgical.
+- Do not claim a command ran unless it actually ran.
+- Treat this map as stale-prone and refresh it when the repository changes.
+- Preserve traceability semantics when editing TAG, GEARS, TRUST, or workflow files.
 
 ## Risk Areas
-
-- The working tree was dirty at snapshot time; avoid overwriting unrelated
-  changes in `.devcontainer/Makefile`, `docs/DOCKER_README.md`, or
-  `docs/todo.md`.
-- `docs/todo.md` notes a desired `SYSTEM_MAP.md` and codebase exploration skill;
-  this file and `.claude/skills/codebase-snapshot/SKILL.md` are the first
-  implementation of that direction.
-- `.claude/commands/ms.plan.md` already has codebase-explorer integration; any
-  later integration with this map should avoid duplicating contradictory
-  planning rules.
-- `.claude/settings.local.json` contains broad local tool permissions and should
-  not be treated as a portable policy file.
-- `.env` exists in the repository root scan. Do not inspect, copy, or document
-  secret values.
+- Command and template files change frequently and can invalidate this snapshot.
+- This repository is dirty, so git metadata must be read carefully before use.
+- Deleted docs elsewhere in `docs/` should not be reintroduced unless they serve
+  a template or workflow role.
 
 ## Verification Commands
-
-Use the smallest relevant check for the touched area:
-
 ```bash
 git status --short
-rg -n "codebase-snapshot|SYSTEM_MAP|codebase-explorer" .claude docs README.md AGENTS.md
+git branch --show-current
+git rev-parse HEAD
+rg -n "ms\.plan|ms\.implement|Reality Verified|SYSTEM_MAP|dev_daily|todo" README.md .claude docs
 ```
-
-For Python helper changes:
-
-```bash
-python -m pytest
-```
-
-For frontend formatting changes:
-
-```bash
-npm --prefix frontend run format:check
-```
-
-Do not report these checks as passing unless they were run in the current task.
 
 ## Known Gaps
-
-- Serena MCP was configured after the initial snapshot scan; this map has not
-  yet been refreshed through Serena semantic tools.
-- No `.specify/memory/constitution.md` was present.
-- No `specs/` directory was present.
-- No `docs/prd/` directory was present.
-- `backend/` and `frontend/` contain minimal placeholder files in this snapshot,
-  so there are no application runtime routes, services, or state transitions to
-  map.
+- No application runtime codebase is present here.
+- This snapshot is intentionally higher-level than a full architecture map.
 
 ## Refresh Procedure
-
-1. Read `AGENTS.md` and any nested `AGENTS.md` for the target area.
-2. If present, read `.specify/memory/constitution.md`.
-3. Capture git metadata:
-
-   ```bash
-   git status --short
-   git branch --show-current
-   git rev-parse HEAD
-   git rev-parse --short HEAD
-   ```
-
-4. Re-scan structure:
-
-   ```bash
-   find . -maxdepth 2 -type d -not -path './.git*' | sort
-   find . -maxdepth 3 -type f -not -path './.git/*' | sort
-   ```
-
-5. Search for changed workflow concepts:
-
-   ```bash
-   rg -n "SYSTEM_MAP|codebase-explorer|skill|Serena|MCP|TAG|TRUST|GEARS" .claude docs README.md AGENTS.md
-   ```
-
-6. If Serena is configured, use it for symbol overview and reference lookup in
-   code-heavy areas, then record `serena: used`.
-7. Update this file in place. Keep verified facts separate from inference.
+1. Read `AGENTS.md` and the relevant command docs.
+2. Capture current git metadata.
+3. Re-scan the repository shape with `rg --files` and targeted searches.
+4. Update the sections above with only verified facts.

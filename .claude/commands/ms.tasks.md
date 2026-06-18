@@ -13,7 +13,7 @@ Extends `/speckit.tasks` to generate implementation tasks with automatic TAG ID 
 **Base Command**: `/speckit.tasks` - Generates implementation tasks from spec.md and plan.md
 
 **Additional Features** (provided by `/ms.tasks`):
-- Library documentation research via `library-researcher` agent (Haiku + Context7 MCP)
+- Library/documentation pattern check when plan.md depends on current third-party APIs
 - Automatic TAG ID generation for each Functional Requirement
 - Domain extraction from FR titles (AUTH, USER, PAY, etc.)
 - TAG metadata insertion (@SPEC -> @TEST -> @CODE, @DOC optional)
@@ -57,46 +57,25 @@ Extends `/speckit.tasks` to generate implementation tasks with automatic TAG ID 
 
 **IF external libraries detected**:
 
-  1. **Identify required libraries and their use cases**
-  2. **Launch library-researcher agent**:
-     ```python
-     # Launch library research agent (sequential execution)
-     Task(
-         subagent_type="library-researcher",
-         description="Research library docs",
-         prompt="""Research latest library documentation for: '$REQUIRED_LIBRARIES'
-
-         Use Context7 MCP to fetch:
-         - Latest API usage examples
-         - Best practices from official docs
-         - Version compatibility notes
-         - Breaking changes
-         - Common implementation patterns
-
-         Focus on:
-         - Task breakdown guidance (how features are typically implemented)
-         - File/module organization recommendations
-         - Testing strategies for this library
-         - Common pitfalls and edge cases
-
-         Return: Libraries researched, implementation patterns, task breakdown guidance, testing strategies"""
-     )
-
-     # Agent runs and blocks until completion
-     # Results available after agent finishes
-     ```
-  3. **Use library patterns to inform task breakdown** (more accurate estimation and structure)
+1. Identify required libraries, versions, and use cases.
+2. Use available documentation tooling directly, preferring official docs or Context7 when available.
+3. Extract only task-shaping facts:
+   - implementation sequence
+   - file/module organization
+   - testing strategy
+   - common pitfalls or migration constraints
+4. Store the verified library patterns for Step 2 task generation.
 
 **ELSE**:
   → Skip (no external libraries)
 
-**Store library patterns** for use in Step 2 task generation.
+Do not claim that a `library-researcher` agent or a specific model ran unless it actually did.
 
 ### 2. Run Base Command
 
 **IMPORTANT**: `/ms.tasks` delegates core task generation to `/speckit.tasks`.
 
-Execute `/speckit.tasks` to generate base task structure with library research context:
+Execute `/speckit.tasks` to generate base task structure with verified planning context:
 
 ```
 /speckit.tasks $ARGUMENTS
@@ -107,7 +86,7 @@ Execute `/speckit.tasks` to generate base task structure with library research c
 - Generates task breakdown with phases
 - Creates dependency graph
 - Produces tasks.md file
-- **Enhanced with library research**: Tasks reflect actual library implementation patterns
+- **Enhanced with verified context**: Tasks reflect checked project and library implementation patterns when relevant
 
 **Output**: `specs/[spec-id]/tasks.md` with complete task structure (without TAG IDs yet)
 
@@ -115,7 +94,9 @@ Execute `/speckit.tasks` to generate base task structure with library research c
 
 **This step is UNIQUE to `/ms.tasks`** - not provided by `/speckit.tasks`.
 
-For each Functional Requirement (FR) in spec.md:
+For each Functional Requirement (FR) in `spec.md`, assign exactly one TAG ID.
+TAG IDs must be unique across the whole repository and within the newly generated
+`tasks.md` file.
 
 **Extract Domain**:
 
@@ -124,18 +105,39 @@ extract_domain() {
   local fr_title="$1"
   local fr_number="$2"
 
-  # Match domain keywords
-  echo "$fr_title" | rg -io '(auth|user|pay|cart|order|product|admin|notif|search|profile)' | head -n1 | tr '[:lower:]' '[:upper:]' \
-    || echo "FR${fr_number}"  # Fallback to FR number
+  # Match domain keywords. Keep fallback deterministic for unknown domains.
+  echo "$fr_title" | rg -io '(auth|user|pay|cart|order|product|admin|notif|search|profile|api|db|ui|ops)' | head -n1 | tr '[:lower:]' '[:upper:]' \
+    || echo "FR${fr_number}"
 }
 ```
 
-**Count Existing TAGs**:
+**Build Existing Domain Counters Once**:
+
+Do not call `count + 1` independently for every FR. That creates duplicate IDs
+when two new FRs share the same domain in a single `/ms.tasks` run. Instead,
+scan existing TAGs once, initialize a per-domain counter, then increment that
+counter in memory after each assignment.
 
 ```bash
-count_tags_for_domain() {
-  local domain="$1"
-  rg -o "${domain}-[0-9]{3}" specs/ src/ tests/ backend/src frontend/src 2>/dev/null | sort -u | wc -l | tr -d ' '
+declare -A TAG_NEXT
+
+initialize_tag_counters() {
+  # Existing SPEC tags are authoritative for requirement IDs. CODE/TEST may
+  # appear multiple times for the same ID, so they are only a collision fallback.
+  local existing_tags
+  existing_tags=$(rg -o '@(SPEC|TEST|CODE):([A-Z][A-Z0-9-]*-[0-9]{3})' specs src tests backend frontend 2>/dev/null \
+    | sed -E 's/.*:([A-Z][A-Z0-9-]*-[0-9]{3})/\1/' \
+    | sort -u)
+
+  while read -r tag; do
+    [ -z "$tag" ] && continue
+    local domain="${tag%-*}"
+    local number="${tag##*-}"
+    local next=$((10#$number + 1))
+    if [ -z "${TAG_NEXT[$domain]}" ] || [ "$next" -gt "${TAG_NEXT[$domain]}" ]; then
+      TAG_NEXT[$domain]=$next
+    fi
+  done <<< "$existing_tags"
 }
 ```
 
@@ -144,11 +146,49 @@ count_tags_for_domain() {
 ```bash
 generate_tag_id() {
   local domain="$1"
-  local count=$(count_tags_for_domain "$domain")
-  printf "%s-%03d" "$domain" $((count + 1))
+  local next="${TAG_NEXT[$domain]:-1}"
+  local tag
+
+  while :; do
+    tag=$(printf "%s-%03d" "$domain" "$next")
+    # Protect against existing repo tags and IDs already assigned earlier in
+    # this same tasks generation pass.
+    if ! rg -q "@(SPEC|TEST|CODE):${tag}\b|${tag}\b" specs src tests backend frontend 2>/dev/null \
+       && ! printf '%s\n' "${NEW_TAG_IDS[@]}" | rg -q "^${tag}$"; then
+      break
+    fi
+    next=$((next + 1))
+  done
+
+  TAG_NEXT[$domain]=$((next + 1))
+  NEW_TAG_IDS+=("$tag")
+  printf "%s" "$tag"
 }
 
-# Example: AUTH-001, AUTH-002, PAY-001
+initialize_tag_counters
+NEW_TAG_IDS=()
+
+# Example within one run:
+# FR-1 User Authentication -> AUTH-001
+# FR-2 Session Authentication -> AUTH-002
+# FR-3 Payment Capture -> PAY-001
+```
+
+**Validation**:
+
+Existing repo TAG collisions are prevented during ID generation. After inserting
+TAG metadata, scan the generated `tasks.md` and fail if any `@SPEC:<TAG_ID>`
+appears more than once.
+
+```bash
+rg -o '@SPEC:([A-Z][A-Z0-9-]*-[0-9]{3})' specs/[spec-id]/tasks.md \
+  | sed -E 's/.*@SPEC://' \
+  | sort \
+  | uniq -d \
+  | while read -r duplicate; do
+      echo "❌ Duplicate @SPEC TAG in tasks.md: $duplicate"
+      exit 1
+    done
 ```
 
 ### 4. Insert TAG Metadata (My-Spec Enhancement)
@@ -194,7 +234,7 @@ Display next steps:
 
 🎯 다음 단계:
 👉 /ms.analyze (구현 전 문서 일관성 검증 + Codex 보조 검증)
-👉 /ms.implement (검증 통과 후 첫 번째 태스크 구현 시작)
+👉 /ms.implement (검증 통과 후 첫 번째 pending phase/phase-part 구현 시작)
 
 💡 참고:
 - 모든 태스크에는 TAG ID가 할당되어 SPEC-TEST-CODE 추적이 가능합니다.
@@ -226,5 +266,6 @@ Display next steps:
 
 After `/ms.tasks`:
 
-1. Review tasks.md with TAG assignments
-2. Run `/ms.analyze` to validate spec-plan-tasks consistency before implementation, including the default Codex advisory pass
+1. Review tasks.md with TAG assignments and phase boundaries.
+2. Run `/ms.analyze` to validate spec-plan-tasks consistency before implementation, including the default Codex advisory pass.
+3. After `/ms.analyze` passes, run `/ms.implement` to implement the first pending phase/phase-part by default.

@@ -4,7 +4,7 @@ description: "Implement feature with TAG blocks"
 
 # /ms.implement - Implementation with Traceability
 
-Implements features with automatic TAG selection and TAG block insertion.
+Implements the next selected task scope with TAG block insertion.
 
 ## Overview
 
@@ -13,21 +13,21 @@ Implements features with automatic TAG selection and TAG block insertion.
 **Base Command**: `/speckit.implement` - TDD implementation (RED-GREEN-REFACTOR)
 
 **Additional Features** (provided by `/ms.implement`):
-- TAG auto-selection from tasks.md (first uncompleted task)
-- Library documentation research via `library-researcher` agent (Haiku + Context7 MCP)
-- TAG block insertion for best-effort traceability (@SPEC -> @TEST -> @CODE, @DOC optional)
-- Living Documentation sync via `doc-updater` agent (Haiku)
-- tasks.md checklist auto-update
+- Scope selection from `tasks.md` with current phase as the default boundary
+- Latest library documentation check when the implementation depends on current third-party APIs
+- File-level TAG block insertion for best-effort traceability (`@SPEC -> @TEST -> @CODE`, `@DOC` optional)
+- Documentation sync instructions via `/ms.up-docs` or direct doc updates
+- `tasks.md` checklist update with read-back verification
 
-**Purpose**: Implements features with best-effort TAG traceability and automatic documentation synchronization, keeping implementation, tests, and docs easy to find without treating TAGS as a substitute for tests or review.
+**Purpose**: Implements the selected phase/task/TAG scope with best-effort TAG traceability, keeping implementation, tests, and docs easy to find without treating TAGS as a substitute for tests or review.
 
 ## Usage
 
 ```
-/ms.implement [--mode={tdd|refactor}]
+/ms.implement [--mode={tdd|refactor}] [--task TNNN] [--to-end] [TAG_ID]
 ```
 
-**No arguments required** - TAG is auto-selected from tasks.md, and all tasks in the current phase are targeted by default.
+**No arguments required** - the command selects the first pending phase in `tasks.md` and targets that phase as the default implementation boundary.
 
 **Refactor mode**:
 ```
@@ -35,16 +35,12 @@ Implements features with automatic TAG selection and TAG block insertion.
 ```
 *Note: In refactor mode, the narrative changes from RED-GREEN-REFACTOR to safety-net → swap → verify.*
 
-**Manual TAG specification** (optional):
+**Scope controls** (optional):
 
 ```
-/ms.implement {TAG_ID}
-```
-
-Example:
-
-```
-/ms.implement AUTH-001
+/ms.implement --task T035      # single task only
+/ms.implement --to-end         # all remaining tasks in tasks.md
+/ms.implement AUTH-001         # all pending tasks for one TAG
 ```
 
 ## Execution Steps
@@ -72,14 +68,20 @@ Example:
 
 **These documents MUST guide implementation to ensure code quality and consistency.**
 
-### Step 1: TAG Auto-Selection
+### Step 1: Scope and TAG Selection
 
-**IF no TAG_ID provided as argument**:
+Read `tasks.md` and select an implementation boundary before coding.
 
-1. Read `tasks.md`
-2. Scan for uncompleted tasks: `[ ]` checkboxes
-3. Extract TAG ID from first uncompleted task's `**TAG**:` line
-4. Use format: `@SPEC:{TAG_ID} -> @TEST:{TAG_ID} -> @CODE:{TAG_ID}`
+**Default behavior**:
+1. Find the first phase or phase-part that contains unchecked `[ ]` tasks.
+2. Target all unchecked tasks in that phase.
+3. Extract every TAG chain referenced by those tasks.
+4. Treat the selected phase as the next natural commit boundary.
+
+**Explicit controls**:
+- `--task TNNN`: implement only that task.
+- `TAG_ID`: implement pending tasks for that TAG only.
+- `--to-end`: implement all remaining unchecked tasks, only when the user clearly wants a long run.
 
 **Example**:
 
@@ -90,24 +92,26 @@ Example:
 
 ### Implementation
 
--   [ ] T015 Create auth service ← First uncompleted task
--   [x] T014 Setup database
+-   [ ] T015 Create auth service
+-   [ ] T016 Write auth tests
+
+## Phase 4: FR-2 Session Management
+
+**TAG**: @SPEC:AUTH-002 -> @TEST:AUTH-002 -> @CODE:AUTH-002
+
+-   [ ] T017 Create session service
 ```
 
-**Selected TAG**: `AUTH-001`
-
-**IF TAG_ID provided as argument**:
-
--   Use provided TAG_ID directly
--   Skip auto-selection
+Default selected scope: Phase 3 only, TAG `AUTH-001`.
 
 **IF no uncompleted tasks found**:
 
 ```
 ✅ All tasks completed!
 
-No pending TAGs found in tasks.md.
+No pending tasks found in tasks.md.
 All implementation tasks are complete.
+Next step: /ms.review
 ```
 
 **EXIT**: Code 0
@@ -123,33 +127,15 @@ All implementation tasks are complete.
 
 **IF external library detected**:
 
-  1. **Identify library and needed features**
-  2. **Launch library-researcher agent**:
-     ```python
-     # Launch library research agent (sequential execution)
-     Task(
-         subagent_type="library-researcher",
-         description="Research library docs",
-         prompt="""Research latest library documentation for: '$REQUIRED_LIBRARIES'
-
-         Use Context7 MCP to fetch:
-         - Latest API usage examples
-         - Best practices from official docs
-         - Version compatibility notes
-         - Breaking changes
-
-         Return: Libraries researched, API examples, best practices, compatibility notes"""
-     )
-
-     # Agent runs and blocks until completion
-     # Results available after agent finishes
-     ```
-  3. **Use latest API in implementation** (based on agent's research)
+1. Identify the exact library, version constraints, and API surface needed.
+2. Use available documentation tooling directly, preferring official docs or Context7 when available.
+3. Record the relevant API facts in the implementation notes before coding.
+4. If documentation cannot be verified and the API is unstable or high-risk, stop and surface the uncertainty instead of guessing.
 
 **ELSE**:
   → Skip (no external libraries)
 
-**Store library docs** for use in Step 2 implementation.
+Do not claim that a `library-researcher` agent or a specific model ran unless it actually did.
 
 ### Step 2: Inject Constitution & Run Implementation
 
@@ -189,28 +175,22 @@ You are implementing code that MUST follow the project Constitution.
 
 **Refer to Constitution Sections III, IV, V, VI, and AGENTS.md change discipline for details.**
 
-Now implement TAG: {TAG_ID}
+Now implement selected scope: {SCOPE}
+Selected TAGs: {TAG_IDS}
 ```
 
-Execute `/speckit.implement {TAG_ID}` with Constitution-enhanced context.
+Execute `/speckit.implement` with Constitution-enhanced context and the selected scope.
+When a single `TAG_ID` was provided, pass that TAG as the scope. Otherwise, pass
+the selected phase/task list so implementation does not silently shrink back to
+one task.
 
-**Agent Delegation Strategy**:
+Implementation contract:
+- In `tdd` mode: write or update the smallest relevant failing test/verification first, implement the minimum code, then refactor only inside the selected scope.
+- In `refactor` mode: establish or identify the safety net first, make the mechanical or structural change, then run the relevant verification. Do not force an artificial RED when the work is audit-driven.
+- Insert TAG blocks yourself in Step 3; do not rely on an automatic skill invocation.
+- Keep the implementation within the selected phase/task/TAG boundary unless a blocker requires user-visible scope adjustment.
 
-`/speckit.implement` uses the **tdd-implementer** agent (Sonnet 3.5 model) for core TDD workflow:
-
-**Primary Agent** (High-Value Work):
-- **tdd-implementer** (Sonnet 3.5 model)
-  - RED: Write failing tests first (test-driven approach)
-  - GREEN: Implement minimum code to pass tests
-  - REFACTOR: Improve code quality while keeping tests green
-  - Auto-insert TAG blocks via `ms-workflow-tag-manager` skill
-  - **WHY Sonnet**: TDD requires reasoning about test cases, edge cases, and refactoring strategies
-
-**Supporting Agents** (Research & Documentation):
-- **library-researcher** (Haiku 3.5) - Already completed in Step 1.5 if needed
-- **doc-updater** (Haiku 3.5) - Will run in Step 3.5 for documentation sync
-
-This generates the core implementation files (code, tests) following Constitution principles and TDD best practices.
+This generates or modifies the implementation files while following Constitution principles and existing project patterns.
 
 ### Step 3: Insert TAG Blocks
 
@@ -290,74 +270,33 @@ For each generated or meaningfully modified file, insert at most one file-level 
 
 ### Step 3.5: Update Documentation (Living Docs)
 
-**After implementation is complete**, update project documentation to reflect code changes.
+After implementation is complete, update documentation only where the code change
+actually affects project knowledge.
 
 **Documentation to update**:
-- **dev_daily.md**: Append implementation summary with TAG IDs
-- **API docs**: Auto-generate/update `docs/api/{TAG_ID}.md` if public APIs added
-- **README.md**: Update if major feature completed (conditional)
+- `docs/dev_daily.md`: append a concise implementation summary with TAG IDs when the project uses this log.
+- API docs: create or update `docs/api/{TAG_ID}.md` only if public APIs were added or changed.
+- `README.md`: update only for user-visible major feature completion.
 
-**Use doc-updater agent** (delegated to `/ms.up-docs` internally):
+Preferred path:
+- Use `/ms.up-docs` after implementation when documentation changes are non-trivial.
+- For small changes, update the exact affected docs directly.
 
-```python
-# Launch doc-updater agent for Living Documentation sync (sequential execution)
-Task(
-    subagent_type="doc-updater",
-    description="Sync Living Documents",
-    prompt="""Update Living Documentation based on recent implementation:
-
-    Changes:
-    - Files created: {list all new files}
-    - Files modified: {list all modified files}
-    - TAG implemented: {TAG_ID}
-    - Features added: {describe new capabilities}
-
-    Tasks:
-    1. Append to docs/dev_daily.md:
-       - Implementation summary with TAG ID
-       - Files changed and rationale
-       - Current date/time
-
-    2. Generate/update API docs (if public APIs added):
-       - Create docs/api/{TAG_ID}.md
-       - Extract function signatures and docstrings
-       - Include TAG chain traceability
-
-    3. Update README.md (if major feature):
-       - Update feature list progress
-       - Add to completed features section
-
-    Follow CODE-FIRST principle:
-    - Extract documentation from code comments/docstrings
-    - Report TAG traceability warnings without treating them as implementation blockers
-    - Use auto-generated markers to preserve manual content
-
-    Return: List of docs updated, TAG integrity report"""
-)
-
-# Agent runs and blocks until completion (Haiku model for speed)
-# Results available after agent finishes
-```
-
-**Documentation Principles** (from `doc-updater` agent):
-- **CODE-FIRST**: Documentation generated from code, not maintained separately
-- **Living Docs**: Real-time sync between code and documentation
-- **TAG Traceability**: @SPEC -> @TEST -> @CODE with optional @DOC; report warnings by default
-
-**Notes**:
-- **dev_daily.md**: Always updated (implementation log)
-- **API docs**: Only if public APIs added/modified
-- **README.md**: Only if major feature completed
-- **CHANGELOG.md**: Manual updates only (not auto-generated)
+Documentation principles:
+- CODE-FIRST: derive docs from the implemented code and tests.
+- Preserve manual content; use generated markers only where the repo already uses them.
+- TAG traceability warnings are reported, not treated as implementation blockers unless Constitution Section IX or CI promotes them.
+- Do not claim a `doc-updater` agent or a specific model ran unless it actually did.
 
 ### Step 4: Update tasks.md Checklist
 
 **CRITICAL**: Mark completed tasks in tasks.md after successful implementation.
 
 1. Read `specs/{SPEC_ID}/tasks.md`
-2. Find tasks associated with current TAG_ID
-3. Mark completed tasks with `[x]` checkbox
-4. Save updated tasks.md
+2. Find every task in the selected scope
+3. Mark only successfully completed tasks with `[x]` checkbox
+4. Leave blocked or intentionally deferred tasks unchecked with a short note
+5. Save updated tasks.md
 
 **Example**:
 
@@ -377,18 +316,19 @@ Task(
 
 #### Read-back verification (don't rely on "remembering")
 
-After writing tasks.md, **re-read it and assert** every task for the current
-TAG_ID is now `[x]`. Progress lives only in these checkboxes and the next run
-auto-selects the *first* `[ ]` — a missed checkoff silently re-implements or skips.
+After writing tasks.md, **re-read it and assert** every completed task in the
+selected scope is now `[x]`. Progress lives only in these checkboxes and the next
+run auto-selects the first pending scope. A missed checkoff silently repeats work.
 
 ```bash
-# Fail loudly if any task for this TAG is still unchecked after the update.
-UNCHECKED=$(grep -nE "^\s*-?\s*\[ \].*${TAG_ID}" "specs/${SPEC_ID}/tasks.md" || true)
-if [ -n "$UNCHECKED" ]; then
-  echo "❌ tasks.md read-back failed — these ${TAG_ID} tasks are still [ ]:"
-  echo "$UNCHECKED"
-  echo "   Fix the checkboxes before reporting completion."
-fi
+# Fail loudly if any task that was reported complete is still unchecked after
+# the update. Populate COMPLETED_TASK_IDS from the selected scope, e.g. T015 T016.
+for task_id in ${COMPLETED_TASK_IDS}; do
+  if grep -nE "^\s*-?\s*\[ \].*${task_id}\b" "specs/${SPEC_ID}/tasks.md"; then
+    echo "❌ tasks.md read-back failed — ${task_id} is still [ ]."
+    echo "   Fix the checkbox before reporting completion."
+  fi
+done
 ```
 
 ### Step 5: Report Output
@@ -397,7 +337,8 @@ Display summary:
 
 ```json
 {
-    "tag_selected": "AUTH-001",
+    "scope_selected": "Phase 3",
+    "tags_selected": ["AUTH-001"],
     "auto_selected": true,
     "files_created": ["src/auth/service.ts", "tests/unit/auth.test.ts"],
     "tag_blocks_inserted": 2
@@ -407,7 +348,7 @@ Display summary:
 Display next steps:
 
 ```
-✅ Implementation completed for TAG: AUTH-001
+✅ Implementation completed for selected scope: Phase 3
 
 📦 Files Created:
 - src/auth/service.ts (with @CODE:AUTH-001 block)
@@ -419,7 +360,7 @@ Display next steps:
 🎯 Next Steps:
 1. Review generated code and tests
 2. Confirm tasks.md was auto-updated and read-back verified
-3. Run `/ms.implement` again for the next pending TAG
+3. Run `/ms.implement` again for the next pending phase/task
 4. When all tasks are complete, run `/ms.review` for code quality, Codex advisory review, and executable gates
 ```
 
@@ -480,7 +421,7 @@ Please run `/ms.tasks` first to generate implementation tasks.
 ```
 ✅ All tasks completed!
 
-No pending TAGs found in tasks.md.
+No pending tasks found in tasks.md.
 All implementation is complete.
 ```
 
@@ -529,34 +470,26 @@ After `/ms.implement`:
 
 ## Notes
 
--   **Wrapper Design**: `/ms.implement` wraps `/speckit.implement` and adds TAG + documentation features
--   **Multi-Agent Orchestration**: Coordinates tdd-implementer (Sonnet), library-researcher (Haiku), doc-updater (Haiku)
--   **Auto TAG selection**: No manual TAG specification needed (scans tasks.md)
--   **Manual TAG option**: Can specify TAG explicitly if needed
--   **Automatic TAG blocks**: Inserted as one file-level block in generated or meaningfully modified files
--   **Living Documentation**: Auto-syncs code changes to docs via doc-updater agent
+-   **Wrapper Design**: `/ms.implement` wraps `/speckit.implement` and adds scope, TAG, checklist, and documentation discipline
+-   **Default scope**: Current pending phase or phase-part, not a single isolated task
+-   **Manual scope options**: `--task`, `TAG_ID`, and `--to-end` are available when needed
+-   **TAG blocks**: Inserted as one file-level block in generated or meaningfully modified files
+-   **Living Documentation**: Updated directly or via `/ms.up-docs` when the implementation changes project knowledge
 -   **Best-effort traceability**: SPEC -> TEST -> CODE, with DOC optional and warnings reported
 
 ## Implementation Details
 
 **Architecture**: Wrapper pattern with feature enhancements
 
-**Delegation**:
-- **Core implementation** → `/speckit.implement` (TDD workflow with tdd-implementer agent)
-- **Library research** → `library-researcher` agent (Context7 MCP, Haiku model)
-- **Documentation sync** → `doc-updater` agent (Living Docs, Haiku model)
-- **TAG block insertion** → `/ms.implement` (enhancement layer)
-
-**Agent Usage**:
-- **tdd-implementer** (Sonnet) - RED-GREEN-REFACTOR TDD cycle, core implementation
-- **library-researcher** (Haiku) - Latest library docs via Context7 MCP
-- **doc-updater** (Haiku) - Living Documentation synchronization
+**Execution responsibilities**:
+- **Core implementation** → `/speckit.implement` with the selected scope and Constitution context
+- **Library research** → direct documentation lookup when needed
+- **Documentation sync** → direct doc edits or `/ms.up-docs`
+- **TAG block insertion** → `/ms.implement` enhancement layer
+- **Checklist progress** → update and re-read `tasks.md`
 
 **Tools**:
-- SlashCommand (`/speckit.implement`) - Delegates TDD implementation
-- Task (launch agents: library-researcher, doc-updater)
-- Read (tasks.md, spec.md) - TAG auto-selection and context
-- Edit (generated files) - Insert TAG blocks
-- Write (TAG metadata) - Create traceability chains
-- Bash (ripgrep) - Scan for existing TAGs
- - Scan for existing TAGs
+- SlashCommand (`/speckit.implement`) - Runs scoped implementation
+- Read (tasks.md, spec.md, plan.md) - Scope selection and context
+- Edit (generated or touched files) - Insert TAG blocks and update docs/tasks
+- Bash/ripgrep - Scan for TAGs, project patterns, and verification targets

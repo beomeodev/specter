@@ -90,6 +90,22 @@ Analyze current session's work and review `docs/dev_daily.md`:
 
 ## 3. 🚀 Run CI Checks
 
+### 3.0 Review-State Notice
+
+If `.specify/review-state.txt` exists, show it before CI as advisory context.
+Do not require the file to exist, and do not block `/fin` solely because it is
+present. `/ms.review` owns the review result; `/fin` owns docs, CI, commit,
+push, and PR creation.
+
+```bash
+if [ -f .specify/review-state.txt ]; then
+  echo "⚠️ Prior /ms.review state exists:"
+  cat .specify/review-state.txt
+  echo ""
+  echo "Continuing because review-state is advisory in /fin."
+fi
+```
+
 **This is the pre-push gate** — and since remote CI is frequently unavailable
 (GitHub Actions billing), this local run is often the *only* CI that ever
 executes. Catch failures here, before the bad push.
@@ -104,7 +120,7 @@ runner (backend: `cd backend && uv run ...`), skipping secret/server-dependent
 jobs. It reports pass/fail per gate. It makes NO merge/override decision and edits nothing.
 ```
 
-**Then — `quality-gate` agent** (Haiku) for TRUST validation: coverage ≥85%,
+**Then — `quality-gate` agent** for TRUST validation when available: coverage ≥85%,
 TAG integrity, type/lint clean.
 
 **Result handling**:

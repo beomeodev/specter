@@ -230,6 +230,22 @@ else:
 
 ## 3. 💾 Git Commit and Push (Skip CI checks)
 
+### 3.0 Review-State Notice
+
+If `.specify/review-state.txt` exists, show it as advisory context. Do not
+require the file to exist, and do not block `/finq` solely because it is present.
+`/finq` remains a quick backup/sync path; unresolved review-state should be
+resolved before merge readiness, usually by rerunning `/ms.review` and `/fin`.
+
+```bash
+if [ -f .specify/review-state.txt ]; then
+  echo "⚠️ Prior /ms.review state exists:"
+  cat .specify/review-state.txt
+  echo ""
+  echo "Continuing because review-state is advisory in /finq."
+fi
+```
+
 ### Pre-commit Hook handling strategy
 
 **Problem**: Pre-commit hooks or IDE auto-format modify files after commit, making git state dirty

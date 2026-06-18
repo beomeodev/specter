@@ -271,6 +271,7 @@ After `/ms.featuremap`:
 2. Fix any blocking issues in `docs/prd/feature-map.md` and re-run `/ms.verify`.
 3. Run `/ms.constitution` once to establish Section IX from the PRD set and checked Feature Map.
 4. Run `/ms.checklist` to validate the next eligible Feature against its Source PRDs, PRD references, and commitment rows.
-5. After the per-Feature checklist passes, open `docs/prd/feature-map.md`, read the selected Feature section in full.
-6. Run `/ms.specify` and paste that Feature section as the input.
-7. Proceed through the dependency graph one Feature at a time, in order.
+5. After the per-Feature checklist passes, run `/ms.codex-verify` for the same Feature.
+6. After the Codex verification output is available, open `docs/prd/feature-map.md`, read the selected Feature section in full.
+7. Run `/ms.specify` and paste that Feature section as the input.
+8. Proceed through the dependency graph one Feature at a time, in order.
