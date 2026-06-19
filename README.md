@@ -41,6 +41,12 @@ Spec-Kit의 `/speckit.*` 명령을 그대로 버리지 않고, 그 위에 다음
 
 SPECTER만 단독으로 동작하지 않습니다. `/ms.init`이 Spec-Kit을 설치하고 SPECTER overlay를 주입합니다.
 
+## 릴리즈
+
+현재 릴리즈: `v2.0.0`
+
+자세한 변경 내역은 [CHANGELOG.md](./CHANGELOG.md)를 확인하세요.
+
 ---
 
 ## 핵심 문제와 해법
