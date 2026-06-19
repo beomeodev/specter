@@ -14,16 +14,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.14'
-          cache: 'pip'
+        run: uv python install 3.14
 
       - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+        run: uv sync --all-groups
 
       - name: Run CI checks
-        run: make -C .devcontainer -f Makefile ci
+        run: uv run make -C .devcontainer -f Makefile ci

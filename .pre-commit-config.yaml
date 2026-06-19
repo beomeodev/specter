@@ -19,7 +19,8 @@ repos:
     rev: 1.8.6
     hooks:
       - id: bandit
-        args: ["-q", "-r", "src"]
+        args: ["-q", "-r", "backend"]
+        pass_filenames: false
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0

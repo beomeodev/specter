@@ -36,10 +36,8 @@ dev = [
     # TRUST Validation: Unified (type safety)
     "mypy>=1.11.0",        # Static type checking (strict mode)
 
-    # Code quality tools
-    "black>=24.8.0",       # Code formatter
-    "isort>=5.13.0",       # Import sorting
-    "flake8>=7.1.0",       # Linter (PEP 8)
+    # Code quality tools (Ruff로 일원화 — lint + format)
+    "ruff>=0.14.0",        # Linter + formatter (black/isort/flake8 대체)
 
     # CLI output enhancement
     "rich>=13.7.0",        # Terminal output formatting
@@ -53,10 +51,10 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "-v --cov=.claude/hooks/ms --cov-report=html --cov-report=term-missing"
+addopts = "-v"
 
 [tool.coverage.run]
-source = [".claude/hooks/ms"]
+source = ["backend"]
 omit = ["tests/*", "*/__pycache__/*", "*/test_*.py"]
 parallel = true
 

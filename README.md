@@ -297,6 +297,19 @@ SPECTER는 Spec-Kit의 native checklist를 단순 호출하지 않습니다. Glo
 
 ---
 
+## 실행 환경과 가드레일
+
+워크플로(프롬프트 레이어) 아래에는 규칙을 기계가 강제하는 얇은 하네스 레이어가 깔려 있습니다.
+
+- **격리 환경**: `.devcontainer`에서 컨테이너를 보안 경계로 두고 에이전트를 실행합니다(non-root, 메모리 제한).
+- **CI 게이트**: `.github/workflows/ci.yml`이 `uv`로 의존성을 설치하고 lint(ruff)·type(mypy)·test(pytest)를 실행합니다.
+- **pre-commit**: `.pre-commit-config.yaml`이 커밋 시 ruff·mypy·bandit를 자동 검사합니다.
+- **권한 베이스라인**: `.claude/settings.json`이 안전한 명령은 허용, 파괴적 명령은 차단하고 커밋·푸시는 확인을 받습니다. 개인용 권한은 git에 추적되지 않는 `.claude/settings.local.json`에 둡니다.
+
+도구 체인은 `uv` + `pyproject.toml`로 통일되어 있어 로컬(`make ci`)과 CI가 같은 게이트를 실행합니다.
+
+---
+
 ## 프로젝트 구조
 
 ```text
@@ -304,7 +317,12 @@ specter/
 ├── .claude/
 │   ├── commands/           # slash commands
 │   ├── agents/             # subagents
-│   └── skills/             # reusable skills
+│   ├── skills/             # reusable skills
+│   └── settings.json       # 권한 베이스라인 (가드레일)
+├── .devcontainer/          # 격리 실행 환경
+├── .github/workflows/      # CI 게이트 (ci.yml)
+├── .pre-commit-config.yaml # 커밋 단계 검사
+├── pyproject.toml          # 의존성 + 게이트 설정 (uv)
 ├── .specify/
 │   ├── memory/
 │   │   └── constitution.md

@@ -211,10 +211,10 @@ test:
 	$(COMPOSE) exec app pytest -q
 
 fmt:
-	$(COMPOSE) exec app bash -lc "isort . && black ."
+	$(COMPOSE) exec app bash -lc "ruff check --fix . && ruff format ."
 
 lint:
-	$(COMPOSE) exec app flake8
+	$(COMPOSE) exec app ruff check .
 
 precommit:
 	$(COMPOSE) exec app pre-commit run --all-files
@@ -259,23 +259,30 @@ gemini gm: dev-up
 # ======= CI 파이프라인 (로컬 + GitHub Actions 공통) =======
 .PHONY: ci-lint ci-type ci-test ci finish
 
-# Lint: 코드 포맷 및 스타일 체크
+# CI 타깃은 `make -C .devcontainer` 로 호출돼 CWD가 .devcontainer/ 이므로
+# 레포 루트($(CURDIR)/..)로 이동해서 실제 코드를 대상으로 검사한다.
+ROOT := $(CURDIR)/..
+
+# Lint: 코드 포맷 및 스타일 체크 (Ruff로 일원화 — pre-commit과 동일)
 ci-lint:
 	@echo "🔍 Running lint checks..."
-	@black --check . || (echo "❌ black failed"; exit 1)
-	@isort --check-only . || (echo "❌ isort failed"; exit 1)
-	@ruff check . || (echo "❌ ruff failed"; exit 1)
+	@cd $(ROOT) && ruff check . || (echo "❌ ruff check failed"; exit 1)
+	@cd $(ROOT) && ruff format --check . || (echo "❌ ruff format failed"; exit 1)
 	@echo "✅ Lint passed"
 
-# Type: 타입 체크 (mypy)
+# Type: 타입 체크 (mypy) — 제품 코드는 backend/ 에 위치
 ci-type:
 	@echo "🔍 Running type checks..."
-	@mypy docs/src/ || echo "⚠️  mypy not configured or failed"
+	@cd $(ROOT) && mypy backend/ || echo "⚠️  mypy: 검사할 타입이 없거나 미설정 (빈 backend/)"
 
-# Test: 유닛 테스트 실행
+# Test: 유닛 테스트 실행 — 테스트 파일이 없으면(템플릿 초기 상태) 건너뜀
 ci-test:
 	@echo "🔍 Running tests..."
-	@pytest -v --cov=docs/src --cov-report=term-missing || (echo "❌ Tests failed"; exit 1)
+	@cd $(ROOT) && if git ls-files '*test_*.py' | grep -q .; then \
+		pytest -v --cov=backend --cov-report=term-missing || (echo "❌ Tests failed"; exit 1); \
+	else \
+		echo "ℹ️  테스트 파일 없음 — 건너뜀 (템플릿 초기 상태)"; \
+	fi
 	@echo "✅ Tests passed"
 
 # CI 전체 체크 (커밋/푸시 없이 검증만)
