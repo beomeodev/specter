@@ -23,6 +23,9 @@ services:
       - ${HOME}/.claude:/home/dev/.claude
       - ${HOME}/.gemini:/home/dev/.gemini
       - ${HOME}/.npm:/home/dev/.npm
+      # gh CLI 인증 영속화 (rebuild 후에도 gh auth 유지). 호스트에 디렉터리 필요:
+      #   mkdir -p ~/.config/gh
+      - ${HOME}/.config/gh:/home/dev/.config/gh
       # SSH 에이전트 포워딩 (GitHub 인증용)
       - ${SSH_AUTH_SOCK:-/dev/null}:/ssh-agent
       # SSH 키 파일 마운트 (읽기 전용)
