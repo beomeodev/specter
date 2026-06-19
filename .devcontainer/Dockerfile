@@ -105,6 +105,17 @@ RUN git lfs install && \
     pipx ensurepath --global || true && \
     curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
 
+# GitHub CLI (gh) — official apt repo. Permanent (survives container rebuilds);
+# used by /fin, /finq, /ms.merglease for PR + release automation.
+RUN mkdir -p -m 755 /etc/apt/keyrings && \
+    curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+      -o /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
+    chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+      > /etc/apt/sources.list.d/github-cli.list && \
+    apt-get update && apt-get install -y --no-install-recommends gh && \
+    rm -rf /var/lib/apt/lists/*
+
 # AI 에이전트 CLI 별칭 설정 (NPX 방식 - 항상 최신 버전 사용)
 # Claude Code: Anthropic의 AI 코딩 에이전트
 RUN echo '#!/bin/bash\nnpx -y @anthropic-ai/claude-code "$@"' > /usr/local/bin/claude \
