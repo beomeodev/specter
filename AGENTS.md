@@ -52,6 +52,8 @@ regardless of agent judgment.
   rules, and shared utilities.
 - Do not leave placeholders, stubs, mock outputs, or partial implementations
   unless the user explicitly asks for them.
+- Do not re-read a file you already read this session. Reuse what you have
+  unless the user explicitly says its content changed.
 
 ---
 
@@ -68,6 +70,9 @@ regardless of agent judgment.
   state that clearly instead of inventing tests.
 - Run the smallest relevant verification command available for the touched
   area. Do not claim tests, lint, typecheck, or build passed unless you ran them.
+- When running commands during a conversation (tests, builds, logs), filter the
+  output to the relevant lines instead of dumping it whole, e.g.
+  `pytest 2>&1 | grep -E 'FAIL|ERROR|PASS'` or `... | tail -30`.
 
 ---
 
