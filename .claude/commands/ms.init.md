@@ -178,9 +178,9 @@ GATE=$(cat <<'GATE'
 > 1. The input is a Feature section produced by `/ms.featuremap` (a `## Feature NNN:`
 >    block containing `### In scope`, `### Explicitly out of scope`, `### Done criteria`).
 > 2. `docs/prd/feature-map.checklist.md` exists, is `**Mode**: global`, records `/ms.verify`, and its result is PASS or WARN.
-> 3. `docs/prd/checklists/feature-NNN.checklist.md` exists for the selected Feature, is
+> 3. docs/prd/checklists/feature-NNN.checklist.md exists for the selected Feature, is
 >    `**Mode**: per-feature`, and its result is PASS or WARN.
-> 4. `docs/prd/checklists/feature-NNN.codex-verify.md` exists and its result is PASS or WARN.
+> 4. Both docs/prd/checklists/feature-NNN.codex-verify.md and docs/prd/checklists/feature-NNN.antigravity-verify.md exist and their results are PASS or WARN.
 > 5. The global and per-Feature checklist audits' Feature Map SHA256 values match the current `docs/prd/feature-map.md`.
 > 6. `.specify/memory/constitution.md` has an established Section IX baseline from `/ms.constitution`
 >    or explicitly records that no durable project-specific constraints were found.
@@ -189,7 +189,7 @@ GATE=$(cat <<'GATE'
 > a different Feature, OR the input is freeform / inline ad-hoc text / derived from an existing `spec.md`.
 > On refusal, tell the user to run `/ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]`,
 > then `/ms.codex-checklist`, then `/ms.verify`, then `/ms.constitution`, then `/ms.checklist`,
-> then `/ms.codex-verify`, then paste the checked Feature section. Prefer the `/ms.specify` wrapper over direct calls.
+> then `/ms.agent-verify`, then paste the checked Feature section. Prefer the `/ms.specify` wrapper over direct calls.
 <!-- MS_FEATUREMAP_GATE_END -->
 GATE
 )
@@ -253,19 +253,22 @@ Display completion message:
 - ✅ Spec-Kit (latest version from upstream)
 - ✅ My-Spec Constitution: .specify/memory/constitution.md
 
-🧩 Codex Plugin Setup (inside Claude Code):
+🧩 Codex & Antigravity Plugins Setup (inside Claude Code):
 1. Open Claude Code in the project environment.
-2. Add the marketplace:
+2. Add the marketplaces:
    - `/plugin marketplace add openai/codex-plugin-cc`
-3. Install the plugin:
+   - `/plugin marketplace add sakibsadmanshajib/antigravity-plugin`
+3. Install the plugins:
    - `/plugin install codex@openai-codex`
+   - `/plugin install antigravity@sakibsadmanshajib`
 4. Reload plugins:
    - `/reload-plugins`
-5. Run setup:
+5. Run setups:
    - `/codex:setup`
-6. If the plugin asks for external app authentication, complete that sign-in when prompted.
-7. If you run multiple project containers and they do not share `~/.codex`, repeat steps 1-6 per container.
-   - If you do share `~/.codex` across containers, the plugin install and login can be reused.
+   - `/antigravity:setup`
+6. If either plugin asks for external app authentication, complete that sign-in when prompted.
+7. If you run multiple project containers and they do not share `~/.codex` or `~/.gemini`, repeat steps 1-6 per container.
+   - If you do share these directories across containers, the plugin installs and logins can be reused.
 
 🎯 Next Steps:
 
@@ -275,7 +278,7 @@ Display completion message:
 3. /ms.verify - Validate Feature Map against PRDs and Codex checklist
 4. /ms.constitution - Establish project baseline once from the checked PRD Feature Map
 5. /ms.checklist - Validate the next Feature against its Source PRDs and PRD references
-6. /ms.codex-verify - Start concise Codex verification for the Feature checklist
+6. /ms.agent-verify - Start concise Codex & Antigravity verification for the Feature checklist
 7. /ms.specify - Create feature specification (paste the checked Feature section from the Feature Map)
 8. /ms.clarify - Clarify requirements (if needed)
 9. /ms.plan - Create implementation plan

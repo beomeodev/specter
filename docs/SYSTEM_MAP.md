@@ -48,7 +48,7 @@ shape that workflow.
 - `/ms.init` bootstraps the workflow overlay.
 - `/ms.featuremap` and `/ms.codex-checklist` produce PRD-level inputs.
 - `/ms.verify` and `/ms.constitution` establish the shared baseline.
-- `/ms.checklist` and `/ms.codex-verify` validate the next Feature.
+- `/ms.checklist` and `/ms.agent-verify` validate the next Feature.
 - `/ms.specify`, `/ms.clarify`, `/ms.plan`, and `/ms.tasks` shape the feature
   into implementation-ready artifacts.
 - `/ms.analyze`, `/ms.implement`, and `/ms.review` handle pre-implementation

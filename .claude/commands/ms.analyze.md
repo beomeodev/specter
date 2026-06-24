@@ -109,22 +109,15 @@ Run these additional checks:
 8. **Constitution alignment**: plan/tasks acknowledge active Constitution
    constraints, including Section IX if it has been established.
 
-### Step 3: Codex Document Consistency Review
+### Step 3: Dual-Agent Document Consistency Review
 
-Unless `--skip-codex` is supplied, invoke Codex with the same default runtime
-policy used by the SPECTER Codex commands:
+Unless `--skip-codex` (or `--skip-agents`) is supplied, invoke both Codex and Antigravity to perform advisory document consistency reviews:
 
+#### A. Codex Review
 ```text
 /codex:rescue --fresh --model gpt-5.5 --effort medium <prompt>
 ```
-
-If the user supplied `--background`, add `--background` and report that
-`/ms.analyze` must be rerun after the Codex output file appears. If the user
-supplied `--model` or `--effort`, pass those values through instead of the
-defaults.
-
 Codex must read:
-
 - `.specify/memory/constitution.md`
 - `AGENTS.md` if it exists
 - `docs/prd/feature-map.md`
@@ -136,13 +129,9 @@ Codex must read:
 - `specs/[spec-id]/tasks.md`
 
 Codex must write:
-
-```text
-specs/[spec-id]/analyze.codex.md
-```
+`specs/[spec-id]/analyze.codex.md`
 
 Codex prompt:
-
 ```text
 You are performing an advisory SPECTER document consistency review.
 
@@ -163,7 +152,7 @@ Write:
 
 # Codex Analyze Review
 
-**Mode**: codex-document-consistency
+**Mode**: agent-document-consistency
 **Result**: PASS | WARN | FAIL
 
 ## Findings
@@ -176,15 +165,65 @@ Write:
 One concise paragraph.
 ```
 
-Codex result handling:
+#### B. Antigravity Review
+```text
+/antigravity:rescue --fresh --model gemini-2.5-pro --effort medium <prompt>
+```
+Antigravity must read:
+- `.specify/memory/constitution.md`
+- `AGENTS.md` if it exists
+- `docs/prd/feature-map.md`
+- `docs/prd/feature-map.checklist.md`
+- `docs/prd/checklists/feature-NNN.checklist.md`
+- `docs/prd/checklists/feature-NNN.antigravity-verify.md`
+- `specs/[spec-id]/spec.md`
+- `specs/[spec-id]/plan.md`
+- `specs/[spec-id]/tasks.md`
 
+Antigravity must write:
+`specs/[spec-id]/analyze.antigravity.md`
+
+Antigravity prompt:
+```text
+You are performing an advisory SPECTER document consistency review using Google Antigravity.
+
+Check spec.md, plan.md, and tasks.md against the Feature Map evidence,
+Constitution, and prior checklist gates. Do not edit files except writing
+specs/[spec-id]/analyze.antigravity.md.
+
+Focus on:
+- spec FRs missing from tasks
+- tasks with no spec, plan, setup, or verification source
+- plan components, migrations, APIs, or test strategies missing from tasks
+- contradictions between spec, plan, and tasks
+- stale or incomplete Amendment handling
+- migration number, file path, or contract drift
+- Feature Map commitments that no longer survive into spec/plan/tasks
+
+Write:
+
+# Antigravity Analyze Review
+
+**Mode**: agent-document-consistency
+**Result**: PASS | WARN | FAIL
+
+## Findings
+
+| Severity | Finding | Evidence | Required Fix |
+| --- | --- | --- | --- |
+
+## Verdict
+
+One concise paragraph.
+```
+
+If the user supplied `--background`, add `--background` to both invocations and report that `/ms.analyze` must be rerun after both files appear. If the user supplied `--model` or `--effort`, pass those values through instead of the defaults.
+
+#### C. Result handling for both agents:
 - `PASS`: keep the SPECTER result unchanged.
-- `WARN`: final `/ms.analyze` result is at least `WARN` unless Claude/SPECTER
-  explicitly explains why every warning is a false positive.
-- `FAIL`: final `/ms.analyze` result is `FAIL` unless Claude/SPECTER explicitly
-  downgrades the finding with source evidence.
-- `PENDING`: if `--background` was used and no Codex report exists yet, stop and
-  tell the user to rerun `/ms.analyze` after the report appears.
+- `WARN`: final `/ms.analyze` result is at least `WARN` unless Claude/SPECTER explicitly explains why every warning is a false positive.
+- `FAIL`: final `/ms.analyze` result is `FAIL` unless Claude/SPECTER explicitly downgrades the finding with source evidence.
+- `PENDING`: if `--background` was used and either report is missing, stop and tell the user to rerun `/ms.analyze` after both reports appear.
 
 ### Step 4: Result Model
 
@@ -202,7 +241,7 @@ Use this result model:
 - Broken migration numbering across documents.
 - Missing Amendment block for superseded requirements.
 - Constitution violation in plan/tasks.
-- Codex `FAIL` finding that cannot be explained as a false positive.
+- Either Codex or Antigravity `FAIL` finding that cannot be explained as a false positive.
 
 ### Step 5: Report
 
@@ -213,6 +252,8 @@ Display a Korean summary:
   "document_consistency": "PASS|WARN|FAIL",
   "codex_analysis": "PASS|WARN|FAIL|SKIPPED|PENDING",
   "codex_report": "specs/{id}/analyze.codex.md",
+  "antigravity_analysis": "PASS|WARN|FAIL|SKIPPED|PENDING",
+  "antigravity_report": "specs/{id}/analyze.antigravity.md",
   "feature_lineage": "PASS|WARN|FAIL",
   "fr_task_coverage": "100%",
   "orphan_tasks": 0,

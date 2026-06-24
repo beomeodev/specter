@@ -75,7 +75,7 @@ Do this first:
   3. /ms.verify
   4. /ms.constitution
   5. /ms.checklist
-  6. /ms.codex-verify
+  6. /ms.agent-verify
   7. Open docs/prd/feature-map.md, copy the checked "Feature NNN" section you want to build
   8. /ms.specify  + paste that Feature section
 
@@ -86,7 +86,7 @@ Stopping now.
 
 ### 0.2 REQUIRE Global And Per-Feature Checklists (HARD GATE)
 
-Before creating a spec, verify that `/ms.verify` has validated the whole Feature Map, `/ms.checklist` has validated the selected Feature, and `/ms.codex-verify` has produced the per-Feature Codex verification. This keeps Spec-Kit's native checklist from becoming the first real validation point,
+Before creating a spec, verify that `/ms.verify` has validated the whole Feature Map, `/ms.checklist` has validated the selected Feature, and `/ms.agent-verify` has produced the per-Feature dual-agent (Codex & Antigravity) verification reports. This keeps Spec-Kit's native checklist from becoming the first real validation point,
 which would be too late.
 
 **Checks:**
@@ -105,9 +105,9 @@ which would be too late.
 10. The per-Feature audit does not contain `**Result**: FAIL`.
 11. The per-Feature audit's `Feature Map SHA256` matches the current
     `docs/prd/feature-map.md` SHA256.
-12. `docs/prd/checklists/feature-NNN.codex-verify.md` exists for the selected Feature.
-13. The Codex verification contains `**Result**: PASS` or `**Result**: WARN`.
-14. The Codex verification does not contain `**Result**: FAIL`.
+12. Both `docs/prd/checklists/feature-NNN.codex-verify.md` and `docs/prd/checklists/feature-NNN.antigravity-verify.md` exist for the selected Feature.
+13. Both Codex and Antigravity verification files contain `**Result**: PASS` or `**Result**: WARN`.
+14. Neither verification file contains `**Result**: FAIL`.
 15. `.specify/memory/constitution.md` has an established Section IX baseline from `/ms.constitution`
     or explicitly records that no durable project-specific constraints were found.
 
@@ -140,15 +140,15 @@ Stopping now.
 ```
 
 
-**If the Codex per-Feature verification is missing, failed, or still running**, refuse and exit:
+**If the dual-agent per-Feature verification is missing, failed, or still running**, refuse and exit:
 
 ```text
-⏳ /ms.specify requires Codex verification for this Feature.
+⏳ /ms.specify requires both Codex and Antigravity verification for this Feature.
 
 Run this first:
-  /ms.codex-verify
+  /ms.agent-verify
 
-If it is still running, wait briefly and retry /ms.specify after the result file appears.
+If it is still running, wait briefly and retry /ms.specify after both result files appear.
 Stopping now.
 ```
 
@@ -326,7 +326,7 @@ If the user provides new source material here, stop and tell them to update the 
 /ms.verify
 /ms.constitution
 /ms.checklist
-/ms.codex-verify
+/ms.agent-verify
 ```
 
 #### 3.2. Execute Speckit Specify
@@ -417,5 +417,5 @@ After `/ms.specify`:
 1. Run `/ms.clarify` to settle or explicitly confirm remaining decisions.
 2. Then proceed to `/ms.plan` for implementation planning.
 
-`/ms.verify`, `/ms.checklist`, and `/ms.codex-verify` are pre-spec gates
+`/ms.verify`, `/ms.checklist`, and `/ms.agent-verify` are pre-spec gates
 and should already have passed before this command ran.

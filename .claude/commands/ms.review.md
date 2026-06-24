@@ -442,26 +442,15 @@ Run `quality-gate` or `trust-validator` for code-level TRUST checks:
 
 ---
 
-### Step 6.6: Codex Code Review
+### Step 6.6: Dual-Agent Code Review
 
-Unless `--skip-codex` is supplied, invoke Codex after the local CI and TRUST gates
-have produced enough context for a focused review.
+Unless `--skip-codex` (or `--skip-agents`) is supplied, invoke both Codex and Antigravity after the local CI and TRUST gates have produced enough context.
 
-Default invocation:
-
+#### A. Codex Code Review
 ```text
 /codex:rescue --fresh --model gpt-5.5 --effort medium <prompt>
 ```
-
-If the user supplied `--background`, add `--background` and report that
-`/ms.review` must be rerun after the Codex output file appears. If the user
-supplied `--model` or `--effort`, pass those values through instead of the
-defaults. If the user supplied `--adversarial`, ask Codex to challenge design
-choices and risk assumptions more aggressively; otherwise request a normal code
-review.
-
 Codex must read:
-
 - `.specify/memory/constitution.md`
 - `AGENTS.md` if it exists
 - `specs/[spec-id]/spec.md`
@@ -472,13 +461,9 @@ Codex must read:
 - changed production files and changed tests
 
 Codex must write:
-
-```text
-docs/review/{spec-id}.codex-review.md
-```
+`docs/review/{spec-id}.codex-review.md`
 
 Codex prompt:
-
 ```text
 You are performing an advisory SPECTER post-implementation code review.
 
@@ -514,15 +499,68 @@ Write:
 One concise paragraph.
 ```
 
-Codex result handling:
+#### B. Antigravity Code Review
+```text
+/antigravity:review --fresh --model gemini-2.5-pro --effort medium <prompt>
+```
+*(Note: If `/antigravity:review` is not available, fall back to `/antigravity:rescue`.)*
 
+Antigravity must read:
+- `.specify/memory/constitution.md`
+- `AGENTS.md` if it exists
+- `specs/[spec-id]/spec.md`
+- `specs/[spec-id]/plan.md`
+- `specs/[spec-id]/tasks.md`
+- `docs/prd/checklists/feature-NNN.checklist.md`
+- the current git diff against the review base
+- changed production files and changed tests
+
+Antigravity must write:
+`docs/review/{spec-id}.antigravity-review.md`
+
+Antigravity prompt:
+```text
+You are performing an advisory SPECTER post-implementation code review using Google Antigravity.
+
+Review the current implementation against spec.md, plan.md, tasks.md,
+Constitution, AGENTS.md, and the changed code/tests. Do not edit files except
+writing docs/review/{spec-id}.antigravity-review.md.
+
+Focus on:
+- implementation drift from spec/task intent
+- missing or weak behavior tests
+- auth, authorization, input validation, logging, and sensitive data exposure
+- data loss, race condition, rollback, idempotency, and migration risks
+- overcomplicated abstractions or non-surgical changes
+- architecture violations against plan.md
+
+If --adversarial was requested, also challenge whether the implementation
+approach is simpler, safer, or better scoped than available alternatives.
+
+Write:
+
+# Antigravity Code Review
+
+**Mode**: antigravity-code-review | antigravity-adversarial-code-review
+**Result**: PASS | WARN | FAIL
+
+## Findings
+
+| Severity | Finding | Evidence | Required Fix |
+| --- | --- | --- | --- |
+
+## Verdict
+
+One concise paragraph.
+```
+
+If the user supplied `--background`, add `--background` to both invocations and report that `/ms.review` must be rerun after both files appear. If the user supplied `--model` or `--effort`, pass those values through instead of the defaults.
+
+#### C. Result handling for both reviews:
 - `PASS`: keep the SPECTER review result unchanged.
-- `WARN`: final `/ms.review` result is at least READY WITH WARNINGS unless
-  Claude/SPECTER explicitly explains why every warning is a false positive.
-- `FAIL`: final `/ms.review` result is NOT READY unless Claude/SPECTER explicitly
-  downgrades the finding with source evidence.
-- `PENDING`: if `--background` was used and no Codex report exists yet, stop and
-  tell the user to rerun `/ms.review` after the report appears.
+- `WARN`: final `/ms.review` result is at least READY WITH WARNINGS unless Claude/SPECTER explicitly explains why every warning is a false positive.
+- `FAIL`: final `/ms.review` result is NOT READY unless Claude/SPECTER explicitly downgrades the finding with source evidence.
+- `PENDING`: if `--background` was used and either report is missing, stop and tell the user to rerun `/ms.review` after both reports appear.
 
 ---
 
@@ -729,16 +767,16 @@ The review state file contains:
 | Command | Purpose | Checks | When to Run |
 |---------|---------|--------|-------------|
 | `/ms.verify` | Global Feature Map gate | PRD coverage, Feature ownership, DAG, stub-forward, template completeness | After `/ms.codex-checklist`, before `/ms.constitution` |
-| `/ms.checklist` | Per-Feature gate | Selected Feature PRD fidelity, ownership, scope, done criteria | After `/ms.constitution`, before `/ms.codex-verify` |
-| `/ms.codex-verify` | Per-Feature Codex gate | Concise Codex check of the Feature checklist | After `/ms.checklist`, before `/ms.specify` |
+| `/ms.checklist` | Per-Feature gate | Selected Feature PRD fidelity, ownership, scope, done criteria | After `/ms.constitution`, before `/ms.agent-verify` |
+| `/ms.agent-verify` | Per-Feature dual-agent gate | Concise Codex & Antigravity check of the Feature checklist | After `/ms.checklist`, before `/ms.specify` |
 | `/ms.analyze` | Pre-implementation document gate | spec ↔ plan ↔ tasks consistency, Constitution alignment, drift detection | Before `/ms.implement` |
-| `/ms.review` | Post-implementation code gate | Design review, Codex code review, lint/types/tests/build, coverage, security, TAG integrity | After `/ms.implement` |
+| `/ms.review` | Post-implementation code gate | Design review, Codex and Antigravity reviews, lint/types/tests/build, coverage, security, TAG integrity | After `/ms.implement` |
 | `/fin` | Final commit | Review-state acknowledgement, docs sync, commit, push, PR | After `/ms.review` passes |
 
 **Mental model**:
 - `/ms.verify` = "Did the PRD become the right Feature Map?"
 - `/ms.checklist` = "Is this Feature ready to become a spec?"
-- `/ms.codex-verify` = "Did a second reviewer find a blocking Feature checklist issue?"
+- `/ms.agent-verify` = "Did the two independent reviewers find blocking checklist issues?"
 - `/ms.analyze` = "Are the implementation documents coherent enough to build?"
 - `/ms.review` = "Is the implemented branch ready to publish?"
 - `/fin` = "Commit, push, and open/update the PR."

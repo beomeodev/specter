@@ -43,7 +43,7 @@ Workflow position:
 
 # Repeat in DAG order:
 /ms.checklist
-/ms.codex-verify
+/ms.agent-verify
 /ms.specify
 /ms.clarify
 /ms.plan
@@ -295,7 +295,7 @@ If the result is `PASS`:
 ✅ Feature checklist passed.
 
 📄 Audit: docs/prd/checklists/feature-NNN.checklist.md
-🎯 Next step: /ms.codex-verify
+🎯 Next step: /ms.agent-verify
 ```
 
 If the result is `WARN`:
@@ -304,7 +304,7 @@ If the result is `WARN`:
 ⚠️ Feature checklist passed with warnings.
 
 📄 Audit: docs/prd/checklists/feature-NNN.checklist.md
-권장 개선사항을 확인한 뒤 /ms.codex-verify로 진행할 수 있습니다.
+권장 개선사항을 확인한 뒤 /ms.agent-verify로 진행할 수 있습니다.
 ```
 
 If the result is `FAIL`:
@@ -330,17 +330,17 @@ Bypass protection:
 - `/speckit-checklist` may still exist after `/ms.init`, but it is not part of
   the SPECTER happy path.
 - `/ms.specify` must check the global `/ms.verify` audit, the selected Feature
-  audit, and the Codex per-Feature verification before proceeding.
+  audit, and the dual-agent per-Feature verification before proceeding.
 
 ## What This Command Does Not Do
 
 - It does not create or validate `spec.md`.
 - It does not edit the Feature Map automatically unless the user explicitly asks
   for fixes. The audit identifies required corrections first.
-- It does not run Codex. Use `/ms.codex-verify` after this command.
+- It does not run agents. Use `/ms.agent-verify` after this command.
 
 ## Next Command
 
-After `/ms.checklist` passes for a Feature, run `/ms.codex-verify`. After Codex
+After `/ms.checklist` passes for a Feature, run `/ms.agent-verify`. After dual-agent
 verification is available, run `/ms.specify` and paste the checked Feature
 section from `docs/prd/feature-map.md`.
