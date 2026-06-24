@@ -1,5 +1,6 @@
 ---
 description: "Finish workflow: sync docs → update daily log → CI checks → commit → push → PR auto-create"
+argument-hint: ""
 ---
 
 Execute the following tasks in order:

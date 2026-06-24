@@ -1,5 +1,6 @@
 ---
 description: "Start a background Codex PRD-only checklist run for Feature Map verification"
+argument-hint: "[@docs/prd/PRD.md ...] [--model MODEL] [--effort low|medium|high]"
 ---
 
 # /ms.codex-checklist - Independent PRD Checklist

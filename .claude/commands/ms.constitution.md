@@ -1,5 +1,6 @@
 ---
 description: "Establish project-specific Constitution Section IX from the checked PRD Feature Map"
+argument-hint: ""
 ---
 
 # /ms.constitution - Establish Project Baseline Rules

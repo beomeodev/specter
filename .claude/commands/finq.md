@@ -1,5 +1,6 @@
 ---
 description: "Quick finish: sync docs → update daily log → commit → push → PR auto-create (NO CI checks)"
+argument-hint: ""
 ---
 
 Execute the following tasks in order:

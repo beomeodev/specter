@@ -1,5 +1,6 @@
 ---
 description: "Validate the next Feature against its PRD evidence before /ms.specify"
+argument-hint: "[Feature NNN]"
 ---
 
 # /ms.checklist - Per-Feature Readiness Gate
@@ -319,14 +320,14 @@ If the result is `FAIL`:
 ## Wrapper Priority And Bypass Protection
 
 `/ms.checklist` is intentionally **not** a thin wrapper around
-`/speckit.checklist`. Spec-Kit's native checklist validates an existing spec,
+`/speckit-checklist`. Spec-Kit's native checklist validates an existing spec,
 which is too late for this SPECTER gate. This command owns per-Feature
 PRD-to-Feature validation before `spec.md` exists.
 
 Bypass protection:
 
-- `/ms.checklist` must not delegate to `/speckit.checklist`.
-- `/speckit.checklist` may still exist after `/ms.init`, but it is not part of
+- `/ms.checklist` must not delegate to `/speckit-checklist`.
+- `/speckit-checklist` may still exist after `/ms.init`, but it is not part of
   the SPECTER happy path.
 - `/ms.specify` must check the global `/ms.verify` audit, the selected Feature
   audit, and the Codex per-Feature verification before proceeding.

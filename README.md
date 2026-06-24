@@ -45,7 +45,9 @@ SPECTER만 단독으로 동작하지 않습니다. `/ms.init`이 Spec-Kit을 설
 
 현재 릴리즈: `v2.0.0`
 
-자세한 변경 내역은 [CHANGELOG.md](./CHANGELOG.md)를 확인하세요.
+미출시(Unreleased): **Spec-Kit 호환성(loose coupling)** — command/skill 양쪽 게이트 주입,
+`speckit.x`→`speckit-x` 위임 정렬, `SPEC_KIT_REF` 버전 핀, 정체성 불변식·결별 기준 문서화.
+자세한 내용은 아래 [Spec Kit 호환성](#spec-kit-호환성) 섹션과 [CHANGELOG.md](./CHANGELOG.md)를 확인하세요.
 
 ---
 
@@ -315,9 +317,9 @@ SPECTER는 Spec-Kit의 native checklist를 단순 호출하지 않습니다. Glo
 ```text
 specter/
 ├── .claude/
-│   ├── commands/           # slash commands
-│   ├── agents/             # subagents
-│   ├── skills/             # reusable skills
+│   ├── commands/           # /ms.* 워크플로 진입점 (사용자가 명시적으로 호출)
+│   ├── agents/             # 전문 subagent (역할 기반 추론/실행)
+│   ├── skills/             # 재사용 가능한 검증·규칙·루브릭·체크리스트
 │   └── settings.json       # 권한 베이스라인 (가드레일)
 ├── .devcontainer/          # 격리 실행 환경
 ├── .github/workflows/      # CI 게이트 (ci.yml)
@@ -368,6 +370,121 @@ npm install  # 또는 프로젝트에 맞는 설치 명령
 ```bash
 /ms.init
 ```
+
+`/ms.init`은 기본적으로 **검증된 릴리즈(`v0.11.6`)에 핀**됩니다. 업스트림은 pre-1.0라
+통합 표면(command→skill, `speckit.x`→`speckit-x`)을 자주 바꾸므로, 핀이 SPECTER 래퍼를
+깜짝 파손에서 보호합니다(느슨한 결합). 최신을 추적하려면 `SPEC_KIT_REF`로 덮어씁니다.
+
+```bash
+SPEC_KIT_REF=v0.11.6 /ms.init   # 기본값: 검증된 고정 릴리즈 (권장)
+SPEC_KIT_REF=main    /ms.init   # 최신 업스트림 (churn 노출 — seam 재검증 필요)
+```
+
+> 핀된 v0.11.x는 skill 레이아웃(`.claude/skills/speckit-specify/SKILL.md`)을 생성합니다.
+> `/ms.init`의 후보 탐지가 어떤 레이아웃이든 패치하므로, 핀을 올려도 게이트 주입은 안 깨집니다
+> (재검증할 부분은 게이트가 아니라 아래 "위임 지점"의 호출명입니다).
+
+---
+
+## Spec Kit 호환성
+
+SPECTER는 GitHub Spec-Kit 위에 올라가는 **command 중심** 워크플로 래퍼입니다.
+명령을 skill로 전부 옮기는 마이그레이션이 아니라, 업스트림 변화에 맞춘 **호환성 레이어**로 설계되어 있습니다.
+
+### 의도된 하이브리드 구조
+
+| 위치 | 역할 |
+| --- | --- |
+| `.claude/commands/` | `/ms.*` — 사용자가 명시적으로 호출하는 워크플로 진입점 |
+| `.claude/skills/` | 재사용 가능한 검증기·규칙·루브릭·체크리스트 (capability) |
+| `.claude/agents/` | 전문 역할 기반 subagent |
+
+`/ms.*`는 명시적 워크플로 단계이므로 **command로 유지**합니다. 모든 명령을 skill로 옮기지 않습니다.
+
+### 업스트림 레이아웃 자동 감지
+
+최신 Spec-Kit은 Claude 통합을 점차 **native skill** 방향으로 옮기고 있어, 업스트림이
+다음 중 어떤 형태로든 파일을 만들 수 있습니다.
+
+- `.claude/commands/speckit.*.md` — 기존 command 기반 레이아웃
+- `.claude/skills/speckit-*/SKILL.md` — 신규 native-skill 레이아웃
+
+`/ms.init`은 후보 경로 목록을 탐색해 **존재하는 모든 파일**에 Feature Map 게이트를
+주입합니다(command·skill 양쪽 모두 지원). command·skill이 동시에 생성되는 dual 레이아웃에서도
+한쪽 진입점이 게이트 없이 남지 않도록 모두 패치합니다. 게이트는 YAML frontmatter 다음에
+삽입되어 frontmatter 파싱을 깨지 않으며, `MS_FEATUREMAP_GATE_START` 마커로 중복 주입을 방지합니다.
+
+### 설치 플래그
+
+Spec-Kit은 구형 `--ai` 계열 플래그를 제거하고 `--integration`으로 전환했습니다.
+SPECTER는 항상 `--integration claude`를 사용합니다.
+
+```bash
+uvx --from "git+https://github.com/github/spec-kit.git@v0.11.6" specify init --here --force --integration claude
+```
+
+### 위임 지점 (Spec-Kit 결합 계약 — 단일 출처)
+
+SPECTER는 엔진을 재구현하지 않고 업스트림 skill에 **이름으로 위임**합니다. 업스트림이 호출명을
+바꾸면(예: `speckit.plan` → `speckit-plan`) 아래 위임만 깨지므로, **여기가 결합의 단일 출처**입니다.
+핀(`SPEC_KIT_REF`)을 올릴 땐 이 표의 호출명이 그대로인지 먼저 확인하세요.
+
+| SPECTER 래퍼 | 위임 대상 (핀 v0.11.6 기준) |
+| --- | --- |
+| `/ms.specify` | `/speckit-specify` (+ `/ms.init`이 게이트 주입) |
+| `/ms.clarify` | `/speckit-clarify` |
+| `/ms.plan` | `/speckit-plan` |
+| `/ms.tasks` | `/speckit-tasks` |
+| `/ms.analyze` | `/speckit-analyze` (foundation only) |
+| `/ms.implement` | `/speckit-implement` |
+
+> `/ms.checklist`는 의도적으로 `/speckit-checklist`에 위임하지 **않습니다**(PRD 근거 기반 자체 검증).
+> 호출명은 업스트림 `SKILL.md`의 `name:` 필드가 결정합니다(현재 하이픈 형식).
+
+### 직접 호출 우회 차단 (불변식)
+
+업스트림이 command든 skill이든, `/ms.init`이 주입한 게이트 덕분에 직접 `/speckit-specify`
+호출은 SPECTER의 Feature Map / checklist / Constitution Section IX 게이트를 우회할 수 없습니다.
+
+### GEARS 스펙템플릿 해석 (라이브 검증됨)
+
+최신 Spec-Kit(v0.11.x)은 spec-template을 **preset/template resolution stack**
+(`specify preset resolve spec-template`)으로 해석합니다. 라이브 `specify init`으로 확인한
+결과, 기본(no-`--preset`) init에서 이 스택의 **`core` 레이어가 바로
+`.specify/templates/spec-template.md`** 입니다 — `/ms.init` Step 2.3이 덮어쓰는 그 파일이라
+**GEARS가 신규 `spec.md`에 그대로 반영됩니다.** 단, `--preset`으로 자체 spec-template을 얹는
+경우엔 preset 레이어가 `core`를 덮을 수 있으나, `/ms.init`은 `--preset`을 쓰지 않습니다.
+
+### SPECTER 정체성 불변식 (양보 불가)
+
+래퍼로서 spec-kit 변화에 *이름·경로·버전*은 맞추되, 아래는 **절대 양보하지 않습니다**. 이번
+세션의 모든 적응(command→skill 탐지, `speckit.x`→`speckit-x`, 버전 핀, 스크립트 경로 교정)은
+전부 이 불변식을 **유지하거나 강화**했고, 어느 것도 포기하지 않았습니다.
+
+1. **Feature Map 게이트 / 직접 호출 우회 차단** — `/ms.specify`는 freeform 거부, 직접
+   `/speckit-specify`는 게이트 우회 불가. (skill·dual 레이아웃까지 주입 확장 → 강화됨)
+2. **GEARS** 요구사항 언어가 신규 spec에 실제로 도달. (core 레이어 해석으로 유지 확인)
+3. **TAG 추적성** `@SPEC→@TEST→@CODE→@DOC` — SPECTER 자체 단계(`/ms.tasks`,`/ms.implement`)에서 주입.
+4. **Constitution Section IX** 베이스라인 게이트.
+5. **Codex 독립 검증** 게이트.
+6. **게이트는 SPECTER가 소유** — spec-kit CLI/스크립트 플래그에 위임하지 않음(예: `/ms.review`의
+   spec.md/plan.md 검증은 SPECTER가 직접 수행).
+
+### 결별 기준 (Divorce tripwires)
+
+다음 중 하나라도 **얇은 호환 shim(이름/경로/버전/플래그 교정)으로 해결되지 않으면**, 래퍼
+관계는 더 이상 정체성을 지키지 못하므로 결별(엔진 fork, `specify` 런타임 의존 제거)을 선언합니다.
+
+| Tripwire | 무엇이 깨지나 | 현재 상태(v0.11.6) |
+| --- | --- | --- |
+| `specify preset resolve spec-template`이 `core`(=`.specify/templates/spec-template.md`)를 더 이상 가리키지 않음 | GEARS가 신규 spec에 도달 못 함 | ✅ 안전 (core) |
+| upstream이 패치 가능한 `speckit-specify` 파일을 더 이상 생성/유지하지 않음(잠금·서명·동적 생성) | Feature Map 게이트 주입 불가 → 우회 차단 붕괴 | ✅ 안전 (주입됨) |
+| `/speckit-specify` 자동호출을 막을 수 없고 게이트 밖에서 실행됨 | 명시적·순차 게이트 규율 붕괴 | ✅ 안전 (게이트가 스킬 내부에 동행) |
+| `/speckit-*` 엔진이 SPECTER 주입(TAG/Constitution/TRUST)과 하드 충돌(예: TAG 블록 제거) | 감싸기 합성 불가 | ✅ 안전 (합성됨) |
+| SPECTER 의존 스크립트(예: `check-prerequisites.sh`)가 shim 불가하게 반복적으로 깨짐 | 워크플로우 단계 동작 불가 | ✅ 안전 (경로/플래그 교정으로 해결) |
+
+> 원칙: **이름·경로·버전·플래그 = 맞춰준다. 게이트·GEARS·TAG·Constitution·Codex = 절대 안 굽힌다.**
+> 후자를 지키기 위해 전자를 포기해야 하는 순간이 결별 시점이다.
 
 ---
 

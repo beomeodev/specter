@@ -1,5 +1,6 @@
 ---
 description: "Start a background Codex verification of the current per-Feature checklist"
+argument-hint: "[Feature NNN] [--model MODEL] [--effort low|medium|high]"
 ---
 
 # /ms.codex-verify - Codex Per-Feature Checklist Verification

@@ -1,5 +1,6 @@
 ---
 description: "Clarify ambiguous requirements"
+argument-hint: "[question or ambiguity focus]"
 ---
 
 # /ms.clarify - Clarify Requirements
@@ -8,7 +9,7 @@ Clarify ambiguous requirements in spec.md using Spec-Kit's standard clarificatio
 
 ## Overview
 
-This command extends `/speckit.clarify` by injecting Constitution principles (especially GEARS) and enabling **Korean language interaction** for user communication.
+This command extends `/speckit-clarify` by injecting Constitution principles (especially GEARS) and enabling **Korean language interaction** for user communication.
 
 **Key Features**:
 
@@ -54,7 +55,7 @@ Read `.specify/memory/constitution.md` and confirm it exists.
 
 ### 2. Inject Constitution Context into AI Prompt
 
-Before running `/speckit.clarify`, provide AI with Constitution reference:
+Before running `/speckit-clarify`, provide AI with Constitution reference:
 
 ```
 You are clarifying requirements in spec.md. Follow the project Constitution.
@@ -90,10 +91,10 @@ Now identify ambiguous requirements and begin clarification.
 
 ### 3. Run Base Clarify Command
 
-Execute `/speckit.clarify` with Constitution-enhanced context:
+Execute `/speckit-clarify` with Constitution-enhanced context:
 
 ```
-/speckit.clarify $ARGUMENTS
+/speckit-clarify $ARGUMENTS
 ```
 
 This runs clarification workflow with AI following GEARS principles and using Korean for user interaction.
@@ -147,14 +148,14 @@ Please run: /ms.init
 
 ### Error 2: Base Command Failed
 
-**Symptom**: `/speckit.clarify` returned error
+**Symptom**: `/speckit-clarify` returned error
 
 **Message**:
 
 ```
 ❌ Error: Clarification failed
 
-The base `/speckit.clarify` command encountered an error.
+The base `/speckit-clarify` command encountered an error.
 Please check the error message above and retry.
 ```
 

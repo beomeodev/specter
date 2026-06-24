@@ -1,5 +1,6 @@
 ---
 description: "Synchronizes Documents"
+argument-hint: "[changed feature or docs scope]"
 ---
 
 # /ms.up-docs - Universal Document Synchronization

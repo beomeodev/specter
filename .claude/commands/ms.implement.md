@@ -1,5 +1,6 @@
 ---
 description: "Implement feature with TAG blocks"
+argument-hint: "[optional task IDs or guidance — defaults to first pending phase]"
 ---
 
 # /ms.implement - Implementation with Traceability
@@ -8,9 +9,9 @@ Implements the next selected task scope with TAG block insertion.
 
 ## Overview
 
-**This command is a wrapper around `/speckit.implement` with enhanced functionality.**
+**This command is a wrapper around `/speckit-implement` with enhanced functionality.**
 
-**Base Command**: `/speckit.implement` - TDD implementation (RED-GREEN-REFACTOR)
+**Base Command**: `/speckit-implement` - TDD implementation (RED-GREEN-REFACTOR)
 
 **Additional Features** (provided by `/ms.implement`):
 - Scope selection from `tasks.md` with current phase as the default boundary
@@ -139,7 +140,7 @@ Do not claim that a `library-researcher` agent or a specific model ran unless it
 
 ### Step 2: Inject Constitution & Run Implementation
 
-Before executing `/speckit.implement`, provide AI with Constitution constraints:
+Before executing `/speckit-implement`, provide AI with Constitution constraints:
 
 ```
 You are implementing code that MUST follow the project Constitution.
@@ -179,7 +180,7 @@ Now implement selected scope: {SCOPE}
 Selected TAGs: {TAG_IDS}
 ```
 
-Execute `/speckit.implement` with Constitution-enhanced context and the selected scope.
+Execute `/speckit-implement` with Constitution-enhanced context and the selected scope.
 When a single `TAG_ID` was provided, pass that TAG as the scope. Otherwise, pass
 the selected phase/task list so implementation does not silently shrink back to
 one task.
@@ -446,14 +447,14 @@ Please run `/ms.tasks` to verify TAG assignments or use `/ms.implement` without 
 
 ### Error 4: Implementation Failed
 
-**Symptom**: `/speckit.implement` returned error
+**Symptom**: `/speckit-implement` returned error
 
 **Message**:
 
 ```
 ❌ Error: Implementation failed
 
-The base `/speckit.implement` command encountered an error.
+The base `/speckit-implement` command encountered an error.
 Please check the error message above and retry.
 ```
 
@@ -470,7 +471,7 @@ After `/ms.implement`:
 
 ## Notes
 
--   **Wrapper Design**: `/ms.implement` wraps `/speckit.implement` and adds scope, TAG, checklist, and documentation discipline
+-   **Wrapper Design**: `/ms.implement` wraps `/speckit-implement` and adds scope, TAG, checklist, and documentation discipline
 -   **Default scope**: Current pending phase or phase-part, not a single isolated task
 -   **Manual scope options**: `--task`, `TAG_ID`, and `--to-end` are available when needed
 -   **TAG blocks**: Inserted as one file-level block in generated or meaningfully modified files
@@ -482,14 +483,14 @@ After `/ms.implement`:
 **Architecture**: Wrapper pattern with feature enhancements
 
 **Execution responsibilities**:
-- **Core implementation** → `/speckit.implement` with the selected scope and Constitution context
+- **Core implementation** → `/speckit-implement` with the selected scope and Constitution context
 - **Library research** → direct documentation lookup when needed
 - **Documentation sync** → direct doc edits or `/ms.up-docs`
 - **TAG block insertion** → `/ms.implement` enhancement layer
 - **Checklist progress** → update and re-read `tasks.md`
 
 **Tools**:
-- SlashCommand (`/speckit.implement`) - Runs scoped implementation
+- SlashCommand (`/speckit-implement`) - Runs scoped implementation
 - Read (tasks.md, spec.md, plan.md) - Scope selection and context
 - Edit (generated or touched files) - Insert TAG blocks and update docs/tasks
 - Bash/ripgrep - Scan for TAGs, project patterns, and verification targets

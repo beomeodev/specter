@@ -1,5 +1,6 @@
 ---
 description: "Merge open PR → release: gh pr merge → master pull → tag + GitHub Release. Successor to /fin and /finq."
+argument-hint: "[version] [--no-release]"
 ---
 
 # /ms.merglease — Merge + Release in one command

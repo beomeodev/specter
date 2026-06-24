@@ -1,5 +1,6 @@
 ---
 description: "Verify Feature Map against PRDs and the independent Codex checklist"
+argument-hint: ""
 ---
 
 # /ms.verify - Global Feature Map Verification

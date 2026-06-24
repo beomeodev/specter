@@ -165,7 +165,45 @@ unless the user explicitly requests and confirms them.
 
 ---
 
-## 10. Pre-Work Checklist
+## 10. SPECTER Command / Skill / Agent Layout
+
+SPECTER is a command-driven workflow wrapper over GitHub Spec-Kit. Respect the
+intended hybrid structure; do not migrate it to a different shape on a whim.
+
+- `.claude/commands/` holds the `/ms.*` files. These are **explicit user-invoked
+  workflow entrypoints** and must stay commands. Do not convert `/ms.*` commands
+  into skills, and do not remove `.claude/commands`.
+- `.claude/skills/` holds **reusable capabilities** — validators, rules, rubrics,
+  and checklists. Put reusable logic here, not new top-level commands.
+- `.claude/agents/` holds **specialist subagents** (role-based reasoning/execution).
+- Upstream Spec-Kit may emit its Claude integration as either
+  `.claude/commands/speckit.*.md` (command layout) or
+  `.claude/skills/speckit-*/SKILL.md` (native-skill layout), or both. `/ms.init`
+  patches every candidate file that exists; do not hardcode a single upstream path.
+- Keep the direct-call bypass guard intact: `/ms.init` injects the Feature Map +
+  checklist + Constitution gate (marker `MS_FEATUREMAP_GATE_START`) into the
+  upstream `speckit specify` file. Direct `/speckit.specify` must never bypass
+  `/ms.specify`'s gates, and `/ms.specify` must never accept freeform feature input.
+- Use `--integration claude` for Spec-Kit installs; the legacy `--ai` flags are
+  removed upstream.
+- **Loose coupling**: `/ms.init` pins upstream via `SPEC_KIT_REF` (default a verified
+  release) so upstream churn cannot silently break the wrappers. The `/ms.*` wrappers
+  delegate to upstream skills **by name** (current form is hyphenated: `/speckit-specify`,
+  `/speckit-plan`, `/speckit-tasks`, `/speckit-clarify`, `/speckit-analyze`,
+  `/speckit-implement`). These delegation names are the single coupling surface — if the pin
+  moves or upstream renames again, update the wrappers and the table in README
+  "Spec Kit 호환성 → 위임 지점". Do not reimplement the upstream engines unless a full
+  divorce from Spec-Kit is explicitly decided.
+- **Identity is non-negotiable**: when adapting to upstream, conform on *names, paths,
+  versions, and flags* only. Never weaken SPECTER's gates to fit Spec-Kit: the Feature-Map /
+  freeform-refusal / direct-call-bypass guard, GEARS reaching new specs, TAG chains,
+  Constitution Section IX, Codex verification, and SPECTER owning its own gates (not
+  delegating them to Spec-Kit's CLI flags). If keeping a gate intact would require giving up
+  one of these, that is the **divorce tripwire** — see README "Spec Kit 호환성 → 결별 기준".
+
+---
+
+## 11. Pre-Work Checklist
 
 - Have I read `docs/SYSTEM_MAP.md` if it exists, and checked whether it is
   stale for this task?

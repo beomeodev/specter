@@ -1,11 +1,12 @@
 ---
 description: "Pre-implementation document consistency and drift validation"
+argument-hint: "[--background] [--skip-codex] [--model MODEL] [--effort low|medium|high]"
 ---
 
 # /ms.analyze - Document Consistency Gate
 
 Validate that `spec.md`, `plan.md`, and `tasks.md` are coherent before any code
-is implemented. This command is the SPECTER wrapper around `/speckit.analyze` for
+is implemented. This command is the SPECTER wrapper around `/speckit-analyze` for
 pre-implementation document validation only, with an advisory Codex document
 consistency pass.
 
@@ -84,10 +85,10 @@ which upstream command must run first.
 Execute the underlying document analysis:
 
 ```text
-/speckit.analyze
+/speckit-analyze
 ```
 
-Treat `/speckit.analyze` as the foundation for document consistency only.
+Treat `/speckit-analyze` as the foundation for document consistency only.
 
 ### Step 2: SPECTER Drift Detection
 

@@ -1,5 +1,6 @@
 ---
 description: "Code quality review after implementation"
+argument-hint: "[--skip-codex] [--background] [--model MODEL] [--effort low|medium|high]"
 ---
 
 # /ms.review - Code Quality Review
@@ -72,23 +73,30 @@ review findings and executable gates:
 
 ### Step 1: Prerequisites Check
 
-Run prerequisites script to get context:
+Run the Spec-Kit prerequisites script to get context. The script lives under
+`.specify/scripts/bash/` (installed by `/ms.init`); `--require-tasks --include-tasks` is the
+implementation-phase check (validates `plan.md` + `tasks.md` exist). Do **not** pass
+`--require-spec`/`--require-plan` — those flags do not exist on current Spec-Kit and the
+script aborts on unknown options.
 
 ```bash
-docs/src/lib/scripts/check-prerequisites.sh --json --require-spec --require-plan --include-tasks
+.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
 ```
 
 Parse JSON output to extract:
-- `REPO_ROOT`: Repository root path
 - `FEATURE_DIR`: Feature directory (e.g., `specs/001-auth-spec/`)
 - `AVAILABLE_DOCS`: List of available documents (spec.md, plan.md, tasks.md, etc.)
+- `REPO_ROOT`: not in this JSON payload — derive it with `git rev-parse --show-toplevel`
+  (or run the script with `--paths-only --json` if you need the path bundle instead).
 
-**Required files**:
-- ✅ `spec.md` (for domain terminology)
+**Required files** — SPECTER validates these **itself** from `AVAILABLE_DOCS` (do not outsource
+this gate to the upstream script's flags; the script only validates `plan.md`+`tasks.md`):
+- ✅ `spec.md` (for domain terminology) — SPECTER-required regardless of upstream flags
 - ✅ `plan.md` (for architecture reference)
 - ✅ Implemented code files (src/, tests/)
 
-**If missing**: Display error and suggest running `/ms.specify` or `/ms.plan`
+**If `spec.md` or `plan.md` is missing**: Display error and suggest running `/ms.specify` or
+`/ms.plan`. Do not proceed — SPECTER's review rigor is owned here, not delegated to Spec-Kit.
 
 ---
 

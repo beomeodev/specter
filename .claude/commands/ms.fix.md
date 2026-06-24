@@ -1,5 +1,6 @@
 ---
 description: "Lightweight track for changes that do NOT introduce a new requirement — bug fixes, corrections, UI/style polish — with TDD + TAG + gate but no spec/clarify/plan/tasks ceremony."
+argument-hint: "[bug or correction description]"
 ---
 
 # /ms.fix — Lightweight fix/polish track

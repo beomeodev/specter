@@ -1,16 +1,17 @@
 ---
 description: "Generate tasks with automatic TAG ID generation"
+argument-hint: "[task generation guidance]"
 ---
 
 # /ms.tasks - Generate Tasks with TAG IDs
 
-Extends `/speckit.tasks` to generate implementation tasks with automatic TAG ID assignment.
+Extends `/speckit-tasks` to generate implementation tasks with automatic TAG ID assignment.
 
 ## Overview
 
-**This command is a wrapper around `/speckit.tasks` with enhanced functionality.**
+**This command is a wrapper around `/speckit-tasks` with enhanced functionality.**
 
-**Base Command**: `/speckit.tasks` - Generates implementation tasks from spec.md and plan.md
+**Base Command**: `/speckit-tasks` - Generates implementation tasks from spec.md and plan.md
 
 **Additional Features** (provided by `/ms.tasks`):
 - Library/documentation pattern check when plan.md depends on current third-party APIs
@@ -73,15 +74,15 @@ Do not claim that a `library-researcher` agent or a specific model ran unless it
 
 ### 2. Run Base Command
 
-**IMPORTANT**: `/ms.tasks` delegates core task generation to `/speckit.tasks`.
+**IMPORTANT**: `/ms.tasks` delegates core task generation to `/speckit-tasks`.
 
-Execute `/speckit.tasks` to generate base task structure with verified planning context:
+Execute `/speckit-tasks` to generate base task structure with verified planning context:
 
 ```
-/speckit.tasks $ARGUMENTS
+/speckit-tasks $ARGUMENTS
 ```
 
-**What `/speckit.tasks` does** (base functionality):
+**What `/speckit-tasks` does** (base functionality):
 - Analyzes spec.md and plan.md
 - Generates task breakdown with phases
 - Creates dependency graph
@@ -92,7 +93,7 @@ Execute `/speckit.tasks` to generate base task structure with verified planning 
 
 ### 3. TAG ID Generation (My-Spec Enhancement)
 
-**This step is UNIQUE to `/ms.tasks`** - not provided by `/speckit.tasks`.
+**This step is UNIQUE to `/ms.tasks`** - not provided by `/speckit-tasks`.
 
 For each Functional Requirement (FR) in `spec.md`, assign exactly one TAG ID.
 TAG IDs must be unique across the whole repository and within the newly generated
@@ -193,7 +194,7 @@ rg -o '@SPEC:([A-Z][A-Z0-9-]*-[0-9]{3})' specs/[spec-id]/tasks.md \
 
 ### 4. Insert TAG Metadata (My-Spec Enhancement)
 
-**This step is UNIQUE to `/ms.tasks`** - not provided by `/speckit.tasks`.
+**This step is UNIQUE to `/ms.tasks`** - not provided by `/speckit-tasks`.
 
 Add TAG chains to tasks.md for each User Story:
 

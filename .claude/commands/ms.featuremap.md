@@ -1,5 +1,6 @@
 ---
 description: "Decompose one or more PRDs into the Feature Map prompts consumed by /ms.specify"
+argument-hint: "@docs/prd/PRD.md [@docs/prd/another.md]"
 ---
 
 # /ms.featuremap - Decompose PRDs into a Feature Map

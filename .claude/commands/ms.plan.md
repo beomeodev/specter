@@ -1,5 +1,6 @@
 ---
 description: "Create implementation plan with Constitution reference"
+argument-hint: "[implementation guidance or constraints]"
 ---
 
 # /ms.plan - Create Implementation Plan
@@ -8,7 +9,7 @@ Create an implementation plan following Spec-Kit workflow with Constitution comp
 
 ## Overview
 
-This command extends `/speckit.plan` to include explicit Constitution references, ensuring AI follows TRUST principles, Simplicity-First architecture, and modular design during planning.
+This command extends `/speckit-plan` to include explicit Constitution references, ensuring AI follows TRUST principles, Simplicity-First architecture, and modular design during planning.
 
 ## Usage
 
@@ -28,14 +29,14 @@ This command extends `/speckit.plan` to include explicit Constitution references
 - Display error: "Required files missing. Run `/ms.init` and `/ms.specify` first."
 - Exit
 
-### 2. Provide Constitution Guidelines to `/speckit.plan`
+### 2. Provide Constitution Guidelines to `/speckit-plan`
 
-**IMPORTANT**: `/speckit.plan` will read `constitution.md` internally. `/ms.plan`'s role is to provide **reading guidelines**, not to read it ourselves.
+**IMPORTANT**: `/speckit-plan` will read `constitution.md` internally. `/ms.plan`'s role is to provide **reading guidelines**, not to read it ourselves.
 
-**Before executing `/speckit.plan`**, instruct it to follow these guidelines when reading Constitution:
+**Before executing `/speckit-plan`**, instruct it to follow these guidelines when reading Constitution:
 
 ```
-When executing /speckit.plan, the agent must read and strictly adhere to constitution.md before proceeding.:
+When executing /speckit-plan, the agent must read and strictly adhere to constitution.md before proceeding.:
 
 **Constitution Reading Guidelines**:
 
@@ -68,7 +69,7 @@ When executing /speckit.plan, the agent must read and strictly adhere to constit
      → Traceability design
 
 **Expected Behavior**:
-- Read constitution.md when /speckit.plan starts
+- Read constitution.md when /speckit-plan starts
 - Apply principles naturally during planning
 - Document how principles influenced design choices
 - Ensure plan respects all Constitution constraints
@@ -175,11 +176,11 @@ After reality verification:
 
 ### 4. Run Base Plan Command
 
-Execute `/speckit.plan` with Constitution-enhanced context and the Reality
+Execute `/speckit-plan` with Constitution-enhanced context and the Reality
 Verification findings from Step 3:
 
 ```
-/speckit.plan
+/speckit-plan
 ```
 
 The generated `specs/{SPEC_ID}/plan.md` must reflect verified project reality.
@@ -278,14 +279,14 @@ Please run: /ms.specify first
 
 ### Error 3: Base Command Failed
 
-**Symptom**: `/speckit.plan` returned error
+**Symptom**: `/speckit-plan` returned error
 
 **Message**:
 
 ```
 ❌ Error: Plan creation failed
 
-The base `/speckit.plan` command encountered an error.
+The base `/speckit-plan` command encountered an error.
 Please check the error message above and retry.
 ```
 

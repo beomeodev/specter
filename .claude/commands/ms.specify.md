@@ -1,5 +1,6 @@
 ---
 description: "Create feature specification with Constitution reference"
+argument-hint: "<paste checked Feature NNN section from docs/prd/feature-map.md>"
 ---
 
 # /ms.specify - Create Feature Specification
@@ -8,7 +9,7 @@ Create a feature specification following Spec-Kit workflow with Constitution com
 
 ## Overview
 
-This command extends `/speckit.specify` to include explicit Constitution references, ensuring AI follows GEARS, TRUST, and TAG principles during specification writing.
+This command extends `/speckit-specify` to include explicit Constitution references, ensuring AI follows GEARS, TRUST, and TAG principles during specification writing.
 
 > ⛔ **Upstream contract — Feature Map is MANDATORY.** This command runs AFTER `/ms.featuremap`.
 > Its input MUST be a **Feature section copied from `docs/prd/feature-map.md`** (the Feature Map
@@ -167,12 +168,12 @@ Only if all gates pass, continue to Step 0.4.
 
 ### 0.4 Load Source PRDs For The Feature Prompt
 
-Before invoking `/speckit.specify`, load the PRD context referenced by the checked Feature section.
+Before invoking `/speckit-specify`, load the PRD context referenced by the checked Feature section.
 
 1. Read every document listed under the Feature section's `### Source PRDs` heading.
 2. Read every PRD section named under `### PRD references`.
 3. Read the matching PRD Commitment Index rows for this Feature.
-4. Build the `/speckit.specify` prompt from:
+4. Build the `/speckit-specify` prompt from:
    - the full checked Feature section,
    - the relevant PRD excerpts from every Source PRD,
    - the matching Commitment Index rows,
@@ -232,7 +233,7 @@ Then continue to Step 1.
 
 ### 2. Inject Constitution Context into AI Prompt
 
-Before running `/speckit.specify`, provide AI with Constitution reference:
+Before running `/speckit-specify`, provide AI with Constitution reference:
 
 ```
 You are creating a specification that MUST follow the project Constitution.
@@ -310,7 +311,7 @@ Execute in priority order (stop at first match):
 Do not accept a new attached PRD, freeform request, or ad-hoc feature description at this stage.
 Those inputs belong upstream in `/ms.featuremap`.
 
-The input to `/speckit.specify` is the checked Feature prompt bundle assembled in Step 0.4:
+The input to `/speckit-specify` is the checked Feature prompt bundle assembled in Step 0.4:
 
 1. The full `## Feature NNN:` section from `docs/prd/feature-map.md`.
 2. The Feature's `### Source PRDs` documents and referenced PRD excerpts.
@@ -330,10 +331,10 @@ If the user provides new source material here, stop and tell them to update the 
 
 #### 3.2. Execute Speckit Specify
 
-Execute `/speckit.specify` with the checked Feature prompt bundle and Constitution-enhanced context:
+Execute `/speckit-specify` with the checked Feature prompt bundle and Constitution-enhanced context:
 
 ```
-/speckit.specify <checked Feature prompt bundle from Step 0.4>
+/speckit-specify <checked Feature prompt bundle from Step 0.4>
 ```
 
 Create the specification in `specs/{SPEC_ID}/spec.md` with GEARS and TRUST guidance applied. Do not claim that a `spec-builder` agent or a specific model ran unless it actually did.

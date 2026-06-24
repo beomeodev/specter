@@ -1,5 +1,6 @@
 ---
 description: "Amend specification and plan with post-implementation decisions"
+argument-hint: "[post-implementation decision or amendment notes]"
 ---
 
 # /ms.amend - Amend Spec & Plan

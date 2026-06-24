@@ -1,5 +1,6 @@
 ---
 description: "Initialize My-Spec project with Spec-Kit + Constitution"
+argument-hint: ""
 ---
 
 # /ms.init - One-Command Setup for My-Spec
@@ -21,30 +22,66 @@ This command performs **complete project initialization**:
 
 **IMPORTANT**: This step automatically installs Spec-Kit from upstream.
 
-Execute the Spec-Kit installation command:
+Execute the Spec-Kit installation command. The default is **pinned to a verified release**
+(`v0.11.6`) — this is the *loose-coupling* posture: upstream is pre-1.0 and renames its
+integration surface often (command→skill, `speckit.x`→`speckit-x`), so pinning protects
+SPECTER's wrappers from surprise breakage. The pin is overridable via `SPEC_KIT_REF` for
+anyone who wants to track latest or test a newer tag:
 
 ```bash
-uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --integration claude
+SPEC_KIT_REF="${SPEC_KIT_REF:-v0.11.6}"
+uvx --from "git+https://github.com/github/spec-kit.git@$SPEC_KIT_REF" specify init --here --force --integration claude
 ```
 
-**What this does**:
+To track latest or a different tag instead of the pinned default, export the variable first:
 
--   Downloads latest Spec-Kit release from GitHub
--   Extracts template files to current directory
+```bash
+SPEC_KIT_REF=v0.11.6 /ms.init   # default: verified pinned release (recommended)
+SPEC_KIT_REF=main    /ms.init   # latest upstream (exposed to churn — re-verify seams)
+```
+
+> **Why pinned**: SPECTER's `/ms.*` wrappers delegate to upstream skills by name
+> (`/speckit-specify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-clarify`,
+> `/speckit-analyze`, `/speckit-implement`). Those names changed from the dotted form in
+> recent upstream releases; pinning keeps the delegation contract stable. If you move the pin
+> forward, re-check those invocation names (see README "Spec Kit 호환성 → 위임 지점").
+
+> **Forward-compatibility**: the pinned v0.11.x line emits the **skill** layout
+> (`.claude/skills/speckit-specify/SKILL.md`). Step 2.4's candidate detection patches
+> whichever layout appears, so even if the pin moves to a newer Spec-Kit, gate injection
+> does **not** break `/ms.init` (the delegation *names* are the part to re-verify, not the
+> gate).
+
+> **Note**: Spec-Kit dropped the older `--ai` family of flags in favour of
+> `--integration`. Always use `--integration claude`; `--ai claude` is legacy and no
+> longer supported by current upstream releases.
+
+**What this does** (verified against a live v0.11.6 `specify init`):
+
+-   Downloads the selected Spec-Kit ref from GitHub (`SPEC_KIT_REF`, default pinned `v0.11.6`)
+-   Extracts bundled template files to the current directory
 -   Creates directory structure:
-    -   `.specify/` - Spec-Kit metadata
-    -   `docs/templates/` - Template files (including constitution-template.md)
-    -   `.specify/scripts/` - Utility scripts
-    -   `specs/` - Specification directory
-    -   Agent-specific commands (e.g., `.claude/commands/speckit.*`)
+    -   `.specify/` - Spec-Kit metadata, `templates/`, `scripts/bash/`, `memory/`,
+        `workflows/`, `integrations/`
+    -   Agent-specific Claude integration files. On v0.11.x this is the **skill** layout
+        (`.claude/skills/speckit-*/SKILL.md`); older releases used the command layout
+        (`.claude/commands/speckit.*.md`). Step 2.4 detects whichever exists.
+-   Appends a small `<!-- SPECKIT START/END -->` block to `CLAUDE.md`. SPECTER's `CLAUDE.md`
+    is a symlink to `AGENTS.md`, so this block lands (non-destructively, marker-managed) at
+    the end of `AGENTS.md`. SPECTER content is preserved; the block is harmless.
+
+> **Note**: `specify init` does **not** create `specs/` or `docs/templates/`. `specs/<NNN>-<name>/`
+> is created later by `/speckit-specify` (first feature); `docs/templates/` ships with SPECTER
+> itself (used by Steps 2.2–2.3). Do not gate `/ms.init` on either path existing.
 
 **Wait for completion**: This command may take 30-60 seconds.
 
 **Verification**:
 
--   Check `.specify/` exists
--   Check `specs/` exists
+-   Check `.specify/` exists (this is the only directory `specify init` is required to create)
+-   Check `.specify/templates/spec-template.md` exists (needed by Step 2.3)
 -   If missing: Display error (see Error Handling section) and exit
+-   Do **not** require `specs/` here — it does not exist until the first `/ms.specify`.
 
 ### Step 2: Setup My-Spec Constitution (Copy Mode)
 
@@ -72,17 +109,30 @@ cp docs/templates/constitution-template.md .specify/memory/constitution.md
 
 Step 1 (`specify init --force`) overwrites `.specify/templates/spec-template.md` with
 the upstream (classic EARS) template. Restore the My-Spec GEARS version on top of it —
-the same copy-after-init pattern used for the constitution in Step 2.2:
+the same copy-after-init pattern used for the constitution in Step 2.2. The `mkdir -p`
+guard makes this safe even if a future Spec-Kit stops creating `.specify/templates/`:
 
 ```bash
+mkdir -p .specify/templates
 cp docs/templates/spec-template.md .specify/templates/spec-template.md
 ```
 
-**Why the core path** (not an `overrides/` entry): the `/speckit.specify` skill creates
-each new `spec.md` by copying `.specify/templates/spec-template.md` directly (it does not
-go through `resolve_template`, so a `templates/overrides/` entry would be ignored on the
-live path). Installing GEARS at the core path is therefore what actually reaches new specs,
-and it must be re-applied after every `specify init --force` (hence here in `/ms.init`).
+**Why the core path** (not an `overrides/` entry): historically the `/speckit.specify`
+command created each new `spec.md` by copying `.specify/templates/spec-template.md`
+directly. Installing GEARS at that core path is what actually reached new specs, and it
+must be re-applied after every `specify init --force` (hence here in `/ms.init`).
+
+> ✅ **Verified against a live `specify init` (upstream `main`, v0.11.x).** Current Spec-Kit
+> resolves the spec template through a **preset/template resolution stack**
+> (`specify preset resolve spec-template`) rather than a hardcoded copy. For a default
+> (no-`--preset`) init, the stack's **`core` layer *is* `.specify/templates/spec-template.md`**
+> — exactly this file. `specify preset resolve spec-template` was confirmed to resolve to
+> this path (`top layer from: core`), so overwriting it here makes GEARS reach every new
+> `spec.md`. The `mkdir -p` keeps the copy from erroring even if a future layout drops the
+> directory.
+> **Caveat**: if someone runs `specify init --preset <name>` with a preset that ships its own
+> `spec-template`, that preset layer can sit above `core` and override GEARS. `/ms.init` does
+> not pass `--preset`, so the default path is safe.
 
 **IF source file not found**:
 
@@ -90,23 +140,38 @@ and it must be re-applied after every `specify init --force` (hence here in `/ms
 -   This indicates a repository structure issue
 -   Exit with error
 
-#### 2.4 Inject the Feature-Map gate into the installed `/speckit.specify`
+#### 2.4 Inject the Feature-Map gate into the installed upstream `speckit specify`
 
 `/ms.specify` enforces the Feature-Map gate, but it is only a *wrapper*. The underlying
-`/speckit.specify` command (installed by Step 1's `specify init --force`) can be invoked
-directly and would bypass the gate entirely. We cannot permanently edit a vendored file —
-Step 1 re-installs it with `--force` — so, exactly like the GEARS spec-template in Step 2.3,
-we **re-apply our overlay after every init**: insert a gate preamble **just after the YAML
-frontmatter** of the installed `.claude/commands/speckit.specify.md` (the line-1 `---` must
-stay first, or the command's `description` metadata stops parsing). Re-running `/ms.init`
-restores it.
+upstream `speckit specify` integration (installed by Step 1's `specify init --force`) can be
+invoked directly and would bypass the gate entirely. SPECTER patches whichever upstream
+`speckit specify` integration file exists — **command-based or skill-based** — to prevent
+direct `/speckit.specify` calls from bypassing `/ms.specify`'s Feature-Map / checklist /
+Constitution gates.
+
+We cannot permanently edit a vendored file — Step 1 re-installs it with `--force` — so,
+exactly like the GEARS spec-template in Step 2.3, we **re-apply our overlay after every
+init**: insert a gate preamble **just after the YAML frontmatter** (the line-1 `---` must
+stay first, or Claude Code stops parsing the file's `description`/`name` metadata). If a
+file has no frontmatter, the gate is prepended at the top. Re-running `/ms.init` restores it.
+
+Because newer Spec-Kit may emit a native skill (`.claude/skills/speckit-specify/SKILL.md`)
+**instead of, or in addition to**, the old command (`.claude/commands/speckit.specify.md`),
+we probe a **candidate list** and patch **every file that exists** — not just the first. A
+dual (command + skill) layout would otherwise leave one entrypoint ungated, and a direct
+`/speckit.specify` call against that ungated file would bypass the Feature-Map gate. Patching
+all existing candidates keeps the bypass guard airtight regardless of layout:
 
 ```bash
-SPECKIT_SPECIFY=".claude/commands/speckit.specify.md"
-if [ -f "$SPECKIT_SPECIFY" ] && ! grep -q "MS_FEATUREMAP_GATE_START" "$SPECKIT_SPECIFY"; then
-  # Line number of the SECOND '---' = end of YAML frontmatter (empty if none).
-  FM_END=$(grep -n '^---[[:space:]]*$' "$SPECKIT_SPECIFY" | sed -n '2p' | cut -d: -f1)
-  GATE=$(cat <<'GATE'
+SPECKIT_SPECIFY_CANDIDATES=(
+  ".claude/commands/speckit.specify.md"
+  ".claude/commands/speckit-specify.md"
+  ".claude/skills/speckit-specify/SKILL.md"
+  ".claude/skills/speckit.specify/SKILL.md"
+)
+
+# Build the gate block once (leading blank line is intentional spacing).
+GATE=$(cat <<'GATE'
 
 <!-- MS_FEATUREMAP_GATE_START — injected by /ms.init; do not remove -->
 > ⛔ **FEATURE MAP + CHECKLIST GATE.** Do NOT create or update a spec unless:
@@ -128,26 +193,53 @@ if [ -f "$SPECKIT_SPECIFY" ] && ! grep -q "MS_FEATUREMAP_GATE_START" "$SPECKIT_S
 <!-- MS_FEATUREMAP_GATE_END -->
 GATE
 )
-  TMP="$(mktemp)"
-  if [ -n "$FM_END" ]; then
-    # Keep frontmatter (lines 1..FM_END), insert gate, then the rest.
-    { head -n "$FM_END" "$SPECKIT_SPECIFY"; printf '%s\n' "$GATE"; tail -n +"$((FM_END + 1))" "$SPECKIT_SPECIFY"; } > "$TMP"
+
+inject_gate() {
+  local file="$1"
+  if grep -q "MS_FEATUREMAP_GATE_START" "$file"; then
+    echo "✓ gate already present in $file (idempotent skip)"
+    return
+  fi
+  # Line number of the SECOND '---' = end of YAML frontmatter (empty if none).
+  local fm_end tmp
+  fm_end=$(grep -n '^---[[:space:]]*$' "$file" | sed -n '2p' | cut -d: -f1)
+  tmp="$(mktemp)"
+  if [ -n "$fm_end" ]; then
+    # Keep frontmatter (lines 1..fm_end), insert gate, then the rest.
+    { head -n "$fm_end" "$file"; printf '%s\n' "$GATE"; tail -n +"$((fm_end + 1))" "$file"; } > "$tmp"
   else
     # No frontmatter → safe to prepend at the very top.
-    { printf '%s\n' "$GATE"; cat "$SPECKIT_SPECIFY"; } > "$TMP"
+    { printf '%s\n' "$GATE"; cat "$file"; } > "$tmp"
   fi
-  mv "$TMP" "$SPECKIT_SPECIFY"
-  echo "✓ Feature-Map + checklist gate injected into speckit.specify.md (after frontmatter)"
+  mv "$tmp" "$file"
+  echo "✓ gate injected into $file (after frontmatter)"
+}
+
+FOUND=0
+for candidate in "${SPECKIT_SPECIFY_CANDIDATES[@]}"; do
+  if [ -f "$candidate" ]; then
+    FOUND=1
+    inject_gate "$candidate"
+  fi
+done
+
+if [ "$FOUND" -eq 0 ]; then
+  echo "⚠️ speckit specify integration file not found — gate injection skipped (re-run after Step 1 installs it)"
+  echo "Looked for:"
+  printf '  - %s\n' "${SPECKIT_SPECIFY_CANDIDATES[@]}"
 fi
 ```
 
-**Idempotent**: the `MS_FEATUREMAP_GATE_START` marker prevents double-injection on re-runs.
-**Durable**: because `specify init --force` overwrites `speckit.specify.md`, this step (like
-Step 2.3) is what keeps the gate alive across every re-init — closing the direct-call bypass.
+**Idempotent**: the `MS_FEATUREMAP_GATE_START` marker prevents double-injection on re-runs
+(`inject_gate` skips, per file, any candidate that already carries the marker).
+**Durable**: because `specify init --force` overwrites the upstream integration file, this
+step (like Step 2.3) is what keeps the gate alive across every re-init — closing the
+direct-call bypass regardless of whether upstream is command-based or skill-based.
 
-**IF `.claude/commands/speckit.specify.md` not found**:
+**IF no candidate `speckit specify` file is found**:
 
--   Display notice: "speckit.specify.md not found — gate injection skipped (re-run after Step 1 installs it)"
+-   Display notice listing the probed candidates: gate injection skipped (re-run after
+    Step 1 installs it)
 -   Continue (non-fatal)
 
 ### Step 3: Report Success
@@ -206,15 +298,15 @@ Display completion message:
 ❌ Error: Spec-Kit installation failed
 
 The command failed to install Spec-Kit:
-    uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --ai claude
+    SPEC_KIT_REF="${SPEC_KIT_REF:-v0.11.6}" uvx --from "git+https://github.com/github/spec-kit.git@$SPEC_KIT_REF" specify init --here --force --integration claude
 
 Please check:
 1. Internet connection
 2. GitHub accessibility
 3. uvx/uv installed correctly
 
-You can try manual installation:
-    uvx --from git+https://github.com/github/spec-kit.git specify init --here --force --ai claude
+You can try manual installation (pinned default; override with SPEC_KIT_REF=main to track latest):
+    uvx --from "git+https://github.com/github/spec-kit.git@v0.11.6" specify init --here --force --integration claude
 
 Then run /ms.init again.
 ```
