@@ -43,10 +43,11 @@ SPECTER만 단독으로 동작하지 않습니다. `/ms.init`이 Spec-Kit을 설
 
 ## 릴리즈
 
-현재 릴리즈: `v2.0.0`
+현재 릴리즈: `v2.1.0`
 
-미출시(Unreleased): **Spec-Kit 호환성(loose coupling)** — command/skill 양쪽 게이트 주입,
-`speckit.x`→`speckit-x` 위임 정렬, `SPEC_KIT_REF` 버전 핀, 정체성 불변식·결별 기준 문서화.
+`v2.1.0` 하이라이트: **Spec-Kit 호환성(loose coupling)** — command/skill 양쪽 게이트 주입,
+`speckit.x`→`speckit-x` 위임 정렬, `SPEC_KIT_REF` 버전 핀, 정체성 불변식·결별 기준 문서화,
+devcontainer의 Gemini CLI→Antigravity(`agy`) 마이그레이션.
 자세한 내용은 아래 [Spec Kit 호환성](#spec-kit-호환성) 섹션과 [CHANGELOG.md](./CHANGELOG.md)를 확인하세요.
 
 ---

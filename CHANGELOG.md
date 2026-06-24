@@ -2,7 +2,7 @@
 
 All notable changes to this repository are documented in this file.
 
-## [Unreleased]
+## [2.1.0] - 2026-06-24
 
 ### Changed
 - **Spec-Kit 호환성 (loose coupling)**: `/ms.init`의 Feature-Map 게이트 주입을 command·skill
@@ -17,6 +17,9 @@ All notable changes to this repository are documented in this file.
   spec.md/plan.md 검증은 SPECTER가 자체 소유함을 명문화.
 - `/ms.init` 검증에서 `specs/` 요구 제거(첫 `/ms.specify` 때 생성됨), `docs/templates` 출처 정정,
   spec-kit의 `CLAUDE.md` 블록 append 동작 문서화.
+- **devcontainer**: 종료된 Gemini CLI(2026-06-18)를 후속 Antigravity CLI(`agy`)로 교체.
+  Dockerfile 설치 방식·Makefile 타깃(`gemini gm`→`antigravity agy ag gm`, `gm` 별칭 유지)·
+  docker-compose 자격증명 볼륨(`~/.gemini`→`~/.config/agy`)·`setup-pm.sh` 안내문 갱신.
 
 ### Added
 - `/ms.*` 명령에 `argument-hint` frontmatter 추가(슬래시 입력 힌트).
