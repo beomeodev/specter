@@ -306,7 +306,7 @@ DONE
   pm $TICKER cc   # Claude Code
   pm $TICKER cx   # Codex
   pm $TICKER cr   # Codex resume
-  pm $TICKER gm   # Gemini
+  pm $TICKER gm   # Antigravity (agy)
 DONE
   else
     echo ""
@@ -353,7 +353,7 @@ GitHub repo:
   pm $TICKER cc   # Claude Code
   pm $TICKER cx   # Codex
   pm $TICKER cr   # Codex resume
-  pm $TICKER gm   # Gemini
+  pm $TICKER gm   # Antigravity (agy)
 DONE
 NP_SCRIPT
 

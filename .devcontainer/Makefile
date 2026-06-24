@@ -228,7 +228,7 @@ cacheup:
 nbup:
 	$(COMPOSE) --profile notebook up -d jupyter
 
-.PHONY: dev-up du dev-shell ds codex cx codex-resume cr, claude cc gemini gm
+.PHONY: dev-up du dev-shell ds codex cx codex-resume cr, claude cc antigravity agy ag gm
 
 # Build/refresh the app container image and ensure it is running
 dev-up du: start
@@ -249,11 +249,11 @@ codex-resume cr: dev-up
 claude cc: dev-up
 	$(COMPOSE) exec -e NODE_OPTIONS="--max-old-space-size=4096" app claude
 
-# Launch the Gemini CLI inside the running container
-# 설치 방식: NPX 별칭 (항상 최신 버전, 시스템 깔끔 유지)
-# Docker 샌드박스 직접 실행: docker run --rm -it us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.1.1
-gemini gm: dev-up
-	$(COMPOSE) exec app gemini
+# Launch the Antigravity CLI (Gemini CLI 후속) inside the running container
+# 바이너리명은 agy. gm 별칭은 `pm <ticker> gm` 습관 유지를 위해 그대로 둔다.
+# 인증: .env의 GEMINI_API_KEY/ANTIGRAVITY_API_KEY 또는 최초 1회 대화형 OTP 로그인
+antigravity agy ag gm: dev-up
+	$(COMPOSE) exec app agy
 
 
 # ======= CI 파이프라인 (로컬 + GitHub Actions 공통) =======

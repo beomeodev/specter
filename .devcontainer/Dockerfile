@@ -65,6 +65,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tzdata \
     pipx \
     ripgrep \
+    unzip \
     procps && \
     rm -rf /var/lib/apt/lists/*
 
@@ -125,11 +126,8 @@ RUN echo '#!/bin/bash\nnpx -y @anthropic-ai/claude-code "$@"' > /usr/local/bin/c
 RUN echo '#!/bin/bash\nnpx -y @openai/codex "$@"' > /usr/local/bin/codex \
     && chmod +x /usr/local/bin/codex
 
-# Gemini CLI: Google의 생성형 AI CLI
-# 설치 방식: GitHub 레포지토리 직접 참조 (NPX 별칭)
-# Docker 샌드박스는 필요시 직접 실행: docker run --rm -it us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.1.1
-RUN echo '#!/bin/bash\nnpx -y https://github.com/google-gemini/gemini-cli "$@"' > /usr/local/bin/gemini \
-    && chmod +x /usr/local/bin/gemini
+# Antigravity CLI(agy)는 npm 패키지가 아니라 Go 바이너리라 dev 사용자 홈
+# (~/.local/bin)에 설치해야 한다. 따라서 USER 전환 이후(파일 하단)에 설치한다.
 
 WORKDIR /workspace
 
@@ -155,5 +153,10 @@ ARG GID=1000
 RUN groupadd --gid ${GID} ${USERNAME}      && useradd -m --uid ${UID} --gid ${GID} -s /bin/bash ${USERNAME}
 ENV PATH="/home/${USERNAME}/.npm-global/bin:/home/${USERNAME}/.local/bin:/root/.local/bin:$PATH"
 USER ${USERNAME}
+
+# Antigravity CLI (agy) — Gemini CLI 후속 (Gemini CLI는 2026-06-18 종료)
+# 공식 설치 스크립트가 Go 바이너리를 ~/.local/bin/agy 에 배치한다(위 PATH에 포함됨).
+# dev 사용자로 실행해야 홈 디렉터리에 정상 설치된다.
+RUN curl -fsSL https://antigravity.google/cli/install.sh | bash
 
 CMD ["bash"]
