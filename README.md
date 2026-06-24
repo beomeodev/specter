@@ -223,7 +223,7 @@ SPECTER에는 Constitution 관련 개념이 두 단계 있습니다.
 | `/ms.init` | Spec-Kit 설치 + SPECTER overlay 주입 | `.specify/`, Constitution, AGENTS.md |
 | `/ms.featuremap` | PRD set을 Feature DAG로 분해하고 각 Feature 섹션을 `/ms.specify` 프롬프트로 작성 | `docs/prd/feature-map.md` |
 | `/ms.codex-checklist` | Codex PRD-only 독립 체크리스트 생성 | `docs/prd/codex/checklist.md` |
-| `/ms.verify` | PRD + Codex checklist + Feature Map 대조 검증 | `docs/prd/feature-map.checklist.md` |
+| `/ms.verify` | PRD + Codex & Antigravity checklists + Feature Map 대조 검증 | `docs/prd/feature-map.checklist.md` |
 | `/ms.checklist` | 다음 Feature의 PRD 반영도 검증 | `docs/prd/checklists/feature-NNN.checklist.md` |
 | `/ms.agent-verify` | Codex & Antigravity per-Feature checklist 검증 | `docs/prd/checklists/feature-NNN.codex-verify.md`, `feature-NNN.antigravity-verify.md` |
 | `/ms.specify` | 체크된 Feature 섹션 프롬프트를 GEARS spec으로 변환 | `specs/{id}/spec.md` |
@@ -240,6 +240,38 @@ SPECTER에는 Constitution 관련 개념이 두 단계 있습니다.
 | `/ms.fix` | 비요구사항 변경 경량 트랙 | FIX TAG |
 | `/ms.amend` | 구현 후 spec/plan 정정 | Amendment block |
 | `/ms.merglease` | PR merge + tag + GitHub Release (Antigravity 위임) | tag, release |
+
+---
+
+## 주요 명령어 플래그 설명
+
+각 명령어 실행 시 세부적인 제어와 동작 모드 지정을 위해 다양한 플래그를 활용할 수 있습니다.
+
+### 1. 에이전트 검증 및 제어 플래그
+*   `--skip-codex` / `--skip-agents` (사용 대상: `/ms.analyze`, `/ms.review`):
+    *   신속한 처리를 위해 Codex 및 Antigravity 에이전트의 검증/리뷰 단계를 생략하고 로컬 검사만 실행합니다.
+*   `--background` (사용 대상: `/ms.analyze`, `/ms.review`):
+    *   에이전트 검증/리뷰 프로세스를 백그라운드 태스크로 백킹하여 실행합니다. 결과 보고서 파일이 정상 생성된 뒤 해당 명령을 다시 실행해 승인(PASS/WARN)을 얻어야 게이트가 통과됩니다.
+*   `--model MODEL` (사용 대상: `/ms.codex-checklist`, `/ms.agent-verify`, `/ms.analyze`, `/ms.review`):
+    *   기본 정의된 모델(`gpt-5.5` 또는 `gemini-2.5-pro`) 외에 특정한 대형 언어 모델을 명시적으로 지정하여 구동합니다.
+*   `--effort [low|medium|high]` (사용 대상: `/ms.codex-checklist`, `/ms.agent-verify`, `/ms.analyze`, `/ms.review`):
+    *   검증 에이전트의 연산/사고 강도를 지정합니다. 복잡도가 높은 주요 변경점 검증 시 `high`로 구동하여 면밀한 추론을 수행하게 할 수 있습니다.
+*   `--adversarial` (사용 대상: `/ms.review`):
+    *   코드 리뷰 시 에이전트가 보다 비판적(Adversarial)으로 설계 오류, 성능 리스크, 코너 케이스 및 아키텍처적 결함을 챌린지하도록 유도합니다.
+
+### 2. 구현 제어 플래그
+*   `--to-end` (사용 대상: `/ms.implement`):
+    *   현재 남은 모든 미구현/미완료 구현 태스크를 처음부터 끝까지 중단 없이 한 번에 구현하도록 지시합니다. (일체형 대규모 자동 코딩 모드)
+*   `--mode [tdd|refactor]` (사용 대상: `/ms.implement`):
+    *   구현 전략을 제어합니다. `tdd`는 신규 기능 완성을 위해 테스트-퍼스트 개발 패턴을 엄격히 적용하며, `refactor`는 기존 명세의 동작 보존을 보장하는 구조 개편 모드로 동작합니다.
+*   `--task TNNN` / `TAG_ID` (사용 대상: `/ms.implement`):
+    *   구현할 태스크의 범위(Scope)를 특정 태스크 식별자(`TNNN`) 또는 추적성 태그 ID(`TAG_ID`)로 좁혀 집중적으로 코딩 작업을 수행하도록 조절합니다.
+
+### 3. 병합 및 릴리즈 플래그
+*   `--no-release` (사용 대상: `/ms.merglease`):
+    *   PR 머지 파이프라인만 정상 실행하고, 신규 버전 태깅 및 GitHub Release 생성을 건너뛰도록 지시합니다.
+*   `--cleanup` (사용 대상: `/ms.merglease`):
+    *   머지가 최종 성공한 뒤, 로컬 및 원격 저장소 양쪽에서 머지 완료된 feature 브랜치를 깨끗하게 청소 및 삭제합니다.
 
 ---
 
