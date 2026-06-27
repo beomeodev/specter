@@ -2,6 +2,30 @@
 
 All notable changes to this repository are documented in this file.
 
+## [2.2.0] - 2026-06-27
+
+### Added
+- **`/ms.specter` per-Feature 사이클 조정자**: `checklist → agent-verify → specify →
+  clarify → plan → tasks → analyze → implement → review`를 자동 진행. 각 단계 판정을
+  읽어 PASS/WARN은 진행(WARN 수집), FAIL은 정지, `/ms.clarify`만 사람에게 위임. 게이트를
+  약화·우회하지 않고 판정만 읽음. 입력은 freeform Feature 번호 + 선택적 `@PRD`/`@feature-map` 경로.
+- **`/ms.fin --no-ci`**: 명시적 WIP/백업 publish(조건부 CI 강제 생략) 플래그.
+
+### Changed
+- **마무리 명령 `/ms.fin`으로 단일화**: `/fin`·`/finq`를 제거하고 `/ms.fin` 하나로 통합.
+  publish 전 CI 게이트를 **조건부 실행** — 마지막 `/ms.review`가 clean이고 워킹트리가 그 이후
+  변경되지 않았으면(`.specify/review-hash.cache` 해시 일치) 생략, 그 외(리뷰 후 수정·`/ms.fix`·
+  직접 커밋)에는 실행. 불확실하면 실행으로 안전 폴백.
+- **`/ms.review` 적대적 리뷰 기본화**: Codex & Antigravity 코드 리뷰가 항상 adversarial
+  모드로 동작(설계 대안·숨은 리스크 챌린지). `--adversarial` 플래그 제거.
+- **`/ms.agent-verify` foreground 병렬화**: Codex & Antigravity를 백그라운드 대신 foreground
+  병렬로 실행해 쓰기 실패를 즉시 관찰하고 1회 재시도 후 정지. `/ms.verify`의 Antigravity 단계도
+  명시적 foreground화.
+
+### Docs
+- README·AGENTS.md·에이전트·스킬·docs 전반에서 `/fin`·`/finq` 참조를 `/ms.fin`으로 갱신하고
+  현재 워크플로우 상태를 반영.
+
 ## [2.1.1] - 2026-06-27
 
 ### Changed
