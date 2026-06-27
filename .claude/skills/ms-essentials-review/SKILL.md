@@ -1,6 +1,6 @@
 ---
 name: ms-essentials-review
-description: Automated code review and quality assurance skill that validates TRUST 5 principles (Test-First, Readable, Unified, Secured, Trackable), enforces Constitution compliance (file size, complexity limits), and applies language-specific best practices for production-ready code. Use when reviewing code quality, checking TRUST compliance, validating Constitution constraints, performing security audits, or running the /fin workflow
+description: Automated code review and quality assurance skill that validates TRUST 5 principles (Test-First, Readable, Unified, Secured, Trackable), enforces Constitution compliance (file size, complexity limits), and applies language-specific best practices for production-ready code. Use when reviewing code quality, checking TRUST compliance, validating Constitution constraints, performing security audits, or running the /ms.fin workflow
 ---
 
 # MS Essentials Review v1.0
@@ -23,7 +23,7 @@ Automated code review with TRUST 5 principles enforcement and Constitution compl
 ## When to Use
 
 **Automatic triggers**:
-- During `/fin` workflow (quality gate before commit)
+- During `/ms.fin` workflow (quality gate before commit)
 - Code review requests
 - SPEC implementation complete (`/ms.implement` post-step)
 - Pull request creation
@@ -403,4 +403,4 @@ rg '@CODE:AUTH-001' -l
 
 ---
 
-**Usage**: Invoke this Skill during code reviews, before committing, or as part of `/fin` workflow to ensure code meets TRUST 5 principles and Constitution requirements. The Skill provides systematic quality checks with concrete fix suggestions.
+**Usage**: Invoke this Skill during code reviews, before committing, or as part of `/ms.fin` workflow to ensure code meets TRUST 5 principles and Constitution requirements. The Skill provides systematic quality checks with concrete fix suggestions.

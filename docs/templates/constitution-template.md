@@ -37,7 +37,7 @@ The `/ms.*` workflow is a layered process:
 ```text
 /ms.featuremap -> /ms.codex-checklist -> /ms.verify -> /ms.constitution
 /ms.checklist -> /ms.codex-verify -> /ms.specify -> /ms.clarify -> /ms.plan -> /ms.tasks
-/ms.analyze -> /ms.implement -> /ms.review -> [/ms.up-docs] -> /fin
+/ms.analyze -> /ms.implement -> /ms.review -> [/ms.up-docs] -> /ms.fin
 ```
 
 `/ms.constitution` is not a per-Feature ceremony. It establishes or amends the
@@ -61,7 +61,7 @@ project-wide baseline in Section IX from the checked PRD Feature Map.
   TAG integrity reporting.
 - `/ms.up-docs` owns documentation synchronization. Documentation sync failures
   are fail-open unless the active project explicitly promotes them to blockers.
-- `/fin` and `/finq` handle commit/push/PR workflows according to their command
+- `/ms.fin` handles commit/push/PR workflows according to its command
   definitions and user approval requirements.
 
 ---

@@ -322,7 +322,7 @@ Before creating SPEC document:
 - Create implementation plan (plan.md) → Handled by `/ms.plan`
 - Generate tasks (tasks.md) → Handled by `/ms.tasks`
 - Implement code → Handled by `/ms.implement`
-- Manage Git operations → Handled by user or `/fin`, `/finq`
+- Manage Git operations → Handled by user or `/ms.fin`
 
 ## 🔗 Context Engineering
 

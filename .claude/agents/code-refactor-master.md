@@ -417,7 +417,7 @@ const UserContext = createContext<User | null>(null);
 
 1. **Validate TRUST 5**: Run `/ms.review`
 2. **Update daily log**: Document refactoring in `dev_daily.md`
-3. **Commit changes**: Run `/fin` or `/finq`
+3. **Commit changes**: Run `/ms.fin`
 
 ## Forbidden Actions
 

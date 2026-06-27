@@ -53,7 +53,7 @@ shape that workflow.
   into implementation-ready artifacts.
 - `/ms.analyze`, `/ms.implement`, and `/ms.review` handle pre-implementation
   consistency, implementation, and post-implementation checks.
-- `/fin` and `/finq` handle publish flows.
+- `/ms.fin` handles publish flows.
 
 ## Hot Paths
 - `README.md`

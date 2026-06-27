@@ -500,7 +500,7 @@ Task(
 - **Constitution**: `.specify/memory/constitution.md`
 - **TRUST principles**: Constitution Section V
 - **TAG Guide**: SPEC/TEST/CODE traceability
-- **My-Spec Workflow**: /ms.specify → /ms.plan → /ms.implement → /ms.up-docs → /fin
+- **My-Spec Workflow**: /ms.specify → /ms.plan → /ms.implement → /ms.up-docs → /ms.fin
 
 ---
 
