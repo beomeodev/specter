@@ -2,6 +2,20 @@
 
 All notable changes to this repository are documented in this file.
 
+## [2.1.1] - 2026-06-27
+
+### Changed
+- **Antigravity 위임 모델 고정**: `/fin`, `/finq`, `/ms.merglease`, `/ms.verify`, `/ms.analyze`,
+  `/ms.review`, `/ms.agent-verify` 및 README의 안티그래비티 위임 지점 9곳에서 `--model`을
+  `gemini-2.5-pro` → `gemini-3.5-flash`로 변경. `--model` 플래그가 플러그인 기본값을 덮어쓰므로
+  `in-plugin` 업데이트와 무관하게 모델이 고정됨. Codex(`gpt-5.5`)는 변경하지 않음.
+- 안티그래비티 이중 에이전트(Codex & Antigravity) 교차 검증 및 실행 파이프라인 위임을
+  `/ms.analyze`·`/ms.review`·`/ms.agent-verify`·`/ms.verify`에 반영.
+
+### Docs
+- README의 `/ms.verify` 설명과 명령어 플래그(`--skip-codex`/`--background`/`--model`/`--effort`/
+  `--adversarial`) 문서화 보강 및 역할·프로세스 설명 정리.
+
 ## [2.1.0] - 2026-06-24
 
 ### Changed
