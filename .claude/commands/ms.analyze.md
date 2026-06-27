@@ -167,7 +167,7 @@ One concise paragraph.
 
 #### B. Antigravity Review
 ```text
-/antigravity:rescue --fresh --model gemini-2.5-pro --effort medium <prompt>
+/antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <prompt>
 ```
 Antigravity must read:
 - `.specify/memory/constitution.md`

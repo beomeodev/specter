@@ -14,7 +14,7 @@ Delegate the PR merging, master pull, conventional version proposal, tagging, an
 Invoke Google Antigravity to perform the entire merge, checkout, tagging, and release creation process:
 
 ```text
-/antigravity:rescue --fresh --model gemini-2.5-pro --effort medium <Prompt>
+/antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <Prompt>
 ```
 
 #### Antigravity Prompt:

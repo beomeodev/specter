@@ -12,7 +12,7 @@ Execution is always background. Users do not pass `--background`.
 Default Codex/Antigravity runtimes:
 ```text
 Codex model: gpt-5.5
-Antigravity model: gemini-2.5-pro
+Antigravity model: gemini-3.5-flash
 effort: medium
 ```
 
@@ -60,7 +60,7 @@ Invoke the Codex and Antigravity plugin rescue commands in background mode:
 
 #### B. Start Antigravity
 ```text
-/antigravity:rescue --background --fresh --model gemini-2.5-pro --effort medium <Antigravity Prompt>
+/antigravity:rescue --background --fresh --model gemini-3.5-flash --effort medium <Antigravity Prompt>
 ```
 
 If the user provided `--model` or `--effort`, pass those values through instead of the defaults.
