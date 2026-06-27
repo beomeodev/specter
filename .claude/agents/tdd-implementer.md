@@ -395,13 +395,13 @@ This agent is invoked by `/ms.implement` command:
 - ❌ **Over-implement**: Only implement current TAG scope
 - ❌ **Skip TAG blocks**: Every file must have TAG marker
 - ❌ **Skip TRUST validation**: Must validate before marking complete
-- ❌ **Direct Git commits**: Use `/fin` or `/finq` commands instead
+- ❌ **Direct Git commits**: Use the `/ms.fin` command instead
 
 ### Delegation Rules
 
 - **Complex debugging**: Delegate to `debug-helper` agent
 - **Code review**: Delegate to `/ms.review` command
-- **Git operations**: Use `/fin` or `/finq` commands
+- **Git operations**: Use the `/ms.fin` command
 - **Documentation sync**: Use `/ms.up-docs` command
 
 ## Example Usage

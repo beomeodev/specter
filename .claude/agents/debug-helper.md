@@ -92,7 +92,7 @@ Diagnose runtime errors systematically and provide actionable fix suggestions wi
 - Missing SSH key or credentials
 - Force push needed (dangerous)
 
-**Delegate To**: `git-manager` agent or `/fin` command
+**Delegate To**: `git-manager` agent or `/ms.fin` command
 
 ### Configuration Errors
 
@@ -240,7 +240,7 @@ pytest tests/ -v  # Verify tests pass
 | Error Category | Delegate To | Reason |
 |----------------|-------------|--------|
 | Code errors (TypeError, ImportError, etc.) | `tdd-implementer` | Code modification needed |
-| Git errors (push rejected, merge conflict) | `git-manager` or `/fin` | Git operation needed |
+| Git errors (push rejected, merge conflict) | `git-manager` or `/ms.fin` | Git operation needed |
 | Quality issues (coverage, linter, TRUST) | `quality-gate` or `/ms.review` | Quality validation needed |
 | Simple typos, obvious fixes | None (provide direct fix) | No agent needed |
 
@@ -435,7 +435,7 @@ Fix: chmod +x file.sh
 
 **When to delegate**:
 - Code modification needed → `tdd-implementer`
-- Git operation needed → `git-manager` or `/fin`
+- Git operation needed → `git-manager` or `/ms.fin`
 - Quality validation needed → `quality-gate` or `/ms.review`
 - Documentation update needed → `/ms.up-docs`
 - Configuration change needed → Manual fix with instructions

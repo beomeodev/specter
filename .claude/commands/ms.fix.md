@@ -47,7 +47,7 @@ requires; don't refactor adjacent code.
 
 ## Step 3: TAG for traceability (closes the fix-track Trackable gap)
 
-Fixes must still be traceable — this is what `/finq` alone skips today.
+Fixes must still be traceable — this is what an ungated quick-push would skip.
 
 - **Correcting code that already has a TAG** → reuse that TAG; bump its
   `@UPDATED` (git-derived, per `ms-workflow-tag-manager`) and, if behavior
@@ -67,22 +67,22 @@ Fixes must still be traceable — this is what `/finq` alone skips today.
 
 Run the **`local-ci`** subagent (lint → types → tests → build for affected areas;
 reports pass/fail per gate, edits nothing). Fix any failure before proceeding.
-This is the same pre-push gate `/fin` uses — uniformity is the point.
+This is the same pre-push gate `/ms.fin` uses — uniformity is the point.
 
 ## Step 6: Hand off
 
 Commit (TAG id in the message) on a `fix/<short-name>` branch, then continue with
-the existing flow: `/fin` (or `/finq`) to push + open PR, then `/ms.merglease`.
+the existing flow: `/ms.fin` to push + open PR, then `/ms.merglease`.
 Do not commit/push without user approval (Constitution §2).
 
 ## Relationship to other commands
 
 ```
 새 요구사항?
- ├ 예  → /ms.featuremap → /ms.codex-checklist → /ms.verify → /ms.constitution → /ms.checklist → /ms.codex-verify → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.analyze → /ms.implement → /ms.review → /fin → /ms.merglease
- └ 아니오 → /ms.fix (1-2 files: 경량 / 3+ files: mini-plan 먼저) → /fin|/finq → /ms.merglease
+ ├ 예  → /ms.featuremap → /ms.codex-checklist → /ms.verify → /ms.constitution → /ms.checklist → /ms.codex-verify → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.analyze → /ms.implement → /ms.review → /ms.fin → /ms.merglease
+ └ 아니오 → /ms.fix (1-2 files: 경량 / 3+ files: mini-plan 먼저) → /ms.fin → /ms.merglease
 ```
 
 `/ms.fix` is the **single, uniform track for all non-requirement changes** — it
-replaces the ad-hoc "skip the workflow and just `/finq`" path, so even small fixes
+replaces the ad-hoc "skip the workflow and just push" path, so even small fixes
 keep a TAG and pass the gate.

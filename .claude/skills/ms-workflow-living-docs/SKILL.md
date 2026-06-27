@@ -1,6 +1,6 @@
 ---
 name: ms-workflow-living-docs
-description: Living Documentation automation skill that scans TAG-annotated code with ripgrep to extract metadata, generates API documentation from function signatures and docstrings, synchronizes dev daily logs with Git diff summaries and TAG chain updates, validates complete SPEC→TEST→CODE→DOC chains with integrity scoring, updates README for major changes, supports parallel processing for performance (<10 min target), integrates with /fin and /finq workflows for automatic doc sync before commits, and uses fail-open error handling to never block commits. Use when syncing documentation after feature implementation, running /fin or /finq workflows, updating API documentation, validating TAG chains, or synchronizing README with project changes
+description: Living Documentation automation skill that scans TAG-annotated code with ripgrep to extract metadata, generates API documentation from function signatures and docstrings, synchronizes dev daily logs with Git diff summaries and TAG chain updates, validates complete SPEC→TEST→CODE→DOC chains with integrity scoring, updates README for major changes, supports parallel processing for performance (<10 min target), integrates with /ms.fin workflows for automatic doc sync before commits, and uses fail-open error handling to never block commits. Use when syncing documentation after feature implementation, running /ms.fin workflows, updating API documentation, validating TAG chains, or synchronizing README with project changes
 ---
 
 # Workflow: Living-Docs Manager
@@ -17,7 +17,7 @@ Manages Living Documentation lifecycle for My-Spec workflow:
 ## When to use
 
 - After implementing features (`/ms.up-docs` after `/ms.implement`)
-- Before committing code (`/fin` or `/finq` commands)
+- Before committing code (`/ms.fin` command)
 - Syncing API documentation with code changes
 - Updating project README with current status
 - Validating TAG chain integrity
@@ -413,13 +413,13 @@ git add src/auth/service.py tests/unit/test_auth.py
 }
 ```
 
-## Integration with /fin and /finq
+## Integration with /ms.fin
 
 **Automatic doc sync before commit**:
 
-### /fin Workflow (with CI)
+### /ms.fin Workflow (with CI)
 ```bash
-/fin
+/ms.fin
 
 # Execution order:
 # 1. /ms.up-docs --docs=dev  ← Auto-sync dev daily
@@ -429,9 +429,9 @@ git add src/auth/service.py tests/unit/test_auth.py
 # 5. git push                 ← Push to remote
 ```
 
-### /finq Workflow (skip CI)
+### /ms.fin --no-ci Workflow (force skip CI)
 ```bash
-/finq
+/ms.fin --no-ci
 
 # Execution order:
 # 1. /ms.up-docs --docs=dev  ← Auto-sync dev daily

@@ -285,7 +285,7 @@ Display completion message:
 10. /ms.tasks - Generate implementation tasks
 11. /ms.analyze - Validate spec-plan-tasks document consistency
 12. /ms.implement - Start implementation
-13. /ms.review - Run code review and executable gates before /fin
+13. /ms.review - Run code review and executable gates before /ms.fin
 
 ```
 

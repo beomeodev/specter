@@ -625,13 +625,13 @@ print(result)
 
 ---
 
-## Example 8: /fin Integration (Auto Sync Before Commit)
+## Example 8: /ms.fin Integration (Auto Sync Before Commit)
 
-**Scenario**: `/fin` command auto-syncs dev daily before commit
+**Scenario**: `/ms.fin` command auto-syncs dev daily before commit
 
 ```bash
 # User runs
-/fin
+/ms.fin
 
 # Execution sequence:
 # 1. /ms.up-docs --docs=dev
@@ -641,9 +641,9 @@ print(result)
 # 5. git push
 ```
 
-**Command implementation** (.claude/commands/fin.md):
+**Command implementation** (.claude/commands/ms.fin.md):
 ```markdown
-# /fin - Finish Workflow
+# /ms.fin - Finish Workflow
 
 1. Update dev daily log:
    - Run: `/ms.up-docs --docs=dev`
@@ -664,7 +664,7 @@ print(result)
 
 **Example execution**:
 ```bash
-$ /fin
+$ /ms.fin
 
 ✅ Updating dev daily log...
    - Appended entry for 2025-10-26

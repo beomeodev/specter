@@ -9,7 +9,7 @@ Performs deep code quality review and executable code-gate validation after `/ms
 
 ## Overview
 
-**Purpose**: Review implemented code quality AFTER `/ms.implement` and decide whether the branch is ready for `/fin`.
+**Purpose**: Review implemented code quality AFTER `/ms.implement` and decide whether the branch is ready for `/ms.fin`.
 
 **NOT for**:
 - ❌ PRD-to-Feature-Map validation (use `/ms.checklist` before `/ms.specify`)
@@ -27,7 +27,7 @@ Performs deep code quality review and executable code-gate validation after `/ms
 ## Workflow Position
 
 ```
-/ms.implement → /ms.review → /fin
+/ms.implement → /ms.review → /ms.fin
 ```
 
 ## Usage
@@ -36,7 +36,6 @@ Performs deep code quality review and executable code-gate validation after `/ms
 /ms.review
 /ms.review --background
 /ms.review --skip-codex
-/ms.review --adversarial
 /ms.review --model gpt-5.4-mini --effort high
 ```
 
@@ -67,7 +66,7 @@ review findings and executable gates:
   file/function size, complexity, strict typing, security scan, TAG integrity reporting
 - advisory Codex code review persisted to `docs/review/{spec-id}.codex-review.md` unless `--skip-codex` is supplied
 - unresolved HIGH/CRITICAL review issues persisted to `.specify/review-state.txt`
-  so `/fin` can block or require explicit acknowledgement
+  so `/ms.fin` can block or require explicit acknowledgement
 
 ## Execution Steps
 
@@ -435,7 +434,7 @@ Run `quality-gate` or `trust-validator` for code-level TRUST checks:
   findings do not make the review NOT READY unless Section IX or CI explicitly
   promotes TAG integrity to blocking.
 - If only HIGH/MEDIUM warnings remain, mark review as **READY WITH WARNINGS** and
-  persist the warning summary for `/fin` acknowledgement.
+  persist the warning summary for `/ms.fin` acknowledgement.
 - If all executable gates and deep review checks pass, remove stale
   `.specify/review-state.txt` if it exists.
 
@@ -444,7 +443,7 @@ Run `quality-gate` or `trust-validator` for code-level TRUST checks:
 
 ### Step 6.6: Dual-Agent Code Review
 
-Unless `--skip-codex` (or `--skip-agents`) is supplied, invoke both Codex and Antigravity after the local CI and TRUST gates have produced enough context.
+Unless `--skip-codex` (or `--skip-agents`) is supplied, invoke both Codex and Antigravity after the local CI and TRUST gates have produced enough context. Both agents always run in adversarial mode.
 
 #### A. Codex Code Review
 ```text
@@ -479,14 +478,14 @@ Focus on:
 - overcomplicated abstractions or non-surgical changes
 - architecture violations against plan.md
 
-If --adversarial was requested, also challenge whether the implementation
-approach is simpler, safer, or better scoped than available alternatives.
+Always challenge whether the implementation approach is simpler, safer, or
+better scoped than available alternatives.
 
 Write:
 
 # Codex Code Review
 
-**Mode**: codex-code-review | codex-adversarial-code-review
+**Mode**: codex-adversarial-code-review
 **Result**: PASS | WARN | FAIL
 
 ## Findings
@@ -534,14 +533,14 @@ Focus on:
 - overcomplicated abstractions or non-surgical changes
 - architecture violations against plan.md
 
-If --adversarial was requested, also challenge whether the implementation
-approach is simpler, safer, or better scoped than available alternatives.
+Always challenge whether the implementation approach is simpler, safer, or
+better scoped than available alternatives.
 
 Write:
 
 # Antigravity Code Review
 
-**Mode**: antigravity-code-review | antigravity-adversarial-code-review
+**Mode**: antigravity-adversarial-code-review
 **Result**: PASS | WARN | FAIL
 
 ## Findings
@@ -590,13 +589,13 @@ Report structure (console + file):
 
 - Do NOT attempt to auto-fix issues. Leave fixes to `/ms.implement --mode=refactor` or the main conversation.
 - Ask user if they want to abort to fix the issues manually.
-- Or continue without fixes (flagged in `/fin`)
+- Or continue without fixes (flagged in `/ms.fin`)
 
 ---
 
 ### Step 9: Cleanup and State Management
 
-Remove analysis artifacts and save state for `/fin` integration:
+Remove analysis artifacts and save state for `/ms.fin` integration:
 
 ```bash
 REVIEW_CACHE_DIR=".specify"
@@ -615,7 +614,7 @@ for file in "${REVIEW_TMP_FILES[@]}"; do
   rm -f "$file"
 done
 
-# Save non-blocking state for /fin and /finq visibility.
+# Save non-blocking state for /ms.fin visibility.
 if [ "${CRITICAL_COUNT:-0}" -gt 0 ] || [ "${HIGH_COUNT:-0}" -gt 0 ]; then
   {
     echo "${CRITICAL_COUNT:-0} CRITICAL issues unresolved"
@@ -629,7 +628,7 @@ fi
 ```
 
 **State policy**: `.specify/review-state.txt` is a visibility artifact for
-`/fin` and `/finq`, not a mandatory publish blocker. Executable gate failures
+`/ms.fin`, not a mandatory publish blocker. Executable gate failures
 inside `/ms.review` remain blocking for the review result itself.
 
 - **Artifact Policy**
@@ -676,14 +675,16 @@ Skip action prompts for CI/CD:
 ```bash
 /ms.review --skip-codex
 /ms.review --background
-/ms.review --adversarial
 /ms.review --model gpt-5.4-mini --effort high
 ```
 
 - `--skip-codex`: skip advisory Codex code review.
 - `--background`: start Codex review in the background and require a later `/ms.review` rerun.
-- `--adversarial`: ask Codex to challenge design choices and hidden risks.
 - `--model` / `--effort`: override the default `gpt-5.5` / `medium` runtime.
+
+> The dual-agent review always runs in adversarial mode — both Codex and
+> Antigravity challenge design choices, simpler/safer alternatives, and hidden
+> risks. There is no flag to toggle this; it is the default behavior.
 
 ### Skip Slow Checks
 
@@ -737,21 +738,21 @@ Review a specific qualitative aspect while still running executable gates:
 /ms.review  # ✅ All HIGH issues resolved
 
 # Finish and commit
-/fin
+/ms.fin
 ```
 
-### Before /fin (ENHANCED)
+### Before /ms.fin (ENHANCED)
 
-`/fin` command should surface review state as a warning, but it must not make
+`/ms.fin` command should surface review state as a warning, but it must not make
 review-state mandatory:
 
 ```bash
-# In /fin workflow
+# In /ms.fin workflow
 if [ -f .specify/review-state.txt ]; then
   echo "⚠️ Prior /ms.review state exists:"
   cat .specify/review-state.txt
   echo ""
-  echo "Continuing because review-state is advisory in /fin."
+  echo "Continuing because review-state is advisory in /ms.fin."
 fi
 ```
 
@@ -771,7 +772,7 @@ The review state file contains:
 | `/ms.agent-verify` | Per-Feature dual-agent gate | Concise Codex & Antigravity check of the Feature checklist | After `/ms.checklist`, before `/ms.specify` |
 | `/ms.analyze` | Pre-implementation document gate | spec ↔ plan ↔ tasks consistency, Constitution alignment, drift detection | Before `/ms.implement` |
 | `/ms.review` | Post-implementation code gate | Design review, Codex and Antigravity reviews, lint/types/tests/build, coverage, security, TAG integrity | After `/ms.implement` |
-| `/fin` | Final commit | Review-state acknowledgement, docs sync, commit, push, PR | After `/ms.review` passes |
+| `/ms.fin` | Final commit | Review-state acknowledgement, docs sync, commit, push, PR | After `/ms.review` passes |
 
 **Mental model**:
 - `/ms.verify` = "Did the PRD become the right Feature Map?"
@@ -779,7 +780,7 @@ The review state file contains:
 - `/ms.agent-verify` = "Did the two independent reviewers find blocking checklist issues?"
 - `/ms.analyze` = "Are the implementation documents coherent enough to build?"
 - `/ms.review` = "Is the implemented branch ready to publish?"
-- `/fin` = "Commit, push, and open/update the PR."
+- `/ms.fin` = "Commit, push, and open/update the PR."
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: quality-gate
-description: "Use when: Code quality verification is required before commit. Triggered by /fin command."
+description: "Use when: Code quality verification is required before commit. Triggered by /ms.fin command."
 model: haiku
 ---
 
@@ -106,7 +106,7 @@ Verify all 5 TRUST principles (Constitution Section V):
    - Documentation files (`docs/`, `README.md`)
 
 3. **Verification Profile**:
-   - **Full Verification**: Before commit (triggered by `/fin`)
+   - **Full Verification**: Before commit (triggered by `/ms.fin`)
    - **Partial Verification**: Specific files only
    - **Quick Verification**: Critical items only (coverage, TRUST)
 
@@ -291,7 +291,7 @@ jest --coverage --coverageReporters=json
    - Provide actionable fix suggestions
 
 2. **Determine Next Action**:
-   - **PASS**: Approve commit, proceed with `/fin` workflow
+   - **PASS**: Approve commit, proceed with `/ms.fin` workflow
    - **WARNING**: Warn user, allow commit with acknowledgment
    - **CRITICAL**: Block commit, require fixes before retry
 
@@ -424,8 +424,8 @@ jest --coverage --coverageReporters=json
 ### Automatic Invocation
 
 ```bash
-# User runs /fin command
-/fin
+# User runs /ms.fin command
+/ms.fin
 
 # quality-gate agent automatically runs
 → Scan staged changes

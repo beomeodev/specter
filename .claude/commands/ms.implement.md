@@ -467,7 +467,7 @@ After `/ms.implement`:
 1. Verify TAG blocks in generated files.
 2. Verify tasks.md was marked complete by the command's mandatory read-back check.
 3. Run `/ms.implement` again until no pending TAGs remain.
-4. Run `/ms.review` before `/fin`; review owns Codex advisory review, tests, lint, typecheck, build, coverage, and TAG traceability reporting.
+4. Run `/ms.review` before `/ms.fin`; review owns Codex advisory review, tests, lint, typecheck, build, coverage, and TAG traceability reporting.
 
 ## Notes
 

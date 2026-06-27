@@ -415,15 +415,14 @@ Continue sync? (Yes/No)
 
 **Command relationship**:
 ```
-/ms.specify → /ms.plan → /ms.implement → /ms.up-docs → /fin
+/ms.specify → /ms.plan → /ms.implement → /ms.up-docs → /ms.fin
                                               ↑
                                       doc-updater agent
 ```
 
 **Called by**:
 - `/ms.up-docs` command (direct)
-- `/fin` command (automatic: `/ms.up-docs --docs=dev`)
-- `/finq` command (automatic: `/ms.up-docs --docs=dev`)
+- `/ms.fin` command (automatic: `/ms.up-docs --docs=dev`)
 
 **Dependencies**:
 - Git repository initialized
@@ -468,7 +467,7 @@ Continue sync? (Yes/No)
 - Document-code consistency checks
 
 **NOT handled** (delegated to other commands):
-- Git commit operations → `/fin` command
+- Git commit operations → `/ms.fin` command
 - TAG block insertion → `ms-workflow-tag-manager` Skill
 - TRUST validation → `ms-foundation-trust` Skill
 - SPEC creation → `/ms.specify` command

@@ -323,20 +323,19 @@ Continue anyway? (sync completed; TAG findings are warnings unless promoted by S
 ## Integration with My-Spec Workflow
 
 **Called by**:
-- `/fin` command (before commit)
-- `/finq` command (quick finish)
+- `/ms.fin` command (before commit)
 - Manual invocation when docs need sync
 
 **Workflow position**:
 ```
-/ms.featuremap → /ms.codex-checklist → /ms.verify → /ms.constitution → /ms.checklist → /ms.codex-verify → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.analyze → /ms.implement → /ms.review → [/ms.up-docs] → /fin
+/ms.featuremap → /ms.codex-checklist → /ms.verify → /ms.constitution → /ms.checklist → /ms.codex-verify → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.analyze → /ms.implement → /ms.review → [/ms.up-docs] → /ms.fin
                                                               ↑
                                                       (optional, but recommended)
 ```
 
 **Best practices**:
 1. Run `/ms.up-docs` after implementing features
-2. Review docs before running `/fin`
+2. Review docs before running `/ms.fin`
 3. Use `--docs=api` for API-only updates
 4. Use `--docs=dev` for daily log updates
 5. Use `--all` for comprehensive sync before releases
@@ -355,7 +354,7 @@ docs/
 └── guides/            # User guides (mostly manual)
 
 README.md              # Project overview (auto-sections + manual)
-CHANGELOG.md           # Change history (manual, updated by /fin)
+CHANGELOG.md           # Change history (manual, updated by /ms.fin)
 ```
 
 **Auto-generated markers**:
