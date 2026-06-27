@@ -1,13 +1,13 @@
 ---
-description: "Start a background Codex & Antigravity verification of the current per-Feature checklist"
+description: "Run a foreground Codex & Antigravity verification of the current per-Feature checklist"
 argument-hint: "[Feature NNN] [--model MODEL] [--effort low|medium|high]"
 ---
 
 # /ms.agent-verify - Per-Feature Dual-Agent Verification
 
-Start a background Codex and Antigravity run that reviews the current per-Feature checklist. This command is advisory, but `/ms.specify` requires both result files unless the user explicitly skips verification.
+Run Codex and Antigravity in the foreground (in parallel) to review the current per-Feature checklist. This command is advisory, but `/ms.specify` requires both result files unless the user explicitly skips verification.
 
-Execution is always background. Users do not pass `--background`.
+Execution is foreground: Codex and Antigravity run in parallel and this command returns only after both have finished and written their reports. Running in the foreground makes write failures or crashes observable immediately instead of leaving a silently missing output file.
 
 Default Codex/Antigravity runtimes:
 ```text
@@ -49,21 +49,23 @@ docs/prd/checklists/feature-NNN.checklist.md
 
 If no per-Feature checklist exists, stop and tell the user to run `/ms.checklist` first.
 
-### Step 1: Start Codex & Antigravity In Background
+### Step 1: Run Codex & Antigravity In Foreground (Parallel)
 
-Invoke the Codex and Antigravity plugin rescue commands in background mode:
+Invoke the Codex and Antigravity plugin rescue commands in the foreground, in parallel, and wait for both to finish before reporting:
 
-#### A. Start Codex
+#### A. Run Codex
 ```text
-/codex:rescue --background --fresh --model gpt-5.5 --effort medium <Codex Prompt>
+/codex:rescue --fresh --model gpt-5.5 --effort medium <Codex Prompt>
 ```
 
-#### B. Start Antigravity
+#### B. Run Antigravity
 ```text
-/antigravity:rescue --background --fresh --model gemini-3.5-flash --effort medium <Antigravity Prompt>
+/antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <Antigravity Prompt>
 ```
 
 If the user provided `--model` or `--effort`, pass those values through instead of the defaults.
+
+If either agent fails to write its `*-verify.md` report (crash, partial output, or write error), retry that agent once. If it fails again, stop and report the failure instead of proceeding with a missing verification artifact.
 
 ### Step 2: Agent Prompts
 
@@ -155,18 +157,19 @@ One short paragraph. If no blocking findings exist, say so directly.
 
 ### Step 3: Report
 
-Display in Korean:
+After both agents finish, read each report's **Result** and display in Korean:
 ```text
-Codex 및 Antigravity Feature checklist 검증을 백그라운드에서 시작했습니다.
+Codex 및 Antigravity Feature checklist 검증을 완료했습니다.
 
-📄 예상 산출물:
-- docs/prd/checklists/feature-NNN.codex-verify.md
-- docs/prd/checklists/feature-NNN.antigravity-verify.md
+📄 산출물:
+- docs/prd/checklists/feature-NNN.codex-verify.md (<PASS|WARN|FAIL>)
+- docs/prd/checklists/feature-NNN.antigravity-verify.md (<PASS|WARN|FAIL>)
 🎯 다음 단계: /ms.specify
 
-/ms.specify는 두 검증 결과가 모두 생성될 때까지 대기하거나 중단할 것입니다.
+두 결과가 모두 PASS/WARN이면 /ms.specify로 진행할 수 있습니다.
+하나라도 FAIL이면 체크리스트를 수정한 뒤 /ms.agent-verify를 다시 실행하세요.
 ```
 
 ## Next Command
 
-Run `/ms.specify` after both verification reports are available.
+Run `/ms.specify` after both verification reports show PASS/WARN.

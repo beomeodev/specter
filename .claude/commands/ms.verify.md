@@ -58,13 +58,20 @@ docs/prd/feature-map.checklist.md
 
 ## Execution Steps
 
-### Step 0.5: Run Antigravity Verification
+### Step 0.5: Run Antigravity Verification (Foreground)
 
-Invoke Google Antigravity to perform a global Feature Map verification:
+Invoke Google Antigravity in the **foreground** to perform a global Feature Map
+verification, and wait for it to finish before continuing. Running in the
+foreground makes write failures or crashes observable immediately instead of
+leaving a silently missing output file.
 
 ```text
 /antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <Prompt>
 ```
+
+If Antigravity fails to write `docs/prd/feature-map.antigravity-checklist.md`
+(crash, partial output, or write error), retry once. If it fails again, stop and
+report the failure instead of proceeding with a missing verification artifact.
 
 Antigravity Prompt:
 ```text
