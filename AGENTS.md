@@ -173,6 +173,13 @@ intended hybrid structure; do not migrate it to a different shape on a whim.
 - `.claude/commands/` holds the `/ms.*` files. These are **explicit user-invoked
   workflow entrypoints** and must stay commands. Do not convert `/ms.*` commands
   into skills, and do not remove `.claude/commands`.
+- `/ms.specter` is a per-Feature cycle conductor: it chains the existing `/ms.*`
+  steps (`checklist → agent-verify → specify → clarify → plan → tasks → analyze →
+  implement → review`) and stops at review. It must never weaken or bypass the
+  gates it invokes — it only reads each step's PASS/WARN/FAIL verdict, advances on
+  PASS/WARN, stops on FAIL, and hands `/ms.clarify` to the human. It stays a
+  command (not a skill) and is bound by the same Feature-Map / direct-call-bypass
+  gates as the steps it drives.
 - `.claude/skills/` holds **reusable capabilities** — validators, rules, rubrics,
   and checklists. Put reusable logic here, not new top-level commands.
 - `.claude/agents/` holds **specialist subagents** (role-based reasoning/execution).
