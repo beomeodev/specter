@@ -253,7 +253,7 @@ SPECTER에는 Constitution 관련 개념이 두 단계 있습니다.
 *   `--background` (사용 대상: `/ms.analyze`, `/ms.review`):
     *   에이전트 검증/리뷰 프로세스를 백그라운드 태스크로 백킹하여 실행합니다. 결과 보고서 파일이 정상 생성된 뒤 해당 명령을 다시 실행해 승인(PASS/WARN)을 얻어야 게이트가 통과됩니다.
 *   `--model MODEL` (사용 대상: `/ms.codex-checklist`, `/ms.agent-verify`, `/ms.analyze`, `/ms.review`):
-    *   기본 정의된 모델(`gpt-5.5` 또는 `gemini-2.5-pro`) 외에 특정한 대형 언어 모델을 명시적으로 지정하여 구동합니다.
+    *   기본 정의된 모델(`gpt-5.5` 또는 `gemini-3.5-flash`) 외에 특정한 대형 언어 모델을 명시적으로 지정하여 구동합니다.
 *   `--effort [low|medium|high]` (사용 대상: `/ms.codex-checklist`, `/ms.agent-verify`, `/ms.analyze`, `/ms.review`):
     *   검증 에이전트의 연산/사고 강도를 지정합니다. 복잡도가 높은 주요 변경점 검증 시 `high`로 구동하여 면밀한 추론을 수행하게 할 수 있습니다.
 *   `--adversarial` (사용 대상: `/ms.review`):

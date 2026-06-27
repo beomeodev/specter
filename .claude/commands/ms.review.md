@@ -501,7 +501,7 @@ One concise paragraph.
 
 #### B. Antigravity Code Review
 ```text
-/antigravity:review --fresh --model gemini-2.5-pro --effort medium <prompt>
+/antigravity:review --fresh --model gemini-3.5-flash --effort medium <prompt>
 ```
 *(Note: If `/antigravity:review` is not available, fall back to `/antigravity:rescue`.)*
 

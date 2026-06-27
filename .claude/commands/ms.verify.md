@@ -63,7 +63,7 @@ docs/prd/feature-map.checklist.md
 Invoke Google Antigravity to perform a global Feature Map verification:
 
 ```text
-/antigravity:rescue --fresh --model gemini-2.5-pro --effort medium <Prompt>
+/antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <Prompt>
 ```
 
 Antigravity Prompt:

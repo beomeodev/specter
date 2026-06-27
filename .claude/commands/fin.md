@@ -26,7 +26,7 @@ This updates `docs/dev_daily.md` and API specifications based on staged files.
 Invoke Google Antigravity to run local CI checks, stage files, commit with conventional messages, push the branch, and manage the GitHub pull request:
 
 ```text
-/antigravity:rescue --fresh --model gemini-2.5-pro --effort medium <Prompt>
+/antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <Prompt>
 ```
 
 #### Antigravity Prompt:
