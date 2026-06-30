@@ -187,6 +187,14 @@ intended hybrid structure; do not migrate it to a different shape on a whim.
   PASS/WARN, stops on FAIL, and hands `/ms.clarify` to the human. It stays a
   command (not a skill) and is bound by the same Feature-Map / direct-call-bypass
   gates as the steps it drives.
+- `/ms.pre-specter` is the pre-Feature counterpart: a one-time PRD-setup conductor
+  that chains `featuremap → codex-checklist → verify → constitution`. Same
+  conductor discipline — it never weakens the gates it invokes, reads each step's
+  verdict/artifact, advances on PASS/WARN, stops on FAIL, and waits for the
+  background Codex checklist before `/ms.verify`. It runs automatically (no
+  designed human stop), surfacing only the conditional questions the underlying
+  commands raise (PRD confirmation, Constitution baseline overwrite/conflict). It
+  stays a command (not a skill) and hands the first Feature to `/ms.specter`.
 - `.claude/skills/` holds **reusable capabilities** — validators, rules, rubrics,
   and checklists. Put reusable logic here, not new top-level commands.
 - `.claude/agents/` holds **specialist subagents** (role-based reasoning/execution).

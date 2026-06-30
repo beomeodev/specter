@@ -112,7 +112,7 @@ crosses the clarify boundary.
    ```text
    ⛔ /ms.specter는 per-Feature 사이클만 자동화합니다.
 
-   먼저 1회 PRD 셋업을 완료하세요:
+   먼저 1회 PRD 셋업을 완료하세요 (한 번에: /ms.pre-specter @docs/prd/PRD.md):
      /ms.featuremap @docs/prd/PRD.md [...]
      /ms.codex-checklist @docs/prd/PRD.md [...]
      /ms.verify
