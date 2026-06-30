@@ -135,6 +135,13 @@ Ask for user approval before:
 Do not run destructive commands such as `git reset --hard` or broad deletes
 unless the user explicitly requests and confirms them.
 
+When committing, split changes by logical unit: each commit is one coherent
+concern (a feature with its tests and docs is one commit; an unrelated refactor
+or config change is another). Default to multiple commits when the diff spans
+more than one concern, and collapse to a single commit only when the whole change
+is cohesive. This is the default for every track (`/ms.fin`, `/ms.fix`,
+`/ms.amend`, and direct commits).
+
 ---
 
 ## 8. TAGS, GEARS, And TRUST Outside `/ms`

@@ -108,12 +108,19 @@ Tasks to execute:
      build) using the project's default runner (e.g. 'make ci' or test commands).
      If any check fails, STOP immediately and report the failure. Do not commit
      or push.
-2. Stage and Commit:
+2. Stage and Commit (split by logical unit — DEFAULT):
    - Review changed files and build an explicit staging list (do not run 'git add .').
-   - Stage the features, tests, docs, and configurations related to the current feature.
-   - Format staged files using pre-commit hooks (if configured).
-   - Generate a meaningful conventional commit message (feat/fix/chore/docs/test).
-   - Execute git commit.
+   - Group the changes by logical concern, NOT by file type. Each commit must be
+     one coherent, self-consistent change (e.g. a feature + its tests + its docs
+     belong together; an unrelated refactor or config bump is a separate commit).
+   - DEFAULT to multiple commits when the diff spans more than one concern. Stage
+     each concern's files selectively (use 'git add -p' / pathspecs) and commit it
+     before staging the next. Order commits so each one leaves the tree buildable.
+   - Collapse to a SINGLE commit only when the whole diff is one cohesive change;
+     never split a single concern into noise commits just to inflate the count.
+   - Format staged files using pre-commit hooks (if configured) before each commit.
+   - Give every commit a meaningful conventional message (feat/fix/chore/docs/test)
+     that describes that commit's concern specifically.
 3. Push:
    - Push the committed branch to origin.
 4. PR Auto-create:
