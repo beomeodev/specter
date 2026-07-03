@@ -281,6 +281,18 @@ default Constitution remains authoritative. Do not invent constraints just to fi
 If source PRDs, product-principles, Feature Map, and Constitution conflict on a durable rule, stop and
 ask the user to choose. Do not silently pick one.
 
+## Run-State Ledger (bookkeeping, not a gate)
+
+Append one line to `.specify/specter-run.jsonl` (create it if needed; append-only, never
+rewritten — a missing/corrupt ledger never blocks this command, it only speeds up conductor
+resume). Reaching Step 8 means the baseline was established, so `verdict` is `PASS`:
+
+```bash
+mkdir -p .specify
+printf '{"ts":"%s","cycle":"pre","feature":null,"step":"constitution","verdict":"PASS","artifacts":[".specify/memory/constitution.md"]}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .specify/specter-run.jsonl
+```
+
 ## Next Command
 
 After `/ms.constitution`, run `/ms.checklist` for the first eligible Feature. If that checklist

@@ -263,6 +263,19 @@ Display next steps:
 -   **RIPGREP_NOT_FOUND**: Install ripgrep ≥13.0
 -   **DUPLICATE_SPEC_TAG**: duplicate @SPEC TAG detected; CODE/TEST multi-file TAGs are allowed
 
+## Run-State Ledger (bookkeeping, not a gate)
+
+Append one line to `.specify/specter-run.jsonl` (create it if needed; append-only, never
+rewritten — a missing/corrupt ledger never blocks this command, it only speeds up conductor
+resume). Reaching this point means `tasks.md` was generated without a blocking duplicate-`@SPEC`
+TAG failure, so `verdict` is `PASS`:
+
+```bash
+mkdir -p .specify
+printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"tasks","verdict":"PASS","artifacts":["%s"]}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "specs/<spec-id>/tasks.md" >> .specify/specter-run.jsonl
+```
+
 ## Next Steps
 
 After `/ms.tasks`:

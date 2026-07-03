@@ -242,6 +242,18 @@ inline `## Progress Ledger` section (from before this split), move that section'
 this only from `/ms.featuremap` (or `/ms.expand`) — never from a gate command, since that would
 change a gate's input file outside an audited write.
 
+### 5.5 Run-State Ledger (bookkeeping, not a gate)
+
+Append one line to `.specify/specter-run.jsonl` (create it if needed; append-only, never
+rewritten — a missing/corrupt ledger never blocks this command, it only speeds up conductor
+resume):
+
+```bash
+mkdir -p .specify
+printf '{"ts":"%s","cycle":"pre","feature":null,"step":"featuremap","verdict":"PASS","artifacts":["docs/prd/feature-map.md","docs/prd/feature-map.progress.md"]}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .specify/specter-run.jsonl
+```
+
 ### 6. Report
 
 ```

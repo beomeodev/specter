@@ -126,6 +126,19 @@ crosses the clarify boundary.
    extract the full `## Feature NNN:` section for the resolved Feature. Keep it
    verbatim — it is the required input for `/ms.specify` in Step 3.
 4. Initialize an empty collected-warnings list for this run.
+5. **Resume from the run-state ledger** (bookkeeping only — gates still come from the audit
+   artifacts, never from this file). If `.specify/specter-run.jsonl` exists, read its lines
+   filtered to `cycle: "feature"` and this Feature's number. The step sequence is
+   `checklist → agent-verify → specify → clarify → plan → tasks → analyze → implement → review`.
+   Take, per step name, the **last** matching line (later entries supersede earlier ones) and
+   find the first step in the sequence that has no `PASS`/`WARN` entry yet — resume the cycle
+   there instead of restarting at Step 1, and announce the resume point:
+   ```text
+   ↩️ 이전 실행 이어서 진행: Feature NNN — <step>부터 재개 (이전 단계는 이미 PASS/WARN 기록됨)
+   ```
+   If the ledger is missing, unreadable, or every step already lacks a matching entry, start
+   normally at Step 1 — a missing/corrupt ledger never blocks the run, it only loses the resume
+   shortcut.
 
 ### Step 1: `/ms.checklist`
 

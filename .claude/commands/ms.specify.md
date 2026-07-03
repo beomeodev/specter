@@ -409,6 +409,18 @@ This will set up Spec-Kit templates AND create the Constitution.
 
 **Exit**: Code 1
 
+## Run-State Ledger (bookkeeping, not a gate)
+
+Append one line to `.specify/specter-run.jsonl` (create it if needed; append-only, never
+rewritten — a missing/corrupt ledger never blocks this command, it only speeds up conductor
+resume). Reaching Step 5's success report means `spec.md` was created, so `verdict` is `PASS`:
+
+```bash
+mkdir -p .specify
+printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"specify","verdict":"PASS","artifacts":["%s"]}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "specs/<spec-id>/spec.md" >> .specify/specter-run.jsonl
+```
+
 ## Next Command
 
 After `/ms.specify`:

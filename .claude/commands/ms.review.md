@@ -726,6 +726,17 @@ inside `/ms.review` remain blocking for the review result itself.
   - Removed: `.specify/review/*.json`, `.specify/review-rg.ndjson`, transient hash files
   - Reports: `docs/review/review_{agent}_{timestamp}.md` kept for audit trail
 
+**Run-State Ledger** (bookkeeping, not a gate): append one line to `.specify/specter-run.jsonl`
+(create it if needed; append-only, never rewritten — a missing/corrupt ledger never blocks this
+command, it only speeds up conductor resume), with `verdict` set to `PASS` (READY), `WARN` (READY
+WITH WARNINGS), or `FAIL` (NOT READY):
+
+```bash
+mkdir -p .specify
+printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"review","verdict":"%s","artifacts":["%s"]}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "<PASS|WARN|FAIL>" "$REPORT_FILE" >> .specify/specter-run.jsonl
+```
+
 ---
 
 ## User Options

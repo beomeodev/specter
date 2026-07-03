@@ -161,6 +161,19 @@ Please check the error message above and retry.
 
 **Exit**: Code 1
 
+## Run-State Ledger (bookkeeping, not a gate)
+
+Append one line to `.specify/specter-run.jsonl` (create it if needed; append-only, never
+rewritten — a missing/corrupt ledger never blocks this command, it only speeds up conductor
+resume). Reaching this point means every ambiguity was resolved (or none existed), so `verdict`
+is `PASS`:
+
+```bash
+mkdir -p .specify
+printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"clarify","verdict":"PASS","artifacts":["%s"]}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "specs/<spec-id>/spec.md" >> .specify/specter-run.jsonl
+```
+
 ## Next Command
 
 After `/ms.clarify`: Run `/ms.plan` to create the implementation plan based on the clarified requirements. `/ms.checklist` is only used before `/ms.specify`.

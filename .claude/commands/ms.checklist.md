@@ -347,6 +347,19 @@ Bypass protection:
   for fixes. The audit identifies required corrections first.
 - It does not run agents. Use `/ms.agent-verify` after this command.
 
+## Run-State Ledger (bookkeeping, not a gate)
+
+Append one line to `.specify/specter-run.jsonl` (create it if needed; append-only, never
+rewritten — a missing/corrupt ledger never blocks this command, it only speeds up conductor
+resume), with `verdict` set to the Result just written above and `feature` set to the selected
+Feature's number (as a string, e.g. `"006"`):
+
+```bash
+mkdir -p .specify
+printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"checklist","verdict":"%s","artifacts":["docs/prd/checklists/feature-%s.checklist.md"]}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "<PASS|WARN|FAIL>" "<NNN>" >> .specify/specter-run.jsonl
+```
+
 ## Next Command
 
 After `/ms.checklist` passes for a Feature, run `/ms.agent-verify`. After dual-agent

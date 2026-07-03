@@ -336,6 +336,18 @@ If `FAIL`:
 | `/ms.analyze` | spec ↔ plan ↔ tasks document gate plus Codex document review | Before `/ms.implement` |
 | `/ms.review` | code quality + executable gates | After `/ms.implement` |
 
+## Run-State Ledger (bookkeeping, not a gate)
+
+Append one line to `.specify/specter-run.jsonl` (create it if needed; append-only, never
+rewritten — a missing/corrupt ledger never blocks this command, it only speeds up conductor
+resume), with `verdict` set to the `document_consistency` Result from Step 5's summary:
+
+```bash
+mkdir -p .specify
+printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"analyze","verdict":"%s","artifacts":["%s"]}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "<PASS|WARN|FAIL>" "specs/<spec-id>/analyze.codex.md" >> .specify/specter-run.jsonl
+```
+
 ## Next Command
 
 After `/ms.analyze` passes, run `/ms.implement`.

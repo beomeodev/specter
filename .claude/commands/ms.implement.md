@@ -460,6 +460,18 @@ Please check the error message above and retry.
 
 **Exit**: Code 1
 
+## Run-State Ledger (bookkeeping, not a gate)
+
+Append one line to `.specify/specter-run.jsonl` (create it if needed; append-only, never
+rewritten — a missing/corrupt ledger never blocks this command, it only speeds up conductor
+resume). Reaching this point without an unresolved in-scope blocker means `verdict` is `PASS`:
+
+```bash
+mkdir -p .specify
+printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"implement","verdict":"PASS","artifacts":["%s"]}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "specs/<spec-id>/tasks.md" >> .specify/specter-run.jsonl
+```
+
 ## Next Steps
 
 After `/ms.implement`:

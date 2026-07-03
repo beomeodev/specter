@@ -211,6 +211,19 @@ Codex 및 Antigravity Feature checklist 검증을 완료했습니다.
 하나라도 FAIL이면 체크리스트를 수정한 뒤 /ms.agent-verify를 다시 실행하세요.
 ```
 
+## Run-State Ledger (bookkeeping, not a gate)
+
+Append one line to `.specify/specter-run.jsonl` (create it if needed; append-only, never
+rewritten — a missing/corrupt ledger never blocks this command, it only speeds up conductor
+resume). Set `verdict` to the worse of the two agents' Results (FAIL > WARN > PASS) and `feature`
+to the Feature number as a string:
+
+```bash
+mkdir -p .specify
+printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"agent-verify","verdict":"%s","artifacts":["docs/prd/checklists/feature-%s.codex-verify.md","docs/prd/checklists/feature-%s.antigravity-verify.md"]}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "<PASS|WARN|FAIL>" "<NNN>" "<NNN>" >> .specify/specter-run.jsonl
+```
+
 ## Next Command
 
 Run `/ms.specify` after both verification reports show PASS/WARN.

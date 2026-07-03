@@ -181,6 +181,20 @@ missing or partial after one retry of this command, salvage it from that retry's
 `===REPORT BEGIN===`/`===REPORT END===` markers instead of re-running the whole background job
 blind or stopping outright.
 
+### Step 2.5: Run-State Ledger (bookkeeping, not a gate)
+
+Append one line to `.specify/specter-run.jsonl` (create it if needed; append-only, never
+rewritten — a missing/corrupt ledger never blocks this command). Since this step is a background
+kickoff, not a finished verdict, record `PENDING`; the consuming command (`/ms.verify` or
+`/ms.pre-specter`) already checks the artifact directly and does not depend on this entry being
+upgraded later:
+
+```bash
+mkdir -p .specify
+printf '{"ts":"%s","cycle":"pre","feature":null,"step":"codex-checklist","verdict":"PENDING","artifacts":["docs/prd/codex/checklist.md"]}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .specify/specter-run.jsonl
+```
+
 ### Step 3: Report
 
 Display in Korean:

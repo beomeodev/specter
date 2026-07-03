@@ -300,6 +300,18 @@ Blocking Fixes를 반영한 뒤 /ms.featuremap 또는 docs/prd/feature-map.md를
 /ms.constitution은 아직 진행하지 마세요.
 ```
 
+## Run-State Ledger (bookkeeping, not a gate)
+
+Append one line to `.specify/specter-run.jsonl` (create it if needed; append-only, never
+rewritten — a missing/corrupt ledger never blocks this command, it only speeds up conductor
+resume), with `verdict` set to the Result just determined above:
+
+```bash
+mkdir -p .specify
+printf '{"ts":"%s","cycle":"pre","feature":null,"step":"verify","verdict":"%s","artifacts":["docs/prd/feature-map.checklist.md"]}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<PASS|WARN|FAIL>" >> .specify/specter-run.jsonl
+```
+
 ## Next Command
 
 After `/ms.verify` passes, run `/ms.constitution`.

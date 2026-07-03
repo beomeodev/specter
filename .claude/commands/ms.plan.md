@@ -292,6 +292,19 @@ Please check the error message above and retry.
 
 **Exit**: Code 1
 
+## Run-State Ledger (bookkeeping, not a gate)
+
+Append one line to `.specify/specter-run.jsonl` (create it if needed; append-only, never
+rewritten — a missing/corrupt ledger never blocks this command, it only speeds up conductor
+resume). Reaching this point means `plan.md` reflects verified reality (mechanical fixes applied
+automatically, design-level mismatches already resolved), so `verdict` is `PASS`:
+
+```bash
+mkdir -p .specify
+printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"plan","verdict":"PASS","artifacts":["%s"]}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "specs/<spec-id>/plan.md" >> .specify/specter-run.jsonl
+```
+
 ## Next Command
 
 After `/ms.plan`: Run `/ms.tasks`. Section IX baseline should already be established by `/ms.constitution` before the per-Feature cycle starts.
