@@ -28,6 +28,11 @@ warning, or stop.
 - It does not run the per-Feature cycle (`/ms.checklist`, `/ms.agent-verify`,
   `/ms.specify`, …). That is `/ms.specter`'s job. This conductor stops once the
   one-time setup is complete and hands the first Feature to `/ms.specter`.
+- It is not the track for adding a requirement to an **already-established** baseline.
+  Re-running the whole PRD set regenerates the Feature Map and may overwrite existing
+  decomposition (see Step 0's re-run confirmation below). For an incremental
+  requirement appended to an existing PRD, use `/ms.expand` instead — it decomposes only
+  the delta and never re-audits Features that were already checked.
 - It does not commit, push, tag, or open a PR. `/ms.constitution` may modify
   `AGENTS.md` and `README.md` in the working tree; publishing those stays with
   `/ms.fin`, whose `git` actions are permission-gated.

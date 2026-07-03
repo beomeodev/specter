@@ -195,6 +195,13 @@ intended hybrid structure; do not migrate it to a different shape on a whim.
   designed human stop), surfacing only the conditional questions the underlying
   commands raise (PRD confirmation, Constitution baseline overwrite/conflict). It
   stays a command (not a skill) and hands the first Feature to `/ms.specter`.
+- `/ms.expand` is the incremental-PRD track between `/ms.fix` (no new requirement) and
+  `/ms.pre-specter` (whole-product recomposition): it consumes a `## PRD Amendment N`
+  section appended to an existing PRD and extends `docs/prd/feature-map.md` with only the
+  new Features it requires, without re-auditing Features already checked. It refuses any
+  PRD diff that edits existing text instead of appending, and it never touches an existing
+  Feature section or PRD Commitment Index row. It stays a command (not a skill) and hands
+  the new Feature to `/ms.specter`.
 - `.claude/skills/` holds **reusable capabilities** — validators, rules, rubrics,
   and checklists. Put reusable logic here, not new top-level commands.
 - `.claude/agents/` holds **specialist subagents** (role-based reasoning/execution).

@@ -12,16 +12,23 @@ the full SPEC→clarify→plan→tasks ceremony that doesn't fit small work.
 
 ## Step 0: The discriminator — is this really a fix?
 
-**Use the FULL workflow (`/ms.featuremap` → `/ms.specify` → … → `/ms.implement`) instead
-if the change introduces a new requirement**, i.e. ANY of:
-- a new GEARS "shall" (new user-facing capability / behavior contract)
-- a new endpoint, a new DB schema/migration, a new external integration
+Three tracks, by whether the change introduces a new requirement and whether a checked PRD /
+Feature Map baseline already exists:
 
-**Use `/ms.fix` if it's**: a bug fix, a correction to existing behavior, a copy/label
-change, a color/style/layout polish, a refactor of existing code, a config tweak.
+- **No new requirement** — a bug fix, a correction to existing behavior, a copy/label change, a
+  color/style/layout polish, a refactor of existing code, a config tweak → **`/ms.fix`** (this
+  command). Continue below.
+- **New requirement, and a checked baseline already exists** — a new GEARS "shall", a new
+  endpoint, a new DB schema/migration, a new external integration, added to a product that
+  already has a decomposed Feature Map → **`/ms.expand`**. Append the requirement to the
+  existing PRD under a `## PRD Amendment N` heading and run `/ms.expand`; it decomposes only the
+  delta into new Features without re-auditing the whole product.
+- **New requirement, and no baseline exists yet** — the first PRD, or a change big enough to
+  reshape the whole product → the full workflow starting at `/ms.pre-specter`.
 
-> If unsure: does it change *what the product promises*, or just *how correctly/nicely
-> it already does it*? The former → full workflow. The latter → `/ms.fix`.
+> If unsure whether it's a new requirement: does it change *what the product promises*, or just
+> *how correctly/nicely it already does it*? The former → `/ms.expand` (or `/ms.pre-specter` for
+> a first-time/whole-product change). The latter → `/ms.fix`.
 
 ## Step 1: Size the change (decides ceremony, from existing rules)
 
@@ -79,7 +86,8 @@ Do not commit/push without user approval (Constitution §2).
 
 ```
 새 요구사항?
- ├ 예  → /ms.featuremap → /ms.codex-checklist → /ms.verify → /ms.constitution → /ms.checklist → /ms.codex-verify → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.analyze → /ms.implement → /ms.review → /ms.fin → /ms.merglease
+ ├ 예, 기존 baseline 있음 → /ms.expand → /ms.specter <새 Feature NNN>
+ ├ 예, baseline 없음(최초/전면 재구성) → /ms.pre-specter → /ms.specter (Feature마다 반복)
  └ 아니오 → /ms.fix (1-2 files: 경량 / 3+ files: mini-plan 먼저) → /ms.fin → /ms.merglease
 ```
 

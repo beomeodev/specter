@@ -193,6 +193,7 @@ Use this structure:
 **PRDs**: <source label -> path list>
 **Feature Map**: docs/prd/feature-map.md
 **Feature Map SHA256**: <sha256 of docs/prd/feature-map.md at audit time>
+**Git Ref**: <git rev-parse HEAD at audit time>
 **Result**: PASS | WARN | FAIL
 **Generated**: YYYY-MM-DD
 
