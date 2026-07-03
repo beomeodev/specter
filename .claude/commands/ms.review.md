@@ -279,6 +279,20 @@ Aggregate issues from automated tools + AI analysis.
 
 **Score**: `100 - (critical×20 + high×5 + medium×2 + low×0.5)`
 
+#### Result Model
+
+`/ms.review`'s final result is always one of exactly three values, computed the same way no
+matter which step raises the trigger:
+
+- **NOT READY**: at least one CRITICAL trigger fired.
+- **READY WITH WARNINGS**: no CRITICAL trigger fired, but at least one WARNING trigger fired.
+- **READY**: no CRITICAL or WARNING trigger fired.
+
+Steps 6.5, 6.6, and 6.7 below each define their own domain-specific CRITICAL/WARNING triggers
+(executable gates, Done Criteria, dual-agent findings) and feed this model — none of them
+restate the READY / READY WITH WARNINGS / NOT READY computation independently. A later step can
+only raise the result's severity, never lower one a prior step already set.
+
 ---
 
 ### Step 6.5: Executable Code Gates
@@ -315,14 +329,12 @@ Run `quality-gate` or `trust-validator` for code-level TRUST checks:
 
 #### C. Gate Result Handling
 
-- If CRITICAL executable gates fail, or unresolved HIGH issues remain, mark
-  review as **NOT READY** and write `.specify/review-state.txt`. TAG-only
-  findings do not make the review NOT READY unless Section IX or CI explicitly
-  promotes TAG integrity to blocking.
-- If only HIGH/MEDIUM warnings remain, mark review as **READY WITH WARNINGS** and
-  persist the warning summary for `/ms.fin` acknowledgement.
-- If all executable gates and deep review checks pass, remove stale
-  `.specify/review-state.txt` if it exists.
+Per the Result Model (Step 6): a CRITICAL trigger fires if executable gates fail CRITICAL, or
+unresolved HIGH issues remain — write `.specify/review-state.txt` in that case. TAG-only findings
+are not a CRITICAL trigger unless Section IX or CI explicitly promotes TAG integrity to blocking.
+A WARNING trigger fires if only HIGH/MEDIUM warnings remain — persist the warning summary for
+`/ms.fin` acknowledgement. If all executable gates and deep review checks pass, neither trigger
+fires; remove stale `.specify/review-state.txt` if it exists.
 
 
 ---
@@ -353,8 +365,8 @@ before the dual-agent review so both agents can see the results in their prompt 
    | --- | --- | --- | --- |
    | ... | RUNNABLE \| MANUAL | PASS \| FAIL \| MANUAL | command/output, or "n/a — manual" |
 
-6. **Gate**: any RUNNABLE criterion with Result `FAIL` sets the overall `/ms.review` result to
-   **NOT READY** — the same severity as a failing executable gate in Step 6.5. Do not let a green
+6. **Gate**: any RUNNABLE criterion with Result `FAIL` is a CRITICAL trigger in the Result Model
+   (Step 6) — the same severity as a failing executable gate in Step 6.5. Do not let a green
    lint/type/test/build run mask a product that does not actually start or work.
 7. **Report MANUAL items** in the Korean report (Step 7) as an explicit checklist so the user's
    own real-device/manual testing loop has a concrete list to work from:
@@ -461,10 +473,10 @@ After the run, deterministically check the written file: it exists, is non-empty
 hand-transcribing it yourself. If no markers were captured either, apply the Preflight Degrade
 Rule (subsection 0) instead of stopping outright.
 
-#### B. Result handling for both reviews:
-- `PASS`: keep the SPECTER review result unchanged.
-- `WARN`: final `/ms.review` result is at least READY WITH WARNINGS unless Claude/SPECTER explicitly explains why every warning is a false positive.
-- `FAIL`: final `/ms.review` result is NOT READY unless Claude/SPECTER explicitly downgrades the finding with source evidence.
+#### B. Result handling for both reviews (feeds the Result Model, Step 6):
+- `PASS`: no trigger; SPECTER review result unchanged.
+- `WARN`: WARNING trigger, unless Claude/SPECTER explicitly explains why every warning is a false positive.
+- `FAIL`: CRITICAL trigger, unless Claude/SPECTER explicitly downgrades the finding with source evidence.
 - `PENDING`: if `--background` was used and either report is missing, stop and tell the user to rerun `/ms.review` after both reports appear.
 
 #### C. Convergence Policy (re-round caps)
