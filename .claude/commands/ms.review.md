@@ -1,6 +1,6 @@
 ---
 description: "Code quality review after implementation"
-argument-hint: "[--skip-codex] [--background] [--model MODEL] [--effort low|medium|high]"
+argument-hint: "[--skip-codex] [--background] [--model MODEL] [--effort low|medium|high] [--runtime-agent=agy]"
 ---
 
 # /ms.review - Code Quality Review
@@ -23,6 +23,7 @@ Performs deep code quality review and executable code-gate validation after `/ms
 - ✅ Security deep-dive (auth gaps, logging leaks, error exposure)
 - ✅ Test quality (AAA pattern, boundary tests, mock overuse)
 - ✅ Post-implementation code gates (lint, typecheck, tests, build, coverage) plus TAG integrity reporting
+- ✅ Done Criteria Execution — actually running the Feature's entrypoint against its `### Done criteria`, not just passing unit tests
 
 ## Workflow Position
 
@@ -441,9 +442,52 @@ Run `quality-gate` or `trust-validator` for code-level TRUST checks:
 
 ---
 
-### Step 6.6: Dual-Agent Code Review
+### Step 6.6: Done Criteria Execution
 
-Unless `--skip-codex` (or `--skip-agents`) is supplied, invoke both Codex and Antigravity after the local CI and TRUST gates have produced enough context. Both agents always run in adversarial mode.
+Executable lint/type/test/build gates (Step 6.5) prove the code compiles and unit-passes; they do
+not prove the product actually runs. This step closes that gap by driving the real entrypoint,
+before the dual-agent review so both agents can see the results in their prompt context.
+
+1. **Load the criteria.** Read the Feature's `### Done criteria` from its `## Feature NNN:`
+   section in `docs/prd/feature-map.md`, and the acceptance scenarios in `spec.md`.
+2. **Classify each criterion**:
+   - **RUNNABLE**: provable by executing something — a CLI command, starting a server/daemon and
+     hitting a health/endpoint check, running a script, or driving a reproducible user flow
+     end-to-end.
+   - **MANUAL**: requires human eyes or a physical device (visual polish, hardware, third-party
+     dashboard, anything not scriptable from this session).
+3. **Execute every RUNNABLE criterion for real**: start the actual entrypoint (the daemon,
+   server, or CLI the Feature ships — not a mock), drive the affected flow, and observe the
+   actual behavior. This is a bounded smoke of the product path, not a load test — kill any
+   long-running process (server, watcher) once its criterion has been observed.
+4. **Phase E2E scenario**: if this Feature is a Phase's last Feature (per the Feature Map DAG),
+   also execute that Phase's end-to-end scenario as one additional RUNNABLE criterion.
+5. **Record results** in a table, included in the Step 7 review report:
+
+   | Criterion | Class | Result | Evidence |
+   | --- | --- | --- | --- |
+   | ... | RUNNABLE \| MANUAL | PASS \| FAIL \| MANUAL | command/output, or "n/a — manual" |
+
+6. **Gate**: any RUNNABLE criterion with Result `FAIL` sets the overall `/ms.review` result to
+   **NOT READY** — the same severity as a failing executable gate in Step 6.5. Do not let a green
+   lint/type/test/build run mask a product that does not actually start or work.
+7. **Report MANUAL items** in the Korean report (Step 7) as an explicit checklist so the user's
+   own real-device/manual testing loop has a concrete list to work from:
+   ```text
+   📋 수동 확인 필요
+   - <criterion>: <디바이스/환경> — <확인 절차> — 기대 결과: <expected>
+   ```
+
+**Optional knob** (document only, not the default): `--runtime-agent=agy` delegates this step's
+execution to Antigravity instead of the host, so an independent party (not the implementer) drives
+the product. The default stays host-run. Do not enable this by default until the Antigravity
+hardening work (external-agent preflight/degrade rule) has proven agy stable in this environment.
+
+---
+
+### Step 6.7: Dual-Agent Code Review
+
+Unless `--skip-codex` (or `--skip-agents`) is supplied, invoke both Codex and Antigravity after the local CI and TRUST gates have produced enough context. Both agents always run in adversarial mode. Both prompts also receive the Done Criteria Execution table from Step 6.6 so they can factor real runtime behavior into their review.
 
 #### A. Codex Code Review
 ```text
@@ -456,6 +500,7 @@ Codex must read:
 - `specs/[spec-id]/plan.md`
 - `specs/[spec-id]/tasks.md`
 - `docs/prd/checklists/feature-NNN.checklist.md`
+- the Step 6.6 Done Criteria Execution table (RUNNABLE results and evidence)
 - the current git diff against the review base
 - changed production files and changed tests
 
@@ -511,6 +556,7 @@ Antigravity must read:
 - `specs/[spec-id]/plan.md`
 - `specs/[spec-id]/tasks.md`
 - `docs/prd/checklists/feature-NNN.checklist.md`
+- the Step 6.6 Done Criteria Execution table (RUNNABLE results and evidence)
 - the current git diff against the review base
 - changed production files and changed tests
 
@@ -577,6 +623,7 @@ Report structure (console + file):
 
 - Summary: CRITICAL/HIGH/MEDIUM/LOW counts, overall score, Codex review result
 - Intent & Focus Charter (inline copy of Step 2.5 so report is self-contained)
+- Done Criteria Execution table (from Step 6.6) plus the "📋 수동 확인 필요" MANUAL checklist
 - Production Risks, Strategic Unlocks, Quick Wins
 - Coverage Checklist
 - Hidden LOW issues count (show with `--verbose`)
@@ -681,6 +728,9 @@ Skip action prompts for CI/CD:
 - `--skip-codex`: skip advisory Codex code review.
 - `--background`: start Codex review in the background and require a later `/ms.review` rerun.
 - `--model` / `--effort`: override the default `gpt-5.5` / `medium` runtime.
+- `--runtime-agent=agy`: delegate Step 6.6's Done Criteria Execution to Antigravity instead of
+  the host. Documented as a knob, not a default — keep host-run until Antigravity has proven
+  stable in this environment.
 
 > The dual-agent review always runs in adversarial mode — both Codex and
 > Antigravity challenge design choices, simpler/safer alternatives, and hidden
@@ -771,7 +821,7 @@ The review state file contains:
 | `/ms.checklist` | Per-Feature gate | Selected Feature PRD fidelity, ownership, scope, done criteria | After `/ms.constitution`, before `/ms.agent-verify` |
 | `/ms.agent-verify` | Per-Feature dual-agent gate | Concise Codex & Antigravity check of the Feature checklist | After `/ms.checklist`, before `/ms.specify` |
 | `/ms.analyze` | Pre-implementation document gate | spec ↔ plan ↔ tasks consistency, Constitution alignment, drift detection | Before `/ms.implement` |
-| `/ms.review` | Post-implementation code gate | Design review, Codex and Antigravity reviews, lint/types/tests/build, coverage, security, TAG integrity | After `/ms.implement` |
+| `/ms.review` | Post-implementation code gate | Design review, Done Criteria Execution (runs the real entrypoint), Codex and Antigravity reviews, lint/types/tests/build, coverage, security, TAG integrity | After `/ms.implement` |
 | `/ms.fin` | Final commit | Review-state acknowledgement, docs sync, commit, push, PR | After `/ms.review` passes |
 
 **Mental model**:

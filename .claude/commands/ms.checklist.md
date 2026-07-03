@@ -193,6 +193,11 @@ rows, mark FAIL.
   principles, Constitution, or dependency Feature specs.
 - The Feature does not omit acceptance criteria or NFRs attached to its PRD
   references.
+- **User-facing exposure**: every owned commitment that implies a user-visible surface (UI, CLI,
+  API, notification) has a concrete `### In scope` deliverable that actually exposes it (an
+  endpoint, screen, command, or message the user can reach) — not just a backend capability with
+  no surface — OR an explicit `### Explicitly out of scope` row naming the Feature that owns the
+  exposure. A commitment with neither is a FAIL, not a warning.
 
 #### 2. Boundary Discipline
 
@@ -281,6 +286,8 @@ Use this structure:
 - An out-of-scope item lacks a destination Feature.
 - Required Feature template sections are missing.
 - Done criteria are not observable or do not end with `CI passes green`.
+- A user-facing commitment (UI, CLI, API, notification) has no in-scope deliverable exposing it
+  and no out-of-scope row naming its owning Feature.
 
 ## Result Model
 
