@@ -67,7 +67,6 @@ cat > "$NP_BIN" <<'NP_SCRIPT'
 #   np myapp map
 #   np airchanger acp
 #   np myapp map ~/projects/spt
-  np myapp map git@github.com:beomeodev/specter.git
 #   np myapp map git@github.com:beomeodev/specter.git
 # ============================================================================
 
@@ -83,6 +82,41 @@ fail() {
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || fail "필수 명령어가 없습니다: $1"
+}
+
+# 새 프로젝트를 /ms.sync 브로드캐스트 등록부(~/.claude/specter-sync.json)에 등록한다.
+# 등록부는 SPECTER 레포 밖(호스트 ~/.claude, 전 컨테이너 공유 마운트)에 두므로
+# 공개 템플릿을 클론한 제3자에게는 만들어지지 않는다. 등록 실패가 np를 막지 않는다.
+register_sync_target() {
+  python3 - "$PROJECT_NAME" "$REPO_SSH" "$SPECTER_TEMPLATE_REPO" <<'PY' || echo "⚠️ specter-sync 등록 실패 — SPECTER에서 수동 등록: python scripts/specter_sync.py register $REPO_SSH"
+import json
+import sys
+from pathlib import Path
+
+name, repo, template_repo = sys.argv[1:4]
+registry_path = Path.home() / ".claude" / "specter-sync.json"
+if registry_path.exists():
+    registry = json.loads(registry_path.read_text())
+else:
+    registry = {"source": template_repo, "targets": []}
+
+
+def norm(url: str) -> str:
+    u = url.strip()
+    if u.startswith("git@github.com:"):
+        u = "https://github.com/" + u[len("git@github.com:"):]
+    return u.removesuffix(".git").rstrip("/")
+
+
+targets = registry.setdefault("targets", [])
+if any(norm(t.get("repo", "")) == norm(repo) for t in targets):
+    print(f"ℹ️ specter-sync 등록부에 이미 있음: {repo}")
+else:
+    targets.append({"name": name, "repo": repo})
+    registry_path.parent.mkdir(parents=True, exist_ok=True)
+    registry_path.write_text(json.dumps(registry, indent=2, sort_keys=True) + "\n")
+    print(f"✅ specter-sync 등록 완료: {name} -> {repo}")
+PY
 }
 
 PROJECT_NAME="${1:-}"
@@ -286,6 +320,7 @@ else
 fi
 
 if [ "$REPO_EXISTS" = "1" ]; then
+  register_sync_target
   cat <<DONE
 
 ✅ 기존 프로젝트 clone 완료
@@ -335,6 +370,8 @@ git remote set-url origin "$REPO_SSH"
 
 echo "🚀 GitHub push..."
 git push -u origin main
+
+register_sync_target
 
 cat <<DONE
 

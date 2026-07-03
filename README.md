@@ -248,6 +248,7 @@ SPECTER에는 Constitution 관련 개념이 두 단계 있습니다.
 | `/ms.expand` | 기존 baseline 위에 PRD Amendment를 증분 반영 (전체 재감사 없이) | `feature-map.md` 확장, `## Delta Reconciliation N` |
 | `/ms.amend` | 구현 후 spec/plan 정정 | Amendment block |
 | `/ms.merglease` | PR merge + tag + GitHub Release (Antigravity 위임) | tag, release |
+| `/ms.sync` | SPECTER 워크플로우 파일을 등록된 모든 프로젝트 레포에 브로드캐스트 (3-way 충돌 보호) | 각 대상 레포 `chore(specter-sync)` commit/push |
 
 ---
 
@@ -291,6 +292,21 @@ GitHub CI는 advisory이기 때문입니다.
     *   PR 머지 파이프라인만 정상 실행하고, 신규 버전 태깅 및 GitHub Release 생성을 건너뛰도록 지시합니다.
 *   `--cleanup` (사용 대상: `/ms.merglease`):
     *   머지가 최종 성공한 뒤, 로컬 및 원격 저장소 양쪽에서 머지 완료된 feature 브랜치를 깨끗하게 청소 및 삭제합니다.
+
+### 4. 브로드캐스트 동기화 플래그
+
+`/ms.sync`는 SPECTER의 워크플로우 파일(`scripts/specter_sync_manifest.json`에 열거)을
+등록된 모든 프로젝트 레포에 clone→3-way 적용→commit→push로 배포합니다. 대상 목록은
+공개 레포 안전을 위해 저장소 **밖**(`~/.claude/specter-sync.json`, 호스트 공유 마운트)에
+두므로, 이 레포를 클론한 제3자에게는 아무 동작도 하지 않습니다. 대상 프로젝트가 특화한
+파일은 baseline 기반 3-way 판정으로 보호되며, 겹치는 수정은 덮어쓰지 않고
+`<파일>.specter-new`와 CONFLICT 리포트로 넘깁니다. 신규 프로젝트 등록:
+`python scripts/specter_sync.py register <repo-url>`.
+
+*   `--dry-run` (사용 대상: `/ms.sync`):
+    *   파일별 판정(UPDATE/MERGED/KEPT-LOCAL/CONFLICT …)만 리포트하고 쓰기/push는 하지 않습니다.
+*   `--target <name>` (사용 대상: `/ms.sync`):
+    *   등록된 대상 중 지정한 프로젝트 하나에만 동기화를 수행합니다.
 
 ---
 
