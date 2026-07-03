@@ -82,6 +82,47 @@ vitest --ui                         # Interactive UI
 vitest tests/unit/calculator.test.ts # Run specific test
 ```
 
+**Test Quality (not just mechanics)**:
+
+Prefer integration-style tests through the public API over mocking internal collaborators —
+tests should describe WHAT the code does for a caller, not HOW it does it internally, and should
+survive a refactor that doesn't change behavior.
+
+Named anti-patterns to catch in review:
+- **Implementation-detail coupling**: mocking internal collaborators, asserting on call
+  counts/order, or testing private methods — breaks on refactors with no behavior change.
+- **Side-channel verification**: bypassing the public interface to check state directly (e.g.
+  querying the DB row instead of calling the retrieval function) instead of verifying through the
+  same interface a caller would use.
+- **Tautological tests**: the expected value is recomputed the same way the implementation
+  computes it (e.g. `expected = items.reduce(...)` mirroring the function under test) — use an
+  independent literal (`toBe(15)`) instead, so the test can actually fail.
+
+```typescript
+// BAD: implementation-detail coupling
+test("checkout calls paymentService.process", async () => {
+  const mockPayment = jest.mock(paymentService);
+  await checkout(cart, payment);
+  expect(mockPayment.process).toHaveBeenCalledWith(cart.total);
+});
+
+// GOOD: verifies observable behavior through the public interface
+test("user can checkout with valid cart", async () => {
+  const result = await checkout(cart, paymentMethod);
+  expect(result.status).toBe("confirmed");
+});
+```
+
+**Mock only at system boundaries** (external APIs, databases — prefer a test DB, time/randomness,
+filesystem) — never your own classes/modules or anything you control. Design boundary interfaces
+for mockability:
+- **Dependency injection**: pass the external client in as a parameter rather than constructing
+  it internally, so a test can substitute a fake without reaching into module internals.
+- **SDK-style discrete clients**: expose one function per external operation
+  (`getUser`, `getOrders`, `createOrder`) instead of one generic `fetch(endpoint, options)` — each
+  mock then returns one predictable shape with no conditional logic, and the type system checks
+  each endpoint independently.
+
 ### 2. Code Quality (Biome 1.9+)
 
 **Why Biome over ESLint + Prettier?**
