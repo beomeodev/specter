@@ -65,7 +65,8 @@ result — do not re-check on every `/ms.agent-verify` call within the same sess
 - **Antigravity**: the `agy` binary is on PATH, auth is configured, and its write flag is set (a
   cheap config check, not a live probe run).
 
-If a check fails, retry once (a plugin update can transiently reset a flag). If it still fails,
+If a check fails, retry once (a plugin update can transiently reset a flag — see
+`docs/ops/antigravity-write-flag.md` for the re-apply procedure). If it still fails,
 apply the Degrade Rule below instead of blocking the whole command.
 
 **Degrade Rule**:

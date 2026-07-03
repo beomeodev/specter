@@ -380,7 +380,7 @@ Before invoking Codex or Antigravity, check availability **once per session** an
 result — do not re-check on every `/ms.review` call within the same session: the `codex`/`agy`
 binaries are on PATH, auth is configured, and Codex's sandbox mode / Antigravity's write flag are
 set (cheap config checks, not live probe runs). Retry once on failure (a plugin update can
-transiently reset a flag).
+transiently reset a flag — see `docs/ops/antigravity-write-flag.md` for the re-apply procedure).
 
 If Antigravity is still unavailable after retry, run this station **Codex-only**, force the
 station result to at most `WARN`, and record `Antigravity: UNAVAILABLE (<reason>)` in

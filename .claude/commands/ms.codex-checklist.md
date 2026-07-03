@@ -67,7 +67,8 @@ Before invoking Codex, check availability **once per session** and remember the 
 re-check on every `/ms.codex-checklist` call within the same session: the `codex` binary is on
 PATH, auth is configured, and its sandbox mode in `~/.codex/config.toml` is not read-only (e.g.
 `workspace-write` or `danger-full-access`) — a cheap config check, not a live probe run. Retry
-once on failure (a plugin update can transiently reset a flag). This command has no other agent to degrade to — if Codex is still unavailable after retry,
+once on failure (a plugin update can transiently reset a flag — see
+`docs/ops/antigravity-write-flag.md` for the re-apply procedure). This command has no other agent to degrade to — if Codex is still unavailable after retry,
 stop and report the failure; do not run `/ms.verify` against a missing independent baseline.
 
 ### Step 1: Start Codex In Background

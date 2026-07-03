@@ -68,7 +68,8 @@ docs/prd/feature-map.checklist.md
 Before invoking Antigravity, check availability **once per session** and remember the result — do
 not re-check on every `/ms.verify` call within the same session: the `agy` binary is on PATH,
 auth is configured, and its write flag is set (a cheap config check, not a live probe run). Retry
-once on failure (a plugin update can transiently reset a flag).
+once on failure (a plugin update can transiently reset a flag — see
+`docs/ops/antigravity-write-flag.md` for the re-apply procedure).
 
 If Antigravity is still unavailable after retry, apply the Degrade Rule instead of blocking the
 whole command: proceed with the Codex-only reconciliation in Steps 2–4, write
