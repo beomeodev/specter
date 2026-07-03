@@ -510,6 +510,120 @@ of artifact spelunking.
 - Removing Antigravity from `/ms.analyze` (withdrawn — see Part B, decision 2).
 - Blanket-ignoring GitHub CI: only billing/infra-classified failures are ignored (WI-4).
 
+## Part E-2 — Execution Verification Results (2026-07-03, post-implementation)
+
+All 15 WIs were implemented (commits `e08d1b3..f765f81`) and independently verified against the
+acceptance criteria above — by reading actual diffs and, for every script, by **executing it
+against fixtures** (not by trusting commit messages). Verdict: **13 PASS, 2 PARTIAL.**
+
+| WI | Verdict | Note |
+|---|---|---|
+| 1, 2, 3, 4, 5, 6, 7, 9, 12, 15 | PASS | No gaps found against spec |
+| 8 | PASS | Corrected design faithfully kept: agents write their own report files (primary path); marker-salvage is failure-path only. `/antigravity:review` fully unreferenced. Minor: item 6 not done (see F-3). |
+| 13 | PASS | Hook verified with 7 fixture stdin cases (deny/allow/no-op/fail-open all correct). Residual risks documented (see F-4). |
+| 14 | PASS | Pre-commit script verified with 9 fixture git repos, including proof it hashes the STAGED map (`git show :path`), not the worktree. |
+| 10 | PARTIAL | 936 → 611 lines (target was ≤~450). Verified NO gate/step/flag lost — content-wise complete, only the numeric target missed. Accepted as-is; no action. |
+| 11 | PARTIAL | **Blocking bug — see F-1.** Everything else correct: script logic, all four command integrations, ms.init install step. |
+
+### Follow-Up Work Items (for the next implementation session)
+
+#### F-1 (BLOCKING) — FIXED 2026-07-03: `specter-gate.sh` crash on missing fields
+
+**Bug (reproduced by execution)**: under `set -euo pipefail`, `extract_field()` pipes
+`grep -m1 ... | sed ...`. When a checklist file EXISTS but lacks a required line
+(`**Result**:`, `**Feature Map SHA256**:`, `**Feature**:`), grep exits 1, pipefail propagates,
+and the command substitution (`global_result=$(extract_field ...)`, script line ~80) aborts the
+whole script — **exit 1 with NO JSON output**. This violates the script's own contract ("prints
+one JSON object... overall PASS|WARN|FAIL|MISSING") on exactly the malformed-artifact case the
+script exists to catch; the calling command gets nothing to build its Korean refusal from.
+
+**Fix**: make `extract_field()` tolerate no-match — e.g. append `|| true` inside the function (or
+`grep ... || printf ''`), and treat an empty extraction as a FAIL check with a `reasons[]` entry
+like `"feature-map.checklist.md exists but has no **Result**: line"`. Apply to every
+`extract_field` call site (global Result, global SHA, per-feature Result/SHA/Feature, both
+verify-file Results).
+
+**Target**: `docs/templates/scripts/specter-gate.sh` (source of truth) — and note that
+`/ms.init` copies it, so downstream projects initialized before the fix carry the buggy copy.
+
+**Acceptance**: with a checklist file present but missing `**Result**:`, the script exits
+successfully and prints a JSON object with `overall: "FAIL"` (or `MISSING`) and a human-readable
+reason; `bash -n` clean; re-run the three reproduction cases from the verification (field-less
+global checklist, field-less per-feature checklist, missing SHA line).
+
+**Resolution**: `extract_field()` now appends `|| true` to the grep/sed pipeline, so a missing
+field yields an empty string instead of aborting the script under `set -euo pipefail`. Existing
+downstream `if [ "$x" = "PASS" ] || [ "$x" = "WARN" ]` checks already treat empty as FAIL with a
+readable reason (no other call site needed a change). Re-verified with fresh fixtures: field-less
+global checklist → `overall: "FAIL"`, exit 0; field-less per-feature checklist + missing SHA line
+→ `overall: "MISSING"`, exit 0, both reasons listed. `bash -n` clean. Downstream copies made by
+`/ms.init` before this fix still carry the bug — re-run `/ms.init`'s script-install step (or copy
+`docs/templates/scripts/specter-gate.sh` manually) in any project initialized prior to 2026-07-03.
+
+#### F-2 (DECISION → then implement) — RESOLVED 2026-07-03 (b, drop): Restore or formally drop the `Source Command` staleness check
+
+The pre-WI-11 `ms.checklist.md` required the global audit to record
+`**Source Command**: /ms.verify` (rejecting artifacts from the removed legacy
+`/ms.checklist --global` flow). The script rewrite silently dropped this check —
+`specter-gate.sh` has no equivalent field and `ms.checklist.md` no longer mentions it.
+Options: (a) add a `source_command` check to `specter-gate.sh` (one grep), or (b) accept the drop
+on the grounds that no legacy artifacts remain in any active project — if (b), delete the
+`**Source Command**` line from the `/ms.verify` output template too so the field doesn't linger
+as dead metadata. Either way, the decision should be recorded here, not left implicit.
+
+**Resolution**: (b) — dropped. Re-verified during this pass: nothing reads the field except a
+human eyeballing it; `specter-gate.sh` and `/ms.checklist` already validate global-mode checklists
+via `Mode`/`Result`/SHA, and the legacy `/ms.checklist --global` flow the field guarded against no
+longer exists. Deleted the `**Source Command**: /ms.verify` line from `/ms.verify.md`'s Step 5
+output template. `rg -n "Source Command" .claude/ docs/templates/` now returns zero hits outside
+this document.
+
+#### F-3 (minor) — DONE 2026-07-03: Document the agy write-flag re-apply procedure (WI-8 item 6, never done)
+
+The preflight text mentions "a plugin update can transiently reset a flag" but the actual
+re-apply procedure was never written down. Add a short subsection to `docs/SYSTEM_MAP.md` (or a
+dedicated `docs/ops/` note referenced from the preflight paragraphs): which flag, where it lives,
+the exact re-apply command, and how the preflight failure looks when it has been reset.
+
+**Resolution**: created `docs/ops/antigravity-write-flag.md` — the flag
+(`--dangerously-skip-permissions`), where it lives
+(`~/.claude/plugins/cache/antigravity/antigravity/<version>/scripts/lib/agent-runtime.mjs`, two
+argv builders), why it resets (cache is not git-tracked, marketplace copy is stale/irrelevant),
+the exact re-apply steps, and what the preflight failure looks like. Added a one-line pointer to
+it from all 5 command files that repeat the caveat: `ms.verify.md`, `ms.agent-verify.md`,
+`ms.codex-checklist.md`, `ms.analyze.md`, `ms.review.md`.
+
+#### F-4 (minor, documented trade-offs — implement only if desired) — DONE 2026-07-03 (both applied): WI-13 hook hardening
+
+1. *Stale-token leak*: if a session dies between `/ms.specify` Step 0.3 (token write) and
+   Step 3.2 (delete), `.specify/.ms-gate-pass-<NNN>` persists with no TTL, permitting one later
+   direct `/speckit-specify` bypass. Optional fix: hook ignores tokens older than ~1 h (mtime
+   check) — acceptable to skip for solo use.
+2. *Fail-open without jq*: on a machine without `jq` the hook silently allows everything
+   (install-time warning only). Optional fix: fall back to a `grep`-based parse instead of
+   allowing. Both risks are stated in the script header; this item just decides whether to close
+   them.
+
+**Resolution**: both applied to `speckit-specify-gate-hook.sh`. TTL: `.ms-gate-pass-*` tokens
+older than 60 minutes (`find ... -mmin -60`) are now treated as absent. jq-less fallback: instead
+of blanket-allowing when `jq` is missing, the hook greps raw stdin for the skill field and only
+fails open when the skill genuinely can't be determined. Re-verified with 8 fixture cases (4
+with `jq`, 4 without: deny/allow/stale-deny/malformed-allow in each) — all passed.
+
+#### F-5 (cleanup, low priority) — DONE 2026-07-03: Centralize `/ms.review`'s final-verdict logic
+
+The READY / READY WITH WARNINGS / NOT READY computation is now stated in three places
+(Step 6.5.C gate handling, Step 6.6 Done-Criteria rule, Step 6.7.B agent-result handling). All
+three are mutually consistent today; fold them into one "Result Model" subsection that the three
+steps reference, so future edits can't diverge them.
+
+**Resolution**: added a `### Result Model` subsection under Step 6 (Consolidate and Score)
+stating the NOT READY / READY WITH WARNINGS / READY rule once. Steps 6.5.C, 6.6, and 6.7.B now
+each state only their own domain-specific CRITICAL/WARNING trigger conditions and reference "the
+Result Model (Step 6)" instead of restating the three-way label computation.
+
+---
+
 ## Part E — Suggested Implementation Order
 
 1. WI-1 (small, unblocks WI-2)
