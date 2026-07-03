@@ -1,7 +1,7 @@
 ---
-generated_at: 2026-07-03T08:51:21Z
-git_head: f765f811c90a7fadd55b2ff576f07ac6e5eae842
-git_head_short: f765f81
+generated_at: 2026-07-03T09:14:40Z
+git_head: 4080bdae6712c011bc1ad934ac9235f4db08bc19
+git_head_short: 4080bda
 git_branch: master
 working_tree: dirty
 scope:
@@ -30,11 +30,10 @@ stale_when:
 # System Map
 
 ## Snapshot Status
-Refreshed at the end of a session that fixed a blocking gate-script bug (F-1) and executed a
-15-item follow-up/reinforcement pass (F-2..F-5, S-1..S-8) against `.claude/commands` and
-`.claude/skills`. Working tree is dirty by design — every command/skill file this map documents
-was touched this session and is not yet committed. Refresh again once these land (or if they're
-reverted) and again whenever the next non-trivial `.claude/` change lands.
+F-1..F-5 and S-1..S-8 (15 commits, `8c016fe..4080bda`) already landed on `master`. This refresh
+adds S-9 (`ms-ops-debugging`, mined from 7 transcripts across 2 other projects) plus its wiring
+into `/ms.fix` and `debug-helper` — still uncommitted as of this snapshot. Refresh again once
+those land, and again whenever the next non-trivial `.claude/` change lands.
 
 ## System Purpose
 SPECTER is a command-driven workflow wrapper over GitHub Spec-Kit for Claude Code projects. This
@@ -51,9 +50,9 @@ not a shipped app.
 - `.claude/commands/` (22 files): the `/ms.*` slash-command definitions — the workflow's gates
   live here as prose the model follows, not as enforced code (except where a hook/script backs
   them, see Invariants).
-- `.claude/skills/` (19 dirs + `skill-rules.json`): reusable capabilities — validators, rubrics,
+- `.claude/skills/` (20 dirs + `skill-rules.json`): reusable capabilities — validators, rubrics,
   language/domain expertise, and now (as of this session) `webapp-testing`, `ms-foundation-prd`,
-  `ms-design-baseline`.
+  `ms-design-baseline`, `ms-ops-debugging`.
 - `.claude/agents/` (17 files): specialist subagent definitions used by the commands above.
 - `docs/templates/`: Constitution/spec templates + `docs/templates/scripts/` (the deterministic
   gate/hook scripts a consuming project's `/ms.init` installs — see Hot Paths).
@@ -141,15 +140,18 @@ not a shipped app.
 - Preserve TAG (`@SPEC → @TEST → @CODE`/`@DOC`) traceability semantics when editing tagged code.
 
 ## Risk Areas
-- Working tree is dirty with a large, uncommitted multi-file change spanning 8 command files, 5
-  skill files, 3 new skill directories, `skill-rules.json`, and 2 scripts — read `git status`/`git
-  diff` before assuming any of this is landed.
+- Working tree is dirty with S-9's uncommitted change: `ms-ops-debugging` (new skill dir),
+  `ms.fix.md`, `debug-helper.md`, `skill-rules.json` — read `git status`/`git diff` before
+  assuming this is landed (F-1..F-5/S-1..S-8 already are, see Snapshot Status).
 - `docs/templates/scripts/*.sh` are templates copied into consuming projects by `/ms.init`; a
   project initialized before this session's F-1/F-4 fixes still carries the old, buggy copies —
   this is not automatically backfilled.
-- Three new skills (`webapp-testing`, `ms-foundation-prd`, `ms-design-baseline`) are unexercised
-  in a real consuming project as of this snapshot — verified by fixture/dry-read only, not by an
-  end-to-end `/ms.specter` run.
+- Four new skills (`webapp-testing`, `ms-foundation-prd`, `ms-design-baseline`,
+  `ms-ops-debugging`) are unexercised in a real consuming project as of this snapshot — verified
+  by fixture/dry-read only, not by an end-to-end `/ms.specter` run.
+- `ms-ops-debugging`'s playbook entries are mined from two *other* projects' transcripts
+  (sanjunipero, cueline), generalized to strip project specifics — the generalization is
+  reviewer-judged, not mechanically verified.
 - `docs/improvements/*.md` are historical working records, not templates — do not treat their
   content as currently-authoritative without checking whether it says DONE/PARTIAL/pending.
 
@@ -160,16 +162,13 @@ git rev-parse HEAD
 bash -n docs/templates/scripts/specter-gate.sh docs/templates/scripts/speckit-specify-gate-hook.sh
 python3 -c "import json; json.load(open('.claude/skills/skill-rules.json'))"
 rg -n "Source Command" .claude/ docs/templates/  # expect zero hits outside docs/improvements/
-rg -n "webapp-testing|ms-foundation-prd|ms-design-baseline" .claude/skills/skill-rules.json
+rg -n "webapp-testing|ms-foundation-prd|ms-design-baseline|ms-ops-debugging" .claude/skills/skill-rules.json
 ```
 
 ## Known Gaps
 - No live consuming project in this repo to exercise `/ms.specter` end-to-end against the
   session's changes — verification here was fixture-level (gate scripts) and read-back-level
   (skill/command prose), not a real workflow run.
-- `ms-ops-debugging` (S-9 in `docs/improvements/2026-07-03-skills-reinforcement-plan.md`) was
-  deliberately not built this session — it requires mining a different project's transcripts and
-  was scoped as its own session.
 - Serena MCP was not configured/available in this session; structural scans used `find`/`rg`/`git`
   only.
 
