@@ -200,6 +200,29 @@ The checklist above verifies controls *exist*; adversarial review asks whether t
 
 Record findings as GEARS `[Security]` requirements with `@SPEC:SEC-*` TAGs and the same PASS/WARNING/CRITICAL severity used elsewhere in this report; delegate fixes to `debug-helper` / `tdd-implementer`.
 
+**6. Fail-Open vs Fail-Secure Defaults**:
+
+The distinction: fail-open patterns run with a weak default when configuration is absent;
+fail-secure patterns crash safely instead. `SECRET = env.get('KEY') or 'default'` is fail-open
+(starts up with an inadequate secret); `SECRET = env['KEY']` is fail-secure (halts if missing).
+Scan for six categories:
+
+- **Fallback secrets**: `getenv(X) or 'default'` patterns that let the app start without a
+  required credential.
+- **Hardcoded credentials**: passwords/API keys assigned directly in source.
+- **Fail-open toggles**: security flags defaulting to disabled (`AUTH_REQUIRED = false`).
+- **Weak cryptography**: MD5/SHA1/DES/RC4/ECB in an auth or encryption context.
+- **Permissive access control**: CORS wildcards, `0777` permissions, public-by-default resources.
+- **Debug-on-by-default**: stack traces / introspection / verbose errors in user-facing responses.
+
+For each candidate: trace whether it fires at startup or at request time, whether the app
+continues without the value, and whether the *production* configuration actually supplies it —
+absent or default-reliant in production is CRITICAL; supplied in production but still present in
+code is a lower-severity code-level exposure (still record it). Exclude test fixtures,
+`.example`/`.template` files, and dev-only compose setups. Do not accept "prod sets it" or "auth
+exists anyway" as a reason to skip recording the code-level finding — verify the trace, don't
+assume it.
+
 **For detailed OWASP examples**: See `examples.md` for A01-A10 Before/After code patterns
 
 ### T - Trackable (TAG Chain Integrity)
