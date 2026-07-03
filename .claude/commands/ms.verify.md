@@ -216,7 +216,6 @@ Use this structure:
 # Feature Map Global Verification
 
 **Mode**: global
-**Source Command**: /ms.verify
 **Codex Checklist**: docs/prd/codex/checklist.md
 **Antigravity Checklist**: docs/prd/feature-map.antigravity-checklist.md
 **PRDs**: <source label -> path list>
