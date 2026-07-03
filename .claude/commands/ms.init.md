@@ -265,6 +265,44 @@ fidelity, boundary discipline, severity) stays with the model.
 -   This indicates a repository structure issue
 -   Exit with error
 
+#### 2.6 Install The Direct-Call Bypass Hook (speckit-specify)
+
+Step 2.4's prompt-marker injection guides the model but cannot stop it. Close the gap
+mechanically (WI-13): a PreToolUse hook that denies invoking the `speckit-specify` skill/command
+unless `/ms.specify`'s own gates already passed for this run.
+
+```bash
+mkdir -p .specify/scripts/bash
+cp docs/templates/scripts/speckit-specify-gate-hook.sh .specify/scripts/bash/speckit-specify-gate-hook.sh
+chmod +x .specify/scripts/bash/speckit-specify-gate-hook.sh
+
+if [ -f .claude/settings.json ] && command -v jq >/dev/null 2>&1; then
+  ALREADY=$(jq -r '[.hooks.PreToolUse[]?.hooks[]?.command // empty] | any(test("speckit-specify-gate-hook.sh"))' .claude/settings.json 2>/dev/null || echo false)
+  if [ "$ALREADY" != "true" ]; then
+    HOOK_ENTRY='{"matcher":"Skill","hooks":[{"type":"command","command":"\"$CLAUDE_PROJECT_DIR/.specify/scripts/bash/speckit-specify-gate-hook.sh\""}]}'
+    jq --argjson entry "$HOOK_ENTRY" '.hooks.PreToolUse = ((.hooks.PreToolUse // []) + [$entry])' .claude/settings.json > .claude/settings.json.tmp \
+      && mv .claude/settings.json.tmp .claude/settings.json
+    echo "✓ PreToolUse gate hook installed in .claude/settings.json"
+  else
+    echo "✓ PreToolUse gate hook already present (idempotent skip)"
+  fi
+else
+  echo "⚠️ .claude/settings.json missing or jq unavailable — hook config not installed; script still copied to .specify/scripts/bash/"
+fi
+```
+
+The hook script fails open (allows) on any internal error — a missing `jq`, malformed input, or
+any other unexpected condition never blocks unrelated Skill calls. It only denies when the
+invoked skill is literally `speckit-specify` (or the legacy `speckit.specify`) and no
+`.specify/.ms-gate-pass-*` token exists (written and deleted by `/ms.specify`, see that command's
+Step 0.2/3.2).
+
+**IF source file not found**:
+
+-   Display error: "Gate hook script missing. Expected: docs/templates/scripts/speckit-specify-gate-hook.sh"
+-   This indicates a repository structure issue
+-   Exit with error
+
 ### Step 3: Report Success
 
 Display completion message:
@@ -276,6 +314,7 @@ Display completion message:
 - ✅ Spec-Kit (latest version from upstream)
 - ✅ My-Spec Constitution: .specify/memory/constitution.md
 - ✅ Deterministic gate checker: .specify/scripts/bash/specter-gate.sh
+- ✅ Direct-call bypass hook: .specify/scripts/bash/speckit-specify-gate-hook.sh (+ .claude/settings.json PreToolUse entry)
 
 🧩 Codex & Antigravity Plugins Setup (inside Claude Code):
 1. Open Claude Code in the project environment.

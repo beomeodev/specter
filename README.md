@@ -505,6 +505,13 @@ SPECTER는 엔진을 재구현하지 않고 업스트림 skill에 **이름으로
 업스트림이 command든 skill이든, `/ms.init`이 주입한 게이트 덕분에 직접 `/speckit-specify`
 호출은 SPECTER의 Feature Map / checklist / Constitution Section IX 게이트를 우회할 수 없습니다.
 
+이 프롬프트 마커 주입은 모델을 안내할 뿐 강제하지는 못합니다. `/ms.init`은 추가로 결정론적
+PreToolUse 훅(`speckit-specify-gate-hook.sh`)을 설치합니다: `speckit-specify` skill 호출을
+가로채, `/ms.specify` Step 0.2가 통과했을 때만 존재하는 `.specify/.ms-gate-pass-<NNN>` 토큰이
+없으면 거부합니다. 이 훅은 업스트림 레이아웃(command/skill, 이름 변경)과 무관하게 동작하므로,
+프롬프트 마커가 향후 업스트림 변화로 재패치가 필요해지더라도 우회 차단 자체는 패치 없이
+살아남습니다.
+
 ### GEARS 스펙템플릿 해석 (라이브 검증됨)
 
 최신 Spec-Kit(v0.11.x)은 spec-template을 **preset/template resolution stack**

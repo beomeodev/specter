@@ -160,7 +160,20 @@ This establishes Section IX from the checked PRD Feature Map before individual s
 Stopping now.
 ```
 
-Only if all gates pass, continue to Step 0.4.
+Only if all gates pass, continue to Step 0.3.
+
+### 0.3 Write The Gate-Pass Token
+
+Now that every check in Step 0.2 has passed, write a token file so the PreToolUse hook (WI-13)
+knows the upstream `/speckit-specify` call in Step 3.2 is gate-checked, not a direct bypass:
+
+```bash
+mkdir -p .specify
+touch ".specify/.ms-gate-pass-<NNN>"
+```
+
+Delete it again in Step 3.2 once `/speckit-specify` completes (success or failure) — the token is
+scoped to this single invocation, not a standing bypass.
 
 ### 0.4 Load Source PRDs For The Feature Prompt
 
@@ -336,6 +349,13 @@ Execute `/speckit-specify` with the checked Feature prompt bundle and Constituti
 ```
 
 Create the specification in `specs/{SPEC_ID}/spec.md` with GEARS and TRUST guidance applied. Do not claim that a `spec-builder` agent or a specific model ran unless it actually did.
+
+Delete the Step 0.3 gate-pass token now that this call has completed (success or failure) — it is
+scoped to this single invocation:
+
+```bash
+rm -f ".specify/.ms-gate-pass-<NNN>"
+```
 
 ### 4. Add Constitution Reference Footer
 
