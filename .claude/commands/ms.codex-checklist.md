@@ -56,6 +56,15 @@ Do not read:
 - `plan.md`
 - `tasks.md`
 
+### Step 0.5: External Agent Preflight (session-level, once)
+
+Before invoking Codex, check availability **once per session** and remember the result — do not
+re-check on every `/ms.codex-checklist` call within the same session: the `codex` binary is on
+PATH, auth is configured, and its sandbox mode in `~/.codex/config.toml` is not read-only (e.g.
+`workspace-write` or `danger-full-access`) — a cheap config check, not a live probe run. Retry
+once on failure (a plugin update can transiently reset a flag). This command has no other agent to degrade to — if Codex is still unavailable after retry,
+stop and report the failure; do not run `/ms.verify` against a missing independent baseline.
+
 ### Step 1: Start Codex In Background
 
 Invoke the Codex plugin rescue command in background mode with default runtime
@@ -161,6 +170,16 @@ Write the checklist to docs/prd/codex/checklist.md with this structure:
 - [ ] Every data, migration, and integration promise is assigned to a Feature.
 - [ ] No user-facing behavior is diluted into vague implementation wording.
 ```
+
+Also echo the finished checklist between ===REPORT BEGIN=== and ===REPORT END=== markers in your
+final message, verbatim, so it can be salvaged if the file write fails.
+
+**Report-Write Protocol**: Codex still writes its own `docs/prd/codex/checklist.md` (unchanged,
+primary path). Whichever command waits on it (`/ms.verify`, `/ms.pre-specter`) checks
+deterministically that the file exists, is non-empty, and contains `**Mode**: prd-only`. If it is
+missing or partial after one retry of this command, salvage it from that retry's
+`===REPORT BEGIN===`/`===REPORT END===` markers instead of re-running the whole background job
+blind or stopping outright.
 
 ### Step 3: Report
 

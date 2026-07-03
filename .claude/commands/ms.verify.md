@@ -58,6 +58,21 @@ docs/prd/feature-map.checklist.md
 
 ## Execution Steps
 
+### Step 0.4: External Agent Preflight (session-level, once)
+
+Before invoking Antigravity, check availability **once per session** and remember the result — do
+not re-check on every `/ms.verify` call within the same session: the `agy` binary is on PATH,
+auth is configured, and its write flag is set (a cheap config check, not a live probe run). Retry
+once on failure (a plugin update can transiently reset a flag).
+
+If Antigravity is still unavailable after retry, apply the Degrade Rule instead of blocking the
+whole command: proceed with the Codex-only reconciliation in Steps 2–4, write
+`docs/prd/feature-map.antigravity-checklist.md` with `**Result**: UNAVAILABLE (<reason>)` in place
+of a normal audit, and force the overall global gate `**Result**` in
+`docs/prd/feature-map.checklist.md` to at most `WARN`. Never silently PASS the global gate as if
+Antigravity ran when it did not; never block the whole one-time PRD setup on this environment
+issue alone.
+
 ### Step 0.5: Run Antigravity Verification (Foreground)
 
 Invoke Google Antigravity in the **foreground** to perform a global Feature Map
@@ -69,9 +84,15 @@ leaving a silently missing output file.
 /antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <Prompt>
 ```
 
+**Report-Write Protocol**: Antigravity still writes its own report file (unchanged, primary
+path); the prompt below additionally requires echoing the finished report between
+`===REPORT BEGIN===`/`===REPORT END===` markers in its final message. After the run,
+deterministically check the written file: it exists, is non-empty, and contains `**Result**:`.
+
 If Antigravity fails to write `docs/prd/feature-map.antigravity-checklist.md`
-(crash, partial output, or write error), retry once. If it fails again, stop and
-report the failure instead of proceeding with a missing verification artifact.
+(crash, partial output, or write error), retry once. If it still fails, **salvage** the report
+from that retry's markers instead of stopping the whole gate or hand-transcribing it yourself. If
+no markers were captured either, apply the Step 0.4 Degrade Rule instead of stopping outright.
 
 Antigravity Prompt:
 ```text
@@ -106,6 +127,9 @@ Write this output to docs/prd/feature-map.antigravity-checklist.md:
 ## Verdict
 
 One paragraph summarizing the overall quality and blocking issues.
+
+Also echo the finished report between ===REPORT BEGIN=== and ===REPORT END=== markers in your
+final message, verbatim, so it can be salvaged if the file write fails.
 ```
 
 ### Step 1: Validate Feature Map Structure
@@ -230,7 +254,9 @@ Use this structure:
 ### FAIL Conditions
 
 - `docs/prd/codex/checklist.md` is missing.
-- `docs/prd/feature-map.antigravity-checklist.md` is missing or has a result of `FAIL`.
+- `docs/prd/feature-map.antigravity-checklist.md` is missing (with no recorded `UNAVAILABLE`
+  degrade per Step 0.4) or has a result of `FAIL`. An `UNAVAILABLE` result is not a FAIL — it
+  forces the overall gate to at most `WARN` instead (see Step 0.4).
 - PRD Commitment Index is missing.
 - Any PRD commitment in any source PRD has no index row and no justified
   false-positive explanation.

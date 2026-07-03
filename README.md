@@ -528,6 +528,10 @@ SPECTER는 엔진을 재구현하지 않고 업스트림 skill에 **이름으로
 5. **Codex 독립 검증** 게이트.
 6. **게이트는 SPECTER가 소유** — spec-kit CLI/스크립트 플래그에 위임하지 않음(예: `/ms.review`의
    spec.md/plan.md 검증은 SPECTER가 직접 수행).
+7. **가용성 저하(degrade) ≠ 게이트 완화** — Codex나 Antigravity 중 하나가 환경 문제(OAuth,
+   write-flag 리셋 등)로 사용 불가능해도 게이트를 조용히 건너뛰거나 약화하지 않습니다. 대신
+   단일 에이전트로 실행하고 결과를 최대 `WARN`으로 강제하며 `<Agent>: UNAVAILABLE (<reason>)`을
+   기록합니다 — 이 명시적 degrade가 불변식 5(Codex 독립 검증)를 지키는 방법입니다.
 
 ### 결별 기준 (Divorce tripwires)
 

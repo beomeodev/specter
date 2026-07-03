@@ -489,6 +489,21 @@ hardening work (external-agent preflight/degrade rule) has proven agy stable in 
 
 Unless `--skip-codex` (or `--skip-agents`) is supplied, invoke both Codex and Antigravity after the local CI and TRUST gates have produced enough context. Both agents always run in adversarial mode. Both prompts also receive the Done Criteria Execution table from Step 6.6 so they can factor real runtime behavior into their review.
 
+#### 0. External Agent Preflight (session-level, once)
+
+Before invoking Codex or Antigravity, check availability **once per session** and remember the
+result — do not re-check on every `/ms.review` call within the same session: the `codex`/`agy`
+binaries are on PATH, auth is configured, and Codex's sandbox mode / Antigravity's write flag are
+set (cheap config checks, not live probe runs). Retry once on failure (a plugin update can
+transiently reset a flag).
+
+If Antigravity is still unavailable after retry, run this station **Codex-only**, force the
+station result to at most `WARN`, and record `Antigravity: UNAVAILABLE (<reason>)` in
+`docs/review/{spec-id}.antigravity-review.md` in place of a normal report. Mirror the same rule if
+Codex is unavailable instead (Antigravity-only + `Codex: UNAVAILABLE (<reason>)`). Never silently
+report this station as if both agents ran when only one did; never block `/ms.review` on an
+environment issue alone.
+
 #### A. Codex Code Review
 ```text
 /codex:rescue --fresh --model gpt-5.5 --effort medium <prompt>
@@ -541,13 +556,15 @@ Write:
 ## Verdict
 
 One concise paragraph.
+
+Also echo the finished report between ===REPORT BEGIN=== and ===REPORT END=== markers in your
+final message, verbatim, so it can be salvaged if the file write fails.
 ```
 
 #### B. Antigravity Code Review
 ```text
-/antigravity:review --fresh --model gemini-3.5-flash --effort medium <prompt>
+/antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <prompt>
 ```
-*(Note: If `/antigravity:review` is not available, fall back to `/antigravity:rescue`.)*
 
 Antigravity must read:
 - `.specify/memory/constitution.md`
@@ -597,9 +614,19 @@ Write:
 ## Verdict
 
 One concise paragraph.
+
+Also echo the finished report between ===REPORT BEGIN=== and ===REPORT END=== markers in your
+final message, verbatim, so it can be salvaged if the file write fails.
 ```
 
 If the user supplied `--background`, add `--background` to both invocations and report that `/ms.review` must be rerun after both files appear. If the user supplied `--model` or `--effort`, pass those values through instead of the defaults.
+
+**Report-Write Protocol**: agents still write their own report files (unchanged, primary path).
+After the run, deterministically check the written file: it exists, is non-empty, and contains
+`**Result**:`. If a report is missing or partial after one retry, **salvage** it from that retry's
+`===REPORT BEGIN===`/`===REPORT END===` markers instead of stopping the whole gate or
+hand-transcribing it yourself. If no markers were captured either, apply the Preflight Degrade
+Rule (subsection 0) instead of stopping outright.
 
 #### C. Result handling for both reviews:
 - `PASS`: keep the SPECTER review result unchanged.
