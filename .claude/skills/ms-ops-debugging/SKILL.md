@@ -13,9 +13,9 @@ at an environment boundary — a deploy, a tunnel, a proxy, a container, a rotat
 platform-native API — where the fastest path to a fix is recognizing the failure *class*, not
 re-deriving it from first principles every time.
 
-Every entry below traces to a real diagnosed incident (cited, one line, stripped of project
-specifics) — this is not a generic textbook list. If a failure class isn't below, fall back to
-`ms-essentials-debug`'s general discipline.
+Every entry below traces to a real diagnosed incident, stated at the failure-class level with
+project specifics stripped — this is not a generic textbook list. If a failure class isn't below,
+fall back to `ms-essentials-debug`'s general discipline.
 
 ## When to use
 
