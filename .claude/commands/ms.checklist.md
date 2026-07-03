@@ -76,7 +76,6 @@ Read these files in full:
 - `docs/prd/feature-map.md`
 - `docs/prd/feature-map.progress.md`
 - `docs/prd/feature-map.checklist.md`
-- every source PRD recorded in `docs/prd/feature-map.md`
 - `docs/prd/codex/checklist.md` if it exists
 - `.specify/memory/constitution.md`
 - `AGENTS.md` if it exists
@@ -177,10 +176,16 @@ For the selected Feature:
 - Extract its `### Source PRDs` list.
 - Extract its `### PRD references` list.
 - Extract every PRD Commitment Index row where `Owning Feature = Feature NNN`.
-- Read all listed Source PRD documents and the referenced PRD sections in full.
+- Read only the PRD sections named under `### PRD references` (plus the immediate surrounding
+  context needed to interpret each one) and the matching PRD Commitment Index rows. Full-PRD
+  reading is a fallback, used only when a PRD reference cannot be resolved to a specific section
+  in its Source PRD document.
 - If `docs/prd/codex/checklist.md` exists, extract any Codex C-IDs whose PRD
   references, labels, or expected Feature Map handling correspond to this
   Feature's owned PRD rows.
+
+Global PRD coverage is already audited by `/ms.verify`; this gate audits the selected Feature's
+fidelity to its referenced sections, not the whole source PRD set.
 
 If the Feature has no Source PRDs, no PRD references, or no owned commitment
 rows, mark FAIL.
