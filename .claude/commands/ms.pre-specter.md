@@ -102,6 +102,9 @@ turns are the conditional questions the underlying commands raise.
    - **PRD fallback**: if no PRD was attached, look under `docs/prd/` for likely
      PRDs and confirm the full set with the user. If none can be found or
      confirmed, stop and ask for the PRD path. Never guess PRD content.
+   - If no PRD exists yet anywhere (not just unattached — genuinely not yet written),
+     the `ms-foundation-prd` skill is the recommended pre-step for co-authoring one with
+     the user before running this command.
 2. Detect a prior setup (re-run). If **both**
    `docs/prd/feature-map.checklist.md` already reads `Result: PASS`/`WARN` **and**
    `.specify/memory/constitution.md` already has an established Section IX

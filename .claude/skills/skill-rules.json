@@ -30,6 +30,30 @@
         "contentPatterns": []
       }
     },
+    "ms-foundation-prd": {
+      "type": "guardrail",
+      "priority": "high",
+      "enforcement": "suggest",
+      "description": "PRD-authoring interview: co-writes a PRD in a form /ms.featuremap and /ms.checklist can consume directly",
+      "promptTriggers": {
+        "keywords": [
+          "PRD",
+          "write a PRD",
+          "product requirements",
+          "no PRD yet",
+          "PRD amendment"
+        ],
+        "intentPatterns": [
+          "(write|create|draft|author).*?PRD",
+          "(no|missing).*?PRD",
+          "PRD.*?(amendment|extend|update)"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": ["docs/prd/*.md"],
+        "contentPatterns": []
+      }
+    },
     "ms-foundation-ears": {
       "type": "guardrail",
       "priority": "high",
