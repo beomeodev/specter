@@ -225,6 +225,22 @@ If the user supplied `--background`, add `--background` to both invocations and 
 - `FAIL`: final `/ms.analyze` result is `FAIL` unless Claude/SPECTER explicitly downgrades the finding with source evidence.
 - `PENDING`: if `--background` was used and either report is missing, stop and tell the user to rerun `/ms.analyze` after both reports appear.
 
+#### D. Convergence Policy (re-round caps)
+
+Unbounded re-review loops burn tokens without improving the outcome (atlas F001 ran 10 Codex
+rounds on one Feature). Cap automatic re-rounds:
+
+- **Round 1**: the full dual-agent run above, over the whole document set.
+- **Round 2** (only if Round 1 produced any `FAIL` finding): re-run scoped to *only* the findings
+  that were `FAIL` — the prompt states each failing finding plus the fix diff/edit made in
+  response; it does not ask either agent to re-review the whole document set again.
+- **Round 3** is the last automatic round, and only re-checks findings still `FAIL` after Round 2.
+- **Stop condition**: after Round 3, or as soon as only `WARN`-level findings remain (no `FAIL`),
+  stop re-running agents automatically. Record every residual `WARN` in the Step 5 report — do
+  not silently drop it — and hand the decision (proceed with warnings, or fix and rerun manually)
+  to the user. Running a further round after this point requires an explicit user instruction; it
+  is not something `/ms.analyze` does on its own.
+
 ### Step 4: Result Model
 
 Use this result model:

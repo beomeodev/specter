@@ -607,6 +607,22 @@ If the user supplied `--background`, add `--background` to both invocations and 
 - `FAIL`: final `/ms.review` result is NOT READY unless Claude/SPECTER explicitly downgrades the finding with source evidence.
 - `PENDING`: if `--background` was used and either report is missing, stop and tell the user to rerun `/ms.review` after both reports appear.
 
+#### D. Convergence Policy (re-round caps)
+
+Unbounded re-review loops burn tokens without improving the outcome (atlas F001 ran 10 Codex
+rounds on one Feature; 47+ re-rounds project-wide). Cap automatic re-rounds:
+
+- **Round 1**: the full dual-agent run above, over the whole diff.
+- **Round 2** (only if Round 1 produced any `FAIL` finding): re-run scoped to *only* the findings
+  that were `FAIL` — the prompt states each failing finding plus the fix diff made in response; it
+  does not ask either agent to re-review the whole diff again.
+- **Round 3** is the last automatic round, and only re-checks findings still `FAIL` after Round 2.
+- **Stop condition**: after Round 3, or as soon as only `WARN`-level findings remain (no `FAIL`),
+  stop re-running agents automatically. Record every residual `WARN` in `docs/review/` and
+  `.specify/review-state.txt` — do not silently drop it — and hand the decision (proceed with
+  warnings, or fix and rerun manually) to the user. Running a further round after this point
+  requires an explicit user instruction; it is not something `/ms.review` does on its own.
+
 ---
 
 ### Step 7: Report Generation
