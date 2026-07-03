@@ -9,9 +9,9 @@ Net result: **4 new skills (2 imported: S-1/S-2; 2 home-grown: S-8/S-9), 5 stren
 
 ## Execution status (2026-07-03)
 
-**S-1 through S-8: DONE.** S-9 (`ms-ops-debugging`) deliberately **excluded from this pass** — the
-plan below already scopes it as "a dedicated future session" (transcript mining from a different
-project); nothing else in this document depended on it.
+**S-1 through S-9: ALL DONE.** S-9 (`ms-ops-debugging`) was initially excluded from the first pass
+of this session (scoped in the plan below as "a dedicated future session") but completed later the
+same day once the user asked to finish everything outstanding.
 
 | Item | Status | Note |
 |---|---|---|
@@ -23,10 +23,11 @@ project); nothing else in this document depended on it.
 | S-6 (`ms-lang-typescript`) | DONE | Test-quality anti-patterns + mock-boundary guidance added after the Vitest CLI section. |
 | S-7 (`ms.checklist` placeholder check) | DONE | Added to Spec-Input Completeness + FAIL Conditions. |
 | S-8 (`ms-design-baseline`) | DONE | Authored fresh (tokens.css + base.css + DESIGN.md template with real values); wired into `/ms.implement` Step 1.6 and `/ms.review` Step 6.6. |
-| S-9 (`ms-ops-debugging`) | **NOT DONE — excluded this pass** | Still needs its own session per this doc's own sizing note. |
+| S-9 (`ms-ops-debugging`) | DONE | Mined via 2 background agents across all 7 source transcripts (4 sanjunipero + 3 cueline); 26 failure classes across 7 categories (network/tunnel, reverse-proxy/TLS, secrets/rotation, container lifecycle, auth self-inflicted state, upstream deps, real-time API integration); wired into `/ms.fix` and `debug-helper`. |
 
-All new skills (`webapp-testing`, `ms-foundation-prd`, `ms-design-baseline`) registered in
-`.claude/skills/skill-rules.json`. `docs/SYSTEM_MAP.md` regenerated to reflect all of the above.
+All new skills (`webapp-testing`, `ms-foundation-prd`, `ms-design-baseline`, `ms-ops-debugging`)
+registered in `.claude/skills/skill-rules.json`. `docs/SYSTEM_MAP.md` regenerated to reflect all of
+the above (twice: once after S-1..S-8, again after S-9).
 
 ## How to use this document (implementing model)
 
