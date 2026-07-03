@@ -143,6 +143,24 @@ Next step: /ms.review
 
 Do not claim that a `library-researcher` agent or a specific model ran unless it actually did.
 
+### Step 1.6: Design Baseline (UI Features Only)
+
+**Analyze task**: Does this Feature's `### In scope` include a web UI surface (a page, component
+tree, or dashboard)?
+
+**IF a UI surface is in scope AND `docs/design/DESIGN.md` does not exist yet**:
+
+1. Use the `ms-design-baseline` skill to generate `docs/design/DESIGN.md` + `tokens.css` +
+   `base.css` before writing any markup/component code.
+2. All UI code in this Feature reads the generated tokens; do not hardcode a color, font size, or
+   spacing value that isn't already a semantic token.
+
+**ELSE IF a UI surface is in scope AND `docs/design/DESIGN.md` already exists**:
+  → Read it and reuse its tokens; do not regenerate or introduce a second design source.
+
+**ELSE**:
+  → Skip (no UI surface in this Feature)
+
 ### Step 2: Inject Constitution & Run Implementation
 
 Before executing `/speckit-implement`, provide AI with Constitution constraints:

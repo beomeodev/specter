@@ -404,6 +404,31 @@
         ]
       }
     },
+    "ms-design-baseline": {
+      "type": "domain",
+      "priority": "medium",
+      "enforcement": "suggest",
+      "description": "Generates a minimal design foundation (DESIGN.md + tokens.css + base.css) the first time a Feature ships a UI surface with no design input",
+      "promptTriggers": {
+        "keywords": [
+          "design tokens",
+          "design baseline",
+          "no design",
+          "unstyled",
+          "style the UI",
+          "color palette"
+        ],
+        "intentPatterns": [
+          "(no|missing).*?design",
+          "(style|design).*?(UI|frontend|page)",
+          "(generate|create).*?(design tokens|palette|stylesheet)"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": ["docs/design/DESIGN.md"],
+        "contentPatterns": []
+      }
+    },
     "webapp-testing": {
       "type": "domain",
       "priority": "high",
