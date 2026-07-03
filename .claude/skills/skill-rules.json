@@ -379,6 +379,32 @@
           "serena:"
         ]
       }
+    },
+    "webapp-testing": {
+      "type": "domain",
+      "priority": "high",
+      "enforcement": "suggest",
+      "description": "Playwright toolkit for driving/testing local web apps — screenshots, console logs, done-criteria evidence",
+      "promptTriggers": {
+        "keywords": [
+          "playwright",
+          "browser test",
+          "screenshot",
+          "UI test",
+          "webapp test",
+          "done criteria",
+          "e2e"
+        ],
+        "intentPatterns": [
+          "(test|verify|drive).*?(web app|webapp|frontend|UI)",
+          "(capture|take).*?screenshot",
+          "(run|start).*?(dev server).*?(test|verify)"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": [],
+        "contentPatterns": []
+      }
     }
   }
 }

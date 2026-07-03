@@ -353,22 +353,32 @@ before the dual-agent review so both agents can see the results in their prompt 
      end-to-end.
    - **MANUAL**: requires human eyes or a physical device (visual polish, hardware, third-party
      dashboard, anything not scriptable from this session).
-3. **Execute every RUNNABLE criterion for real**: start the actual entrypoint (the daemon,
+3. **Construct the check** (how, not just "execute it") — pick the lightest rung that gives a
+   tight, red-capable signal for this criterion's class, roughly in this order: a failing test at
+   the seam that reaches it → a curl/HTTP script against the running dev server → a CLI
+   invocation diffing output against a known-good fixture → a headless browser script (Playwright
+   via the `webapp-testing` skill) driving the UI and asserting on DOM/console/network → replay
+   of a captured trace → a throwaway harness exercising just this code path. Whatever rung is
+   used, the check must be: reproducible (same verdict every run), fast (seconds, not minutes),
+   and actually capable of going red on this specific criterion — not "ran without erroring".
+4. **Execute every RUNNABLE criterion for real**: start the actual entrypoint (the daemon,
    server, or CLI the Feature ships — not a mock), drive the affected flow, and observe the
    actual behavior. This is a bounded smoke of the product path, not a load test — kill any
-   long-running process (server, watcher) once its criterion has been observed.
-4. **Phase E2E scenario**: if this Feature is a Phase's last Feature (per the Feature Map DAG),
+   long-running process (server, watcher) once its criterion has been observed. For web-UI done
+   criteria, use the `webapp-testing` skill to drive the browser and capture screenshot/console
+   evidence instead of asserting on a green test run alone.
+5. **Phase E2E scenario**: if this Feature is a Phase's last Feature (per the Feature Map DAG),
    also execute that Phase's end-to-end scenario as one additional RUNNABLE criterion.
-5. **Record results** in a table, included in the Step 7 review report:
+6. **Record results** in a table, included in the Step 7 review report:
 
    | Criterion | Class | Result | Evidence |
    | --- | --- | --- | --- |
    | ... | RUNNABLE \| MANUAL | PASS \| FAIL \| MANUAL | command/output, or "n/a — manual" |
 
-6. **Gate**: any RUNNABLE criterion with Result `FAIL` is a CRITICAL trigger in the Result Model
+7. **Gate**: any RUNNABLE criterion with Result `FAIL` is a CRITICAL trigger in the Result Model
    (Step 6) — the same severity as a failing executable gate in Step 6.5. Do not let a green
    lint/type/test/build run mask a product that does not actually start or work.
-7. **Report MANUAL items** in the Korean report (Step 7) as an explicit checklist so the user's
+8. **Report MANUAL items** in the Korean report (Step 7) as an explicit checklist so the user's
    own real-device/manual testing loop has a concrete list to work from:
    ```text
    📋 수동 확인 필요
