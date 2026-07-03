@@ -1,6 +1,6 @@
 ---
 description: "Drive the one-time PRD setup (featuremap → codex-checklist → verify → constitution) as a single automated pre-Feature cycle"
-argument-hint: "@docs/prd/PRD.md [@docs/prd/another.md]"
+argument-hint: "[@docs/prd/PRD.md] [@docs/prd/another.md]"
 ---
 
 # /ms.pre-specter - One-Time PRD Setup Conductor
@@ -43,21 +43,25 @@ warning, or stop.
 
 ## Usage
 
-Attach one or more PRDs with `@`. Attaching them pins the exact source files so
-the conductor (and the downstream commands) never has to guess paths.
-
-```bash
-/ms.pre-specter @docs/prd/PRD.md
-/ms.pre-specter @docs/prd/product.md @docs/prd/admin.md
-```
-
-If no PRD is attached, the conductor looks for likely PRDs under `docs/prd/` and
-**confirms the full PRD set with the user before proceeding**. It never guesses
-PRD content.
+**Recommended form** — the bare command. The conductor looks for likely PRDs
+under `docs/prd/` and **confirms the full PRD set with the user before
+proceeding**. It never guesses PRD content:
 
 ```bash
 /ms.pre-specter
 ```
+
+**`@`-attachments — only for non-conventional paths.** Attach a PRD with `@`
+only when it does **not** live under `docs/prd/`:
+
+```bash
+/ms.pre-specter @path/outside/docs/prd/PRD.md
+```
+
+Attaching a PRD that already lives at its conventional path adds nothing the
+bare form doesn't already resolve, and injects the full PRD content into
+context on every conductor restart. If several PRDs already live under
+`docs/prd/`, the bare form still finds and confirms all of them.
 
 ## The Cycle
 

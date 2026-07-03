@@ -1,6 +1,6 @@
 ---
 description: "Drive one Feature through the full per-Feature cycle (checklist → review) with one human stop at clarify"
-argument-hint: "@docs/prd/<PRD>.md @docs/prd/feature-map.md <Feature NNN>"
+argument-hint: "<Feature NNN> [@docs/prd/<PRD>.md] [@docs/prd/feature-map.md]"
 ---
 
 # /ms.specter - Per-Feature Cycle Conductor
@@ -27,31 +27,34 @@ reads those verdicts and decides whether to continue, collect a warning, or stop
 
 ## Usage
 
-**Recommended form** — give three things: the PRD(s), the Feature Map, and the
-next Feature number in order:
-
-```bash
-/ms.specter @docs/prd/PRD.md @docs/prd/feature-map.md 006
-```
-
-- Attach one or more PRDs with `@`. Attaching them pins the exact source files so
-  the conductor (and the downstream commands) never has to guess paths.
-- Attach the Feature Map with `@`. If omitted, the conductor falls back to
-  `docs/prd/feature-map.md`.
-- The Feature number is **freeform** — `006`, `6`, `Feature 006`, `006 진행해`,
-  `6번 피처 돌려줘` all resolve to Feature 006. Surrounding words are ignored.
-
-**Shorthand** — if you omit the `@`-paths, the conductor uses the conventional
-locations (`docs/prd/feature-map.md` and the PRDs it records). Only the Feature
-number is strictly required:
+**Recommended form** — the bare Feature number. The conductor resolves the Feature
+Map at its conventional path (`docs/prd/feature-map.md`) and the PRDs it records,
+so nothing needs to be attached:
 
 ```bash
 /ms.specter 006
 /ms.specter 6번 피처 진행해
 ```
 
-The one hard requirement is that a resolvable Feature number is present. It feeds
-`/ms.checklist`, `/ms.agent-verify`, and `/ms.specify`.
+- The Feature number is **freeform** — `006`, `6`, `Feature 006`, `006 진행해`,
+  `6번 피처 돌려줘` all resolve to Feature 006. Surrounding words are ignored.
+- The one hard requirement is that a resolvable Feature number is present. It
+  feeds `/ms.checklist`, `/ms.agent-verify`, and `/ms.specify`.
+
+**`@`-attachments — only for non-conventional paths.** Attach a PRD or the
+Feature Map with `@` only when it does **not** live at the conventional location
+(`docs/prd/*.md`, `docs/prd/feature-map.md`):
+
+```bash
+/ms.specter @docs/prd/PRD.md @docs/prd/feature-map.md 006
+```
+
+Attaching the full PRD injects its entire content into context on **every**
+invocation and every conductor restart — one audited project spent ~1.05M
+tokens on this pattern across a single Feature Map. The Feature Map + each
+Feature's `### PRD references` already scope exactly which PRD sections
+`/ms.checklist` and `/ms.specify` need, so attaching the whole PRD file rarely
+adds anything the conventional-path form doesn't already resolve on its own.
 
 ## The Cycle
 
