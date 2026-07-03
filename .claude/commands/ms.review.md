@@ -100,49 +100,28 @@ this gate to the upstream script's flags; the script only validates `plan.md`+`t
 
 ---
 
-### Step 2: Load Context (Optimized - Cached)
+### Step 2: Load Context (Cached)
 
-```bash
-declare -A CONTEXT_CACHE
+Read `spec.md`, `plan.md`, and `constitution.md` once and keep them in memory for the rest of the
+review — extract the spec's Domain Terminology section and the plan's Architecture section for
+reference during Step 5's naming/architecture checks.
 
-load_context_documents() {
-  CONTEXT_CACHE[spec_raw]=$(cat "$FEATURE_DIR/spec.md" 2>/dev/null || echo "")
-  CONTEXT_CACHE[plan_raw]=$(cat "$FEATURE_DIR/plan.md" 2>/dev/null || echo "")
-  CONTEXT_CACHE[constitution_raw]=$(cat .specify/memory/constitution.md 2>/dev/null || echo "")
-
-  export DOMAIN_TERMS=$(echo "${CONTEXT_CACHE[spec_raw]}" | rg -o '(?<=## Domain Terminology).*?(?=##)' -U || true)
-  export ARCH_LAYERS=$(echo "${CONTEXT_CACHE[plan_raw]}" | rg -o '(?<=## Architecture).*?(?=##)' -U || true)
-  export SPEC_CONTENT="${CONTEXT_CACHE[spec_raw]}"
-  export PLAN_CONTENT="${CONTEXT_CACHE[plan_raw]}"
-}
-
-load_context_documents
-```
-
-Read: spec.md, plan.md, constitution.md (once, cached in memory)
-
-**Session read policy**: this bash cache covers the shell-level `cat` reads above; it does not
-replace the harness's own Read tool. For any file the model reads directly with the Read tool
-elsewhere in this command (e.g. Step 5's per-file naming/architecture review), the same rule
-applies — if it was already read this session and has not changed since, reuse it instead of
-re-reading. Exception: the harness requires a fresh `Read` of a file before `Edit`/`Write`; always
-satisfy that requirement even if the content is already in context.
+**Session read policy**: this cache covers the reads above; it does not replace the harness's own
+Read tool. For any file the model reads directly with the Read tool elsewhere in this command
+(e.g. Step 5's per-file naming/architecture review), the same rule applies — if it was already
+read this session and has not changed since, reuse it instead of re-reading. Exception: the
+harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that requirement
+even if the content is already in context.
 
 ---
 
-### Step 1.5: Tool Availability Check (NEW)
+### Step 1.5: Tool Availability Check
 
-Review relies on several external binaries. Check for them upfront and fall back gracefully when unavailable:
-
-```bash
-command -v jq >/dev/null    || echo "⚠️ jq missing → JSON aggregation steps will be skipped"
-command -v rg >/dev/null    || { echo "❌ ripgrep required for pattern scan"; exit 1; }
-command -v npx >/dev/null   || echo "⚠️ npx missing → eslint/jscpd checks will be skipped"
-command -v radon >/dev/null || echo "⚠️ radon missing → Python complexity scan skipped"
-command -v jscpd >/dev/null || echo "⚠️ jscpd missing → duplicate detection skipped"
-```
-
-Store availability flags (e.g., `HAS_JQ=1`) for later conditionals so that each static-analysis phase can short-circuit instead of failing mid-run.
+Review relies on several external binaries. Check upfront and degrade gracefully when unavailable:
+`jq` missing → skip JSON aggregation steps; `rg` missing → abort (ripgrep is required for pattern
+scan); `npx` missing → skip eslint/jscpd; `radon` missing → skip Python complexity; `jscpd` missing
+→ skip duplicate detection. Remember which tools are available so each static-analysis phase in
+Step 4 can short-circuit instead of failing mid-run.
 
 ---
 
@@ -172,125 +151,34 @@ Save the charter in memory for later reporting and re-run comparisons.
 
 ### Step 3: Smart File Discovery
 
-```bash
-discover_changed_files() {
-  local BASE_REF="${1:-origin/main}"
-
-  # Priority 1: Git diff
-  CHANGED_FILES=$(git diff --name-only --diff-filter=ACMRTUXB ${BASE_REF}...HEAD 2>/dev/null \
-    | rg '^(src|tests)/.*\.(ts|js|py|tsx|jsx)$' || true)
-  [ -n "$CHANGED_FILES" ] && echo "$CHANGED_FILES" && return 0
-
-  # Priority 2: Staged files
-  CHANGED_FILES=$(git diff --cached --name-only --diff-filter=ACMRTUXB 2>/dev/null \
-    | rg '^(src|tests)/.*\.(ts|js|py|tsx|jsx)$' || true)
-  [ -n "$CHANGED_FILES" ] && echo "$CHANGED_FILES" && return 0
-
-  # Priority 3: Smoke test (200 files)
-  rg -l '' src tests 2>/dev/null | rg '\.(ts|js|py|tsx|jsx)$' | head -n 200
-}
-
-export CHANGED_FILES=$(discover_changed_files)
-export CHANGED_TS=$(echo "$CHANGED_FILES" | rg '\.(ts|tsx|js|jsx)$' || true)
-export CHANGED_PY=$(echo "$CHANGED_FILES" | rg '\.py$' || true)
-```
+Discover the review's target files in priority order: (1) `git diff` against `origin/main` for
+`src/`/`tests/` files (`.ts .js .py .tsx .jsx`); (2) if empty, staged files under the same filter;
+(3) if still empty, a bounded smoke sample — up to 200 source files under `src`/`tests`. Split the
+result into TS/JS and Python subsets for Step 4's language-specific static analysis.
 
 ---
 
 ### Step 3.5: Hash-Based Cache
 
-```bash
-compute_file_hashes() {
-  local targets="$1"
-  local cache_file=".specify/review-hash.cache"
-
-  [ -z "$targets" ] && echo "$targets" && return 0
-
-  echo "$targets" | xargs -P "$(nproc)" -I{} sh -c 'echo "$(sha1sum "{}" 2>/dev/null | cut -d" " -f1)  {}"' \
-    | sort -k2 > .specify/review-hash.now 2>/dev/null || true
-
-  if [ -f "$cache_file" ]; then
-    comm -13 <(sort -k2 "$cache_file" 2>/dev/null || true) <(sort -k2 .specify/review-hash.now) \
-      | cut -d' ' -f2- > .specify/review-changed-by-hash.txt
-    TRULY_CHANGED=$(cat .specify/review-changed-by-hash.txt)
-  else
-    TRULY_CHANGED="$targets"
-  fi
-
-  cp .specify/review-hash.now "$cache_file" 2>/dev/null || true
-  echo "$TRULY_CHANGED"
-}
-
-export ANALYSIS_TARGETS=$(compute_file_hashes "$CHANGED_FILES")
-```
+Hash each candidate file (sha1) and diff against `.specify/review-hash.cache` from the prior run
+to isolate the files that truly changed since the last review; update the cache afterward. With no
+prior cache, every candidate counts as changed.
 
 ---
 
 ### Step 4: Static Analysis (Parallel)
 
-```bash
-run_parallel_static_analysis() {
-  mkdir -p .specify/review
-  (
-    # Process 1: jscpd (conditional - files >200 LOC only)
-    {
-      large_files=$(echo "$ANALYSIS_TARGETS" | xargs -I{} sh -c 'wc -l "{}" 2>/dev/null | awk "{if (\$1 > 200) print \$2}"' || true)
-      if [ -n "$large_files" ] && command -v jscpd &>/dev/null; then
-        npx jscpd $large_files --threshold 5 --format json --output .specify/review/jscpd.json 2>/dev/null || echo '{"duplicates":[]}' > .specify/review/jscpd.json
-      else
-        echo '{"duplicates":[],"skip":"no large files"}' > .specify/review/jscpd.json
-      fi
-    } &
+Run these checks in parallel, each degrading to an empty/skipped result (not a failure) when its
+tool is unavailable (Step 1.5) or has nothing to scan:
 
-    # Process 2: eslint (JS/TS complexity)
-    {
-      if [ -n "$CHANGED_TS" ]; then
-        npx eslint --cache --cache-location .specify/.eslintcache --cache-strategy content \
-          --rule 'complexity: [error, 10]' --rule 'max-lines-per-function: [error, {max: 100}]' \
-          --format json $CHANGED_TS > .specify/review/eslint.json 2>&1 || echo '[]' > .specify/review/eslint.json
-      else
-        echo '[]' > .specify/review/eslint.json
-      fi
-    } &
-
-    # Process 3: radon (Python complexity)
-    {
-      if [ -n "$CHANGED_PY" ]; then
-        printf "%s\n" $CHANGED_PY | xargs -P "$(nproc)" -I{} radon cc -nb --json {} 2>/dev/null \
-          | jq -s 'add // {}' > .specify/review/radon.json 2>/dev/null || echo '{}' > .specify/review/radon.json
-      else
-        echo '{}' > .specify/review/radon.json
-      fi
-    } &
-
-    # Process 4: ripgrep (pattern detection)
-    {
-      run_consolidated_ripgrep
-    } &
-
-    wait
-  )
-}
-
-run_parallel_static_analysis
-```
-
-#### C. Pattern Detection (Single-Pass)
-
-```bash
-run_consolidated_ripgrep() {
-  rg --json -n -e 'eval\(' -e '(console\.(log|debug|info|warn))' -e '(process\.env\.|os\.getenv)' \
-    -e 'await.*for.*of' -e '\.map\(.*await' -e 'for.*for.*for' -e '\b[0-9]{3,}\b' \
-    -e '(TODO|FIXME|XXX|HACK):' -e '(password|secret|token)\s*=\s*["\']' -e '(setTimeout|setInterval)\(' \
-    --type-add 'code:*.{ts,js,py,tsx,jsx}' --type code --iglob '!**/*.snap' --iglob '!**/node_modules/**' \
-    ${CHANGED_FILES:-src tests} > .specify/review-rg.ndjson 2>/dev/null || echo '{}' > .specify/review-rg.ndjson
-
-  jq -r 'select(.type == "match") | {file: .data.path.text, line: .data.line_number, match: .data.lines.text}' \
-    .specify/review-rg.ndjson > .specify/review-patterns.json 2>/dev/null || echo '[]' > .specify/review-patterns.json
-}
-
-run_consolidated_ripgrep
-```
+- **jscpd** duplicate detection, limited to files >200 LOC.
+- **eslint** complexity (`complexity: 10`) and max-lines-per-function (100) on changed TS/JS files.
+- **radon** cyclomatic complexity on changed Python files.
+- **ripgrep**, one consolidated pass over the changed-file set (or `src tests` as fallback) for:
+  `eval(`, `console.log/debug/info/warn`, raw `process.env`/`os.getenv` access, await-in-loop
+  shapes, magic numbers (3+ digits), `TODO`/`FIXME`/`XXX`/`HACK`, hardcoded password/secret/token
+  literals, and `setTimeout`/`setInterval`. Results feed Step 5's findings as evidence, not
+  standalone verdicts.
 
 ---
 
@@ -329,10 +217,7 @@ H-001: Generic function name "processData" in src/services/user.service.ts:45
 
 1. **Read plan.md** "Architecture" section
 2. **Extract expected layers**: Controller → Service → Repository
-3. **Scan actual file structure**:
-   ```bash
-   tree src/ -L 2 --dirsfirst
-   ```
+3. **Scan the actual directory structure** (e.g. `tree src/ -L 2 --dirsfirst`).
 4. **Validate**:
    - Are files organized in expected layers?
    - Do controllers only call services (not repositories)?
@@ -352,15 +237,8 @@ H-002: Architecture violation in src/controllers/user.controller.ts:67
 
 #### C. Comment Quality Review (Conditional)
 
-Only analyze if complexity >7 detected:
-
-```bash
-HIGH_COMPLEXITY_FILES=$(jq -r '.[] | select(.complexity > 7) | .filePath' .specify/review/eslint.json 2>/dev/null | sort -u)
-[ -z "$HIGH_COMPLEXITY_FILES" ] && echo "⏭️  Skip (all complexity ≤7)" && exit 0
-echo "$HIGH_COMPLEXITY_FILES" | xargs -I{} rg "^[\s]*//|^[\s]*/\*" {} --json
-```
-
-Check for "why" comments (good) vs "what" comments (redundant).
+Only for files Step 4 flagged with complexity >7: scan their comments and check for "why"
+comments (good) vs "what" comments (redundant). Skip entirely if no file exceeds that threshold.
 
 #### D. Error Handling
 
@@ -511,69 +389,14 @@ Codex is unavailable instead (Antigravity-only + `Codex: UNAVAILABLE (<reason>)`
 report this station as if both agents ran when only one did; never block `/ms.review` on an
 environment issue alone.
 
-#### A. Codex Code Review
+#### A. Codex & Antigravity Code Review (same prompt body, different agent)
+
 ```text
 /codex:rescue --fresh --model gpt-5.5 --effort medium <prompt>
-```
-Codex must read:
-- `.specify/memory/constitution.md`
-- `AGENTS.md` if it exists
-- `specs/[spec-id]/spec.md`
-- `specs/[spec-id]/plan.md`
-- `specs/[spec-id]/tasks.md`
-- `docs/prd/checklists/feature-NNN.checklist.md`
-- the Step 6.6 Done Criteria Execution table (RUNNABLE results and evidence)
-- the current git diff against the review base
-- changed production files and changed tests
-
-Codex must write:
-`docs/review/{spec-id}.codex-review.md`
-
-Codex prompt:
-```text
-You are performing an advisory SPECTER post-implementation code review.
-
-Review the current implementation against spec.md, plan.md, tasks.md,
-Constitution, AGENTS.md, and the changed code/tests. Do not edit files except
-writing docs/review/{spec-id}.codex-review.md.
-
-Focus on:
-- implementation drift from spec/task intent
-- missing or weak behavior tests
-- auth, authorization, input validation, logging, and sensitive data exposure
-- data loss, race condition, rollback, idempotency, and migration risks
-- overcomplicated abstractions or non-surgical changes
-- architecture violations against plan.md
-
-Always challenge whether the implementation approach is simpler, safer, or
-better scoped than available alternatives.
-
-Write:
-
-# Codex Code Review
-
-**Mode**: codex-adversarial-code-review
-**Result**: PASS | WARN | FAIL
-
-## Findings
-
-| Severity | Finding | Evidence | Required Fix |
-| --- | --- | --- | --- |
-
-## Verdict
-
-One concise paragraph.
-
-Also echo the finished report between ===REPORT BEGIN=== and ===REPORT END=== markers in your
-final message, verbatim, so it can be salvaged if the file write fails.
-```
-
-#### B. Antigravity Code Review
-```text
 /antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <prompt>
 ```
 
-Antigravity must read:
+Both agents must read:
 - `.specify/memory/constitution.md`
 - `AGENTS.md` if it exists
 - `specs/[spec-id]/spec.md`
@@ -584,16 +407,19 @@ Antigravity must read:
 - the current git diff against the review base
 - changed production files and changed tests
 
-Antigravity must write:
-`docs/review/{spec-id}.antigravity-review.md`
+Each writes its own report: Codex → `docs/review/{spec-id}.codex-review.md`; Antigravity →
+`docs/review/{spec-id}.antigravity-review.md`.
 
-Antigravity prompt:
+Prompt template — substitute `{AGENT}` (`Codex` / `Antigravity using Google Antigravity`),
+`{MODE}` (`codex-adversarial-code-review` / `antigravity-adversarial-code-review`), and
+`{REPORT_PATH}` (that agent's report path above):
+
 ```text
-You are performing an advisory SPECTER post-implementation code review using Google Antigravity.
+You are performing an advisory SPECTER post-implementation code review as {AGENT}.
 
 Review the current implementation against spec.md, plan.md, tasks.md,
 Constitution, AGENTS.md, and the changed code/tests. Do not edit files except
-writing docs/review/{spec-id}.antigravity-review.md.
+writing {REPORT_PATH}.
 
 Focus on:
 - implementation drift from spec/task intent
@@ -608,9 +434,9 @@ better scoped than available alternatives.
 
 Write:
 
-# Antigravity Code Review
+# {AGENT} Code Review
 
-**Mode**: antigravity-adversarial-code-review
+**Mode**: {MODE}
 **Result**: PASS | WARN | FAIL
 
 ## Findings
@@ -635,13 +461,13 @@ After the run, deterministically check the written file: it exists, is non-empty
 hand-transcribing it yourself. If no markers were captured either, apply the Preflight Degrade
 Rule (subsection 0) instead of stopping outright.
 
-#### C. Result handling for both reviews:
+#### B. Result handling for both reviews:
 - `PASS`: keep the SPECTER review result unchanged.
 - `WARN`: final `/ms.review` result is at least READY WITH WARNINGS unless Claude/SPECTER explicitly explains why every warning is a false positive.
 - `FAIL`: final `/ms.review` result is NOT READY unless Claude/SPECTER explicitly downgrades the finding with source evidence.
 - `PENDING`: if `--background` was used and either report is missing, stop and tell the user to rerun `/ms.review` after both reports appear.
 
-#### D. Convergence Policy (re-round caps)
+#### C. Convergence Policy (re-round caps)
 
 Unbounded re-review loops burn tokens without improving the outcome (atlas F001 ran 10 Codex
 rounds on one Feature; 47+ re-rounds project-wide). Cap automatic re-rounds:
@@ -663,11 +489,11 @@ rounds on one Feature; 47+ re-rounds project-wide). Cap automatic re-rounds:
 
 ```bash
 mkdir -p docs/review
-AGENT_NAME="${CLAUDE_SESSION:+Claude}"
-AGENT_NAME="${AGENT_NAME:-${GEMINI_SESSION:+Gemini}}"
-AGENT_NAME="${AGENT_NAME:-Claude}"
-REPORT_FILE="docs/review/review_${AGENT_NAME}_$(date +%y%m%d-%H%M%S).md"
+REPORT_FILE="docs/review/review_${AGENT_NAME:-Claude}_$(date +%y%m%d-%H%M%S).md"
 ```
+
+`AGENT_NAME` is `Claude`, or `Gemini` if running under `GEMINI_SESSION`. `$REPORT_FILE` is reused
+by Step 9's state file and the Run-State Ledger append below.
 
 Report structure (console + file):
 
@@ -692,37 +518,11 @@ Report structure (console + file):
 
 ### Step 9: Cleanup and State Management
 
-Remove analysis artifacts and save state for `/ms.fin` integration:
-
-```bash
-REVIEW_CACHE_DIR=".specify"
-REVIEW_TMP_FILES=(
-  "$REVIEW_CACHE_DIR/review-rg.ndjson"
-  "$REVIEW_CACHE_DIR/review-patterns.json"
-  "$REVIEW_CACHE_DIR/review/jscpd.json"
-  "$REVIEW_CACHE_DIR/review/eslint.json"
-  "$REVIEW_CACHE_DIR/review/radon.json"
-  "$REVIEW_CACHE_DIR/review-changed-by-hash.txt"
-  "$REVIEW_CACHE_DIR/review-hash.now"
-)
-
-# Remove temporary analysis files (keep review-hash.cache to speed up next run)
-for file in "${REVIEW_TMP_FILES[@]}"; do
-  rm -f "$file"
-done
-
-# Save non-blocking state for /ms.fin visibility.
-if [ "${CRITICAL_COUNT:-0}" -gt 0 ] || [ "${HIGH_COUNT:-0}" -gt 0 ]; then
-  {
-    echo "${CRITICAL_COUNT:-0} CRITICAL issues unresolved"
-    echo "${HIGH_COUNT:-0} HIGH issues unresolved"
-    echo "Run /ms.review to check"
-    echo "Review report: $REPORT_FILE"
-  } > .specify/review-state.txt
-else
-  rm -f .specify/review-state.txt
-fi
-```
+Remove transient analysis artifacts — `.specify/review-rg.ndjson`, `review-patterns.json`,
+`review/{jscpd,eslint,radon}.json`, and the hash-diff scratch files — while keeping
+`review-hash.cache` so the next run can still diff against it. If unresolved CRITICAL or HIGH
+issues remain, write `.specify/review-state.txt` with their counts, a note to rerun `/ms.review`,
+and `$REPORT_FILE`'s path; otherwise remove any stale `review-state.txt`.
 
 **State policy**: `.specify/review-state.txt` is a visibility artifact for
 `/ms.fin`, not a mandatory publish blocker. Executable gate failures
@@ -748,129 +548,32 @@ printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"review","verdict":"%
 
 ## User Options
 
-### Quick Mode (NEW)
-
-Skip pattern analysis for faster review:
-
-```bash
-/ms.review --quick
-# Skips: ultrathink pattern analysis (Step 5.5)
-# Still runs: executable gates in Step 6.5
-```
-
-### Verbose Mode (NEW)
-
-Show all issues including filtered ones:
-
-```bash
-/ms.review --verbose
-# Shows: All LOW issues (even those with impact score <15)
-# Useful for: Complete code audit
-```
-
-### No Interactive Mode (NEW)
-
-Skip action prompts for CI/CD:
-
-```bash
-/ms.review --no-interactive
-# Skips: Interactive action prompts (Step 8)
-# Useful for: Automated pipelines
-```
-
-### Codex Review Controls
-
-```bash
-/ms.review --skip-codex
-/ms.review --background
-/ms.review --model gpt-5.4-mini --effort high
-```
-
-- `--skip-codex`: skip advisory Codex code review.
-- `--background`: start Codex review in the background and require a later `/ms.review` rerun.
-- `--model` / `--effort`: override the default `gpt-5.5` / `medium` runtime.
-- `--runtime-agent=agy`: delegate Step 6.6's Done Criteria Execution to Antigravity instead of
-  the host. Documented as a knob, not a default — keep host-run until Antigravity has proven
-  stable in this environment.
+| Flag | Effect |
+| --- | --- |
+| `--quick` | Skip Step 5.5's ultrathink pattern analysis; executable gates (Step 6.5) still run. |
+| `--verbose` | Show all LOW issues, including those the impact-score filter (<15) would normally hide. Useful for a complete code audit. |
+| `--no-interactive` | Skip Step 8's interactive action prompts — for CI/CD pipelines. |
+| `--skip-codex` (or `--skip-agents`) | Skip the advisory Codex (and Antigravity) code review. |
+| `--background` | Start Codex/Antigravity in the background; rerun `/ms.review` after both reports appear. |
+| `--model MODEL` / `--effort LEVEL` | Override the default `gpt-5.5` / `medium` agent runtime. |
+| `--runtime-agent=agy` | Delegate Step 6.6's Done Criteria Execution to Antigravity instead of the host. A documented knob, not a default — keep host-run until Antigravity has proven stable in this environment. |
+| `--fast` | Skip slow optional static-analysis tools (jscpd, extended complexity scans). Never skips lint, typecheck, tests, or build — those executable gates stay owned by `/ms.review`. TAG findings remain warning/report-only unless Section IX or CI promotes them to blocking. |
+| `--focus <category>` | Emphasize one qualitative aspect while still running executable gates. Categories: `security` (auth, logging, error exposure), `performance` (N+1 queries, recomputation), `naming` (domain-term consistency), `architecture` (layer violations), `tests` (quality, boundary cases, mocks), `maintainability` (comments, error handling, duplication). |
 
 > The dual-agent review always runs in adversarial mode — both Codex and
 > Antigravity challenge design choices, simpler/safer alternatives, and hidden
 > risks. There is no flag to toggle this; it is the default behavior.
 
-### Skip Slow Checks
-
-For quick review during development:
-
-```bash
-/ms.review --fast
-# Skips: optional slow static-analysis tools (jscpd, extended complexity scans)
-# Still runs: local CI gate + TRUST critical checks in Step 6.5
-```
-
-`--fast` must never skip lint, typecheck, tests, or build. TAG findings remain warning/report-only unless Section IX or CI explicitly promotes them to blocking.
-Those executable gates are owned by `/ms.review`.
-
-### Focus on Category
-
-Review a specific qualitative aspect while still running executable gates:
-
-```bash
-/ms.review --focus security
-/ms.review --focus performance
-/ms.review --focus naming
-/ms.review --focus tests
-```
-
-**Categories**:
-- `security`: Authentication, logging, error exposure
-- `performance`: N+1 queries, unnecessary computations
-- `naming`: Variable/function names vs domain terms
-- `architecture`: Layer violations, pattern consistency
-- `tests`: Test quality, boundary cases, mock usage
-- `maintainability`: Comments, error handling, duplication
-
 ---
 
 ## Integration with Workflow
 
-### After /ms.implement
+After `/ms.implement`, run `/ms.review`. If it finds HIGH/CRITICAL issues, fix them
+(`/ms.implement --mode=refactor` or by hand) and re-review until clean, then run `/ms.fin`.
 
-```bash
-# Implementation complete
-/ms.implement  # ✅ All tasks implemented
-
-# Review code quality
-/ms.review  # ⚠️ Found 2 HIGH issues
-
-# Fix issues
-# ... (fix H-001 and H-002)
-
-# Re-review
-/ms.review  # ✅ All HIGH issues resolved
-
-# Finish and commit
-/ms.fin
-```
-
-### Before /ms.fin (ENHANCED)
-
-`/ms.fin` command should surface review state as a warning, but it must not make
-review-state mandatory:
-
-```bash
-# In /ms.fin workflow
-if [ -f .specify/review-state.txt ]; then
-  echo "⚠️ Prior /ms.review state exists:"
-  cat .specify/review-state.txt
-  echo ""
-  echo "Continuing because review-state is advisory in /ms.fin."
-fi
-```
-
-The review state file contains:
-- Number of unresolved CRITICAL and HIGH issues
-- Path to the latest review report
-- Timestamp of last review
+`/ms.fin` treats `.specify/review-state.txt` as advisory, never a mandatory publish blocker: if it
+exists, `/ms.fin` surfaces its unresolved CRITICAL/HIGH counts, the latest report path, and the
+review timestamp as a warning, then continues.
 
 ---
 
@@ -897,40 +600,12 @@ The review state file contains:
 
 ## Error Handling
 
-### No Implemented Files Found
-
-```
-❌ No implemented files found
-
-Expected directories:
-- src/ (source code)
-- tests/ (test files)
-
-Run /ms.implement first to generate code.
-```
-
-### Missing Context Documents
-
-```
-⚠️ Missing context documents
-
-Found:
-- spec.md ✅
-- plan.md ❌ (run /ms.plan)
-
-Review will proceed with limited context.
-Some checks (architecture validation, naming consistency) may be skipped.
-```
-
-### Tool Installation Missing
-
-```
-⚠️ Optional tool not found: jscpd
-
-Skipping code duplication analysis.
-Install with: npm install -g jscpd
-
-Review will continue with remaining checks.
-```
+- **No implemented files** (`src/`, `tests/` both missing): report it and direct the user to run
+  `/ms.implement` first.
+- **Missing context documents** (e.g. `plan.md` absent): proceed with limited context, note which
+  checks are skipped as a result (architecture validation, naming consistency), and recommend
+  `/ms.plan`.
+- **Optional tool missing** (e.g. `jscpd`): skip that specific check, note the install command
+  (e.g. `npm install -g jscpd`), and continue with the rest of the review.
 
 ---
