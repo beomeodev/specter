@@ -46,8 +46,11 @@ json_escape() {
 
 extract_field() {
   # extract_field <file> <field-name>  ->  value after "**field-name**:"
+  # `|| true`: tolerates a missing field under `set -euo pipefail` so the
+  # caller sees an empty string (treated as FAIL downstream) instead of the
+  # whole script aborting with no JSON output.
   local file="$1" field="$2"
-  grep -m1 "^\*\*${field}\*\*:" "$file" 2>/dev/null | sed -E "s/^\*\*${field}\*\*:[[:space:]]*//"
+  grep -m1 "^\*\*${field}\*\*:" "$file" 2>/dev/null | sed -E "s/^\*\*${field}\*\*:[[:space:]]*//" || true
 }
 
 any_missing=false
