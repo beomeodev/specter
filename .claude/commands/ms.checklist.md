@@ -225,6 +225,10 @@ rows, mark FAIL.
   UI surfaces, or tests; it does not copy PRD prose wholesale.
 - `### Done criteria` are observable and tied to the PRD acceptance evidence.
 - The last done criterion is `CI passes green`.
+- No owned commitment or done criterion contains an unresolved placeholder
+  (`TBD`, `TODO`, `{{...}}`, an `_or_equivalent`-style token) — WARN if found
+  anywhere, FAIL if it's inside a done criterion. These cause clarify-time
+  churn if left for `/ms.specify`/`/ms.clarify` to catch instead.
 
 ### Step 5: Write The Per-Feature Audit
 
@@ -298,6 +302,8 @@ Use this structure:
 - Done criteria are not observable or do not end with `CI passes green`.
 - A user-facing commitment (UI, CLI, API, notification) has no in-scope deliverable exposing it
   and no out-of-scope row naming its owning Feature.
+- A done criterion contains an unresolved placeholder (`TBD`, `TODO`, `{{...}}`,
+  an `_or_equivalent`-style token).
 
 ## Result Model
 
