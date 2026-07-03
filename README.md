@@ -266,6 +266,19 @@ SPECTER에는 Constitution 관련 개념이 두 단계 있습니다.
     *   구현할 태스크의 범위(Scope)를 특정 태스크 식별자(`TNNN`) 또는 추적성 태그 ID(`TAG_ID`)로 좁혀 집중적으로 코딩 작업을 수행하도록 조절합니다.
 
 ### 3. 병합 및 릴리즈 플래그
+
+`/ms.merglease`는 기본적으로 완전 자동입니다: 버전은 conventional commits로부터 자동 계산되고
+(BREAKING CHANGE/`type!:` → MAJOR, `feat` → MINOR, 그 외 → PATCH — pre-1.0에도 동일 매핑),
+머지 전략은 항상 merge commit이라 확인 질문이 없습니다. GitHub CI 실패는 billing/quota/infra로
+분류되면(대소문자 무관 `billing`/`spending limit`/`usage limit`/`quota`, `startup_failure`,
+또는 job 미시작) 경고를 남기고 머지를 진행하지만, 실제 test/lint/type/build 실패는 머지를
+중단시킵니다 — local CI(=이미 `/ms.review`/`/ms.fin`이 통과시킨 게이트)가 authoritative이고
+GitHub CI는 advisory이기 때문입니다.
+
+*   `[version]` (사용 대상: `/ms.merglease`):
+    *   자동 계산된 semver 대신 명시적 버전을 강제합니다.
+*   `--confirm` (사용 대상: `/ms.merglease`):
+    *   기본값인 무질문 자동 진행 대신, 버전과 머지를 사람이 확인하는 대화형 모드로 되돌립니다.
 *   `--no-release` (사용 대상: `/ms.merglease`):
     *   PR 머지 파이프라인만 정상 실행하고, 신규 버전 태깅 및 GitHub Release 생성을 건너뛰도록 지시합니다.
 *   `--cleanup` (사용 대상: `/ms.merglease`):
