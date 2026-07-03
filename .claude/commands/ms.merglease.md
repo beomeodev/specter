@@ -39,7 +39,11 @@ Tasks to execute:
    - Create an annotated git tag for the new version and push it to origin.
 6. Create GitHub Release:
    - Create a GitHub Release using the 'gh release create' command.
-7. Branch cleanup (if requested).
+7. Progress Ledger update (if 'docs/prd/feature-map.progress.md' exists):
+   - Mark the merged Feature's Status row as '✅ shipped'. Do NOT touch 'docs/prd/feature-map.md' —
+     this bookkeeping lives only in the separate progress file so it never invalidates the
+     Feature Map's gated SHA256.
+8. Branch cleanup (if requested).
 
 Write your results, including the PR merge status, new tag, and release URL clearly in your final report.
 ```

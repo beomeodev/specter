@@ -186,15 +186,17 @@ Only after the PRD context is loaded, continue to Step 0.5.
 
 ### 0.5 Reconcile Feature progress + pick next (refreshes the Progress Ledger)
 
-This is the cross-session "where am I" answer. Progress lives in `specs/` + git; the Feature
-Map's **Progress Ledger** is just a cached view of it, recomputed here so it never drifts.
+This is the cross-session "where am I" answer. Progress lives in `specs/` + git; the
+**Progress Ledger** at `docs/prd/feature-map.progress.md` is just a cached view of it, recomputed
+here so it never drifts. This file is separate from `docs/prd/feature-map.md` precisely so that
+recomputing it never changes the Feature Map's SHA256.
 
 1. Identify the Feature being specified from the input's `## Feature NNN:` heading.
 2. List which Features already have a spec directory (= started):
    ```bash
    ls -d specs/*/ 2>/dev/null | sed 's#specs/##; s#/##'
    ```
-3. For every Feature row in `docs/prd/feature-map.md`'s Progress Ledger, recompute Status:
+3. For every Feature row in `docs/prd/feature-map.progress.md`, recompute Status:
    - `specs/<NNN>-*` directory exists → `🚧 specified` (or `✅ shipped` if you can confirm a
      merged release for it), else `⬜ planned`. **Rewrite the Status column** to match.
 4. Determine the **next undone Feature** = the lowest-order Feature in the dependency DAG whose

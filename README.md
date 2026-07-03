@@ -289,6 +289,11 @@ SPECTER는 Spec-Kit의 native checklist를 단순 호출하지 않습니다. Glo
 
 `/ms.specify`와 injected `/speckit.specify`는 global audit, per-Feature audit, 또는 Codex & Antigravity per-Feature verification이 없거나 실패했거나, Feature Map SHA가 달라져 stale 상태면 거부합니다.
 
+Feature Status 북키핑(⬜/🚧/✅)은 `feature-map.md`가 아니라 별도 파일 `docs/prd/feature-map.progress.md`에
+있습니다. 이 파일을 갱신해도(`/ms.specify`가 매번 recompute하거나 `/ms.merglease`가 `✅ shipped`로 표시해도)
+`feature-map.md`의 SHA256은 바뀌지 않으므로 위 게이트들은 stale이 되지 않습니다. `feature-map.md`에는
+`> Progress Ledger: docs/prd/feature-map.progress.md` 한 줄짜리 포인터만 남습니다.
+
 ### `/ms.analyze`: 문서 정합성 게이트
 
 구현 전에 `spec.md`, `plan.md`, `tasks.md`가 서로 맞는지 확인합니다. 기본 실행에서는 Codex가 foreground로 보조 문서 검증을 수행하며, 큰 문서 세트에서는 `--background`를 사용할 수 있습니다.
@@ -353,6 +358,7 @@ specter/
 │   ├── prd/
 │   │   ├── PRD.md
 │   │   ├── feature-map.md
+│   │   ├── feature-map.progress.md
 │   │   ├── feature-map.checklist.md
 │   │   ├── codex/
 │   │   │   └── checklist.md

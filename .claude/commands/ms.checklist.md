@@ -74,6 +74,7 @@ Workflow position:
 Read these files in full:
 
 - `docs/prd/feature-map.md`
+- `docs/prd/feature-map.progress.md`
 - `docs/prd/feature-map.checklist.md`
 - every source PRD recorded in `docs/prd/feature-map.md`
 - `docs/prd/codex/checklist.md` if it exists
@@ -154,7 +155,8 @@ audit that Feature.
 
 Otherwise, select the next eligible Feature:
 
-1. Read the dependency DAG and Progress Ledger.
+1. Read the dependency DAG (`docs/prd/feature-map.md`) and the Progress Ledger
+   (`docs/prd/feature-map.progress.md`).
 2. List existing `specs/<NNN>-*` directories.
 3. Pick the lowest-order Feature whose dependencies are already specified or
    shipped and which has no `specs/` directory of its own.

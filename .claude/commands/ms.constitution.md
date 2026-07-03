@@ -55,6 +55,8 @@ Read these files in full:
 - `.specify/memory/constitution.md`
 - Every Source PRD listed in `docs/prd/feature-map.md`
 - `docs/prd/feature-map.md`
+- `docs/prd/feature-map.progress.md` if it exists (Progress Ledger; informational only, not part
+  of the gated, SHA-hashed Feature Map)
 - `docs/prd/feature-map.checklist.md`
 - `docs/prd/product-principles.md` if it exists
 - `AGENTS.md` if it exists

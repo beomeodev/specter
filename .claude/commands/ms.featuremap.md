@@ -175,7 +175,9 @@ last Feature.**
 3. **PRD Commitment Index** — the thin ownership map that prevents PRD requirements from being
    blurred or lost (template below).
 4. **Full Feature dependency graph** — an ASCII DAG grouped by Phase.
-5. **Progress Ledger** — a status table of every Feature (template below). Emit all rows as
+5. **Progress Ledger pointer** — a one-line pointer to the ledger file (template below). The
+   ledger table itself is written to the separate file `docs/prd/feature-map.progress.md`, not
+   inline, so that Status bookkeeping never changes the Feature Map's SHA256. Emit all rows as
    `⬜ planned`. It is a convenience view; the canonical truth is `specs/` + git, and
    `/ms.specify` refreshes the Status column from `specs/` each time a Feature is started.
 6. **All Feature sections**, grouped by Phase, using the fixed template.
@@ -197,10 +199,16 @@ last Feature.**
 | Admin PRD | §5.2 | Cross-cutting | Audit log | Feature 009 | Deferred from earlier Features |
 ```
 
-### Progress Ledger — template (emit right after the dependency graph)
+### Progress Ledger pointer — template (emit in `feature-map.md`, right after the dependency graph)
 
 ```markdown
-## Progress Ledger
+> Progress Ledger: docs/prd/feature-map.progress.md
+```
+
+### `docs/prd/feature-map.progress.md` — template (separate file, keeps Status bookkeeping out of the Feature Map SHA256)
+
+```markdown
+# Feature Map Progress Ledger
 
 > Convenience view — the canonical truth is `specs/<NNN>-*` (started) + merged PRs/tags (shipped).
 > `/ms.specify` recomputes the Status column from `specs/` every time you start a Feature, so
@@ -223,6 +231,16 @@ Write the assembled document to **`docs/prd/feature-map.md`** (default — PRD a
 the `prd` directory). If `docs/prd/` does not exist in this project, create it; do NOT fall back to
 `docs/feature-map.md`. Confirm the path with the user only if the project clearly keeps PRD docs
 somewhere else.
+
+Also write the Progress Ledger to **`docs/prd/feature-map.progress.md`** next to it, using the
+template above. `feature-map.md` carries only the one-line pointer, never the table, so that
+Status updates never change the Feature Map's SHA256.
+
+**Migration**: if this is a re-run over an existing `docs/prd/feature-map.md` that still has an
+inline `## Progress Ledger` section (from before this split), move that section's rows into
+`docs/prd/feature-map.progress.md` and replace it in `feature-map.md` with the pointer line. Do
+this only from `/ms.featuremap` (or `/ms.expand`) — never from a gate command, since that would
+change a gate's input file outside an audited write.
 
 ### 6. Report
 

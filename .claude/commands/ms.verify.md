@@ -116,7 +116,8 @@ Check that `docs/prd/feature-map.md` contains:
 - Usage section.
 - `## PRD Commitment Index`.
 - Full Feature dependency graph.
-- Progress Ledger.
+- Progress Ledger pointer (`> Progress Ledger: docs/prd/feature-map.progress.md`), and the
+  referenced `docs/prd/feature-map.progress.md` file exists.
 - All Feature sections.
 - Global rules and reference priority.
 
