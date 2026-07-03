@@ -37,3 +37,9 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: feature-map-gate
+        name: SPECTER Feature Map / gate coherence backstop
+        entry: python scripts/check_feature_map_gate.py
+        language: system
+        pass_filenames: false
+        always_run: true
