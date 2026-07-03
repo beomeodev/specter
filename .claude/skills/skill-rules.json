@@ -232,6 +232,36 @@
         "contentPatterns": []
       }
     },
+    "ms-ops-debugging": {
+      "type": "essential",
+      "priority": "high",
+      "enforcement": "suggest",
+      "description": "Symptom-indexed playbook for deploy/environment-boundary failures (SSH tunnels, reverse proxy, TLS, containers, secret rotation, real-time API integration)",
+      "promptTriggers": {
+        "keywords": [
+          "works locally",
+          "deployed",
+          "SSH tunnel",
+          "reverse proxy",
+          "TLS",
+          "docker unhealthy",
+          "container won't start",
+          "secret rotation",
+          "websocket",
+          "bind mount"
+        ],
+        "intentPatterns": [
+          "(works|worked).*?(locally|dev).*?(not|but).*?(deploy|prod)",
+          "(SSH|tunnel|proxy|TLS).*?(fail|broken|unreachable)",
+          "(container|docker).*?(unhealthy|won't start|restart loop)",
+          "(secret|token|cookie).*?(rotation|rotated).*?(fail|break)"
+        ]
+      },
+      "fileTriggers": {
+        "pathPatterns": ["**/docker-compose*.yml", "**/Caddyfile", "**/*.Caddyfile"],
+        "contentPatterns": []
+      }
+    },
     "ms-essentials-debug": {
       "type": "essential",
       "priority": "high",

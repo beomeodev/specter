@@ -111,6 +111,26 @@ Diagnose runtime errors systematically and provide actionable fix suggestions wi
 
 **Delegate To**: Manual fix or system admin
 
+### Environment / Deployment Errors
+
+**Types**:
+- SSH tunnel unreachable or intermittently reachable
+- Reverse proxy / TLS failures (works on `:80`, fails on `:443`; routes return HTML instead of JSON)
+- Container stuck restarting, `(unhealthy)`, or a bind-mount looks wrong
+- Auth/login breaks specifically around a secret rotation or redeploy
+- Real-time/streaming API (WebSocket, SSE) connection rejected or silently stops producing output
+- Anything that reproduces only deployed, never locally (or vice versa)
+
+**Common Root Causes**: stale tunnel routing, proxy config not hot-reloaded, TLS/SNI
+misconfiguration, browser HSTS cache, bind-mount source missing on first deploy, stale
+signed cookie/token after secret rotation, non-idempotent bootstrap scripts, vendor API
+protocol/header changes.
+
+**Use the `ms-ops-debugging` skill** for the symptom-indexed playbook — it names the
+fastest-discriminating probe per failure class instead of generic troubleshooting.
+
+**Delegate To**: Manual fix, guided by the matching `ms-ops-debugging` playbook entry
+
 ## Diagnostic Workflow
 
 ### Step 1: Parse Error Message
