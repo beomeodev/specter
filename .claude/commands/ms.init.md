@@ -242,6 +242,29 @@ direct-call bypass regardless of whether upstream is command-based or skill-base
     Step 1 installs it)
 -   Continue (non-fatal)
 
+#### 2.5 Install The Deterministic Gate Checker Script
+
+Step 1's `specify init` creates `.specify/scripts/bash/` for upstream's own scripts. Install
+SPECTER's mechanical gate checker (WI-11) alongside them, using the same copy-after-init pattern
+as Steps 2.2–2.3 so it survives a future `specify init --force`:
+
+```bash
+mkdir -p .specify/scripts/bash
+cp docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
+chmod +x .specify/scripts/bash/specter-gate.sh
+```
+
+This script owns only mechanical gate facts (checklist Result lines, Feature Map SHA256
+equality, Constitution Section IX establishment, per-Feature/dual-agent artifact existence) for
+`/ms.specify`, `/ms.checklist`, `/ms.specter`, and `/ms.constitution` — content judgment (PRD
+fidelity, boundary discipline, severity) stays with the model.
+
+**IF source file not found**:
+
+-   Display error: "Gate checker script missing. Expected: docs/templates/scripts/specter-gate.sh"
+-   This indicates a repository structure issue
+-   Exit with error
+
 ### Step 3: Report Success
 
 Display completion message:
@@ -252,6 +275,7 @@ Display completion message:
 📦 Installed:
 - ✅ Spec-Kit (latest version from upstream)
 - ✅ My-Spec Constitution: .specify/memory/constitution.md
+- ✅ Deterministic gate checker: .specify/scripts/bash/specter-gate.sh
 
 🧩 Codex & Antigravity Plugins Setup (inside Claude Code):
 1. Open Claude Code in the project environment.

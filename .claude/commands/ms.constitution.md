@@ -66,15 +66,18 @@ which upstream command must run first.
 
 ### Step 1: Global Audit Guard
 
-Require the global checklist to be current:
+Require the global checklist to be current. Run the deterministic gate checker:
 
-1. `docs/prd/feature-map.checklist.md` exists.
-2. The audit contains `**Mode**: global`.
-3. The audit contains `**Result**: PASS` or `**Result**: WARN`.
-4. The audit does not contain `**Result**: FAIL`.
-5. The audit's `Feature Map SHA256` matches the current `docs/prd/feature-map.md` SHA256.
+```bash
+.specify/scripts/bash/specter-gate.sh
+```
 
-If this fails, stop:
+Read only the `global_checklist_exists`, `global_mode_ok`, `global_result_ok`, and
+`global_sha_ok` fields from `checks` — **not** the top-level `overall`. `overall` also folds in
+`constitution_section_ix_established`, and establishing Section IX is this very command's job, so
+it is expected to still read `false` at this point; that is not a failure of this guard.
+
+If any of those four fields is `false`, stop:
 
 ```text
 ⛔ Project baseline cannot be established before the global Feature Map audit passes.

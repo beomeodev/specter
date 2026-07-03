@@ -93,25 +93,18 @@ which would be too late.
 
 1. Identify the Feature number from the input's `## Feature NNN:` heading before
    checking audit files.
-2. `docs/prd/feature-map.checklist.md` exists.
-3. The global audit contains `**Mode**: global`.
-4. The global audit contains `**Result**: PASS` or `**Result**: WARN`.
-5. The global audit does not contain `**Result**: FAIL`.
-6. The global audit's `Feature Map SHA256` matches the current
-   `docs/prd/feature-map.md` SHA256.
-7. `docs/prd/checklists/feature-NNN.checklist.md` exists for the selected Feature.
-8. The per-Feature audit contains `**Mode**: per-feature` and the same Feature NNN.
-9. The per-Feature audit contains `**Result**: PASS` or `**Result**: WARN`.
-10. The per-Feature audit does not contain `**Result**: FAIL`.
-11. The per-Feature audit's `Feature Map SHA256` matches the current
-    `docs/prd/feature-map.md` SHA256.
-12. Both `docs/prd/checklists/feature-NNN.codex-verify.md` and `docs/prd/checklists/feature-NNN.antigravity-verify.md` exist for the selected Feature.
-13. Both Codex and Antigravity verification files contain `**Result**: PASS` or `**Result**: WARN`.
-14. Neither verification file contains `**Result**: FAIL`.
-15. `.specify/memory/constitution.md` has an established Section IX baseline from `/ms.constitution`
-    or explicitly records that no durable project-specific constraints were found.
+2. Run the deterministic gate checker for that Feature instead of manually
+   re-deriving these facts:
+   ```bash
+   .specify/scripts/bash/specter-gate.sh NNN
+   ```
+   This mechanically checks the global checklist (existence, Mode, Result, SHA),
+   the per-Feature checklist (existence, Mode, Feature match, Result, SHA), both
+   Codex and Antigravity per-Feature verification files (existence, Result), and
+   Constitution Section IX. Read the JSON `overall` and `reasons[]` fields.
 
-**If the global audit is missing, failed, or stale**, refuse and exit:
+**If `overall` is `MISSING` or `FAIL` and every `reasons[]` entry is about the global
+checklist** (`docs/prd/feature-map.checklist.md` existence, Mode, Result, or SHA), refuse and exit:
 
 ```text
 ⛔ /ms.specify requires a passing global Feature Map checklist.
@@ -125,7 +118,9 @@ then retry the Feature checklist.
 Stopping now.
 ```
 
-**If the per-Feature audit is missing, failed, stale, or for a different Feature**, refuse and exit:
+**If `overall` is `MISSING` or `FAIL` and a `reasons[]` entry is about the per-Feature checklist**
+(`docs/prd/checklists/feature-NNN.checklist.md` existence, Mode, Feature match, Result, or SHA),
+refuse and exit:
 
 ```text
 ⛔ /ms.specify requires a passing checklist for this Feature.
@@ -140,7 +135,8 @@ Stopping now.
 ```
 
 
-**If the dual-agent per-Feature verification is missing, failed, or still running**, refuse and exit:
+**If `overall` is `MISSING` or `FAIL` and a `reasons[]` entry is about `codex-verify` or
+`antigravity-verify`** (missing, or Result not PASS/WARN), refuse and exit:
 
 ```text
 ⏳ /ms.specify requires both Codex and Antigravity verification for this Feature.
@@ -152,7 +148,7 @@ If it is still running, wait briefly and retry /ms.specify after both result fil
 Stopping now.
 ```
 
-**If Section IX is not established**, refuse and exit:
+**If a `reasons[]` entry is about `constitution_section_ix_established`**, refuse and exit:
 
 ```text
 ⛔ /ms.specify requires the project Constitution baseline.

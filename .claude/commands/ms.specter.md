@@ -101,14 +101,16 @@ crosses the clarify boundary.
      (commands, particles, instructions). Only refuse if **no** Feature identifier
      can be found at all (e.g. `진행해` with no number); then ask which Feature to
      run. Never guess a number that is not present in the input.
-2. Confirm the per-Feature cycle can start. Require:
-   - The Feature Map (attached path, else `docs/prd/feature-map.md`) exists.
-   - `docs/prd/feature-map.checklist.md` exists with `Result: PASS` or `WARN`
-     (the global gate from `/ms.verify`).
-   - `.specify/memory/constitution.md` has an established Section IX baseline
-     (from `/ms.constitution`).
-   If any precondition is missing, stop and tell the user to complete the
-   one-time PRD setup first:
+2. Confirm the per-Feature cycle can start by running the deterministic gate
+   checker instead of manually re-deriving these facts:
+   ```bash
+   .specify/scripts/bash/specter-gate.sh
+   ```
+   This mechanically checks that the Feature Map exists, `docs/prd/feature-map.checklist.md`
+   is `Result: PASS` or `WARN` and its SHA256 matches the current Feature Map, and Constitution
+   Section IX is established. If the JSON `overall` field is `MISSING` or `FAIL`, stop and tell
+   the user to complete the one-time PRD setup first (use `reasons[]` to explain what is
+   missing):
    ```text
    ⛔ /ms.specter는 per-Feature 사이클만 자동화합니다.
 

@@ -111,21 +111,20 @@ and stop. Do not guess from memory.
 
 ### Step 1: Verify Global Gate And Constitution Baseline First
 
-Before auditing a Feature, require:
+Before auditing a Feature, run the deterministic gate checker instead of manually
+re-deriving these facts:
 
-1. `docs/prd/feature-map.checklist.md` exists.
-2. The global audit contains `**Mode**: global`.
-3. The global audit contains `**Source Command**: /ms.verify` or otherwise
-   clearly records that it was produced by the new `/ms.verify` flow.
-4. The global audit contains `**Result**: PASS` or `**Result**: WARN`.
-5. The global audit does not contain `**Result**: FAIL`.
-6. The global audit's `Feature Map SHA256` matches the current
-   `docs/prd/feature-map.md` SHA256.
-7. `.specify/memory/constitution.md` has an established Section IX baseline from
-   `/ms.constitution` or explicitly records that no durable project-specific
-   constraints were found.
+```bash
+.specify/scripts/bash/specter-gate.sh
+```
 
-If the global gate fails, stop:
+This mechanically checks: `docs/prd/feature-map.checklist.md` exists, is
+`**Mode**: global`, its `**Result**` is `PASS` or `WARN` (not `FAIL`), its
+`Feature Map SHA256` matches the current `docs/prd/feature-map.md`, and Constitution
+Section IX is established. Read the JSON `overall` and `reasons[]` fields.
+
+If `overall` is `MISSING` or `FAIL` and every `reasons[]` entry is about the global
+checklist (its existence, Mode, Result, or SHA), stop:
 
 ```text
 ⛔ Global Feature Map verification is missing, failed, stale, or from the removed legacy flow.
@@ -137,7 +136,7 @@ Run this first:
 Fix any Blocking Fixes in docs/prd/feature-map.checklist.md, then retry /ms.checklist.
 ```
 
-If Section IX is not established, stop:
+If any `reasons[]` entry is about `constitution_section_ix_established`, stop:
 
 ```text
 ⛔ Project Constitution baseline is not established.
