@@ -53,7 +53,9 @@ regardless of agent judgment.
 - Do not leave placeholders, stubs, mock outputs, or partial implementations
   unless the user explicitly asks for them.
 - Do not re-read a file you already read this session. Reuse what you have
-  unless the user explicitly says its content changed.
+  unless the user explicitly says its content changed. Exception: the harness
+  requires a fresh `Read` of a file immediately before `Edit`/`Write`; always
+  satisfy that requirement even when the content is already in context.
 
 ---
 

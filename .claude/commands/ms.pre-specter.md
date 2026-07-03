@@ -128,6 +128,16 @@ turns are the conditional questions the underlying commands raise.
    If the ledger is missing, unreadable, or every step already lacks a matching entry, start
    normally at Step 1 — a missing/corrupt ledger never blocks the run, it only loses the resume
    shortcut.
+5. **State the context manifest.** After the reads above, tell the rest of the run what is
+   already loaded so downstream steps don't re-read it:
+   ```text
+   📎 이번 세션에 이미 로드됨: <attached/resolved PRD paths>
+   ```
+   Every subsequent step in this cycle applies the session read policy against this manifest: if
+   a file named here was already read and has not changed since (no edit, no user notice), reuse
+   it instead of re-reading. The one exception is the harness's own requirement of a fresh `Read`
+   immediately before `Edit`/`Write` on a file — always satisfy that even if the content is
+   already in context.
 
 ### Step 1: `/ms.featuremap` (decompose the PRDs)
 

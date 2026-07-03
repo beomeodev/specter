@@ -55,6 +55,11 @@ Implements the next selected task scope with TAG block insertion.
 - `specs/[spec-id]/plan.md` (Implementation plan - REQUIRED)
 - `specs/[spec-id]/tasks.md` (Task list with TAG IDs - REQUIRED)
 
+**Session read policy**: if a required file was already read in this session and has not
+changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
+harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
+requirement even if the content is already in context.
+
 **IF Constitution, spec.md, plan.md, or tasks.md missing**:
 - Display error: "Required files missing. Run `/ms.init`, `/ms.specify`, `/ms.plan`, and `/ms.tasks` first."
 - Exit

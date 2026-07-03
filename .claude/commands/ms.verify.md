@@ -29,6 +29,11 @@ Read these files in full:
 - `.specify/memory/constitution.md` if it exists
 - `AGENTS.md` if it exists
 
+**Session read policy**: if a required file was already read in this session and has not
+changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
+harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
+requirement even if the content is already in context.
+
 If `docs/prd/codex/checklist.md` is missing, stop:
 
 ```text

@@ -77,6 +77,11 @@ Read these files in full:
 - `specs/[spec-id]/plan.md`
 - `specs/[spec-id]/tasks.md`
 
+**Session read policy**: if a required file was already read in this session and has not
+changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
+harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
+requirement even if the content is already in context.
+
 If any of `spec.md`, `plan.md`, or `tasks.md` is missing, stop and tell the user
 which upstream command must run first.
 

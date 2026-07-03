@@ -121,6 +121,13 @@ load_context_documents
 
 Read: spec.md, plan.md, constitution.md (once, cached in memory)
 
+**Session read policy**: this bash cache covers the shell-level `cat` reads above; it does not
+replace the harness's own Read tool. For any file the model reads directly with the Read tool
+elsewhere in this command (e.g. Step 5's per-file naming/architecture review), the same rule
+applies — if it was already read this session and has not changed since, reuse it instead of
+re-reading. Exception: the harness requires a fresh `Read` of a file before `Edit`/`Write`; always
+satisfy that requirement even if the content is already in context.
+
 ---
 
 ### Step 1.5: Tool Availability Check (NEW)

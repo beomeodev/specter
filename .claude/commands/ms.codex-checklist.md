@@ -56,6 +56,11 @@ Do not read:
 - `plan.md`
 - `tasks.md`
 
+**Session read policy**: if a required file was already read in this session and has not
+changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
+harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
+requirement even if the content is already in context.
+
 ### Step 0.5: External Agent Preflight (session-level, once)
 
 Before invoking Codex, check availability **once per session** and remember the result — do not

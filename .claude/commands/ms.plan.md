@@ -25,6 +25,11 @@ This command extends `/speckit-plan` to include explicit Constitution references
 - `.specify/memory/constitution.md` (Constitution - REQUIRED)
 - `specs/[spec-id]/spec.md` (Feature specification - REQUIRED)
 
+**Session read policy**: if a required file was already read in this session and has not
+changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
+harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
+requirement even if the content is already in context.
+
 **IF Constitution or spec.md missing**:
 - Display error: "Required files missing. Run `/ms.init` and `/ms.specify` first."
 - Exit

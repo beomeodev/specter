@@ -30,6 +30,11 @@ This command handles "round-2 design pivots" or post-implementation discoveries 
 - `specs/[spec-id]/plan.md`
 - `specs/[spec-id]/tasks.md`
 
+**Session read policy**: if a required file was already read in this session and has not
+changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
+harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
+requirement even if the content is already in context.
+
 ### 2. Identify Target FRs/Decisions
 
 Analyze the provided amendment text:

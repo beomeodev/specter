@@ -76,6 +76,11 @@ user before proceeding.
 - `.specify/memory/constitution.md` (development methodology + project constraints)
 - `AGENTS.md` / `CLAUDE.md`
 
+**Session read policy**: if a required file was already read in this session and has not
+changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
+harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
+requirement even if the content is already in context.
+
 **IF no PRD set can be found or confirmed** → ask the user for the PRD path and STOP. Do not guess content.
 
 ### 2. Run the Decomposition Algorithm (think through ALL steps before writing)

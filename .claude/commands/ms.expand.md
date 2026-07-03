@@ -102,6 +102,11 @@ Then run:
 6. Extract **only** the new `## PRD Amendment N` section text for every downstream step. Do not
    re-read the full PRD.
 
+**Session read policy**: if a required file was already read in this session and has not
+changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
+harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
+requirement even if the content is already in context.
+
 ### Step 1: Append-Only Map Extension
 
 Decompose the amendment text into an extension of `docs/prd/feature-map.md`:

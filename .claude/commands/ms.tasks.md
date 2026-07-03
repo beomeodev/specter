@@ -33,6 +33,11 @@ Extends `/speckit-tasks` to generate implementation tasks with automatic TAG ID 
 - `specs/[spec-id]/spec.md` (Feature specification - REQUIRED)
 - `specs/[spec-id]/plan.md` (Implementation plan - REQUIRED)
 
+**Session read policy**: if a required file was already read in this session and has not
+changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
+harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
+requirement even if the content is already in context.
+
 **IF Constitution, spec.md, or plan.md missing**:
 - Display error: "Required files missing. Run `/ms.init`, `/ms.specify`, and `/ms.plan` first."
 - Exit

@@ -48,6 +48,11 @@ This command performs **document synchronization** with 3 modes:
 - `.specify/memory/constitution.md` (Constitution - REQUIRED)
 - `AGENTS.md` (AI instructions - if exists)
 
+**Session read policy**: if a required file was already read in this session and has not
+changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
+harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
+requirement even if the content is already in context.
+
 **Reference key sections**:
 - Constitution Section V (TAGS: Best-Effort Traceability)
 - TAG system requirements and traceability standards
