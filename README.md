@@ -43,11 +43,13 @@ SPECTER만 단독으로 동작하지 않습니다. `/ms.init`이 Spec-Kit을 설
 
 ## 릴리즈
 
-현재 릴리즈: `v2.2.0`
+현재 릴리즈: `v2.3.0`
 
-`v2.2.0` 하이라이트: **per-Feature 워크플로우 정비** — `/ms.specter` 사이클 조정자 신설(clarify만
-사람 개입), `/ms.review` 적대적 리뷰 기본화, `/ms.agent-verify`·`/ms.verify` foreground 병렬화,
-`/fin`·`/finq` → `/ms.fin` 단일화(조건부 CI).
+`v2.3.0` 하이라이트: **런타임 게이트 · PRD 라이프사이클 확장** — `/ms.pre-specter` PRD-setup
+조정자와 `/ms.expand` 증분 PRD 트랙 신설, `/ms.review` Done Criteria Execution 런타임 게이트
+(웹 UI는 `webapp-testing`으로 실제 구동), 신규 스킬 `ms-foundation-prd`·`ms-design-baseline`·
+`ms-ops-debugging`, 결정론적 게이트 하네스(`specter-gate.sh`·PreToolUse 훅·pre-commit backstop),
+`/ms.merglease` semver 자동화, Feature Map SHA에서 Progress Ledger 분리.
 자세한 내용은 아래 [Spec Kit 호환성](#spec-kit-호환성) 섹션과 [CHANGELOG.md](./CHANGELOG.md)를 확인하세요.
 
 ---
