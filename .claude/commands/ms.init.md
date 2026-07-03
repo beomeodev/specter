@@ -303,6 +303,44 @@ Step 0.2/3.2).
 -   This indicates a repository structure issue
 -   Exit with error
 
+#### 2.7 Install The SessionStart Status Injection Hook
+
+Every fresh session in an in-flight project otherwise starts by re-deriving "where am I" from
+artifacts (WI-15). Install a SessionStart hook that runs the deterministic gate script, the WI-12
+run-state ledger, and the Progress Ledger to emit one compact status line as additional context —
+capped and silent when the project has no SPECTER artifacts yet, so it never bloats a fresh
+session:
+
+```bash
+mkdir -p .specify/scripts/bash
+cp docs/templates/scripts/specter-session-status.sh .specify/scripts/bash/specter-session-status.sh
+chmod +x .specify/scripts/bash/specter-session-status.sh
+
+if [ -f .claude/settings.json ] && command -v jq >/dev/null 2>&1; then
+  ALREADY=$(jq -r '[.hooks.SessionStart[]?.hooks[]?.command // empty] | any(test("specter-session-status.sh"))' .claude/settings.json 2>/dev/null || echo false)
+  if [ "$ALREADY" != "true" ]; then
+    HOOK_ENTRY='{"hooks":[{"type":"command","command":"\"$CLAUDE_PROJECT_DIR/.specify/scripts/bash/specter-session-status.sh\""}]}'
+    jq --argjson entry "$HOOK_ENTRY" '.hooks.SessionStart = ((.hooks.SessionStart // []) + [$entry])' .claude/settings.json > .claude/settings.json.tmp \
+      && mv .claude/settings.json.tmp .claude/settings.json
+    echo "✓ SessionStart status hook installed in .claude/settings.json"
+  else
+    echo "✓ SessionStart status hook already present (idempotent skip)"
+  fi
+else
+  echo "⚠️ .claude/settings.json missing or jq unavailable — hook config not installed; script still copied to .specify/scripts/bash/"
+fi
+```
+
+The hook script fails silently (no output, exit 0) on any internal error or when
+`docs/prd/feature-map.md` doesn't exist yet — this is a convenience summary, never a gate, and
+must never error or bloat session start.
+
+**IF source file not found**:
+
+-   Display error: "Session status script missing. Expected: docs/templates/scripts/specter-session-status.sh"
+-   This indicates a repository structure issue
+-   Exit with error
+
 ### Step 3: Report Success
 
 Display completion message:
@@ -315,6 +353,7 @@ Display completion message:
 - ✅ My-Spec Constitution: .specify/memory/constitution.md
 - ✅ Deterministic gate checker: .specify/scripts/bash/specter-gate.sh
 - ✅ Direct-call bypass hook: .specify/scripts/bash/speckit-specify-gate-hook.sh (+ .claude/settings.json PreToolUse entry)
+- ✅ SessionStart status hook: .specify/scripts/bash/specter-session-status.sh (+ .claude/settings.json SessionStart entry)
 
 🧩 Codex & Antigravity Plugins Setup (inside Claude Code):
 1. Open Claude Code in the project environment.
