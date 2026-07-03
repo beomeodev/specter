@@ -93,6 +93,37 @@ AttributeError: 'NoneType' object has no attribute 'query'
 - ✅ Race conditions in async code
 - ✅ Test isolation issues (shared state)
 
+### 2.5 Hard-Bug Discipline (once a feedback loop exists)
+
+For bugs that resist the 5-Whys pass above, once you have a red-capable command that reproduces
+the failure (a failing test, curl script, or CLI invocation against a fixture):
+
+**Reproduce + minimise**: confirm the loop reproduces the symptom the user actually described,
+not a nearby different failure. Then shrink the repro to the smallest scenario that still goes
+red — cut inputs/callers/config one at a time, re-running after each cut. Done when every
+remaining element is load-bearing (removing any one turns the loop green). A minimal repro
+narrows the hypothesis space below and becomes the regression test in the fix step.
+
+**Hypothesise before instrumenting**: generate 3-5 ranked, falsifiable hypotheses up front —
+"if X is the cause, changing Y will make the bug disappear" — before testing any of them.
+Single-hypothesis anchoring on the first plausible idea is the most common way this goes wrong.
+
+**Instrument with one probe per prediction**: change one variable at a time. Prefer a debugger/REPL
+breakpoint over logs; if logging, tag every debug line with a unique prefix (e.g. `[DEBUG-a4f2]`)
+so cleanup is one grep. Never "log everything and grep". For performance regressions, establish a
+baseline measurement first (timing harness, profiler, query plan) — logs are usually the wrong
+tool there.
+
+**Fix at the correct seam**: write the regression test *before* the fix, but only at a seam that
+exercises the real bug pattern as it occurs at the call site (a single-caller unit test is the
+wrong seam if the bug needs multiple callers). If no correct seam exists, that itself is the
+finding — note it and flag the architecture gap; a regression test at the wrong seam gives false
+confidence.
+
+**Close it out**: re-run the original (un-minimised) Phase 1 loop to confirm it no longer
+reproduces, remove all `[DEBUG-...]` instrumentation, delete throwaway harnesses, and record which
+hypothesis turned out correct in the commit/PR message.
+
 ### 3. Fix Strategy Development
 
 **Test-First Debugging** (RED → GREEN → REFACTOR):
