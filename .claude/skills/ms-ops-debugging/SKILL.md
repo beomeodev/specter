@@ -230,6 +230,33 @@ transport/processing stage never returned. This only works if the pipeline accep
 input mode and emits structured per-stage counters — worth building into any real-time pipeline
 specifically to make this bisection possible later.
 
+## H. Remote-Device Debugging Loop (the runtime is on a machine you can't touch)
+
+When the product runs on the user's own device (Windows/macOS desktop, a phone, a
+server you have no shell on) and evidence arrives only as pasted terminal output,
+**round-trips are the only cost that matters** — each one costs minutes of the
+user's attention, not yours. Discipline:
+
+**H1. One evidence-maximizing script per round trip, never iterative one-liners.**
+Each round, hand over a single copy-paste block that captures everything a whole
+hypothesis set needs: environment (`OS/runtime versions`), config actually resolved,
+the failing operation itself, and the full unfiltered traceback/log tail — dumped to
+one file or one paste. Budget: if you're about to ask for a second command before
+seeing the first's output, merge them.
+
+**H2. Platform-native diagnostic templates.** Write PowerShell for Windows
+(`$PSVersionTable; Get-Process ...; <failing command> *>&1 | Tee-Object diag.txt`)
+and zsh/bash for macOS — don't hand a Linux one-liner to a PowerShell prompt and
+burn a round trip on syntax errors.
+
+**H3. Design probes to discriminate, not confirm.** Before sending, list the live
+hypotheses (aim for 2–3) and make sure the script's output will *separate* them —
+a probe that only confirms the favorite hypothesis wastes the trip when it's wrong.
+
+**H4. Instructions the user can run blind.** Numbered steps, exact commands, no
+"adjust the path as needed". Expect the raw output pasted back; you parse everything
+— never ask the user to interpret or summarize what they see.
+
 ## Source-version note
 
 Some source transcripts predate current SPECTER command/workflow versions. That's irrelevant here
