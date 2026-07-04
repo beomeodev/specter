@@ -10,6 +10,12 @@ scripts, doc templates, `AGENTS.md`/`CLAUDE.md`) from **this SPECTER checkout** 
 every project repo registered in the machine-local registry. Run it from the
 SPECTER repo after committing workflow changes.
 
+> **Recommended pre-step for discipline-skill edits**: an edit to a
+> discipline-enforcing skill (gates, TDD rules, surgical-scope, parallel/worktree
+> rules) propagates to every registered repo at once. Pressure-test it first with
+> the `testing-skills-with-subagents` skill (RED baseline → GREEN → loophole
+> REFACTOR). Reference skills (ms-lang-*, crib sheets) don't need this.
+
 ## Safety Model (public-repo protection)
 
 - The target list lives **outside the repo** at `~/.claude/specter-sync.json`
