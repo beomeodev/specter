@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "description": "SPECTER Skill Auto-Activation Rules - Automatically suggests relevant skills based on user prompts and file context",
-  "lastUpdated": "2026-06-18",
+  "lastUpdated": "2026-07-04",
   "skills": {
     "ms-foundation-constitution": {
       "type": "guardrail",
@@ -50,7 +50,9 @@
         ]
       },
       "fileTriggers": {
-        "pathPatterns": ["docs/prd/*.md"],
+        "pathPatterns": [
+          "docs/prd/*.md"
+        ],
         "contentPatterns": []
       }
     },
@@ -76,7 +78,11 @@
         ]
       },
       "fileTriggers": {
-        "pathPatterns": ["**/specs/**/*.md", "**/*spec.md", "**/*specification.md"],
+        "pathPatterns": [
+          "**/specs/**/*.md",
+          "**/*spec.md",
+          "**/*specification.md"
+        ],
         "contentPatterns": []
       }
     },
@@ -131,7 +137,9 @@
         ]
       },
       "fileTriggers": {
-        "pathPatterns": ["**/*.py"],
+        "pathPatterns": [
+          "**/*.py"
+        ],
         "contentPatterns": [
           "import pytest",
           "from fastapi import",
@@ -165,7 +173,10 @@
         ]
       },
       "fileTriggers": {
-        "pathPatterns": ["**/*.ts", "**/*.tsx"],
+        "pathPatterns": [
+          "**/*.ts",
+          "**/*.tsx"
+        ],
         "contentPatterns": [
           "import.*?from.*?react",
           "describe\\(",
@@ -228,7 +239,10 @@
         ]
       },
       "fileTriggers": {
-        "pathPatterns": ["**/docs/**/*.md", "**/dev_daily.md"],
+        "pathPatterns": [
+          "**/docs/**/*.md",
+          "**/dev_daily.md"
+        ],
         "contentPatterns": []
       }
     },
@@ -258,7 +272,11 @@
         ]
       },
       "fileTriggers": {
-        "pathPatterns": ["**/docker-compose*.yml", "**/Caddyfile", "**/*.Caddyfile"],
+        "pathPatterns": [
+          "**/docker-compose*.yml",
+          "**/Caddyfile",
+          "**/*.Caddyfile"
+        ],
         "contentPatterns": []
       }
     },
@@ -335,7 +353,10 @@
         ]
       },
       "fileTriggers": {
-        "pathPatterns": ["**/tests/**/test_api*.py", "**/tests/**/*api*.test.ts"],
+        "pathPatterns": [
+          "**/tests/**/test_api*.py",
+          "**/tests/**/*api*.test.ts"
+        ],
         "contentPatterns": [
           "client.get\\(",
           "client.post\\(",
@@ -365,7 +386,11 @@
         ]
       },
       "fileTriggers": {
-        "pathPatterns": [".github/workflows/**/*.yml", ".gitlab-ci.yml", "Jenkinsfile"],
+        "pathPatterns": [
+          ".github/workflows/**/*.yml",
+          ".gitlab-ci.yml",
+          "Jenkinsfile"
+        ],
         "contentPatterns": []
       }
     },
@@ -391,7 +416,10 @@
         ]
       },
       "fileTriggers": {
-        "pathPatterns": ["**/middleware/**/*.py", "**/middleware/**/*.ts"],
+        "pathPatterns": [
+          "**/middleware/**/*.py",
+          "**/middleware/**/*.ts"
+        ],
         "contentPatterns": []
       }
     },
@@ -455,7 +483,9 @@
         ]
       },
       "fileTriggers": {
-        "pathPatterns": ["docs/design/DESIGN.md"],
+        "pathPatterns": [
+          "docs/design/DESIGN.md"
+        ],
         "contentPatterns": []
       }
     },
@@ -483,6 +513,139 @@
       "fileTriggers": {
         "pathPatterns": [],
         "contentPatterns": []
+      }
+    },
+    "git-worktrees": {
+      "type": "workflow",
+      "priority": "medium",
+      "enforcement": "suggest",
+      "description": "Isolated git worktree lifecycle: native-tool-first setup (ignore-check, deps, clean baseline) and merge-before-remove-before-delete teardown",
+      "promptTriggers": {
+        "keywords": [
+          "worktree",
+          "워크트리",
+          "isolated workspace",
+          "parallel branch",
+          "finish branch",
+          "merge back"
+        ],
+        "intentPatterns": [
+          "(create|set up|enter).*?worktree",
+          "(finish|merge|clean).*?(branch|worktree)",
+          "워크트리.*?(만들|정리|머지)"
+        ]
+      }
+    },
+    "parallel-features": {
+      "type": "workflow",
+      "priority": "medium",
+      "enforcement": "suggest",
+      "description": "Run independent SPECTER Features concurrently in separate worktrees: DAG+file-overlap eligibility, union-merge setup, merge-back sequencing with gate re-run",
+      "promptTriggers": {
+        "keywords": [
+          "parallel features",
+          "병렬",
+          "동시에",
+          "two features",
+          "independent features",
+          "worktree per feature"
+        ],
+        "intentPatterns": [
+          "(병렬|동시).*?(피처|feature|진행|실행)",
+          "(run|execute).*?(features?).*?(parallel|concurrent)",
+          "(둘|두 개|여러).*?(피처|feature).*?(같이|동시)"
+        ]
+      }
+    },
+    "overnight-run": {
+      "type": "workflow",
+      "priority": "medium",
+      "enforcement": "suggest",
+      "description": "Unattended overnight Feature execution: evening clarify pre-spend per worktree, detached specter-overnight.sh driver (fresh headless session per Feature), morning report + serial merge-back",
+      "promptTriggers": {
+        "keywords": [
+          "overnight",
+          "오버나이트",
+          "밤새",
+          "자기 전에",
+          "밤에 돌려",
+          "unattended",
+          "자는 동안"
+        ],
+        "intentPatterns": [
+          "(밤새|밤에|자는 동안|자기 전).*?(돌려|실행|진행)",
+          "overnight.*?(run|feature)",
+          "(아침|밤새).*?(결과|보고)"
+        ]
+      }
+    },
+    "spike": {
+      "type": "workflow",
+      "priority": "medium",
+      "enforcement": "suggest",
+      "description": "Time-boxed throwaway exploration outside the gated workflow: never merged, findings note only, learnings feed PRD Amendment or fix decision",
+      "promptTriggers": {
+        "keywords": [
+          "spike",
+          "실험",
+          "프로토타입",
+          "검증만",
+          "될지",
+          "throwaway",
+          "PoC",
+          "타당성"
+        ],
+        "intentPatterns": [
+          "(실험|검증|테스트)만.*?(해보|하고)",
+          "(될지|가능한지).*?(해보|쳐보|확인)",
+          "(prototype|spike|poc).*?(quick|빨리|한번)",
+          "(버릴|일회성).*?(코드|실험)"
+        ]
+      }
+    },
+    "transcript-mining": {
+      "type": "workflow",
+      "priority": "low",
+      "enforcement": "suggest",
+      "description": "Bounded mining of Claude Code session transcripts for audits and skill distillation: JSONL queries, scan-only-named-files, content-vs-mechanics separation",
+      "promptTriggers": {
+        "keywords": [
+          "transcript",
+          "트랜스크립트",
+          "세션 분석",
+          "세션 기록",
+          "사용 패턴",
+          "토큰 낭비",
+          "증류",
+          "jsonl"
+        ],
+        "intentPatterns": [
+          "(세션|대화).*?(분석|채굴|감사)",
+          "(usage|token).*?(pattern|waste|audit)",
+          "(transcript|기록).*?(mine|mining|분석|증류)"
+        ]
+      }
+    },
+    "testing-skills-with-subagents": {
+      "type": "workflow",
+      "priority": "medium",
+      "enforcement": "suggest",
+      "description": "Pressure-test discipline-enforcing skill edits with subagents (RED baseline / GREEN / loophole REFACTOR) before /ms.sync broadcasts them",
+      "promptTriggers": {
+        "keywords": [
+          "pressure test",
+          "압력 테스트",
+          "skill test",
+          "스킬 검증",
+          "스킬 수정",
+          "rationalization",
+          "bulletproof"
+        ],
+        "intentPatterns": [
+          "(스킬|skill).*?(수정|편집|만들).*?(검증|테스트|배포)",
+          "(pressure|adversarial).*?test.*?skill",
+          "(sync|배포).*?전.*?(스킬|검증)"
+        ]
       }
     }
   }
