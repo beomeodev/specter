@@ -90,6 +90,7 @@ Do not commit/push without user approval (Constitution §2).
 새 요구사항?
  ├ 예, 기존 baseline 있음 → /ms.expand → /ms.specter <새 Feature NNN>
  ├ 예, baseline 없음(최초/전면 재구성) → /ms.pre-specter → /ms.specter (Feature마다 반복)
+ ├ 아직 요구사항이 아님(될지 실험/검증만) → spike 스킬 (타임박스, 머지 금지, findings note → PRD Amendment)
  └ 아니오 → /ms.fix (1-2 files: 경량 / 3+ files: mini-plan 먼저) → /ms.fin → /ms.merglease
 ```
 
