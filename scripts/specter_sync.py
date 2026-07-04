@@ -42,8 +42,14 @@ REGISTRY_DEFAULT = Path.home() / ".claude" / "specter-sync.json"
 MANIFEST_RELPATH = "scripts/specter_sync_manifest.json"
 STATE_FILENAME = ".specter-sync-state.json"
 CONFLICT_SUFFIX = ".specter-new"
-# Deterministic identity for the sync commits pushed into target repos.
-COMMIT_IDENTITY = ["-c", "user.name=specter-sync", "-c", "user.email=specter-sync@local"]
+# Identity for the sync commits pushed into target repos. Uses the template
+# owner's real GitHub identity so sync commits attribute to their account.
+COMMIT_IDENTITY = [
+    "-c",
+    "user.name=beomeodev",
+    "-c",
+    "user.email=66253976+beomeodev@users.noreply.github.com",
+]
 
 NEW = "NEW"
 SAME = "SAME"
