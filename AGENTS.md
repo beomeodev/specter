@@ -52,6 +52,14 @@ regardless of agent judgment.
   rules, and shared utilities.
 - Do not leave placeholders, stubs, mock outputs, or partial implementations
   unless the user explicitly asks for them.
+- Subagent dispatch discipline: hand artifacts over as **file paths, not pasted
+  content** — everything pasted into a dispatch prompt or printed back stays
+  resident in context for the rest of the session (brief → file, report → file).
+  Pick the least powerful model sufficient for the role (mechanical single-file
+  work → cheap tier; integration → standard; architecture and final review → most
+  capable), but remember **turn count beats token price** — a cheap model that
+  needs 3× the turns can cost more overall. Specify the model explicitly when
+  dispatching.
 - Do not re-read a file you already read this session. Reuse what you have
   unless the user explicitly says its content changed. Exception: the harness
   requires a fresh `Read` of a file immediately before `Edit`/`Write`; always
