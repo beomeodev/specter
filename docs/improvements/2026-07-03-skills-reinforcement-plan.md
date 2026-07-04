@@ -6,6 +6,10 @@ intellectronica/awesome-skills, mattpocock/skills) — ~3,300 catalogued entries
 first-hand at SKILL.md level — against the 4 gaps identified in the 2026-07-03 workflow audit
 (`2026-07-03-workflow-audit-and-plan.md`). **User constraint: reinforcement, not volume.**
 Net result: **4 new skills (2 imported: S-1/S-2; 2 home-grown: S-8/S-9), 5 strengthen-existing edits, 2 parked references.**
+**2026-07-04 second batch (S-10..S-18)**: usage-pattern candidates + practice-import re-screen
+(inverted lens: practices worth ADOPTING even though current usage doesn't exhibit them —
+worktree parallelism, overnight execution, spikes, skill pressure-testing). 6 more skills
+(2 adopted from obra/superpowers, 4 home-grown/adapted), 1 driver script, 5 strengthen edits.
 
 ## Execution status (2026-07-03)
 
@@ -23,6 +27,15 @@ same day once the user asked to finish everything outstanding.
 | S-6 (`ms-lang-typescript`) | DONE | Test-quality anti-patterns + mock-boundary guidance added after the Vitest CLI section. |
 | S-7 (`ms.checklist` placeholder check) | DONE | Added to Spec-Input Completeness + FAIL Conditions. |
 | S-8 (`ms-design-baseline`) | DONE | Authored fresh (tokens.css + base.css + DESIGN.md template with real values); wired into `/ms.implement` Step 1.6 and `/ms.review` Step 6.6. |
+| S-10 (ops-debugging remote loop) | DONE (07-04) | `ms-ops-debugging` §H: remote-device debugging loop — one evidence-maximizing script per round trip, platform templates, discriminating probes. |
+| S-11 (`transcript-mining`) | DONE (07-04) | New skill: JSONL anatomy, proven queries, scan-only-named-files rule (fixes the observed re-scan waste), content-vs-mechanics separation. |
+| S-12 (clarify question discipline) | DONE (07-04) | `/ms.clarify` §2.5: evidence-first self-resolution + mandatory `(권장)` option with rationale; report lists self-resolved items for veto. |
+| S-13 (`git-worktrees` + `parallel-features`) | DONE (07-04) | git-worktrees: obra bookends merged (MIT, setup+finish lifecycle). parallel-features: spectacular methodology adapted (DAG+file-overlap eligibility, iron sequencing) + SPECTER shared-state analysis (union-merge .gitattributes for the 3 append-shaped logs, merge-back with rebase + local-ci re-run). |
+| S-14 (`testing-skills-with-subagents`) | DONE (07-04) | Adopted from obra (trimmed); wired as recommended pre-step in `/ms.sync` for discipline-skill edits. |
+| S-15 (subagent dispatch discipline) | DONE (07-04) | AGENTS.md §2: file handoffs not pasted content + model tiering (turn count beats token price). From obra subagent-driven-development. |
+| S-16 (`spike`) | DONE (07-04) | New skill (not a command — zero new command surface): T1 ≤15min probe / T2 30-60min spike, never merged, findings note → PRD Amendment; routed from `/ms.fix` discriminator. |
+| S-17 (`overnight-run` + driver) | DONE (07-04) | Skill + `docs/templates/scripts/specter-overnight.sh` (fixture-tested: 4 eligibility branches + zero-pad normalization). Evening clarify pre-spend per worktree → detached driver, fresh headless session per Feature, limit backoff → morning report + serial merge-back. Never merges overnight. |
+| S-18 (weekly triage routine) | DONE (07-04) | `docs/ops/weekly-triage.md`: scheduled dependency/security triage (Now/Batch/Defer buckets, majors never bumped in-routine, everything ships via /ms.fix gate). PRACTICE-ONLY, no skill. |
 | S-9 (`ms-ops-debugging`) | DONE | Mined via 2 background agents across all 7 source transcripts (4 sanjunipero + 3 cueline); 26 failure classes across 7 categories (network/tunnel, reverse-proxy/TLS, secrets/rotation, container lifecycle, auth self-inflicted state, upstream deps, real-time API integration); wired into `/ms.fix` and `debug-helper`. |
 
 All new skills (`webapp-testing`, `ms-foundation-prd`, `ms-design-baseline`, `ms-ops-debugging`)
@@ -171,6 +184,34 @@ an unresolved placeholder pattern ⇒ WARN (FAIL if it's in a done criterion), s
 before `/ms.specify` instead of at clarify.
 
 ---
+
+## Second batch (2026-07-04): S-10..S-18
+
+Origin: (a) residual usage-pattern candidates from the 2026-07 transcript audit that
+survived the reinforcement bar (S-10/S-11/S-12), and (b) a re-screen of the candidate
+repos with an inverted lens — practice-import: adopt productivity practices the user's
+current usage does NOT exhibit (S-13..S-18). Sources actually read: obra/superpowers
+(using-git-worktrees, finishing-a-development-branch, testing-skills-with-subagents,
+subagent-driven-development §File Handoffs/§Model Selection — all MIT) and
+arittr/spectacular (decomposing-tasks, executing-parallel-phase,
+understanding-cross-phase-stacking — methodology adapted, not copied).
+
+Design decisions of note:
+- **spike and overnight-run are skills, not commands** — both are deliberately
+  gate-free at trigger time (the driver/discipline enforces what matters), and skills
+  auto-trigger from natural language, adding zero command surface (user constraint).
+- **Overnight architecture**: NOT one long session (compaction drags the summary and
+  replay compounds) — the one-session-per-Feature discipline automated: worktree per
+  Feature, evening clarify pre-spend (only human stop), detached shell driver runs
+  `claude -p` per Feature with the WI-11 gate script / WI-12 run ledger as the
+  machine-readable inter-session handoff. Merges stay human, morning-side.
+- **Parallel-features shared-state resolution**: per-Feature artifacts are disjoint by
+  construction; the 3 append-shaped logs (run ledger, progress, dev_daily) get git
+  union-merge; normative feature-map.md is read-only during cycles so the global gate
+  SHA survives parallel runs untouched.
+
+All six new skills registered in `.claude/skills/skill-rules.json`. The sync manifest's
+`.claude/skills/*` and `docs/templates/*` globs cover every new artifact automatically.
 
 ## Parked (do NOT implement now — references for the future `/ms.audit`)
 
