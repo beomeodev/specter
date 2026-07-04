@@ -512,7 +512,7 @@ of artifact spelunking.
 
 ## Part E-2 — Execution Verification Results (2026-07-03, post-implementation)
 
-All 15 WIs were implemented (commits `e08d1b3..f765f81`) and independently verified against the
+All 15 WIs were implemented (commits `b92bb87..3582b54`) and independently verified against the
 acceptance criteria above — by reading actual diffs and, for every script, by **executing it
 against fixtures** (not by trusting commit messages). Verdict: **13 PASS, 2 PARTIAL.**
 
