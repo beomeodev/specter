@@ -190,31 +190,23 @@ intended hybrid structure; do not migrate it to a different shape on a whim.
 - `.claude/commands/` holds the `/ms.*` files. These are **explicit user-invoked
   workflow entrypoints** and must stay commands. Do not convert `/ms.*` commands
   into skills, and do not remove `.claude/commands`.
-- `/ms.specter` is a per-Feature cycle conductor: it chains the existing `/ms.*`
-  steps (`checklist → agent-verify → specify → clarify → plan → tasks → analyze →
-  implement → review`) and stops at review. It must never weaken or bypass the
-  gates it invokes — it only reads each step's PASS/WARN/FAIL verdict, advances on
-  PASS/WARN, stops on FAIL, and hands `/ms.clarify` to the human. It stays a
-  command (not a skill) and is bound by the same Feature-Map / direct-call-bypass
-  gates as the steps it drives.
-- `/ms.pre-specter` is the pre-Feature counterpart: a one-time PRD-setup conductor
-  that chains `featuremap → codex-checklist → verify → constitution`. Same
-  conductor discipline — it never weakens the gates it invokes, reads each step's
-  verdict/artifact, advances on PASS/WARN, stops on FAIL, and waits for the
-  background Codex checklist before `/ms.verify`. It runs automatically (no
-  designed human stop), surfacing only the conditional questions the underlying
-  commands raise (PRD confirmation, Constitution baseline overwrite/conflict). It
-  stays a command (not a skill) and hands the first Feature to `/ms.specter`.
-- `/ms.prd` is the pre-workflow PRD co-authoring entrypoint. It sits BEFORE
-  `/ms.pre-specter`, is never invoked by any conductor, runs no gates, and hands its output
-  to `/ms.pre-specter` (new PRD) or `/ms.expand` (Amendment). It stays a command.
-- `/ms.expand` is the incremental-PRD track between `/ms.fix` (no new requirement) and
-  `/ms.pre-specter` (whole-product recomposition): it consumes a `## PRD Amendment N`
-  section appended to an existing PRD and extends `docs/prd/feature-map.md` with only the
-  new Features it requires, without re-auditing Features already checked. It refuses any
-  PRD diff that edits existing text instead of appending, and it never touches an existing
-  Feature section or PRD Commitment Index row. It stays a command (not a skill) and hands
-  the new Feature to `/ms.specter`.
+- Conductors and tracks (behavior details live in each command file; all of these stay
+  commands, never skills):
+  - `/ms.specter` — per-Feature cycle conductor (checklist → … → review, one human stop at
+    clarify). It never weakens or bypasses the gates it invokes: it only reads verdicts,
+    advances on PASS/WARN, stops on FAIL, and is bound by the same Feature-Map /
+    direct-call-bypass gates as the steps it drives.
+  - `/ms.pre-specter` — one-time PRD-setup conductor (featuremap → codex-checklist →
+    verify → constitution), same conductor discipline; hands the first Feature to
+    `/ms.specter`.
+  - `/ms.prd` — pre-workflow PRD co-authoring; sits before `/ms.pre-specter`, never invoked
+    by any conductor, runs no gates; output feeds `/ms.pre-specter` or `/ms.expand`.
+  - `/ms.expand` — incremental-PRD track between `/ms.fix` and `/ms.pre-specter`; consumes
+    an appended `## PRD Amendment N`, extends the Feature Map append-only (refusing edits
+    to existing PRD text or Feature sections), and hands the new Feature to `/ms.specter`.
+  - `/ms.audit` — advisory product-level audit, in no conductor, blocks nothing; findings
+    route to `/ms.fix` / `/ms.expand` / todo. It reports gate-value evidence but never
+    weakens or edits a gate itself.
 - `.claude/skills/` holds **reusable capabilities** — validators, rules, rubrics,
   and checklists. Put reusable logic here, not new top-level commands.
 - `.claude/agents/` holds **specialist subagents** (role-based reasoning/execution).
