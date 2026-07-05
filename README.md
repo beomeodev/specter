@@ -312,6 +312,7 @@ SPECTER에는 Constitution 관련 개념이 두 단계 있습니다.
 | --- | --- | --- |
 | `/ms.init` | Spec-Kit 설치 + SPECTER overlay 주입 | `.specify/`, Constitution, AGENTS.md |
 | `/ms.prd` | PRD 공동 작성 — 블라인드스팟 패스·생존성 게이트·갭 총정리→하나씩 해소·파킹랏 (사이클 밖, 게이트 없음) | `docs/prd/PRD.md`(또는 Amendment), `docs/prd/prd-worklog.md` |
+| `/ms.audit` | 제품 수준 완전성 감사 — 노출/콜드스타트/위협모델/perf·a11y/게이트 가치/블라인드스팟 (자문형, Phase 종료·월간·직감 트리거) | `docs/audit/AUDIT-<date>.md`, `docs/audit/blind-spots.md` |
 | `/ms.featuremap` | PRD set을 Feature DAG로 분해하고 각 Feature 섹션을 `/ms.specify` 프롬프트로 작성 | `docs/prd/feature-map.md` |
 | `/ms.codex-checklist` | Codex PRD-only 독립 체크리스트 생성 | `docs/prd/codex/checklist.md` |
 | `/ms.verify` | PRD + Codex & Antigravity checklists + Feature Map 대조 검증 | `docs/prd/feature-map.checklist.md` |
