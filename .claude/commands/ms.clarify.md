@@ -110,6 +110,10 @@ needed to reach them.)
 2. Only ambiguities that evidence genuinely cannot resolve (product-intent choices,
    trade-offs with no recorded precedent) reach the user.
 
+**Order the questions by architecture impact**: a question whose answer would change data
+models, interfaces, or UX flows comes before one that only tunes copy or a threshold — if
+the user's patience runs out mid-stream, the answers that matter most are already banked.
+
 **Every question that does reach the user:**
 
 - MUST present a **recommended option as option 1, marked `(권장)`**, with a
