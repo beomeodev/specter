@@ -394,6 +394,34 @@ hardening work (external-agent preflight/degrade rule) has proven agy stable in 
 
 ---
 
+### Step 6.6b: Migration Rollback & Failure Analysis (conditional, human-ack)
+
+Code bugs are free to fix; data bugs destroy state permanently. When this Feature's diff
+includes schema/data migrations (files under the migrations dir — `db/migrations/`,
+`alembic/versions/`, `prisma/migrations/` — or `CREATE/ALTER/DROP TABLE` DDL anywhere),
+produce this analysis and get the user's explicit ack. **No migration in the diff → skip
+this step silently.**
+
+Answer three questions, concretely, from the actual migration content (not generically):
+
+1. **롤백하면 무슨 일이 일어나는가** — does a down/reverse path exist at all? Running it
+   loses which data (columns dropped, rows transformed)? If there is no down path, say so
+   in bold — "롤백 불가" is a fact the human must see before merge.
+2. **중간에 실패하면 기존 행들은 어떻게 되는가** — does this run in a transaction on this
+   database (DDL transactionality differs by DB)? A mid-failure leaves what partial state,
+   and is the migration re-runnable from that state (idempotent) or wedged?
+3. **비가역 연산 플래그** — explicitly list any: `DROP` of tables/columns, type/nullability
+   narrowing against existing rows, in-place data transforms, and **re-encryption or
+   re-keying of stored secrets** (decryption under a rotated key is cryptographically
+   unrecoverable — see ms-ops-debugging C2; this class has destroyed real data before).
+
+Present the analysis in the Korean report and **wait for the user's explicit ack**. An
+unacknowledged migration analysis is a CRITICAL trigger in the Result Model (Step 6) — the
+review cannot reach READY past an unread rollback story, exactly as it cannot past a failing
+runtime check. Record the analysis + ack in the Step 7 review report.
+
+---
+
 ### Step 6.7: Dual-Agent Code Review
 
 Unless `--skip-codex` (or `--skip-agents`) is supplied, invoke both Codex and Antigravity after the local CI and TRUST gates have produced enough context. Both agents always run in adversarial mode. Both prompts also receive the Done Criteria Execution table from Step 6.6 so they can factor real runtime behavior into their review.
