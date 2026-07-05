@@ -178,6 +178,11 @@ After reality verification:
   public API behavior.
 - Keep plan details traceable to `spec.md`; avoid making `plan.md` a second
   source of truth for requirement wording.
+- **Order `plan.md` by likelihood of change, not by execution order**: lead with the
+  decisions the human is most likely to want to tweak — data model changes, new type
+  interfaces, anything user-facing (UX flows) — and put mechanical refactoring/wiring at the
+  bottom. The human reviews the top of this document; the top must carry the decisions where
+  their veto is worth the most. (Execution order lives in `tasks.md`, not here.)
 
 ### 4. Run Base Plan Command
 
