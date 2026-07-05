@@ -54,6 +54,41 @@ This updates `docs/dev_daily.md` and API specifications based on staged files.
 
 ---
 
+### Step 1.5: 👁️ High-Stakes Diff Digest (conditional, human-ack gate)
+
+This is `/ms.fin`'s one deliberate human gate. Machines can review code, but only
+the human can *own* what the product is allowed to destroy or expose — and because
+`/ms.fin` sits on every track (feature AND fix), this net catches changes that never
+passed `/ms.review`.
+
+1. **Detect high-stakes hunks** in the outgoing diff (`git diff HEAD` + staged).
+   A hunk is high-stakes if it touches any of:
+   - **auth/credentials**: session, token, password, OTP/2FA, crypto keys, permission checks
+   - **money/value**: prices, balances, orders, payments, quantities that map to money
+   - **destructive operations**: `DELETE FROM`, `DROP`, `TRUNCATE`, `.delete(`, `rm -r`,
+     `unlink`, overwriting writes to user data, cascade rules
+   - **schema/migrations**: anything under the migrations dir, `ALTER/CREATE/DROP TABLE`
+   - **user-content handling**: code that serializes, exports, or transmits user data
+2. **If nothing matches → continue silently to Step 2.** Zero friction on ordinary diffs;
+   this gate must never become ceremony.
+3. **If matched → present the digest and STOP.** Show ONLY the matched hunks (not the whole
+   diff), grouped by file, each introduced by one line answering the reader's question:
+   ```text
+   👁️ 정독 필요 — 이 변경이 지우거나·덮어쓰거나·노출하는 것:
+   ── backend/auth/session.py (auth)
+      <hunk>  ← 세션 토큰 검증 조건이 X에서 Y로 바뀜
+   ── db/migrations/0007_xxx.sql (migration/destructive)
+      <hunk>  ← 기존 rows의 컬럼 Z를 NOT NULL로 좁힘 (기존 NULL 행 존재 시?)
+   ```
+   Keep the digest tight (aim ≤ 60 lines of hunk content — curate, don't dump). Then wait
+   for the user's explicit acknowledgement before Step 2. Any affirmative reply after
+   actually presenting the digest counts as the ack; proceeding without presenting it does
+   not.
+4. On a re-run in the same session (e.g. after a CI fix), re-digest only hunks that
+   changed since the last ack — don't make the user re-read what they already read.
+
+---
+
 ### Step 2: 🧭 Decide CI Mode
 
 Decide whether the CI gate must re-run before publishing. Mismatches and missing
