@@ -36,6 +36,9 @@ same day once the user asked to finish everything outstanding.
 | S-16 (`spike`) | DONE (07-04) | New skill (not a command — zero new command surface): T1 ≤15min probe / T2 30-60min spike, never merged, findings note → PRD Amendment; routed from `/ms.fix` discriminator. |
 | S-17 (`overnight-run` + driver) | DONE (07-04) | Skill + `docs/templates/scripts/specter-overnight.sh` (fixture-tested: 4 eligibility branches + zero-pad normalization). Evening clarify pre-spend per worktree → detached driver, fresh headless session per Feature, limit backoff → morning report + serial merge-back. Never merges overnight. |
 | S-18 (weekly triage routine) | DONE (07-04) | `docs/ops/weekly-triage.md`: scheduled dependency/security triage (Now/Batch/Defer buckets, majors never bumped in-routine, everything ships via /ms.fix gate). PRACTICE-ONLY, no skill. |
+| S-19 (Runtime Paths in SYSTEM_MAP) | DONE (07-04) | `codebase-snapshot` skill: mandatory Runtime Paths section for deployed projects — request-path + secret-path text diagrams derived from actual config, cited per hop. Human study artifact for the environment-boundary failure classes. |
+| S-20 (High-Stakes Diff Digest) | DONE (07-04) | `/ms.fin` Step 1.5: human-ack gate — detects auth/money/destructive/migration/user-data hunks in the outgoing diff, presents ONLY those hunks (≤60 lines, one-line 'what this deletes/overwrites/exposes' per hunk), requires explicit ack; silent pass-through on ordinary diffs; covers the fix track that bypasses /ms.review. |
+| S-21 (Migration Rollback Analysis) | DONE (07-04) | `/ms.review` Step 6.6b: when the diff contains migrations, mandatory 3-question analysis (rollback consequences / mid-failure partial state / irreversible-ops flags incl. secret re-keying) + human ack; un-acked analysis = CRITICAL trigger in the Result Model. |
 | S-9 (`ms-ops-debugging`) | DONE | Mined via 2 background agents across all 7 source transcripts (4 sanjunipero + 3 cueline); 26 failure classes across 7 categories (network/tunnel, reverse-proxy/TLS, secrets/rotation, container lifecycle, auth self-inflicted state, upstream deps, real-time API integration); wired into `/ms.fix` and `debug-helper`. |
 
 All new skills (`webapp-testing`, `ms-foundation-prd`, `ms-design-baseline`, `ms-ops-debugging`)
@@ -212,6 +215,21 @@ Design decisions of note:
 
 All six new skills registered in `.claude/skills/skill-rules.json`. The sync manifest's
 `.claude/skills/*` and `docs/templates/*` globs cover every new artifact automatically.
+
+## Third batch (2026-07-04): S-19..S-21 — developer-habit support gates
+
+Origin: the developer-craft assessment (transcript-based) identified 6 human-side gaps;
+three were workflow-supportable under the principle **"the machine cannot do the reading
+for you, but it can make sure you never forget, shrink the reading to the minimum
+high-value packet, and generate the study artifacts."** The irreducibly-human parts stay
+human (reading the digest, acking the rollback story, studying the path maps, learning
+the git object model — the last has no workflow component at all).
+
+- S-19 → gap 2 (no mental map of deployed layers): machine draws the map, human studies it.
+- S-20 → gap 3 (code reading absent from the loop): machine curates the 10-minute packet,
+  human reads and acks. Placed in /ms.fin (not review) so the fix track is covered too.
+- S-21 → gap 4a (data-layer permanence): machine answers the three questions from the
+  actual migration, human reads the answer before anything merges.
 
 ## Parked (do NOT implement now — references for the future `/ms.audit`)
 
