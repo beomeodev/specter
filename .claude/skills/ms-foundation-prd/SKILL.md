@@ -30,6 +30,28 @@ interview, in a form the rest of the pipeline can consume without rework:
 
 ## How it works
 
+### 0. Calibrate on the user's unknowns first
+
+The gap between what the user can state and what the work actually needs is the unknowns, in
+four quadrants — and each has a different move:
+
+| Quadrant | What it is | Move |
+| --- | --- | --- |
+| Known Knowns | What they can state in the prompt | Record as commitments |
+| Known Unknowns | Decisions they know are open | The interview (below) |
+| Unknown Knowns | "보면 안다" — obvious to them, never written | Brainstorm divergent options / spike-skill prototype / **references** to react to |
+| Unknown Unknowns | Never considered at all | **Blindspot pass**: teach the domain's potholes, prior art, and what "good" looks like before asking anything |
+
+Two rules that follow from this:
+- **Start by capturing the user's starting point** (experience with the domain and codebase,
+  where they are in their thinking) — it decides how much blindspot-teaching each phase needs.
+- **When the user can't articulate what they want, ask for a reference** — an existing
+  repo/module/library/design they like — and read its *source* (not a screenshot) to extract
+  the semantics they're pointing at. Source code is the highest-fidelity reference there is.
+
+(When invoked via the `/ms.prd` command, that command runs the blindspot pass, viability gate,
+and gap enumeration as explicit macro steps; standalone, apply this section's moves inline.)
+
 ### 1. Prefer synthesis over interrogation
 
 If the current conversation, or the codebase itself, already answers a question, use that instead
@@ -40,6 +62,9 @@ genuinely cannot be resolved by exploration.
 
 - **One question at a time.** Asking several at once is disorienting and produces shallow
   answers.
+- **Architecture-impact order.** Ask first the questions whose answers would change data
+  models, interfaces, or user-facing flows; threshold-tuning questions come last (and accept
+  "런타임에 조정할 것" as a valid answer — record it as a 🔶 runtime-tunable assumption).
 - **Always offer a recommended answer.** State your default and why; let the user accept or
   redirect it, rather than asking an open-ended question with no anchor.
 - **Durable domain language, not file paths.** Requirements should read in terms the domain
