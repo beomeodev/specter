@@ -205,6 +205,12 @@ intended hybrid structure; do not migrate it to a different shape on a whim.
   designed human stop), surfacing only the conditional questions the underlying
   commands raise (PRD confirmation, Constitution baseline overwrite/conflict). It
   stays a command (not a skill) and hands the first Feature to `/ms.specter`.
+- `/ms.prd` is the pre-workflow PRD co-authoring command. It sits BEFORE `/ms.pre-specter`,
+  is never invoked by any conductor, and runs no gates — it surfaces the user's unknowns
+  (blindspot pass, viability/kill gate, architecture-impact-ordered gap enumeration, parking
+  lot for mid-flow side-requests) and delegates the final writing to the `ms-foundation-prd`
+  skill. It never quizzes the user (explicit design decision). Output feeds `/ms.pre-specter`
+  (new PRD) or `/ms.expand` (Amendment). It stays a command (explicit user-invoked entrypoint).
 - `/ms.expand` is the incremental-PRD track between `/ms.fix` (no new requirement) and
   `/ms.pre-specter` (whole-product recomposition): it consumes a `## PRD Amendment N`
   section appended to an existing PRD and extends `docs/prd/feature-map.md` with only the
