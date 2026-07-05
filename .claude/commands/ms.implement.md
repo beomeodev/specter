@@ -213,6 +213,12 @@ Implementation contract:
 - In `refactor` mode: establish or identify the safety net first, make the mechanical or structural change, then run the relevant verification. Do not force an artificial RED when the work is audit-driven.
 - Insert TAG blocks yourself in Step 3; do not rely on an automatic skill invocation.
 - Keep the implementation within the selected phase/task/TAG boundary unless a blocker requires user-visible scope adjustment.
+- **Deviations log**: no plan survives contact with the territory intact. When an edge case in
+  the actual code forces a deviation from `plan.md`, pick the conservative option, append one
+  entry to `specs/{SPEC_ID}/implementation-notes.md` (`what the plan said → what was found →
+  what was done instead → why`), and keep going — do not stop the run for a deviation that
+  stays inside the task's scope. `/ms.review` includes this file in its report and `/ms.amend`
+  consumes it when a deviation turns out to supersede a requirement.
 
 This generates or modifies the implementation files while following Constitution principles and existing project patterns.
 
