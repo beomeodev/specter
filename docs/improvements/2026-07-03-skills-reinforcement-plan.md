@@ -40,6 +40,7 @@ same day once the user asked to finish everything outstanding.
 | S-20 (High-Stakes Diff Digest) | DONE (07-04) | `/ms.fin` Step 1.5: human-ack gate — detects auth/money/destructive/migration/user-data hunks in the outgoing diff, presents ONLY those hunks (≤60 lines, one-line 'what this deletes/overwrites/exposes' per hunk), requires explicit ack; silent pass-through on ordinary diffs; covers the fix track that bypasses /ms.review. |
 | S-21 (Migration Rollback Analysis) | DONE (07-04) | `/ms.review` Step 6.6b: when the diff contains migrations, mandatory 3-question analysis (rollback consequences / mid-failure partial state / irreversible-ops flags incl. secret re-keying) + human ack; un-acked analysis = CRITICAL trigger in the Result Model. |
 | S-22 (`/ms.prd` + unknowns patterns) | DONE (07-04) | New pre-workflow command synthesized from Thariq's "Field Guide to Fable: Finding Your Unknowns" article + the user's own spade-ace-backtester 'fable' PRD session (mode A/B/C, append-only worklog with rationale, parking lot fixing the observed dropped-side-request friction, blindspot pass, viability/kill gate, gap enumeration→one-at-a-time with 권장). Quizzes explicitly excluded (user veto). Article patterns also folded into: ms-foundation-prd (§0 four-quadrant calibration, references-over-description, architecture-impact question order), /ms.plan (changeable-decisions-first ordering), /ms.implement (Deviations log → implementation-notes.md feeding review/amend), /ms.clarify (architecture-impact question order). |
+| S-23 (`/ms.audit`) | DONE (07-05) | Product-level completeness audit closing gap 6 — 6 modules: exposure (commitment-index walk: implemented-but-unreachable), cold-start E2E (fresh-clone boot + core loop, README under test), threat model (stake questions to human + repo-grounded trust boundaries, consumes parked security-threat-model), perf/a11y smoke (consumes parked optimization-phase cherry-picks), gate value review (sunset candidates + repeated-bypass signals — report only, never auto-tunes), blind-spot ledger. Advisory, no conductor, P0-P3 findings routed to fix/expand/todo. |
 | S-9 (`ms-ops-debugging`) | DONE | Mined via 2 background agents across all 7 source transcripts (4 sanjunipero + 3 cueline); 26 failure classes across 7 categories (network/tunnel, reverse-proxy/TLS, secrets/rotation, container lifecycle, auth self-inflicted state, upstream deps, real-time API integration); wired into `/ms.fix` and `debug-helper`. |
 
 All new skills (`webapp-testing`, `ms-foundation-prd`, `ms-design-baseline`, `ms-ops-debugging`)
@@ -231,6 +232,11 @@ the git object model — the last has no workflow component at all).
   human reads and acks. Placed in /ms.fin (not review) so the fix track is covered too.
 - S-21 → gap 4a (data-layer permanence): machine answers the three questions from the
   actual migration, human reads the answer before anything merges.
+
+## Parked — CONSUMED 2026-07-05 by /ms.audit (S-23): both references below were folded into
+Module C (threat model: trust boundaries from actual config, abuse paths, stake questions,
+no-claims-without-evidence) and Module D (perf curl-loop p50/p95 + a11y with graceful
+tooling degradation). Kept for provenance.
 
 ## Parked (do NOT implement now — references for the future `/ms.audit`)
 
