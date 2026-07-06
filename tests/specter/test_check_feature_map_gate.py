@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 MODULE_PATH = (
-    Path(__file__).resolve().parent.parent / "scripts" / "check_feature_map_gate.py"
+    Path(__file__).resolve().parent.parent.parent / "scripts" / "check_feature_map_gate.py"
 )
 _spec = importlib.util.spec_from_file_location("check_feature_map_gate", MODULE_PATH)
 assert _spec and _spec.loader

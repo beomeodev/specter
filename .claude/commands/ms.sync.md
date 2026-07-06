@@ -122,4 +122,4 @@ receive the pushed changes on their next `git pull` / `make sync` entry flow.
 - Project-local files (`.claude/settings*.json`, Constitution, `.specify/`) are
   never in the manifest. Keep it that way.
 - Manifest: `scripts/specter_sync_manifest.json` (fnmatch globs; `*` crosses `/`).
-- Engine tests: `tests/test_specter_sync.py`.
+- Engine tests: `tests/specter/test_specter_sync.py`.

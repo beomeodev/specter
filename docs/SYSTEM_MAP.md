@@ -101,8 +101,8 @@ only) and `frontend/` (`package.json` only) are empty template scaffolding, not 
 - `scripts/` (repo root): `check_feature_map_gate.py` (unchanged this patch — `git diff` shows no
   delta) and `check_tag_chain.py` (see Hot Paths), plus `specter_sync.py` +
   `specter_sync_manifest.json` (the `/ms.sync` broadcast engine).
-- `tests/`: `test_check_feature_map_gate.py`, `test_check_tag_chain.py` (both new/untracked this
-  patch) and `test_specter_sync.py`. All 28 tests pass; coverage 91.44% against an 85% floor
+- `tests/specter/`: `test_check_feature_map_gate.py`, `test_check_tag_chain.py` (both new/untracked this
+  patch) and `test_specter_sync.py`. All 32 tests pass; coverage 91.44% against an 85% floor
   (verified by running `uv run pytest --cov -q`).
 - `backend/`, `frontend/`: scaffolding-only template directories, not a running app.
 - `.env` → `.env.example` (renamed, tracked); real `.env` stays gitignored (`.gitignore` line 52
@@ -141,7 +141,7 @@ only) and `frontend/` (`package.json` only) are empty template scaffolding, not 
   route to `/ms.fix`, `/ms.expand`, or `docs/todo.md` — it never edits or weakens a gate.
 - `/ms.sync` broadcasts registered workflow files (commands/skills/agents/gate
   scripts/templates/`AGENTS.md`) to other registered project repos via 3-way merge
-  (`scripts/specter_sync.py`, tested by `tests/test_specter_sync.py`).
+  (`scripts/specter_sync.py`, tested by `tests/specter/test_specter_sync.py`).
 - `/ms.fin` / `/ms.merglease` handle publish/release flows (delegated to Antigravity). `/ms.fin`'s
   High-Stakes Diff Digest now computes the diff as the unpushed range (`git diff "$BASE"...HEAD`)
   **plus** the working tree (`git diff HEAD`), explicitly to catch `/ms.fix`-track changes that
@@ -160,9 +160,9 @@ only) and `frontend/` (`package.json` only) are empty template scaffolding, not 
   `@CODE` ids (constant `FIX_PREFIX = "FIX-"`) carry no governing `@SPEC`, and a file may declare
   itself test-exempt via the literal marker `@TEST: (presentational — no test)` (regex
   `PRESENTATIONAL_RE`). Uniqueness still applies to FIX ids. Backed by the new
-  `tests/test_check_tag_chain.py` (10 tests, all passing).
+  `tests/specter/test_check_tag_chain.py` (10 tests, all passing).
 - `scripts/check_feature_map_gate.py` — unchanged this patch (`git diff` against HEAD is empty);
-  now has its own test file `tests/test_check_feature_map_gate.py` (6 tests, all passing) where
+  now has its own test file `tests/specter/test_check_feature_map_gate.py` (6 tests, all passing) where
   it previously had none.
 - `.claude/commands/ms.review.md` — largest command file; owns the Result Model (READY / READY
   WITH WARNINGS / NOT READY), the executable gates, Done Criteria Execution, and dual-agent
