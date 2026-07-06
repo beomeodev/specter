@@ -160,8 +160,9 @@ vitest run --coverage
    rg '@(SPEC|TEST|CODE|DOC):' -n
    ```
 
-2. **TAG chain validation**: Subagents cannot spawn subagents — the dispatching command runs
-   `tag-auditor` separately and this agent consumes its results.
+2. **TAG chain validation**: mechanical wiring is owned by
+   `scripts/check_tag_chain.py` (pre-commit); this agent reports semantic
+   chain issues only.
 
 3. **TAG Chain Verification**:
    - Compare @SPEC → @TEST → @CODE chains
@@ -241,7 +242,7 @@ vitest run --coverage
    **Warnings** (recommended):
    1. `src/processor.py:120` - Reduce function complexity (current: 12, target: ≤10)
    2. TAG-003 - Add integration test for complete coverage
-   3. Orphaned TAGs - Run `@agent-tag-auditor --repair-chains`
+   3. Orphaned TAGs - wire the missing anchors (verify with `python scripts/check_tag_chain.py`)
 
    ### ✅ Next Steps
    - PASS: Commit approved ✅
@@ -275,9 +276,9 @@ vitest run --coverage
 
 ### Delegation Rules
 
-- **Code Fixes**: Delegate to `tdd-implementer` or `debug-helper`
-- **TAG Repairs**: Delegate to `tag-auditor`
-- **TRUST Validation**: Delegate to `trust-validator`
+- **Code Fixes**: report them — fixes belong to `/ms.implement --mode=refactor` or the main conversation
+- **TAG Repairs**: report them — wiring is verified by `scripts/check_tag_chain.py`
+- **TRUST Validation**: the dispatching command runs `trust-validator` separately
 
 ### Quality Standards
 
@@ -358,7 +359,7 @@ vitest run --coverage
 1. **Unused variable**: Remove `userId` from `src/auth/service.ts:45`
 2. **Function complexity**: Refactor `validateToken` to reduce complexity
 3. **Missing docstring**: Add docstring to `test_service.py:30`
-4. **Orphaned TAGs**: Run `@agent-tag-auditor --repair-chains` to fix
+4. **Orphaned TAGs**: wire the missing anchors (verify with `python scripts/check_tag_chain.py`)
 
 ### ✅ Next Steps
 
@@ -369,16 +370,14 @@ vitest run --coverage
 
 ## 🔗 Agent Collaboration
 
-### Upstream Agents
+### Upstream
 
-- **tdd-implementer**: Requests verification after implementation completes
-- **doc-updater**: Quality check before documentation sync (optional)
+- `/ms.review` Step 6.5 dispatches this agent after implementation completes
 
-### Downstream Agents
+### Downstream
 
-- **trust-validator**: Validates TRUST 5 principles
-- **tag-auditor**: Validates TAG chain integrity
-- **debug-helper**: Assists with fixing critical issues
+- **trust-validator**: Validates TRUST 5 principles (dispatched separately by `/ms.review`)
+- **`scripts/check_tag_chain.py`**: mechanical TAG wiring (pre-commit backstop)
 
 ### Collaboration Protocol
 
@@ -424,8 +423,6 @@ vitest run --coverage
 ### Related Agents
 
 - `trust-validator` - TRUST 5 validation specialist
-- `tag-auditor` - TAG chain validation specialist
-- `debug-helper` - Error diagnosis and fix suggestions
 
 ---
 

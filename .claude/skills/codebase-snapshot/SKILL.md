@@ -87,6 +87,23 @@ results.
    - Facts must cite concrete paths, commands, or observed files.
    - Inferences must be labeled as such and kept short.
 
+## Feature-Scoped Exploration (pre-implementation)
+
+When the trigger is a specific feature request rather than a map refresh, run a
+narrower pass and report it inline (no SYSTEM_MAP edit needed):
+
+1. **Similar implementations** — Glob/Grep for features of the same class; read
+   the closest one end to end.
+2. **Conventions to copy** — folder placement, naming (files/functions/classes),
+   error-handling and test-file patterns the similar feature follows.
+3. **Reusable components** — existing utilities/validators/types that the new
+   work must reuse instead of re-creating (single source of truth).
+4. **Integration points** — where the similar feature registers itself (routes,
+   DI, exports) and the data flow it participates in.
+
+Report specific file paths, not generic advice; if no similar feature exists,
+say so explicitly. This replaces the retired `codebase-explorer` agent.
+
 ## SYSTEM_MAP.md Structure
 
 Use these sections:

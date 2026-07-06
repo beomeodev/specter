@@ -72,7 +72,7 @@ sync:
 				echo "⚠️  로컬 변경사항 있음 (커밋되지 않음):"; \
 				git status --short; \
 				echo ""; \
-				echo "💡 작업 종료 시 'make finish' 또는 'make finq'로 커밋/푸시하세요"; \
+				echo "💡 작업 종료 시 /ms.fin(워크플로우) 또는 수동 git으로 커밋/푸시하세요"; \
 			else \
 				echo "✅ 변경사항 없음"; \
 			fi; \
@@ -257,7 +257,7 @@ antigravity agy ag gm: dev-up
 
 
 # ======= CI 파이프라인 (로컬 + GitHub Actions 공통) =======
-.PHONY: ci-lint ci-type ci-test ci finish
+.PHONY: ci-lint ci-type ci-test ci
 
 # CI 타깃은 `make -C .devcontainer` 로 호출돼 CWD가 .devcontainer/ 이므로
 # 레포 루트($(CURDIR)/..)로 이동해서 실제 코드를 대상으로 검사한다.
@@ -295,40 +295,13 @@ ci-test:
 # CI 전체 체크 (커밋/푸시 없이 검증만)
 # 사용 케이스:
 #   1. 커밋 전 빠르게 체크만 하고 싶을 때
-#   2. make finish 안 쓰고 수동 커밋했을 때 사후 검증
+#   2. 수동 커밋 후 사후 검증
 #   3. 디버깅 중 테스트만 돌리고 싶을 때
+# 커밋/푸시/PR은 /ms.fin(워크플로우) 또는 수동 git이 담당한다 —
+# 예전 finish/finq 타깃은 'git add .' 일괄 커밋이라 커밋 분리 규칙과 충돌해 제거됨.
 ci:
 	@echo "🚀 Starting CI pipeline..."
 	@$(MAKE) -s ci-lint
 	@$(MAKE) -s ci-type
 	@$(MAKE) -s ci-test
 	@echo "✅ All CI checks passed"
-
-# 작업 마무리: CI 체크 → 커밋 → 푸시 (권장 워크플로우)
-# 사용법: make finish
-# 동작:
-#   1. CI 체크 실행 (lint, type, test)
-#   2. 통과하면 → git add, commit, push
-#   3. 실패하면 → 중단 (커밋/푸시 안 함)
-# 💡 이것만 쓰면 make ci는 불필요 (자동으로 포함됨)
-finish:
-	@echo "🏁 Starting finish workflow..."
-	@$(MAKE) -s ci
-	@echo "💾 Committing changes..."
-	@git add . && git commit || echo "⚠️  Nothing to commit"
-	@echo "🚀 Pushing to remote..."
-	@git push || echo "❌ Push failed"
-	@echo "✅ Finish workflow completed"
-
-# 빠른 마무리: CI 체크 생략 → 커밋 → 푸시 (간단한 변경용)
-# 사용법: make finq
-# 동작:
-#   1. git add, commit (자동 메시지), push
-#   2. CI 체크 생략 → 빠름
-# 사용 케이스: 일일 로그 업데이트, 문서 수정, 설정 변경 등
-finq:
-	@echo "⚡ Quick finish (CI 체크 생략)..."
-	@git add . || echo "⚠️  git add failed"
-	@git commit -m "작업 진행 중 - $$(date '+%Y-%m-%d %H:%M:%S')" || echo "⚠️  Nothing to commit"
-	@git push || echo "❌ Push failed"
-	@echo "✅ Quick finish completed"

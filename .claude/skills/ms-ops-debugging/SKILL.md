@@ -267,5 +267,5 @@ workflow mechanics, which may be stale and is out of this skill's scope regardle
 
 - `ms-essentials-debug`: generic debugging methodology this skill doesn't duplicate.
 - `/ms.fix`: ops incidents (deploy/environment issues, no new requirement) usually arrive as fixes.
-- `debug-helper` agent: routes environment/deployment-class errors here instead of the generic
-  code-error categories.
+- For environment/deployment-class errors, use this skill's symptom index instead of
+  `ms-essentials-debug`'s generic code-error categories.

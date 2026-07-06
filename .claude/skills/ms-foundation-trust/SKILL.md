@@ -199,7 +199,7 @@ The checklist above verifies controls *exist*; adversarial review asks whether t
 - ✅ **Business-logic / workflow bypass**: can a step be skipped or replayed (a protected resource before its precondition, a reused one-time token)? Validate state and single-use server-side.
 - ✅ **Minimal response / no PII over-exposure**: return only the fields the caller needs; never leak other principals' identifiers in responses or logs.
 
-Record findings as GEARS `[Security]` requirements with `@SPEC:SEC-*` TAGs and the same PASS/WARNING/CRITICAL severity used elsewhere in this report; delegate fixes to `debug-helper` / `tdd-implementer`.
+Record findings as GEARS `[Security]` requirements with `@SPEC:SEC-*` TAGs and the same PASS/WARNING/CRITICAL severity used elsewhere in this report; fixes belong to `/ms.implement --mode=refactor` or the main conversation.
 
 **6. Fail-Open vs Fail-Secure Defaults**:
 

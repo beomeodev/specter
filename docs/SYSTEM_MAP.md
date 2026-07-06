@@ -43,15 +43,13 @@ per-file rationale. This snapshot describes that committed state.
 SPECTER is a command-driven workflow wrapper over GitHub Spec-Kit for Claude Code projects. This
 repository is the **template/tooling repo itself** — it ships the `/ms.*` command definitions,
 skills, agents, Constitution/spec templates, and deterministic gate scripts that a consuming
-project installs via `/ms.init`. There is no application runtime here; `backend/`/`frontend/` are
-template scaffolding (`backend/AGENTS.md`; `frontend/AGENTS.md` + `frontend/package.json`), not a
-shipped app.
+project installs via `/ms.init`. There is no application runtime here; `backend/` (`.gitkeep`
+only) and `frontend/` (`package.json` only) are empty template scaffolding, not a shipped app.
 
 ## Repository Shape
 - `AGENTS.md`: repository-wide agent contract (this file's own contents, at the top of every
-  session's context). Modified in the working tree: the per-command "session read policy" prose
-  was consolidated into pointers at `AGENTS.md §2` (verified: 10 command files now say "see
-  AGENTS.md §2" instead of restating the policy).
+  session's context). The per-command "session read policy" prose is consolidated into pointers
+  at `AGENTS.md §2`.
 - `README.md`, `CHANGELOG.md`: public entry point + release notes. `CHANGELOG.md` now carries an
   `## [Unreleased]` section (verified) documenting `/ms.sync`, `/ms.prd`, `/ms.audit`, the six new
   workflow skills, the `/ms.fin` High-Stakes Diff Digest, and `/ms.review`'s Migration Rollback
@@ -66,45 +64,42 @@ shipped app.
   `AGENTS.md`). The `codex-verify`/`antigravity-verify` strings that remain (e.g. in
   `ms.agent-verify.md`, `ms.specter.md`, `README.md`) are per-Feature **artifact filenames**
   (`feature-NNN.codex-verify.md`), not a command name — expected and correct.
-- `.claude/skills/` (26 dirs + `skill-rules.json`): reusable capabilities. Confirmed via `ls`:
-  `api-testing-patterns`, `ci-cd-optimization`, `codebase-snapshot`, `cross-cutting-concerns`,
-  `git-worktrees`, `ms-architecture-patterns`, `ms-database-design`, `ms-design-baseline`,
-  `ms-essentials-debug`, `ms-essentials-review`, `ms-foundation-constitution`,
-  `ms-foundation-ears`, `ms-foundation-prd`, `ms-foundation-trust`, `ms-lang-python`,
-  `ms-lang-typescript`, `ms-ops-debugging`, `ms-workflow-living-docs`, `ms-workflow-tag-manager`,
-  `overnight-run`, `parallel-features`, `specter-agent-protocols` (new, untracked — see below),
-  `spike`, `testing-skills-with-subagents`, `transcript-mining`, `webapp-testing`. Several
-  `SKILL.md`/`examples.md` files are modified in the working tree (`ms-essentials-debug`,
-  `ms-essentials-review`, `ms-foundation-constitution`, `ms-foundation-trust`, `ms-lang-python`,
-  `ms-lang-typescript`, `ms-workflow-living-docs`, `ms-workflow-tag-manager`, `webapp-testing`,
-  `skill-rules.json`); `ms-foundation-trust/examples_old.md` was deleted.
-  `specter-agent-protocols` has **no `skill-rules.json` prompt-trigger entry** (confirmed by
-  `grep` — zero hits) because it is a reference-only skill pulled in by command prose
+- `.claude/skills/` (21 dirs): reusable capabilities. Confirmed via `ls`:
+  `codebase-snapshot`, `git-worktrees`, `ms-design-baseline`, `ms-essentials-debug`,
+  `ms-essentials-review`, `ms-foundation-constitution`, `ms-foundation-ears`,
+  `ms-foundation-prd`, `ms-foundation-trust`, `ms-lang-python`, `ms-lang-typescript`,
+  `ms-ops-debugging`, `ms-workflow-living-docs`, `ms-workflow-tag-manager`, `overnight-run`,
+  `parallel-features`, `specter-agent-protocols`, `spike`, `testing-skills-with-subagents`,
+  `transcript-mining`, `webapp-testing`. Skill triggering is owned by each SKILL.md's
+  frontmatter description — the parallel `skill-rules.json` registry was deleted (2026-07-06
+  prune; it was wired to nothing and drifted). The five generic dead-weight skills
+  (`api-testing-patterns`, `ci-cd-optimization`, `cross-cutting-concerns`,
+  `ms-architecture-patterns`, `ms-database-design`) were deleted in the same prune.
+  `specter-agent-protocols` is reference-only, pulled in by command prose
   (`/ms.agent-verify`, `/ms.verify`, `/ms.analyze`, `/ms.review`, `/ms.codex-checklist`,
-  `/ms.expand`), not something an end user triggers by keyword.
-- `.claude/agents/` (17 files): specialist subagent definitions. Confirmed via `ls`:
-  `code-refactor-master`, `codebase-explorer`, `constitution-extractor`, `debug-helper`,
-  `doc-updater`, `git-hygiene`, `implementation-planner`, `integration-designer`,
-  `library-researcher`, `local-ci`, `quality-gate`, `refactor-planner`, `spec-builder`,
-  `tag-auditor`, `tdd-implementer`, `trust-validator`, `web-research-specialist`. 14 of these are
-  modified in the working tree; `rg "Model Selection"` over `.claude/agents/*.md` returns zero
-  hits (the ceremony block is gone, matching context). `quality-gate.md` still reports
+  `/ms.expand`), not user-triggered by keyword.
+- `.claude/agents/` (10 files): specialist subagent definitions. Confirmed via `ls`:
+  `code-refactor-master`, `doc-updater`, `git-hygiene`, `library-researcher`, `local-ci`,
+  `quality-gate`, `refactor-planner`, `spec-builder`, `trust-validator`,
+  `web-research-specialist`. Seven orphan agents (codebase-explorer, constitution-extractor,
+  debug-helper, implementation-planner, integration-designer, tag-auditor, tdd-implementer)
+  were deleted in the 2026-07-06 prune — nothing dispatched them; codebase-explorer's
+  feature-scoped exploration checklist was folded into the `codebase-snapshot` skill.
+  `quality-gate.md` still reports
   CRITICAL/severity findings but explicitly defers the block/warn/approve decision to
   `/ms.review` ("blocking decisions belong to /ms.review's call", "→ /ms.review decides
   approve/warn/block based on the report") — it no longer owns blocking policy itself.
-- `docs/templates/`: Constitution/spec templates (`constitution-template.md` modified) +
+- `docs/templates/`: Constitution/spec templates +
   `docs/templates/scripts/`: `check_feature_map_gate.py`-equivalent installers, plus
   `specter-gate.sh`, `speckit-specify-gate-hook.sh`, `specter-overnight.sh`,
   `specter-session-status.sh` (all confirmed present via `ls`).
 - `docs/ops/`: operational runbooks not tied to a command file (e.g.
   `antigravity-write-flag.md`).
 - `docs/improvements/`: dated audit/plan documents (working record, not templates).
-- `docs/src/lib/`: TypeScript reference implementations of TAG scanning/generation and TRUST
-  level checks — source material the command prose describes, not code in the gate path.
-- `docs/log/`: **deleted** in the working tree (`docs/log/pre-commit/*.log`, 4 files removed via
-  `git status`) — this directory no longer exists.
+- `docs/src/` and `docs/log/` were deleted (2026-07-06 prune/hygiene) — unreferenced TS
+  reference code and 2025-era pre-commit logs.
 - `scripts/` (repo root): `check_feature_map_gate.py` (unchanged this patch — `git diff` shows no
-  delta) and `check_tag_chain.py` (modified — see Hot Paths), plus `specter_sync.py` +
+  delta) and `check_tag_chain.py` (see Hot Paths), plus `specter_sync.py` +
   `specter_sync_manifest.json` (the `/ms.sync` broadcast engine).
 - `tests/`: `test_check_feature_map_gate.py`, `test_check_tag_chain.py` (both new/untracked this
   patch) and `test_specter_sync.py`. All 28 tests pass; coverage 91.44% against an 85% floor
@@ -177,9 +172,6 @@ shipped app.
 - `.claude/skills/specter-agent-protocols/SKILL.md` — new canonical source for preflight/degrade/
   salvage/convergence mechanics shared by six dual-agent commands; edit here, not per-command, to
   change the shared mechanics.
-- `.claude/skills/skill-rules.json` — auto-activation rules for every user-triggerable skill;
-  needs an entry for each new *prompt-triggered* skill (not `specter-agent-protocols`, which is
-  reference-only).
 - `docs/templates/scripts/specter-gate.sh` — deterministic PASS/WARN/FAIL/MISSING gate checker
   consumed by `/ms.verify`/`/ms.checklist`.
 - `.pre-commit-config.yaml` (repo root, and the copy `/ms.init` installs into consuming
@@ -211,7 +203,7 @@ libraries/CLIs with no runtime surface.)
   session read policy instead of restating it per-command.
 - `README.md` — Spec-Kit compatibility/delegation table (§ "Spec Kit 호환성 → 위임 지점").
 - `CHANGELOG.md` — `## [Unreleased]` is the staging area for not-yet-tagged changes.
-- `.claude/commands/*.md`, `.claude/skills/*/SKILL.md`, `.claude/skills/skill-rules.json`.
+- `.claude/commands/*.md`, `.claude/skills/*/SKILL.md`.
 - `.claude/skills/specter-agent-protocols/SKILL.md` — single source of truth for dual-agent
   preflight/degrade/salvage/convergence mechanics (new this patch).
 - `docs/templates/constitution-template.md`, `docs/templates/spec-template.md`.
@@ -247,10 +239,8 @@ libraries/CLIs with no runtime surface.)
 - `serena` is declared in `.mcp.json` but its configured binary path does not resolve in this
   environment (`/home/dev/.local/bin/serena`: no such file) and no Serena MCP tool was available
   this session — structural scans used `git`/`rg`/`find` only, as in the prior snapshot.
-- `specter-agent-protocols` has no `skill-rules.json` trigger entry; if a future refactor expects
-  every skill to be independently prompt-triggerable, this one is an intentional exception
-  (reference-only, pulled in by six command files) — verify this is still true before assuming
-  it's a gap.
+- `specter-agent-protocols` is reference-only (pulled in by six command files), not
+  prompt-triggered — an intentional exception, not a missing description.
 - `docs/improvements/*.md` are historical working records, not templates — do not treat their
   content as currently-authoritative without checking whether it says DONE/PARTIAL/pending.
 - `docs/log/` was deleted in this patch (4 pre-commit log files) — if any command or script still
@@ -265,7 +255,6 @@ git status --short
 git rev-parse HEAD
 uv run pytest --cov -q          # 28 tests, 91.44% coverage, 85% floor
 bash -n docs/templates/scripts/specter-gate.sh docs/templates/scripts/speckit-specify-gate-hook.sh
-python3 -c "import json; json.load(open('.claude/skills/skill-rules.json'))"
 rg -n "ms.codex-verify|My-Spec|MySpec" -ri .claude README.md AGENTS.md   # expect zero hits
 rg -n "Model Selection" .claude/agents/*.md                              # expect zero hits
 ```

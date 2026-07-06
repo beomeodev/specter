@@ -24,6 +24,19 @@ All notable changes to this repository are documented in this file.
 - **`check_tag_chain.py` FIX-트랙 지원**: `FIX-*` id는 `@SPEC` 앵커 면제, presentational 마커
   (`@TEST: (presentational — no test)`) 허용. 테스트 `tests/test_check_tag_chain.py` 추가.
 
+### Removed
+- **프루닝(2026-07-06, 감사 보류 결정 확정)**: 고아 에이전트 7종 삭제(codebase-explorer ·
+  constitution-extractor · debug-helper · implementation-planner · integration-designer ·
+  tag-auditor · tdd-implementer — 어떤 커맨드도 디스패치하지 않았음; codebase-explorer의
+  기능 착수 전 유사 패턴 탐색 체크리스트는 `codebase-snapshot` 스킬로 흡수). 죽은 범용
+  스킬 5종 삭제(api-testing-patterns · ci-cd-optimization · cross-cutting-concerns ·
+  ms-architecture-patterns · ms-database-design — 참조 0, sync로 전 레포에 배포되던
+  ~4.4k줄). `skill-rules.json` 삭제(실행 주체 없는 평행 레지스트리 — 스킬 트리거는
+  SKILL.md frontmatter description이 소유). `docs/src/` 삭제(미참조 TS 레퍼런스 코드).
+  구세대 `backend/AGENTS.md`·`frontend/AGENTS.md` 삭제(black/pylint/eslint 지시가 현행
+  ruff/Biome 체계와 모순; 루트 AGENTS.md + ms-lang 스킬이 대체). `make finish`/`make finq`
+  삭제(`git add .` 일괄 커밋이 커밋 분리 규칙과 충돌; 커밋/푸시는 /ms.fin 또는 수동 git).
+
 ### Changed
 - **감사 후속 정비(2026-07-06)**: `/ms.codex-verify` 잔재 10곳을 `/ms.agent-verify`로 개명하고
   단일 에이전트 서술을 dual-agent로 정정. "My-Spec"/MoAI 잔재 명칭 일괄 정리. Constitution 템플릿
