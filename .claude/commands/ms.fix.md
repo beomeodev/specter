@@ -34,11 +34,11 @@ Feature Map baseline already exists:
 
 ## Step 1: Size the change (decides ceremony, from existing rules)
 
-Estimate the files this touches (Constitution: "Small units 1-2 files"; "3+ files
-→ plan first"):
+Estimate the files this touches (AGENTS.md §7: modifying 3+ files in one task
+needs user approval — the mini-plan below is how this track satisfies it):
 
 - **Small (1–2 files)** → go straight to Step 2 (lightweight).
-- **Medium (3+ files)** → **mini-plan first** (Constitution §4.1 already mandates this):
+- **Medium (3+ files)** → **mini-plan first**:
   list (a) files to touch, (b) the change in each, (c) risks. Present it, get a
   quick confirm, THEN Step 2. No spec/tasks doc — just the mini-plan inline.
 
@@ -62,9 +62,17 @@ Fixes must still be traceable — this is what an ungated quick-push would skip.
   `@UPDATED` (git-derived, per `ms-workflow-tag-manager`) and, if behavior
   changed, note it.
 - **New code with no governing SPEC** → assign a **FIX-id** TAG:
-  `@CODE:FIX-<area>-<NNN>` (e.g. `@CODE:FIX-UPLOADS-003`), `@SPEC: (fix — no spec)`,
-  with `@TEST` if a test exists. Keep the chain block format identical to
-  `/ms.implement` (see `ms-workflow-tag-manager`), `@STATUS: implemented`.
+  `@CODE:FIX-<area>-<NNN>` (e.g. `@CODE:FIX-UPLOADS-003`), `@SPEC: (fix — no spec)`.
+  Keep the chain block format identical to `/ms.implement` (see
+  `ms-workflow-tag-manager`), `@STATUS: implemented`. The pre-commit backstop
+  (`scripts/check_tag_chain.py`) waives the `@SPEC` anchor for `FIX-*` ids but
+  still requires the `@TEST` side:
+  - **Behavioral fix** (Step 2 wrote/extended a test) → put the matching
+    `@TEST:FIX-<area>-<NNN>` anchor in that test file.
+  - **Presentational fix** (Step 2 skipped RED-GREEN) → declare it in the TAG
+    block: `@TEST: (presentational — no test)`. This exact marker is what the
+    backstop accepts in place of a test anchor; never use it on a behavioral
+    change.
 
 ## Step 4: Lightweight docs (scale to size)
 
@@ -76,13 +84,19 @@ Fixes must still be traceable — this is what an ungated quick-push would skip.
 
 Run the **`local-ci`** subagent (lint → types → tests → build for affected areas;
 reports pass/fail per gate, edits nothing). Fix any failure before proceeding.
-This is the same pre-push gate `/ms.fin` uses — uniformity is the point.
+This is the same gate contract `/ms.fin` enforces before publishing — uniformity
+is the point.
 
 ## Step 6: Hand off
 
 Commit (TAG id in the message) on a `fix/<short-name>` branch, then continue with
-the existing flow: `/ms.fin` to push + open PR, then `/ms.merglease`.
-Do not commit/push without user approval (Constitution §2).
+the existing flow: `/ms.fin` to push + open PR, then `/ms.merglease`. Committing
+here is covered by the user's explicit `/ms.fix` invocation and the project
+permission allowlist (AGENTS.md §7); ad-hoc commits outside this flow still ask.
+
+`/ms.fix` deliberately does **not** write to `.specify/specter-run.jsonl` — the
+run ledger tracks per-Feature cycle steps, and fixes are not Features. Fix-track
+traceability lives in the TAG + the `docs/dev_daily.md` line (Step 4).
 
 ## Relationship to other commands
 

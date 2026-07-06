@@ -1,18 +1,18 @@
 ---
-description: "Initialize My-Spec project with Spec-Kit + Constitution"
+description: "Initialize SPECTER project with Spec-Kit + Constitution"
 argument-hint: ""
 ---
 
-# /ms.init - One-Command Setup for My-Spec
+# /ms.init - One-Command Setup for SPECTER
 
-Initialize your project with Spec-Kit and My-Spec Constitution in a single command.
+Initialize your project with Spec-Kit and SPECTER Constitution in a single command.
 
 ## Overview
 
 This command performs **complete project initialization**:
 
 1. **Spec-Kit Installation** - Automatically installs latest Spec-Kit from upstream
-2. **Constitution Setup** - Installs My-Spec's customized Constitution template
+2. **Constitution Setup** - Installs SPECTER's customized Constitution template
 
 **User runs**: Just `/ms.init` - Everything else is automatic!
 
@@ -83,7 +83,7 @@ SPEC_KIT_REF=main    /ms.init   # latest upstream (exposed to churn — re-verif
 -   If missing: Display error (see Error Handling section) and exit
 -   Do **not** require `specs/` here — it does not exist until the first `/ms.specify`.
 
-### Step 2: Setup My-Spec Constitution (Copy Mode)
+### Step 2: Setup SPECTER Constitution (Copy Mode)
 
 #### 2.1 Create Memory Directory
 
@@ -108,7 +108,7 @@ cp docs/templates/constitution-template.md .specify/memory/constitution.md
 #### 2.3 Install GEARS Spec-Template
 
 Step 1 (`specify init --force`) overwrites `.specify/templates/spec-template.md` with
-the upstream (classic EARS) template. Restore the My-Spec GEARS version on top of it —
+the upstream (classic EARS) template. Restore the SPECTER GEARS version on top of it —
 the same copy-after-init pattern used for the constitution in Step 2.2. The `mkdir -p`
 guard makes this safe even if a future Spec-Kit stops creating `.specify/templates/`:
 
@@ -252,7 +252,13 @@ as Steps 2.2–2.3 so it survives a future `specify init --force`:
 mkdir -p .specify/scripts/bash
 cp docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
 chmod +x .specify/scripts/bash/specter-gate.sh
+cp docs/templates/scripts/specter-overnight.sh .specify/scripts/bash/specter-overnight.sh 2>/dev/null \
+  && chmod +x .specify/scripts/bash/specter-overnight.sh \
+  || echo "ℹ️ specter-overnight.sh not present (arrives via /ms.sync) — overnight driver skipped"
 ```
+
+The overnight driver (`specter-overnight.sh`, used by the `overnight-run` skill) is optional —
+its absence never fails `/ms.init`.
 
 This script owns only mechanical gate facts (checklist Result lines, Feature Map SHA256
 equality, Constitution Section IX establishment, per-Feature/dual-agent artifact existence) for
@@ -295,7 +301,7 @@ The hook script fails open (allows) on any internal error — a missing `jq`, ma
 any other unexpected condition never blocks unrelated Skill calls. It only denies when the
 invoked skill is literally `speckit-specify` (or the legacy `speckit.specify`) and no
 `.specify/.ms-gate-pass-*` token exists (written and deleted by `/ms.specify`, see that command's
-Step 0.2/3.2).
+Step 0.3/3.2; the hook honors tokens for 60 minutes).
 
 **IF source file not found**:
 
@@ -341,16 +347,63 @@ must never error or bloat session start.
 -   This indicates a repository structure issue
 -   Exit with error
 
+#### 2.8 Wire The Pre-Commit Backstops (TAG chain + Feature Map coherence)
+
+The two deterministic backstops — `scripts/check_tag_chain.py` (TAG wiring, WI-style
+`@SPEC -> @TEST -> @CODE` anchors) and `scripts/check_feature_map_gate.py` (Feature Map
+SHA coherence, WI-14) — only protect a project if pre-commit actually runs them. The
+scripts arrive via `/ms.sync`; this step wires them into the project's pre-commit config
+and installs the git hook. Without this step the backstops are dead files.
+
+```bash
+if [ ! -f scripts/check_tag_chain.py ] || [ ! -f scripts/check_feature_map_gate.py ]; then
+  echo "⚠️ SPECTER backstop scripts not found under scripts/ — they arrive via /ms.sync."
+  echo "   Re-run /ms.init (or just this step) after the first sync. Skipping hook wiring."
+else
+  if [ -f .pre-commit-config.yaml ] && grep -q 'check_tag_chain.py' .pre-commit-config.yaml; then
+    echo "✓ SPECTER backstop hooks already wired (idempotent skip)"
+  else
+    [ -f .pre-commit-config.yaml ] || printf 'repos:\n' > .pre-commit-config.yaml
+    cat >> .pre-commit-config.yaml <<'HOOKS'
+  # --- SPECTER backstops (installed by /ms.init Step 2.8) ---
+  - repo: local
+    hooks:
+      - id: tag-chain
+        name: SPECTER TAG-chain backstop (@SPEC -> @TEST -> @CODE)
+        entry: python scripts/check_tag_chain.py
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: feature-map-gate
+        name: SPECTER Feature Map / gate coherence backstop
+        entry: python scripts/check_feature_map_gate.py
+        language: system
+        pass_filenames: false
+        always_run: true
+HOOKS
+    echo "✓ SPECTER backstop hooks appended to .pre-commit-config.yaml"
+  fi
+  if command -v pre-commit >/dev/null 2>&1; then
+    pre-commit install && echo "✓ pre-commit git hook installed"
+  else
+    echo "⚠️ pre-commit binary not found — install it (e.g. 'uv tool install pre-commit' or 'pipx install pre-commit') and run 'pre-commit install' once. Until then the backstops do not run."
+  fi
+fi
+```
+
+Deliberate admin bypass stays possible via `git commit --no-verify` — the backstops
+constrain the agent, not the human.
+
 ### Step 3: Report Success
 
 Display completion message:
 
 ```
-✅ My-Spec initialized successfully!
+✅ SPECTER initialized successfully!
 
 📦 Installed:
 - ✅ Spec-Kit (latest version from upstream)
-- ✅ My-Spec Constitution: .specify/memory/constitution.md
+- ✅ SPECTER Constitution: .specify/memory/constitution.md
 - ✅ Deterministic gate checker: .specify/scripts/bash/specter-gate.sh
 - ✅ Direct-call bypass hook: .specify/scripts/bash/speckit-specify-gate-hook.sh (+ .claude/settings.json PreToolUse entry)
 - ✅ SessionStart status hook: .specify/scripts/bash/specter-session-status.sh (+ .claude/settings.json SessionStart entry)
@@ -420,4 +473,4 @@ Then run /ms.init again.
 
 ## Next Command
 
-After `/ms.init`: Write your PRD set, run `/ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]`, then run `/ms.codex-checklist`, `/ms.verify`, and `/ms.constitution`. Each Feature cycle starts with `/ms.checklist` and `/ms.codex-verify`, and `/ms.specify` refuses to run when the global audit, per-Feature audit, or Codex verification is missing, failed, or stale.
+After `/ms.init`: Write your PRD set, run `/ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]`, then run `/ms.codex-checklist`, `/ms.verify`, and `/ms.constitution`. Each Feature cycle starts with `/ms.checklist` and `/ms.agent-verify`, and `/ms.specify` refuses to run when the global audit, per-Feature audit, or the dual-agent (Codex & Antigravity) verification is missing, failed, or stale.

@@ -35,9 +35,14 @@ recorded as an amendment or project-specific rule when durable.
 The `/ms.*` workflow is a layered process:
 
 ```text
-/ms.featuremap -> /ms.codex-checklist -> /ms.verify -> /ms.constitution
-/ms.checklist -> /ms.codex-verify -> /ms.specify -> /ms.clarify -> /ms.plan -> /ms.tasks
-/ms.analyze -> /ms.implement -> /ms.review -> [/ms.up-docs] -> /ms.fin
+One-time setup   /ms.featuremap -> /ms.codex-checklist -> /ms.verify -> /ms.constitution
+                 (bundled: /ms.pre-specter; PRD co-authoring beforehand: /ms.prd)
+Per-Feature      /ms.checklist -> /ms.agent-verify -> /ms.specify -> /ms.clarify
+                 -> /ms.plan -> /ms.tasks -> /ms.analyze -> /ms.implement -> /ms.review
+                 (bundled: /ms.specter <NNN>)
+Publish/release  [/ms.up-docs] -> /ms.fin -> /ms.merglease
+Side tracks      /ms.fix (no new requirement) · /ms.expand (PRD Amendment)
+                 · /ms.audit (advisory product audit)
 ```
 
 `/ms.constitution` is not a per-Feature ceremony. It establishes or amends the
@@ -215,8 +220,13 @@ repository.
 
 - TAGS provide best-effort grep-based traceability from requirement to tests,
   code, and docs.
-- TAG integrity issues are warnings by default, not commit-blocking gates, unless
-  Section IX or a user decision explicitly promotes them to blockers.
+- TAG **semantic** issues (does the test actually cover the spec, stale
+  references, orphaned tags) are warnings by default, not commit-blocking gates,
+  unless Section IX or a user decision explicitly promotes them to blockers.
+- TAG **wiring** (every `@CODE` anchor resolves to same-id `@SPEC` and `@TEST`
+  anchors; `@CODE` ids unique; `FIX-*` ids exempt from `@SPEC`) is mechanical
+  and IS commit-blocking where the pre-commit backstop
+  (`scripts/check_tag_chain.py`) is installed.
 
 ### TRUST Gate Ownership
 
@@ -226,7 +236,14 @@ repository.
 | Tests/lint/type/build | `/ms.review` or CI | Blocks when executable gates fail |
 | Coverage | `/ms.review` or CI | Blocks only when tooling and threshold are active |
 | Security scan | `/ms.review` or CI | Blocks HIGH/CRITICAL findings when tooling exists |
-| TAG integrity | `/ms.review` report | Warning by default |
+| TAG wiring | pre-commit backstop | Blocks the commit where installed |
+| TAG semantics | `/ms.review` report | Warning by default |
+
+Gates in this table are enforced two ways, and the distinction matters: rows
+owned by hooks/CI/pre-commit are **mechanical** (they run regardless of agent
+judgment); rows owned by `/ms.*` commands are **model-followed** (the command's
+instructions enforce them, backed by conductor stop-on-FAIL policy). Do not
+describe a model-followed gate as if a hook enforces it.
 
 ---
 
@@ -264,12 +281,15 @@ Use ASCII separators in machine-readable TAG chains:
 
 ### Multi-File Work
 
-- Multiple code files may share the same `@CODE:TAG-ID` when they implement the
-  same requirement or Feature slice.
+- Each `@CODE:TAG-ID` anchor lives in exactly **one** file — the primary file
+  for that requirement slice. The pre-commit backstop rejects duplicate `@CODE`
+  ids mechanically. Secondary files restate the chain on a `@CHAIN:` line
+  (ignored by the backstop) instead of declaring a second anchor.
 - Multiple test files may share the same `@TEST:TAG-ID` when they verify the same
   requirement or Feature slice.
-- Duplicate TAG IDs are only errors when they point to conflicting requirements,
-  unrelated behaviors, or stale references.
+- `/ms.fix` work uses `FIX-*` ids: no `@SPEC` anchor is required (the block
+  records `@SPEC: (fix — no spec)`), and a purely presentational fix declares
+  `@TEST: (presentational — no test)` in place of a test anchor.
 
 ### TAG Block Format
 
@@ -288,11 +308,13 @@ git reality or be omitted. Do not hand-stamp today's date on unchanged files.
 
 ### Validation
 
-- Broken chains, orphaned TAGs, and missing references are reported by
-  `/ms.review` or TAG tooling.
-- TAG issues are warnings by default.
-- A project may promote TAG integrity to blocking only through an explicit
-  Section IX rule or user decision.
+- Mechanical wiring (`@CODE` -> same-id `@SPEC`/`@TEST` anchors, unique `@CODE`
+  ids, the `FIX-*` exemptions above) is enforced by the pre-commit backstop
+  `scripts/check_tag_chain.py` where installed — it blocks the commit.
+- Semantic issues (coverage fidelity, orphaned TAGs, stale references) are
+  reported by `/ms.review` or TAG tooling and are warnings by default.
+- A project may promote TAG semantic integrity to blocking only through an
+  explicit Section IX rule or user decision.
 
 ---
 

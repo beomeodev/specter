@@ -7,7 +7,7 @@ description: Traceability automation skill that generates language-specific TAG 
 
 ## What it does
 
-Manages TAG block lifecycle for My-Spec workflow traceability:
+Manages TAG block lifecycle for SPECTER workflow traceability:
 - Generates language-specific TAG blocks (Python, TypeScript, JavaScript)
 - Creates complete @SPEC → @TEST → @CODE chains
 - Ensures unique TAG ID assignment
@@ -33,12 +33,19 @@ Manages TAG block lifecycle for My-Spec workflow traceability:
 - `LDOCS-003`: Living-Docs feature #3
 - `SKILLS-004`: Skills system feature #4
 
-**Domain Prefixes** (My-Spec MoAI integration):
+**Domain Prefixes** (SPECTER integration):
 - `HOOKS-XXX`: Hook system features
 - `SKILLS-XXX`: Skills implementation
 - `LDOCS-XXX`: Living-Docs system
 - `AGENTS-XXX`: Sub-agents
 - `INFRA-XXX`: Infrastructure tasks
+
+**`FIX-<AREA>-XXX` (reserved — `/ms.fix` track)**: fixes with no governing
+spec. Their TAG block records `@SPEC: (fix — no spec)`; the pre-commit
+backstop (`scripts/check_tag_chain.py`) waives the `@SPEC` anchor for `FIX-*`
+ids, requires `@TEST:FIX-…` for behavioral fixes, and accepts the literal
+marker `@TEST: (presentational — no test)` for presentational ones. Never use
+the `FIX-` prefix for Feature work.
 
 ### TAG Chain Structure
 
@@ -345,5 +352,3 @@ rg "@(SPEC|TEST|CODE):AUTH-001" -n specs/ tests/ src/
 
 ## Related Skills
 - `ms-foundation-trust`: TAG chain validation (Trackable principle)
-- `moai-foundation-tags`: TAG inventory and orphan detection
-- `moai-alfred-tag-scanning`: TAG scanning and reporting
