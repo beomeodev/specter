@@ -2,7 +2,7 @@
 
 All notable changes to this repository are documented in this file.
 
-## [Unreleased]
+## [2.3.1] - 2026-07-06
 
 ### Added
 - **`/ms.sync` 워크플로우 브로드캐스트**: manifest에 등록된 워크플로우 파일(.claude 커맨드/스킬/
@@ -23,8 +23,6 @@ All notable changes to this repository are documented in this file.
   실행 배선이 없었음).
 - **`check_tag_chain.py` FIX-트랙 지원**: `FIX-*` id는 `@SPEC` 앵커 면제, presentational 마커
   (`@TEST: (presentational — no test)`) 허용. 테스트 `tests/test_check_tag_chain.py` 추가.
-
-### Added (2)
 - **`/ms.sync` 삭제 전파**: SPECTER에서 실제로 삭제된 manifest 파일은 타겟에서도 제거
   (`DELETED-UPSTREAM`; 타겟이 커스터마이즈한 파일은 보존하고 baseline만 해제 —
   `DELETE-KEPT-LOCAL`, 이후 타겟 소유). manifest glob 축소는 삭제로 취급하지 않음.
@@ -51,6 +49,11 @@ All notable changes to this repository are documented in this file.
   `/ms.fin` PR body를 리뷰 리포트에서 생성(존재하지 않던 `docs/PR_*_BODY.md` 의존 제거).
   `implementation-notes.md`를 `/ms.review`·`/ms.amend`가 실제로 소비하도록 배선. mypy CI 게이트
   fail-open 수정. 에이전트 정의의 Model-Selection 의례 블록·유령 참조 제거.
+- **코어 스크립트/테스트 재배치**: 게이트·sync 스크립트를 `scripts/specter/`로, 해당 테스트를
+  `tests/specter/`로 이동하고 모든 참조 경로를 갱신.
+- **README 전면 개편**: 847줄 → 간결판으로 재구성(워크플로우 다이어그램·계약 섹션 유지),
+  영어 정본 `README.md` + 한국어 `README.ko.md`로 분리, 멀티 에이전트(Codex 드라이버 패리티)
+  및 uv 패키지 배포 로드맵 섹션 신설.
 
 ## [2.3.0] - 2026-07-03
 

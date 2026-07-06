@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-    <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v2.3.0-2ea44f" alt="release"></a>
+    <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v2.3.1-2ea44f" alt="release"></a>
     <a href="https://github.com/github/spec-kit"><img src="https://img.shields.io/badge/built%20on-Spec--Kit%20v0.11.6-cc785c" alt="built on Spec-Kit"></a>
     <a href="#필수-도구"><img src="https://img.shields.io/badge/Python-3.14%2B%20·%20uv-3776ab" alt="Python 3.14+ · uv"></a>
     <a href="https://claude.com/claude-code"><img src="https://img.shields.io/badge/Claude%20Code-workflow%20overlay-d97757" alt="Claude Code overlay"></a>
@@ -73,7 +73,7 @@ When a user submits valid credentials, the auth service shall issue a session to
 export class AuthService {}
 ```
 
-현재 릴리즈는 `v2.3.0`입니다 — 변경 이력은 [CHANGELOG.md](./CHANGELOG.md)를 보세요.
+현재 릴리즈는 `v2.3.1`입니다 — 변경 이력은 [CHANGELOG.md](./CHANGELOG.md)를 보세요.
 
 ---
 
