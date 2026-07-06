@@ -1,6 +1,6 @@
 ---
 description: "Product-level completeness audit — finds what per-Feature gates structurally can't: unexposed features, cold-start failures, security posture, gate drift. Advisory; findings route to /ms.fix, /ms.expand, or todo."
-argument-hint: "[--modules exposure,coldstart,threat,perf,gates] [--agents]"
+argument-hint: "[--modules exposure,coldstart,threat,perf,gates] [--adversarial]"
 ---
 
 # /ms.audit - Product-Level Completeness Audit
@@ -120,7 +120,7 @@ looked at:
 3. The ledger's open items are next audit's priority queue. An empty ledger is a finding
    about the ledger, not an achievement — repopulate it honestly.
 
-### Step 6: Findings Report + Routing
+### Final Step: Findings Report + Routing
 
 Write `docs/audit/AUDIT-<YYYY-MM-DD>.md` and present the Korean summary:
 
@@ -138,9 +138,9 @@ P3  새 요구사항으로 판명된 것                          → ## PRD Ame
 ```
 
 Route each finding explicitly — an audit whose findings die in the report is theater. If
-`--agents` was passed, run one Codex adversarial pass over the findings list (challenge
+`--adversarial` was passed, run one Codex adversarial pass over the findings list (challenge
 severity and evidence; external-agent protocol and degrade rules as in `/ms.review`) before
-presenting.
+presenting. (`--agents` is accepted as a legacy alias.)
 
 ## What This Command Is Not
 

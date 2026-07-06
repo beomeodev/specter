@@ -144,7 +144,8 @@ confirmation, then write.
 Sweep the Parking Lot (hard rule from Step 1). Then apply the `ms-foundation-prd` skill:
 8-phase structure, GEARS-compatible acceptance criteria, Testing Decisions (seams), template
 choice scaled to project size, no file paths, no unresolved placeholders (`TBD`/`_or_equivalent`
-— `/ms.checklist` will FAIL them later; resolve or tag 🔵 with an owner). Mode C writes a
+— `/ms.checklist` WARNs on them anywhere and FAILs them inside done criteria;
+resolve or tag 🔵 with an owner). Mode C writes a
 `## PRD Amendment N — YYYY-MM-DD` section appended to the existing PRD instead.
 
 ### Step 8: Report + Handoff

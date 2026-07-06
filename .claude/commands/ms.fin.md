@@ -50,7 +50,9 @@ documentation is up to date:
 /ms.up-docs --docs=dev
 ```
 
-This updates `docs/dev_daily.md` and API specifications based on staged files.
+This updates `docs/dev_daily.md` from the outgoing work (staged + uncommitted +
+unpushed changes). API-doc regeneration is not part of `--docs=dev`; run
+`/ms.up-docs --docs=api` separately when API surfaces changed.
 
 ---
 
@@ -61,7 +63,15 @@ the human can *own* what the product is allowed to destroy or expose — and bec
 `/ms.fin` sits on every track (feature AND fix), this net catches changes that never
 passed `/ms.review`.
 
-1. **Detect high-stakes hunks** in the outgoing diff (`git diff HEAD` + staged).
+1. **Detect high-stakes hunks** in the full outgoing diff — everything that
+   would be published, not just what is uncommitted. Compute it as the unpushed
+   range **plus** the working tree:
+   ```bash
+   BASE=$(git rev-parse --abbrev-ref --symbolic-full-name @{upstream} 2>/dev/null || echo origin/master)
+   git diff "$BASE"...HEAD   # commits not yet pushed (this is what catches the /ms.fix track,
+                             # which commits in its own Step 6 before reaching /ms.fin)
+   git diff HEAD             # uncommitted + staged work
+   ```
    A hunk is high-stakes if it touches any of:
    - **auth/credentials**: session, token, password, OTP/2FA, crypto keys, permission checks
    - **money/value**: prices, balances, orders, payments, quantities that map to money
@@ -86,6 +96,9 @@ passed `/ms.review`.
    not.
 4. On a re-run in the same session (e.g. after a CI fix), re-digest only hunks that
    changed since the last ack — don't make the user re-read what they already read.
+   The same rule covers `/ms.review` Step 6.6b: migration hunks the user already
+   acked in this session's migration-rollback analysis are skipped here unless
+   they changed since that ack.
 
 ---
 
@@ -159,7 +172,9 @@ Tasks to execute:
 3. Push:
    - Push the committed branch to origin.
 4. PR Auto-create:
-   - Auto-detect the latest docs/PR_*_BODY.md file.
+   - Compose the PR body from the latest review report in docs/review/ (if any)
+     plus this run's commit messages: summary, key changes by concern, gate
+     results, outstanding warnings from .specify/review-state.txt.
    - Use 'gh' CLI to create a new PR or edit the body if one already exists.
    - Output the PR URL.
 

@@ -102,10 +102,7 @@ Then run:
 6. Extract **only** the new `## PRD Amendment N` section text for every downstream step. Do not
    re-read the full PRD.
 
-**Session read policy**: if a required file was already read in this session and has not
-changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
-harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
-requirement even if the content is already in context.
+**Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 ### Step 1: Append-Only Map Extension
 
@@ -157,14 +154,13 @@ Host + Antigravity audit, scoped to only:
 (c) the extended DAG has no cycle;
 (d) every deferred/out-of-scope item in the amendment has a destination Feature.
 
-Invoke Antigravity in the foreground, same pattern as `/ms.verify` Step 0.5, with a prompt scoped
+Invoke Antigravity in the foreground, same pattern as `/ms.verify` Step 0.2, with a prompt scoped
 to the amendment text, the new Feature sections, and the DAG extension only (not the whole
 product). Wait for it to finish before continuing.
 
-- **Antigravity unavailable** (after one retry): degrade — run the audit Codex-only, force the
-  result to at most `WARN`, and record `Antigravity: UNAVAILABLE (<reason>)` in the
-  reconciliation section below. Never silently pass a dual-agent station as if both ran, and
-  never block the whole `/ms.expand` run on an environment issue with Antigravity alone.
+- **Antigravity unavailable** (after one retry): apply the Degrade Rule from
+  `specter-agent-protocols` §2 — run the audit Codex-only, force the result to at most `WARN`,
+  and record `Antigravity: UNAVAILABLE (<reason>)` in the reconciliation section below.
 
 Append to `docs/prd/feature-map.checklist.md` (do not touch prior sections):
 

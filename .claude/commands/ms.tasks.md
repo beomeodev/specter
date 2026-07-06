@@ -21,7 +21,7 @@ Extends `/speckit-tasks` to generate implementation tasks with automatic TAG ID 
 - Constitution-aware task breakdown (respects file size limits)
 - Library-informed task structure (tasks reflect actual implementation patterns)
 
-**Purpose**: Creates a detailed task breakdown with best-effort traceability support, ensuring each User Story has a unique TAG ID for the My-Spec workflow.
+**Purpose**: Creates a detailed task breakdown with best-effort traceability support, ensuring each User Story has a unique TAG ID for the SPECTER workflow.
 
 ## Execution Steps
 
@@ -33,10 +33,7 @@ Extends `/speckit-tasks` to generate implementation tasks with automatic TAG ID 
 - `specs/[spec-id]/spec.md` (Feature specification - REQUIRED)
 - `specs/[spec-id]/plan.md` (Implementation plan - REQUIRED)
 
-**Session read policy**: if a required file was already read in this session and has not
-changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
-harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
-requirement even if the content is already in context.
+**Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 **IF Constitution, spec.md, or plan.md missing**:
 - Display error: "Required files missing. Run `/ms.init`, `/ms.specify`, and `/ms.plan` first."
@@ -96,7 +93,7 @@ Execute `/speckit-tasks` to generate base task structure with verified planning 
 
 **Output**: `specs/[spec-id]/tasks.md` with complete task structure (without TAG IDs yet)
 
-### 3. TAG ID Generation (My-Spec Enhancement)
+### 3. TAG ID Generation (SPECTER Enhancement)
 
 **This step is UNIQUE to `/ms.tasks`** - not provided by `/speckit-tasks`.
 
@@ -197,7 +194,7 @@ rg -o '@SPEC:([A-Z][A-Z0-9-]*-[0-9]{3})' specs/[spec-id]/tasks.md \
     done
 ```
 
-### 4. Insert TAG Metadata (My-Spec Enhancement)
+### 4. Insert TAG Metadata (SPECTER Enhancement)
 
 **This step is UNIQUE to `/ms.tasks`** - not provided by `/speckit-tasks`.
 
@@ -219,7 +216,7 @@ Add TAG chains to tasks.md for each User Story:
 
 ### 5. Report Output
 
-Display summary (KOREAN ONLY - Issue 8.1, 8.2, 8.3):
+Display summary (in Korean):
 
 ```json
 {

@@ -20,6 +20,11 @@ creation to the **Google Antigravity CLI**.
 - **No CI polling in the host session.** Antigravity's single delegated run waits for CI itself as
   part of its own preflight; the host must not loop `gh pr checks` / `gh run watch` or schedule
   wakeups to check on it.
+- **Approval posture (explicit exemption).** AGENTS.md §7's "ask before merging or creating
+  releases" is satisfied by the user invoking `/ms.merglease` itself — the invocation *is* the
+  approval, exactly as `/ms.fin`'s invocation covers its commit/push. The run is therefore
+  non-interactive by default; `--confirm` restores per-step confirmation for anyone who wants
+  it. Merging or releasing outside this command still requires an explicit ask.
 
 ## Execution Steps
 
@@ -91,6 +96,8 @@ Tasks to execute:
    - Mark the merged Feature's Status row as '✅ shipped'. Do NOT touch 'docs/prd/feature-map.md' —
      this bookkeeping lives only in the separate progress file so it never invalidates the
      Feature Map's gated SHA256.
+   - Commit that edit on master ('chore: mark Feature NNN shipped') and push it to origin.
+     Never end the run leaving master with uncommitted changes.
 
 9. Branch cleanup (if requested via '--cleanup').
 

@@ -13,7 +13,7 @@ This command is the **front of the Specter pipeline** and runs **BEFORE** `/ms.s
 ```
 /ms.featuremap  →  /ms.codex-checklist  →  /ms.verify  →  /ms.constitution
                  →  repeat per Feature in DAG order:
-                    /ms.checklist  →  /ms.codex-verify  →  /ms.specify  →  /ms.clarify  →  /ms.plan
+                    /ms.checklist  →  /ms.agent-verify  →  /ms.specify  →  /ms.clarify  →  /ms.plan
                     →  /ms.tasks  →  /ms.analyze  →  /ms.implement  →  /ms.review
 ```
 
@@ -76,10 +76,7 @@ user before proceeding.
 - `.specify/memory/constitution.md` (development methodology + project constraints)
 - `AGENTS.md` / `CLAUDE.md`
 
-**Session read policy**: if a required file was already read in this session and has not
-changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
-harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
-requirement even if the content is already in context.
+**Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 **IF no PRD set can be found or confirmed** → ask the user for the PRD path and STOP. Do not guess content.
 
@@ -277,11 +274,11 @@ After global verification passes, establish the project baseline once:
 
 Then validate the FIRST Feature and specify it:
    /ms.checklist
-   /ms.codex-verify
+   /ms.agent-verify
    /ms.specify  + paste the full "Feature 001" section from docs/prd/feature-map.md
 
 ⛔ Reminder: /ms.specify must be driven by a Feature section from THIS file, and
-   it will refuse to run if the global verification, per-Feature checklist, or Codex verification is missing or failed,
+   it will refuse to run if the global verification, per-Feature checklist, or dual-agent (Codex & Antigravity) verification is missing or failed,
    or if the Constitution baseline has not been established.
 ```
 
@@ -307,7 +304,7 @@ After `/ms.featuremap`:
 2. Fix any blocking issues in `docs/prd/feature-map.md` and re-run `/ms.verify`.
 3. Run `/ms.constitution` once to establish Section IX from the PRD set and checked Feature Map.
 4. Run `/ms.checklist` to validate the next eligible Feature against its Source PRDs, PRD references, and commitment rows.
-5. After the per-Feature checklist passes, run `/ms.codex-verify` for the same Feature.
-6. After the Codex verification output is available, open `docs/prd/feature-map.md`, read the selected Feature section in full.
+5. After the per-Feature checklist passes, run `/ms.agent-verify` for the same Feature.
+6. After both verification reports (Codex & Antigravity) are available, open `docs/prd/feature-map.md`, read the selected Feature section in full.
 7. Run `/ms.specify` and paste that Feature section as the input.
 8. Proceed through the dependency graph one Feature at a time, in order.

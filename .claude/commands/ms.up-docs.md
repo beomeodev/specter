@@ -48,10 +48,7 @@ This command performs **document synchronization** with 3 modes:
 - `.specify/memory/constitution.md` (Constitution - REQUIRED)
 - `AGENTS.md` (AI instructions - if exists)
 
-**Session read policy**: if a required file was already read in this session and has not
-changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
-harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
-requirement even if the content is already in context.
+**Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 **Reference key sections**:
 - Constitution Section V (TAGS: Best-Effort Traceability)
@@ -142,18 +139,22 @@ EXIT: Code 0
 
 #### Dev Daily Log Sync (`--docs=dev`)
 
-**Goal**: Append git diff summary to developer daily log
+**Goal**: Append a summary of the **outgoing** work to the developer daily log
 
 **Process**:
-1. Get git diff since last commit:
+1. Get the outgoing diff — staged + uncommitted + unpushed commits, i.e. the work
+   this publish run is about (NOT `HEAD~1`, which describes the previous commit):
    ```bash
-   git diff HEAD~1 --stat
-   git log -1 --format='%h %s'
+   BASE=$(git rev-parse --abbrev-ref --symbolic-full-name @{upstream} 2>/dev/null || echo origin/master)
+   git diff --stat "$BASE"...HEAD   # unpushed commits (e.g. the /ms.fix track)
+   git diff --stat HEAD             # staged + uncommitted work
+   git log --format='%h %s' "$BASE"..HEAD
    ```
+   If the repo has no upstream yet, fall back to `git diff --stat HEAD` alone.
 
 2. Summarize changes:
    - Files modified (added/changed/deleted lines)
-   - Commit message
+   - Unpushed commit messages (if any)
    - TAG IDs affected
 
 3. Append to `docs/dev_daily.md`:
@@ -213,7 +214,9 @@ rg '@(SPEC|TEST|CODE|DOC):([A-Z]+-[0-9]+)' -n
 **TAG policy**:
 - TAG integrity is best-effort by default.
 - `@DOC` is optional.
-- Multiple `@CODE:ID` and `@TEST:ID` occurrences are allowed for multi-file work.
+- Multiple `@TEST:ID` occurrences are allowed for multi-file work; `@CODE:ID`
+  anchors are unique per id (secondary files restate the chain on a `@CHAIN:` line
+  — Constitution Section V, enforced by the pre-commit backstop).
 - Do not block documentation sync on TAG warnings unless the active Constitution
   Section IX or CI explicitly promotes TAG integrity to blocking.
 
@@ -260,7 +263,7 @@ rg '@(SPEC|TEST|CODE|DOC):([A-Z]+-[0-9]+)' -n
 🎯 Next Steps:
 1. Review updated docs in docs/ directory
 2. Fix orphan TAGs if needed
-3. Commit docs with: git add docs/ && git commit -m "docs: sync Living Documents"
+3. Publish via /ms.fin (it stages and commits by logical concern — do not make a separate docs-only commit when a fin run is next)
 ```
 
 ## Error Handling
@@ -325,7 +328,7 @@ Continue anyway? (sync completed; TAG findings are warnings unless promoted by S
 
 **Exit**: Code 0 (warning, not error)
 
-## Integration with My-Spec Workflow
+## Integration with SPECTER Workflow
 
 **Called by**:
 - `/ms.fin` command (before commit)
@@ -333,7 +336,7 @@ Continue anyway? (sync completed; TAG findings are warnings unless promoted by S
 
 **Workflow position**:
 ```
-/ms.featuremap → /ms.codex-checklist → /ms.verify → /ms.constitution → /ms.checklist → /ms.codex-verify → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.analyze → /ms.implement → /ms.review → [/ms.up-docs] → /ms.fin
+/ms.featuremap → /ms.codex-checklist → /ms.verify → /ms.constitution → /ms.checklist → /ms.agent-verify → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.analyze → /ms.implement → /ms.review → [/ms.up-docs] → /ms.fin
                                                               ↑
                                                       (optional, but recommended)
 ```
@@ -347,7 +350,7 @@ Continue anyway? (sync completed; TAG findings are warnings unless promoted by S
 
 ## Document Structure
 
-**My-Spec document tree**:
+**SPECTER document tree**:
 ```
 docs/
 ├── api/               # API documentation (auto-generated from @CODE TAGs)
@@ -359,7 +362,7 @@ docs/
 └── guides/            # User guides (mostly manual)
 
 README.md              # Project overview (auto-sections + manual)
-CHANGELOG.md           # Change history (manual, updated by /ms.fin)
+CHANGELOG.md           # Change history (manual — no command updates it automatically)
 ```
 
 **Auto-generated markers**:
@@ -380,7 +383,7 @@ CHANGELOG.md           # Change history (manual, updated by /ms.fin)
 
 **File Size**:
 - Each API doc ≤500 lines (split if larger)
-- Generated content follows My-Spec formatting standards
+- Generated content follows SPECTER formatting standards
 
 ## Performance
 
@@ -415,7 +418,7 @@ CHANGELOG.md           # Change history (manual, updated by /ms.fin)
 
 ## References
 
-- My-Spec TAGS: `.specify/memory/constitution.md` Section V
+- SPECTER TAGS: `.specify/memory/constitution.md` Section V
 - TAG System: `ms-workflow-tag-manager` Skill
 - Living Docs: `ms-workflow-living-docs` Skill
 - Document standards: `AGENTS.md` Section 2 (Documentation Updates)

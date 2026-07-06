@@ -1,6 +1,6 @@
 ---
 description: "Code quality review after implementation"
-argument-hint: "[--skip-codex] [--background] [--model MODEL] [--effort low|medium|high] [--runtime-agent=agy]"
+argument-hint: "[--quick] [--fast] [--verbose] [--focus <category>] [--no-interactive] [--skip-codex] [--background] [--model MODEL] [--effort low|medium|high] [--runtime-agent=agy]"
 ---
 
 # /ms.review - Code Quality Review
@@ -37,7 +37,7 @@ Performs deep code quality review and executable code-gate validation after `/ms
 /ms.review
 /ms.review --background
 /ms.review --skip-codex
-/ms.review --model gpt-5.4-mini --effort high
+/ms.review --model gpt-5.5 --effort high
 ```
 
 Codex runs in the foreground by default. Use `--background` only when the review
@@ -67,7 +67,8 @@ review findings and executable gates:
   file/function size, complexity, strict typing, security scan, TAG integrity reporting
 - advisory Codex code review persisted to `docs/review/{spec-id}.codex-review.md` unless `--skip-codex` is supplied
 - unresolved HIGH/CRITICAL review issues persisted to `.specify/review-state.txt`
-  so `/ms.fin` can block or require explicit acknowledgement
+  so `/ms.fin` can surface them and force a CI re-run (advisory visibility —
+  never a mandatory publish blocker; see Step 9's State policy)
 
 ## Execution Steps
 
@@ -100,21 +101,6 @@ this gate to the upstream script's flags; the script only validates `plan.md`+`t
 
 ---
 
-### Step 2: Load Context (Cached)
-
-Read `spec.md`, `plan.md`, and `constitution.md` once and keep them in memory for the rest of the
-review — extract the spec's Domain Terminology section and the plan's Architecture section for
-reference during Step 5's naming/architecture checks.
-
-**Session read policy**: this cache covers the reads above; it does not replace the harness's own
-Read tool. For any file the model reads directly with the Read tool elsewhere in this command
-(e.g. Step 5's per-file naming/architecture review), the same rule applies — if it was already
-read this session and has not changed since, reuse it instead of re-reading. Exception: the
-harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that requirement
-even if the content is already in context.
-
----
-
 ### Step 1.5: Tool Availability Check
 
 Review relies on several external binaries. Check upfront and degrade gracefully when unavailable:
@@ -125,7 +111,23 @@ Step 4 can short-circuit instead of failing mid-run.
 
 ---
 
-### Step 2.5: Intent & Focus Charter (NEW)
+### Step 2: Load Context (Cached)
+
+Read `spec.md`, `plan.md`, and `constitution.md` once and keep them in memory for the rest of the
+review — extract the spec's Domain Terminology section and the plan's Architecture section for
+reference during Step 5's naming/architecture checks. Also read
+`specs/{spec-id}/implementation-notes.md` if it exists — the deviation log `/ms.implement`
+appends when reality forced a departure from `plan.md`. Factor each deviation into Step 5's
+architecture/drift judgment (a deviation already logged and justified is not a drift finding)
+and carry the file into the Step 7 report.
+
+**Session read policy**: per AGENTS.md §2 — this cache covers the reads above, and the same
+reuse rule applies to direct Read-tool reads elsewhere in this command (e.g. Step 5's per-file
+review); a fresh `Read` immediately before `Edit`/`Write` is still required.
+
+---
+
+### Step 2.5: Intent & Focus Charter
 
 Compile a succinct charter that anchors the review:
 
@@ -428,18 +430,13 @@ Unless `--skip-codex` (or `--skip-agents`) is supplied, invoke both Codex and An
 
 #### 0. External Agent Preflight (session-level, once)
 
-Before invoking Codex or Antigravity, check availability **once per session** and remember the
-result — do not re-check on every `/ms.review` call within the same session: the `codex`/`agy`
-binaries are on PATH, auth is configured, and Codex's sandbox mode / Antigravity's write flag are
-set (cheap config checks, not live probe runs). Retry once on failure (a plugin update can
-transiently reset a flag — see `docs/ops/antigravity-write-flag.md` for the re-apply procedure).
-
-If Antigravity is still unavailable after retry, run this station **Codex-only**, force the
-station result to at most `WARN`, and record `Antigravity: UNAVAILABLE (<reason>)` in
-`docs/review/{spec-id}.antigravity-review.md` in place of a normal report. Mirror the same rule if
-Codex is unavailable instead (Antigravity-only + `Codex: UNAVAILABLE (<reason>)`). Never silently
-report this station as if both agents ran when only one did; never block `/ms.review` on an
-environment issue alone.
+Apply the Preflight and Degrade Rule from
+`.claude/skills/specter-agent-protocols/SKILL.md` (§1–2). For this command: a **dual-agent
+station** — if one agent is unavailable after preflight + one retry, run it single-agent, cap
+the station result at `WARN`, and record `<Agent>: UNAVAILABLE (<reason>)` in the missing
+agent's report path (`docs/review/{spec-id}.codex-review.md` /
+`{spec-id}.antigravity-review.md`). Never present a single-agent run as dual; never block
+`/ms.review` on an environment issue alone.
 
 #### A. Codex & Antigravity Code Review (same prompt body, different agent)
 
@@ -454,6 +451,7 @@ Both agents must read:
 - `specs/[spec-id]/spec.md`
 - `specs/[spec-id]/plan.md`
 - `specs/[spec-id]/tasks.md`
+- `specs/[spec-id]/implementation-notes.md` if it exists (logged plan deviations)
 - `docs/prd/checklists/feature-NNN.checklist.md`
 - the Step 6.6 Done Criteria Execution table (RUNNABLE results and evidence)
 - the current git diff against the review base
@@ -506,12 +504,10 @@ final message, verbatim, so it can be salvaged if the file write fails.
 
 If the user supplied `--background`, add `--background` to both invocations and report that `/ms.review` must be rerun after both files appear. If the user supplied `--model` or `--effort`, pass those values through instead of the defaults.
 
-**Report-Write Protocol**: agents still write their own report files (unchanged, primary path).
-After the run, deterministically check the written file: it exists, is non-empty, and contains
-`**Result**:`. If a report is missing or partial after one retry, **salvage** it from that retry's
-`===REPORT BEGIN===`/`===REPORT END===` markers instead of stopping the whole gate or
-hand-transcribing it yourself. If no markers were captured either, apply the Preflight Degrade
-Rule (subsection 0) instead of stopping outright.
+**Report-Write Protocol**: apply `specter-agent-protocols` §3 — deterministic file check
+(exists, non-empty, contains `**Result**:`), retry once, salvage from the
+`===REPORT BEGIN===`/`===REPORT END===` markers, and only then fall back to the subsection-0
+Degrade Rule.
 
 #### B. Result handling for both reviews (feeds the Result Model, Step 6):
 - `PASS`: no trigger; SPECTER review result unchanged.
@@ -521,19 +517,10 @@ Rule (subsection 0) instead of stopping outright.
 
 #### C. Convergence Policy (re-round caps)
 
-Unbounded re-review loops burn tokens without improving the outcome (atlas F001 ran 10 Codex
-rounds on one Feature; 47+ re-rounds project-wide). Cap automatic re-rounds:
-
-- **Round 1**: the full dual-agent run above, over the whole diff.
-- **Round 2** (only if Round 1 produced any `FAIL` finding): re-run scoped to *only* the findings
-  that were `FAIL` — the prompt states each failing finding plus the fix diff made in response; it
-  does not ask either agent to re-review the whole diff again.
-- **Round 3** is the last automatic round, and only re-checks findings still `FAIL` after Round 2.
-- **Stop condition**: after Round 3, or as soon as only `WARN`-level findings remain (no `FAIL`),
-  stop re-running agents automatically. Record every residual `WARN` in `docs/review/` and
-  `.specify/review-state.txt` — do not silently drop it — and hand the decision (proceed with
-  warnings, or fix and rerun manually) to the user. Running a further round after this point
-  requires an explicit user instruction; it is not something `/ms.review` does on its own.
+Apply the Convergence Policy from `specter-agent-protocols` §4 (max 3 automatic rounds; Round 2+
+scoped to failing findings only; stop when only `WARN`s remain). Record every residual `WARN` in
+`docs/review/` and `.specify/review-state.txt` — never silently drop one. (Basis: atlas F001 ran
+10 Codex rounds on one Feature; 47+ re-rounds project-wide.)
 
 ---
 
@@ -558,7 +545,7 @@ Report structure (console + file):
 
 ---
 
-### Step 8: Interactive Actions (NEW)
+### Step 8: Interactive Actions
 
 **Only if HIGH/CRITICAL issues exist**, prompt user:
 

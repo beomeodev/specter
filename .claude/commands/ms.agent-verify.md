@@ -49,35 +49,31 @@ docs/prd/checklists/feature-NNN.checklist.md
 
 If no per-Feature checklist exists, stop and tell the user to run `/ms.checklist` first.
 
-**Session read policy**: if a required file was already read in this session and has not
-changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
-harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
-requirement even if the content is already in context.
+Then verify the checklist is actually usable — existence alone is not the gate. Run the
+deterministic checker for the resolved Feature:
+
+```bash
+.specify/scripts/bash/specter-gate.sh NNN
+```
+
+If `feature_checklist_result_ok` is false (Result is FAIL/missing) or `feature_checklist_sha_ok`
+is false (the Feature Map changed since the checklist was written), stop and tell the user to
+fix the Feature section and re-run `/ms.checklist` — dual-agent verification of a failed or
+stale checklist wastes both agents. Ignore this script's `codex_verify`/`antigravity_verify`
+fields here; producing those files is this command's own job.
+
+**Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 ### Step 0.5: External Agent Preflight (session-level, once)
 
-Before invoking Codex or Antigravity, check availability **once per session** and remember the
-result — do not re-check on every `/ms.agent-verify` call within the same session:
-
-- **Codex**: the `codex` binary is on PATH, auth is configured, and its sandbox mode in
-  `~/.codex/config.toml` is not read-only (e.g. `workspace-write` or `danger-full-access`) — a
-  cheap config check, not a live probe run.
-- **Antigravity**: the `agy` binary is on PATH, auth is configured, and its write flag is set (a
-  cheap config check, not a live probe run).
-
-If a check fails, retry once (a plugin update can transiently reset a flag — see
-`docs/ops/antigravity-write-flag.md` for the re-apply procedure). If it still fails,
-apply the Degrade Rule below instead of blocking the whole command.
-
-**Degrade Rule**:
-- Antigravity unavailable after retry → run this station **Codex-only**, force the station result
-  to at most `WARN`, and record `Antigravity: UNAVAILABLE (<reason>)` in
-  `feature-NNN.antigravity-verify.md` in place of a normal report.
-- Codex unavailable after retry → run this station **Antigravity-only**, force the station result
-  to at most `WARN`, and record `Codex: UNAVAILABLE (<reason>)` in `feature-NNN.codex-verify.md`.
-- Never silently report this dual-agent station's result as if both agents ran when only one did.
-- Never block the whole per-Feature cycle on an external-agent environment issue alone — degrade,
-  record it, and continue.
+Apply the Preflight and Degrade Rule from
+`.claude/skills/specter-agent-protocols/SKILL.md` (§1–2). For this command: a
+**dual-agent station** — if one agent is unavailable after preflight + one retry,
+run the station single-agent, cap the station result at `WARN`, and write
+`<Agent>: UNAVAILABLE (<reason>)` into the missing agent's report path
+(`feature-NNN.codex-verify.md` / `feature-NNN.antigravity-verify.md`). Never
+present a single-agent run as dual; never block the cycle on an environment
+issue alone.
 
 ### Step 1: Run Codex & Antigravity In Foreground (Parallel)
 
@@ -95,18 +91,10 @@ Invoke the Codex and Antigravity plugin rescue commands in the foreground, in pa
 
 If the user provided `--model` or `--effort`, pass those values through instead of the defaults.
 
-**Report-Write Protocol**: agents still write their own report files (unchanged, primary path).
-Each prompt in Step 2 additionally requires echoing the finished report between
-`===REPORT BEGIN===` / `===REPORT END===` markers in the agent's final message — near-zero
-marginal cost, since the agent emits a final message regardless. After the run, deterministically
-check the written report file: it exists, is non-empty, and contains `**Result**:`.
-
-If either agent fails to write its `*-verify.md` report (crash, partial output, or write error),
-retry that agent once. If it still fails: **salvage** the report by writing the file from the
-`===REPORT BEGIN===`/`===REPORT END===` markers captured in that retry's final message, instead of
-stopping the whole gate or hand-transcribing the report yourself. If no markers were captured
-either (the agent produced no usable final message), apply the availability Degrade Rule from
-Step 0.5 instead of stopping outright.
+**Report-Write Protocol**: apply `specter-agent-protocols` §3 — deterministic file check
+(exists, non-empty, contains `**Result**:`), retry once, salvage from the
+`===REPORT BEGIN===`/`===REPORT END===` markers, and only then fall back to the Step 0.5
+Degrade Rule.
 
 ### Step 2: Agent Prompts
 
@@ -167,7 +155,7 @@ Read:
 - docs/prd/feature-map.checklist.md
 - docs/prd/checklists/feature-NNN.checklist.md
 - the Source PRDs and PRD references named by Feature NNN
-- docs/prd/antigravity/checklist.md if it exists
+- docs/prd/feature-map.antigravity-checklist.md if it exists
 
 Do not edit the Feature Map, PRDs, specs, plans, tasks, or canonical checklist.
 Only write docs/prd/checklists/feature-NNN.antigravity-verify.md.

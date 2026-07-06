@@ -142,6 +142,14 @@ Ask for user approval before:
 - starting local servers
 - committing, amending commits, pushing, merging, or creating releases
 
+Approval for git publishing is satisfied by invocation, not per-action asks:
+`git commit`/`git push`/`gh pr` are deliberately in the project permission
+allowlist (`.claude/settings.json`), and running `/ms.fin`, `/ms.fix`, or
+`/ms.merglease` **is** the user's approval for the git actions those commands
+define. Ad-hoc commits/pushes outside an invoked workflow command still ask
+first. The deny list (`git reset --hard`, force-push, `git clean -fdx`) always
+stands.
+
 Do not run destructive commands such as `git reset --hard` or broad deletes
 unless the user explicitly requests and confirms them.
 

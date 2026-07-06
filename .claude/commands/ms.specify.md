@@ -44,14 +44,15 @@ Example:
 Before anything else, verify the input is a Feature section originating from the Feature Map.
 
 **Checks:**
-1. At least one Feature Map file exists. Look for any of:
-   `docs/feature-map.md`, `docs/prd/feature-map.md`, or `docs/**/feature-map*.md`
-   (the per-feature convention `docs/prd/feature-map_<NNN>_*.md` counts — those are
-   also `/ms.featuremap` outputs).
+1. The Feature Map exists at its single conventional path — `docs/prd/feature-map.md`
+   (`/ms.featuremap` writes exactly this one file; it never writes `docs/feature-map.md`
+   or per-feature split files):
    ```bash
-   FEATUREMAP_FILES=$(ls docs/feature-map*.md docs/prd/feature-map*.md 2>/dev/null)
+   FEATUREMAP_FILE=$(ls docs/prd/feature-map.md 2>/dev/null)
    ```
-   - **IF none found** → display the error below and EXIT. Do NOT create a spec.
+   - **IF not found** → display the error below and EXIT. Do NOT create a spec. A
+     non-conventional path is accepted only when the user explicitly names it and
+     confirms it is the `/ms.featuremap` output.
 2. The input (`$ARGUMENTS` or attached/pasted text) is a **Feature section** — i.e. it contains the
    Feature-Map template markers (a `## Feature NNN:` heading plus `### Source PRDs`,
    `### PRD references`, `### In scope`, `### Explicitly out of scope`, `### Done criteria`), OR it clearly names a Feature whose section can
@@ -175,6 +176,12 @@ touch ".specify/.ms-gate-pass-<NNN>"
 Delete it again in Step 3.2 once `/speckit-specify` completes (success or failure) — the token is
 scoped to this single invocation, not a standing bypass.
 
+**Token TTL — 60 minutes.** The PreToolUse hook only honors a token modified within the last
+60 minutes (a stale token from a dead session must not grant a standing bypass). Steps 0.4–3.1
+can legitimately exceed that on a large PRD set, so **re-`touch` the token immediately before
+invoking `/speckit-specify` in Step 3.2**. If the hook still denies the call, re-run this
+command from Step 0.2 rather than working around the hook.
+
 ### 0.4 Load Source PRDs For The Feature Prompt
 
 Before invoking `/speckit-specify`, load the PRD context referenced by the checked Feature section.
@@ -227,10 +234,7 @@ Then continue to Step 1.
 - `.specify/memory/constitution.md` (Constitution - REQUIRED)
 - `AGENTS.md` (AI instructions, coding standards - if exists)
 
-**Session read policy**: if a required file was already read in this session and has not
-changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
-harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
-requirement even if the content is already in context.
+**Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 **IF Constitution missing**:
 - Display error: "Constitution not found. Run `/ms.init` first."
@@ -273,51 +277,6 @@ Your output (English): "When a user logs in with valid credentials, the auth ser
 **Refer to Constitution for detailed GEARS rules and TRUST principles.**
 
 Now create the specification following these principles.
-```
-
-### 2.5. Adaptive Context Analysis (Quantitative Decision)
-
-**Step 1: Analyze User Request (Mandatory)**
-
-Extract and count keywords from `$ARGUMENTS`:
-
-```bash
-# Count simple keywords
-SIMPLE_KEYWORDS=$(echo "$ARGUMENTS" | grep -iEo "\b(config|setting|constant|type|interface|util|helper|log|message)\b" | wc -l)
-
-# Count moderate keywords
-MODERATE_KEYWORDS=$(echo "$ARGUMENTS" | grep -iEo "\b(feature|module|component|endpoint|model|service|page|form)\b" | wc -l)
-
-# Count complex keywords
-COMPLEX_KEYWORDS=$(echo "$ARGUMENTS" | grep -iEo "\b(system|architecture|integration|external|api|realtime|workflow|migration)\b" | wc -l)
-
-# Check for existing similar specs
-SIMILAR_SPECS=$(find specs/ -name "spec.md" 2>/dev/null | wc -l)
-```
-
-**Step 2: Apply Decision Tree**
-
-Execute in priority order (stop at first match):
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ DECISION TREE (Priority Order)                              │
-├─────────────────────────────────────────────────────────────┤
-│ 1. IF COMPLEX_KEYWORDS ≥ 2                                  │
-│    → COMPLEX (system-level change)                          │
-│                                                              │
-│ 2. IF SIMPLE_KEYWORDS ≥ 2 AND COMPLEX_KEYWORDS = 0          │
-│    → SIMPLE (config/utility change)                         │
-│                                                              │
-│ 3. IF MODERATE_KEYWORDS ≥ 1 OR SIMILAR_SPECS ≥ 3            │
-│    → MODERATE (feature with patterns available)            │
-│                                                              │
-│ 4. IF SIMPLE_KEYWORDS ≥ 1 AND MODERATE_KEYWORDS = 0         │
-│    → SIMPLE                                                  │
-│                                                              │
-│ 5. FALLBACK (unable to determine)                           │
-│    → MODERATE (safe default - 2 agents)                     │
-└─────────────────────────────────────────────────────────────┘
 ```
 
 ### 3. Run Base Specify Command

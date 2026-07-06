@@ -17,7 +17,7 @@ the generated Feature Map.
 
 ```bash
 /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
-/ms.codex-checklist --model gpt-5.4-mini --effort high @docs/prd/PRD.md
+/ms.codex-checklist --model gpt-5.5 --effort high @docs/prd/PRD.md
 ```
 
 Execution is always background. Users do not pass `--background`.
@@ -56,20 +56,14 @@ Do not read:
 - `plan.md`
 - `tasks.md`
 
-**Session read policy**: if a required file was already read in this session and has not
-changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
-harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
-requirement even if the content is already in context.
+**Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 ### Step 0.5: External Agent Preflight (session-level, once)
 
-Before invoking Codex, check availability **once per session** and remember the result — do not
-re-check on every `/ms.codex-checklist` call within the same session: the `codex` binary is on
-PATH, auth is configured, and its sandbox mode in `~/.codex/config.toml` is not read-only (e.g.
-`workspace-write` or `danger-full-access`) — a cheap config check, not a live probe run. Retry
-once on failure (a plugin update can transiently reset a flag — see
-`docs/ops/antigravity-write-flag.md` for the re-apply procedure). This command has no other agent to degrade to — if Codex is still unavailable after retry,
-stop and report the failure; do not run `/ms.verify` against a missing independent baseline.
+Apply the Preflight from `.claude/skills/specter-agent-protocols/SKILL.md` (§1). For this
+command: a **single-agent station** — there is nothing to degrade to, so if Codex is still
+unavailable after preflight + one retry, stop and report the failure; do not run `/ms.verify`
+against a missing independent baseline.
 
 ### Step 1: Start Codex In Background
 
@@ -180,12 +174,11 @@ Write the checklist to docs/prd/codex/checklist.md with this structure:
 Also echo the finished checklist between ===REPORT BEGIN=== and ===REPORT END=== markers in your
 final message, verbatim, so it can be salvaged if the file write fails.
 
-**Report-Write Protocol**: Codex still writes its own `docs/prd/codex/checklist.md` (unchanged,
-primary path). Whichever command waits on it (`/ms.verify`, `/ms.pre-specter`) checks
-deterministically that the file exists, is non-empty, and contains `**Mode**: prd-only`. If it is
-missing or partial after one retry of this command, salvage it from that retry's
-`===REPORT BEGIN===`/`===REPORT END===` markers instead of re-running the whole background job
-blind or stopping outright.
+**Report-Write Protocol**: apply `specter-agent-protocols` §3 to `docs/prd/codex/checklist.md`
+(expected marker line: `**Mode**: prd-only`). The consuming command (`/ms.verify`,
+`/ms.pre-specter`) runs the deterministic check; on a missing/partial file after one retry,
+salvage from the `===REPORT BEGIN===`/`===REPORT END===` markers instead of re-running the whole
+background job blind or stopping outright.
 
 ### Step 2.5: Run-State Ledger (bookkeeping, not a gate)
 

@@ -40,10 +40,7 @@ Per Constitution Section II:
 
 Read `.specify/memory/constitution.md` and confirm it exists.
 
-**Session read policy**: if a required file was already read in this session and has not
-changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
-harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
-requirement even if the content is already in context.
+**Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 **Key section to reference:**
 
@@ -143,7 +140,7 @@ Display summary:
 {
     "clarifications_made": 5,
     "spec_updated": "specs/001-user-authentication/spec.md",
-    "ears_compliance": "natural (via Constitution)",
+    "gears_compliance": "natural (via Constitution)",
     "next_step": "/ms.plan"
 }
 ```

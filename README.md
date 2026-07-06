@@ -330,7 +330,7 @@ Feature별 게이트는 각 조각을 자기 spec에 대해 증명할 뿐, **제
 **언제 돌리나.** Phase의 마지막 Feature 출하 직후(자연스러운 체크포인트) · 월간(주간
 트리아지의 한 단계 위) · 또는 "뭔가 빈 구멍이 있을 것 같은데"라는 직감이 올 때.
 
-**6개 모듈** (프로젝트에 해당 없는 모듈은 자동 스킵, `--modules`로 선택 실행 가능):
+**6개 모듈** (프로젝트에 해당 없는 모듈은 자동 스킵. `--modules` 선택 키는 5개: `exposure,coldstart,threat,perf,gates` — a11y는 `perf`에 포함, 블라인드스팟 원장은 항상 실행):
 
 | 모듈 | 묻는 질문 |
 |---|---|
@@ -349,7 +349,7 @@ Feature별 게이트는 각 조각을 자기 spec에 대해 증명할 뿐, **제
 ```bash
 /ms.audit                                # 해당되는 모든 모듈
 /ms.audit --modules exposure,coldstart   # 선택 실행
-/ms.audit --agents                       # 발견 목록을 Codex가 적대적으로 재검증
+/ms.audit --adversarial                  # 발견 목록을 Codex가 적대적으로 재검증
 ```
 
 ---

@@ -29,10 +29,7 @@ Read these files in full:
 - `.specify/memory/constitution.md` if it exists
 - `AGENTS.md` if it exists
 
-**Session read policy**: if a required file was already read in this session and has not
-changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
-harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
-requirement even if the content is already in context.
+**Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 If `docs/prd/codex/checklist.md` is missing, stop:
 
@@ -63,23 +60,18 @@ docs/prd/feature-map.checklist.md
 
 ## Execution Steps
 
-### Step 0.4: External Agent Preflight (session-level, once)
+### Step 0.1: External Agent Preflight (session-level, once)
 
-Before invoking Antigravity, check availability **once per session** and remember the result — do
-not re-check on every `/ms.verify` call within the same session: the `agy` binary is on PATH,
-auth is configured, and its write flag is set (a cheap config check, not a live probe run). Retry
-once on failure (a plugin update can transiently reset a flag — see
-`docs/ops/antigravity-write-flag.md` for the re-apply procedure).
-
-If Antigravity is still unavailable after retry, apply the Degrade Rule instead of blocking the
-whole command: proceed with the Codex-only reconciliation in Steps 2–4, write
-`docs/prd/feature-map.antigravity-checklist.md` with `**Result**: UNAVAILABLE (<reason>)` in place
-of a normal audit, and force the overall global gate `**Result**` in
+Apply the Preflight and Degrade Rule from
+`.claude/skills/specter-agent-protocols/SKILL.md` (§1–2). For this command: if Antigravity is
+unavailable after preflight + one retry, proceed with the Codex-only reconciliation in Steps 2–4,
+write `docs/prd/feature-map.antigravity-checklist.md` with `**Result**: UNAVAILABLE (<reason>)`
+in place of a normal audit, and force the global gate `**Result**` in
 `docs/prd/feature-map.checklist.md` to at most `WARN`. Never silently PASS the global gate as if
-Antigravity ran when it did not; never block the whole one-time PRD setup on this environment
-issue alone.
+Antigravity ran when it did not; never block the one-time PRD setup on this environment issue
+alone.
 
-### Step 0.5: Run Antigravity Verification (Foreground)
+### Step 0.2: Run Antigravity Verification (Foreground)
 
 Invoke Google Antigravity in the **foreground** to perform a global Feature Map
 verification, and wait for it to finish before continuing. Running in the
@@ -90,15 +82,10 @@ leaving a silently missing output file.
 /antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <Prompt>
 ```
 
-**Report-Write Protocol**: Antigravity still writes its own report file (unchanged, primary
-path); the prompt below additionally requires echoing the finished report between
-`===REPORT BEGIN===`/`===REPORT END===` markers in its final message. After the run,
-deterministically check the written file: it exists, is non-empty, and contains `**Result**:`.
-
-If Antigravity fails to write `docs/prd/feature-map.antigravity-checklist.md`
-(crash, partial output, or write error), retry once. If it still fails, **salvage** the report
-from that retry's markers instead of stopping the whole gate or hand-transcribing it yourself. If
-no markers were captured either, apply the Step 0.4 Degrade Rule instead of stopping outright.
+**Report-Write Protocol**: apply `specter-agent-protocols` §3 to
+`docs/prd/feature-map.antigravity-checklist.md` — deterministic file check (exists, non-empty,
+contains `**Result**:`), retry once, salvage from the `===REPORT BEGIN===`/`===REPORT END===`
+markers, and only then fall back to the Step 0.1 Degrade Rule.
 
 Antigravity Prompt:
 ```text
@@ -260,8 +247,8 @@ Use this structure:
 
 - `docs/prd/codex/checklist.md` is missing.
 - `docs/prd/feature-map.antigravity-checklist.md` is missing (with no recorded `UNAVAILABLE`
-  degrade per Step 0.4) or has a result of `FAIL`. An `UNAVAILABLE` result is not a FAIL — it
-  forces the overall gate to at most `WARN` instead (see Step 0.4).
+  degrade per Step 0.1) or has a result of `FAIL`. An `UNAVAILABLE` result is not a FAIL — it
+  forces the overall gate to at most `WARN` instead (see Step 0.1).
 - PRD Commitment Index is missing.
 - Any PRD commitment in any source PRD has no index row and no justified
   false-positive explanation.

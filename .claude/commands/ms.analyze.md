@@ -1,6 +1,6 @@
 ---
 description: "Pre-implementation document consistency and drift validation"
-argument-hint: "[--background] [--skip-codex] [--model MODEL] [--effort low|medium|high]"
+argument-hint: "[--background] [--skip-codex|--skip-agents] [--model MODEL] [--effort low|medium|high]"
 ---
 
 # /ms.analyze - Document Consistency Gate
@@ -25,7 +25,7 @@ lint, typecheck, coverage, or code-level TAG scans from this command.
 /ms.analyze
 /ms.analyze --background
 /ms.analyze --skip-codex
-/ms.analyze --model gpt-5.4-mini --effort high
+/ms.analyze --model gpt-5.5 --effort high
 ```
 
 Codex runs in the foreground by default. Use `--background` only when the
@@ -59,9 +59,10 @@ It validates the specification chain before implementation starts:
   fail with the missing requirement ID.
 - When a task has no originating requirement or plan rationale, the command shall
   fail with the orphan task ID.
-- Unless `--skip-codex` is supplied, the command shall ask Codex to perform an
-  advisory document consistency review and write the result to
-  `specs/[spec-id]/analyze.codex.md`.
+- Unless `--skip-codex` (or `--skip-agents`) is supplied, the command shall ask
+  both Codex and Antigravity to perform advisory document consistency reviews and
+  write the results to `specs/[spec-id]/analyze.codex.md` and
+  `specs/[spec-id]/analyze.antigravity.md`.
 - When all documents are consistent, the command shall allow `/ms.implement` to
   proceed.
 
@@ -77,10 +78,7 @@ Read these files in full:
 - `specs/[spec-id]/plan.md`
 - `specs/[spec-id]/tasks.md`
 
-**Session read policy**: if a required file was already read in this session and has not
-changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
-harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
-requirement even if the content is already in context.
+**Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 If any of `spec.md`, `plan.md`, or `tasks.md` is missing, stop and tell the user
 which upstream command must run first.
@@ -120,18 +118,12 @@ Unless `--skip-codex` (or `--skip-agents`) is supplied, invoke both Codex and An
 
 #### 0. External Agent Preflight (session-level, once)
 
-Before invoking Codex or Antigravity, check availability **once per session** and remember the
-result — do not re-check on every `/ms.analyze` call within the same session: the `codex`/`agy`
-binaries are on PATH, auth is configured, and Codex's sandbox mode / Antigravity's write flag are
-set (cheap config checks, not live probe runs). Retry once on failure (a plugin update can
-transiently reset a flag — see `docs/ops/antigravity-write-flag.md` for the re-apply procedure).
-
-If Antigravity is still unavailable after retry, run this station **Codex-only**, force the
-station result to at most `WARN`, and record `Antigravity: UNAVAILABLE (<reason>)` in
-`specs/[spec-id]/analyze.antigravity.md` in place of a normal report. Mirror the same rule if
-Codex is unavailable instead (Antigravity-only + `Codex: UNAVAILABLE (<reason>)`). Never silently
-report this station as if both agents ran when only one did; never block `/ms.analyze` on an
-environment issue alone.
+Apply the Preflight and Degrade Rule from
+`.claude/skills/specter-agent-protocols/SKILL.md` (§1–2). For this command: a **dual-agent
+station** — if one agent is unavailable after preflight + one retry, run it single-agent, cap
+the station result at `WARN`, and record `<Agent>: UNAVAILABLE (<reason>)` in the missing
+agent's report path (`specs/[spec-id]/analyze.codex.md` / `analyze.antigravity.md`). Never
+present a single-agent run as dual; never block `/ms.analyze` on an environment issue alone.
 
 #### A. Codex Review
 ```text
@@ -144,6 +136,7 @@ Codex must read:
 - `docs/prd/feature-map.checklist.md`
 - `docs/prd/checklists/feature-NNN.checklist.md`
 - `docs/prd/checklists/feature-NNN.codex-verify.md`
+- `docs/prd/checklists/feature-NNN.antigravity-verify.md`
 - `specs/[spec-id]/spec.md`
 - `specs/[spec-id]/plan.md`
 - `specs/[spec-id]/tasks.md`
@@ -245,12 +238,10 @@ final message, verbatim, so it can be salvaged if the file write fails.
 
 If the user supplied `--background`, add `--background` to both invocations and report that `/ms.analyze` must be rerun after both files appear. If the user supplied `--model` or `--effort`, pass those values through instead of the defaults.
 
-**Report-Write Protocol**: agents still write their own report files (unchanged, primary path).
-After the run, deterministically check the written file: it exists, is non-empty, and contains
-`**Result**:`. If a report is missing or partial after one retry, **salvage** it from that retry's
-`===REPORT BEGIN===`/`===REPORT END===` markers instead of stopping the whole gate or
-hand-transcribing it yourself. If no markers were captured either, apply the Preflight Degrade
-Rule (subsection 0) instead of stopping outright.
+**Report-Write Protocol**: apply `specter-agent-protocols` §3 — deterministic file check
+(exists, non-empty, contains `**Result**:`), retry once, salvage from the
+`===REPORT BEGIN===`/`===REPORT END===` markers, and only then fall back to the subsection-0
+Degrade Rule.
 
 #### C. Result handling for both agents:
 - `PASS`: keep the SPECTER result unchanged.
@@ -260,19 +251,10 @@ Rule (subsection 0) instead of stopping outright.
 
 #### D. Convergence Policy (re-round caps)
 
-Unbounded re-review loops burn tokens without improving the outcome (atlas F001 ran 10 Codex
-rounds on one Feature). Cap automatic re-rounds:
-
-- **Round 1**: the full dual-agent run above, over the whole document set.
-- **Round 2** (only if Round 1 produced any `FAIL` finding): re-run scoped to *only* the findings
-  that were `FAIL` — the prompt states each failing finding plus the fix diff/edit made in
-  response; it does not ask either agent to re-review the whole document set again.
-- **Round 3** is the last automatic round, and only re-checks findings still `FAIL` after Round 2.
-- **Stop condition**: after Round 3, or as soon as only `WARN`-level findings remain (no `FAIL`),
-  stop re-running agents automatically. Record every residual `WARN` in the Step 5 report — do
-  not silently drop it — and hand the decision (proceed with warnings, or fix and rerun manually)
-  to the user. Running a further round after this point requires an explicit user instruction; it
-  is not something `/ms.analyze` does on its own.
+Apply the Convergence Policy from `specter-agent-protocols` §4 (max 3 automatic rounds; Round 2+
+scoped to failing findings only; stop when only `WARN`s remain). Record every residual `WARN` in
+the Step 5 report — never silently drop one. (Basis: atlas F001 ran 10 Codex rounds on one
+Feature.)
 
 ### Step 4: Result Model
 
@@ -318,7 +300,7 @@ If `PASS`:
 - spec ↔ plan ↔ tasks 정합성 확인
 - Feature Map lineage 확인
 - Constitution alignment 확인
-- Codex document consistency review 확인
+- Codex & Antigravity document consistency review 확인
 
 🎯 다음 단계: /ms.implement
 ```
@@ -337,7 +319,7 @@ If `FAIL`:
 | Command | Responsibility | Timing |
 | --- | --- | --- |
 | `/ms.verify` | Global PRD → Feature Map gate | Before `/ms.constitution` |
-| `/ms.checklist` + `/ms.codex-verify` | Per-Feature PRD readiness gate | Before `/ms.specify` |
+| `/ms.checklist` + `/ms.agent-verify` | Per-Feature PRD readiness gate | Before `/ms.specify` |
 | `/ms.analyze` | spec ↔ plan ↔ tasks document gate plus Codex document review | Before `/ms.implement` |
 | `/ms.review` | code quality + executable gates | After `/ms.implement` |
 
@@ -350,7 +332,7 @@ resume), with `verdict` set to the `document_consistency` Result from Step 5's s
 ```bash
 mkdir -p .specify
 printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"analyze","verdict":"%s","artifacts":["%s"]}\n' \
-  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "<PASS|WARN|FAIL>" "specs/<spec-id>/analyze.codex.md" >> .specify/specter-run.jsonl
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "<PASS|WARN|FAIL>" "specs/<spec-id>/analyze.codex.md\",\"specs/<spec-id>/analyze.antigravity.md" >> .specify/specter-run.jsonl
 ```
 
 ## Next Command

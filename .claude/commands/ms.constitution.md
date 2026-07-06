@@ -30,7 +30,7 @@ are already visible at the PRD/Feature Map level and should constrain every late
 
 ```text
 /ms.featuremap → /ms.codex-checklist → /ms.verify → /ms.constitution
-                                      → /ms.checklist → /ms.codex-verify → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks
+                                      → /ms.checklist → /ms.agent-verify → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks
 ```
 
 ## GEARS Contract
@@ -61,10 +61,7 @@ Read these files in full:
 - `docs/prd/product-principles.md` if it exists
 - `AGENTS.md` if it exists
 
-**Session read policy**: if a required file was already read in this session and has not
-changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
-harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
-requirement even if the content is already in context.
+**Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 If Constitution, Feature Map, Source PRDs, or the global verification is missing, stop and tell the user
 which upstream command must run first.
@@ -253,7 +250,7 @@ Display in Korean:
 🎯 다음 단계: /ms.checklist
 
 참고: /ms.constitution은 매 Feature마다 실행하지 않습니다. 이후 Feature는
-기존 Section IX를 기준으로 /ms.checklist → /ms.codex-verify → /ms.specify → /ms.clarify → /ms.plan 흐름을 탑니다.
+기존 Section IX를 기준으로 /ms.checklist → /ms.agent-verify → /ms.specify → /ms.clarify → /ms.plan 흐름을 탑니다.
 ```
 
 ## Error Handling
@@ -301,6 +298,6 @@ printf '{"ts":"%s","cycle":"pre","feature":null,"step":"constitution","verdict":
 ## Next Command
 
 After `/ms.constitution`, run `/ms.checklist` for the first eligible Feature. If that checklist
-passes, run `/ms.codex-verify`, then `/ms.specify`, then continue with `/ms.clarify` and the rest of
+passes, run `/ms.agent-verify`, then `/ms.specify`, then continue with `/ms.clarify` and the rest of
 the per-Feature cycle. For later Features, skip `/ms.constitution` unless the user intentionally
 revises the project baseline.

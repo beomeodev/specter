@@ -29,11 +29,12 @@ This command handles "round-2 design pivots" or post-implementation discoveries 
 - `specs/[spec-id]/spec.md`
 - `specs/[spec-id]/plan.md`
 - `specs/[spec-id]/tasks.md`
+- `specs/[spec-id]/implementation-notes.md` if it exists — the deviation log
+  `/ms.implement` appends. Any logged deviation that supersedes a requirement
+  is amendment input: fold it into Step 2's analysis and cite the note entry
+  in the Amendment section it produces.
 
-**Session read policy**: if a required file was already read in this session and has not
-changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
-harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
-requirement even if the content is already in context.
+**Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 ### 2. Identify Target FRs/Decisions
 

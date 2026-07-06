@@ -105,11 +105,16 @@ turns are the conditional questions the underlying commands raise.
    - If no PRD exists yet anywhere (not just unattached — genuinely not yet written),
      the `ms-foundation-prd` skill is the recommended pre-step for co-authoring one with
      the user before running this command.
-2. Detect a prior setup (re-run). If **both**
-   `docs/prd/feature-map.checklist.md` already reads `Result: PASS`/`WARN` **and**
-   `.specify/memory/constitution.md` already has an established Section IX
-   baseline, this is a re-run that will regenerate the Feature Map and may
-   overwrite durable rules. Stop and confirm intent before proceeding:
+2. Detect a prior setup (re-run) with the deterministic gate checker instead of
+   re-deriving the facts from prose:
+   ```bash
+   .specify/scripts/bash/specter-gate.sh
+   ```
+   If **both** `global_result_ok` **and** `constitution_section_ix_established`
+   are true in its JSON output, this is a re-run that will regenerate the
+   Feature Map and may overwrite durable rules. Stop and confirm intent before
+   proceeding (if the script is missing — pre-`/ms.init` state — fall back to
+   reading `docs/prd/feature-map.checklist.md`'s `Result` line directly):
    ```text
    ⚠️ 이미 1회 PRD 셋업이 완료된 프로젝트입니다.
 

@@ -80,10 +80,7 @@ Read these files in full:
 - `.specify/memory/constitution.md`
 - `AGENTS.md` if it exists
 
-**Session read policy**: if a required file was already read in this session and has not
-changed since (no edit by you, no user notice), reuse it — do not re-read. Exception: the
-harness requires a fresh `Read` of a file before `Edit`/`Write`; always satisfy that
-requirement even if the content is already in context.
+**Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 If `--global` is supplied, refuse:
 
