@@ -29,7 +29,10 @@ MANIFEST = {
 def git(cwd: Path, *args: str) -> str:
     result = subprocess.run(
         ["git", "-c", "user.name=test", "-c", "user.email=test@local", *args],
-        cwd=cwd, capture_output=True, text=True, check=True,
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        check=True,
     )
     return result.stdout.strip()
 
@@ -44,7 +47,9 @@ def make_source(tmp_path: Path) -> Path:
     src.mkdir()
     git(src, "init", "-b", "main")
     (src / ".claude/commands").mkdir(parents=True)
-    (src / CMD_RELPATH).write_text("plan v1\n" + "".join(f"line{i}\n" for i in range(1, 11)))
+    (src / CMD_RELPATH).write_text(
+        "plan v1\n" + "".join(f"line{i}\n" for i in range(1, 11))
+    )
     (src / ".claude/commands/ms.sync.md").write_text("must not sync\n")
     (src / AGENTS_RELPATH).write_text("agents v1\n")
     (src / "scripts").mkdir()
@@ -71,7 +76,9 @@ def make_target(tmp_path: Path, name: str, files: dict[str, str] | None = None) 
     return bare
 
 
-def write_registry(tmp_path: Path, src: Path, bare: Path, exclude: list[str] | None = None) -> Path:
+def write_registry(
+    tmp_path: Path, src: Path, bare: Path, exclude: list[str] | None = None
+) -> Path:
     registry_path = tmp_path / "registry.json"
     target: dict = {"name": "proj", "repo": str(bare)}
     if exclude:
@@ -87,15 +94,25 @@ def run_sync(tmp_path: Path, src: Path, registry: Path, *extra: str) -> int:
     global _run_counter
     _run_counter += 1
     work = tmp_path / f"work-{_run_counter}"
-    return sync.main([
-        "--registry", str(registry), "--root", str(src), "--work-dir", str(work), *extra,
-    ])
+    return sync.main(
+        [
+            "--registry",
+            str(registry),
+            "--root",
+            str(src),
+            "--work-dir",
+            str(work),
+            *extra,
+        ]
+    )
 
 
 def bare_file(bare: Path, relpath: str) -> str | None:
     result = subprocess.run(
         ["git", "--git-dir", str(bare), "show", f"main:{relpath}"],
-        capture_output=True, text=True, check=False,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     return result.stdout if result.returncode == 0 else None
 
@@ -164,8 +181,12 @@ def test_non_overlapping_changes_merge_cleanly(tmp_path: Path) -> None:
     assert run_sync(tmp_path, src, registry) == 0
 
     original = (src / CMD_RELPATH).read_text()
-    customize_target(tmp_path, bare, CMD_RELPATH, original.replace("line1\n", "line1 CUSTOM\n"))
-    update_source(src, CMD_RELPATH, original.replace("line10\n", "line10 UPSTREAM\n"), "source v2")
+    customize_target(
+        tmp_path, bare, CMD_RELPATH, original.replace("line1\n", "line1 CUSTOM\n")
+    )
+    update_source(
+        src, CMD_RELPATH, original.replace("line10\n", "line10 UPSTREAM\n"), "source v2"
+    )
     assert run_sync(tmp_path, src, registry) == 0
 
     merged = bare_file(bare, CMD_RELPATH) or ""
@@ -192,7 +213,9 @@ def test_overlapping_changes_conflict_without_overwrite(tmp_path: Path) -> None:
 
 def test_first_sync_over_diverged_file_is_conservative_conflict(tmp_path: Path) -> None:
     src = make_source(tmp_path)
-    bare = make_target(tmp_path, "proj", files={AGENTS_RELPATH: "pre-existing custom\n"})
+    bare = make_target(
+        tmp_path, "proj", files={AGENTS_RELPATH: "pre-existing custom\n"}
+    )
     registry = write_registry(tmp_path, src, bare)
 
     assert run_sync(tmp_path, src, registry) == 0
@@ -224,10 +247,14 @@ def test_source_mismatch_refuses_to_broadcast(tmp_path: Path) -> None:
     src = make_source(tmp_path)
     bare = make_target(tmp_path, "proj")
     registry = tmp_path / "registry.json"
-    registry.write_text(json.dumps({
-        "source": "git@github.com:someone-else/other.git",
-        "targets": [{"name": "proj", "repo": str(bare)}],
-    }))
+    registry.write_text(
+        json.dumps(
+            {
+                "source": "git@github.com:someone-else/other.git",
+                "targets": [{"name": "proj", "repo": str(bare)}],
+            }
+        )
+    )
 
     assert run_sync(tmp_path, src, registry) == 1
     assert bare_file(bare, AGENTS_RELPATH) is None
@@ -258,14 +285,32 @@ def test_register_creates_and_appends_registry(tmp_path: Path) -> None:
     src = make_source(tmp_path)
     registry = tmp_path / "registry.json"
 
-    code = sync.main(["register", "git@github.com:me/proj-a.git",
-                      "--registry", str(registry), "--root", str(src)])
+    code = sync.main(
+        [
+            "register",
+            "git@github.com:me/proj-a.git",
+            "--registry",
+            str(registry),
+            "--root",
+            str(src),
+        ]
+    )
     assert code == 0
     data = json.loads(registry.read_text())
-    assert data["targets"] == [{"name": "proj-a", "repo": "git@github.com:me/proj-a.git"}]
+    assert data["targets"] == [
+        {"name": "proj-a", "repo": "git@github.com:me/proj-a.git"}
+    ]
 
     # duplicate registration (https form of the same repo) is a no-op
-    code = sync.main(["register", "https://github.com/me/proj-a",
-                      "--registry", str(registry), "--root", str(src)])
+    code = sync.main(
+        [
+            "register",
+            "https://github.com/me/proj-a",
+            "--registry",
+            str(registry),
+            "--root",
+            str(src),
+        ]
+    )
     assert code == 0
     assert len(json.loads(registry.read_text())["targets"]) == 1

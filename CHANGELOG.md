@@ -2,6 +2,37 @@
 
 All notable changes to this repository are documented in this file.
 
+## [Unreleased]
+
+### Added
+- **`/ms.sync` 워크플로우 브로드캐스트**: manifest에 등록된 워크플로우 파일(.claude 커맨드/스킬/
+  에이전트, 게이트 스크립트, 템플릿, AGENTS.md)을 머신 로컬 레지스트리의 프로젝트 레포들로 3-way
+  머지 배포. 엔진 `scripts/specter_sync.py` + 테스트 `tests/test_specter_sync.py`.
+- **`/ms.prd` PRD 공동 저작 커맨드**: `/ms.pre-specter` 앞단의 사전 워크플로우 인터뷰 트랙
+  (블라인드스팟 패스, 갭 열거, Parking Lot).
+- **`/ms.audit` 제품 수준 완전성 감사**: 노출/콜드스타트/위협모델/perf·a11y/게이트 가치/블라인드
+  스팟 6개 모듈, 자문형(게이트 아님), 발견은 `/ms.fix`·`/ms.expand`·todo로 라우팅.
+- **워크플로우 스킬 6종**: `git-worktrees`, `parallel-features`, `overnight-run`(+
+  `specter-overnight.sh` 드라이버), `spike`, `transcript-mining`, `testing-skills-with-subagents`.
+- **`/ms.fin` High-Stakes Diff Digest**: auth/돈/파괴적 연산/마이그레이션/사용자 데이터 hunk만
+  발췌해 사람 ack를 받는 조건부 게이트 (unpushed 커밋 범위 포함 — `/ms.fix` 트랙도 포착).
+- **`/ms.review` Migration Rollback 분석(6.6b)**: 마이그레이션 diff에 대해 롤백 경로·중간 실패
+  상태·비가역 연산을 분석하고 사람 ack 없이는 READY 불가.
+- **`/ms.init` Step 2.8**: TAG-chain·Feature-Map pre-commit backstop을 대상 프로젝트의
+  `.pre-commit-config.yaml`에 배선하고 `pre-commit install` 실행 (이전에는 스크립트만 배포되고
+  실행 배선이 없었음).
+- **`check_tag_chain.py` FIX-트랙 지원**: `FIX-*` id는 `@SPEC` 앵커 면제, presentational 마커
+  (`@TEST: (presentational — no test)`) 허용. 테스트 `tests/test_check_tag_chain.py` 추가.
+
+### Changed
+- **감사 후속 정비(2026-07-06)**: `/ms.codex-verify` 잔재 10곳을 `/ms.agent-verify`로 개명하고
+  단일 에이전트 서술을 dual-agent로 정정. "My-Spec"/MoAI 잔재 명칭 일괄 정리. Constitution 템플릿
+  §I 워크플로우 다이어그램 현행화, §IV/§V를 pre-commit backstop과 정합(기계적 wiring은 차단,
+  의미론적 TAG 이슈는 경고). `/ms.merglease`가 progress ledger 수정을 커밋·푸시하도록 수정.
+  `/ms.fin` PR body를 리뷰 리포트에서 생성(존재하지 않던 `docs/PR_*_BODY.md` 의존 제거).
+  `implementation-notes.md`를 `/ms.review`·`/ms.amend`가 실제로 소비하도록 배선. mypy CI 게이트
+  fail-open 수정. 에이전트 정의의 Model-Selection 의례 블록·유령 참조 제거.
+
 ## [2.3.0] - 2026-07-03
 
 ### Added
@@ -131,7 +162,7 @@ All notable changes to this repository are documented in this file.
 ### Removed
 - Deleted template-repo-only operational docs that were not meant to remain as permanent artifacts.
 
-## [1.0.0] - 2025-01-01
+## [1.0.0] - 2026-05-25
 
 ### Added
 - Initial stable release baseline.

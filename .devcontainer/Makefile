@@ -270,16 +270,23 @@ ci-lint:
 	@cd $(ROOT) && ruff format --check . || (echo "❌ ruff format failed"; exit 1)
 	@echo "✅ Lint passed"
 
-# Type: 타입 체크 (mypy) — 제품 코드는 backend/ 에 위치
+# Type: 타입 체크 (mypy) — 제품 코드는 backend/, 도구는 scripts/
+# 빈 디렉터리(템플릿 초기 상태)만 건너뛰고, 파일이 있으면 mypy 실패가 CI를 실패시킨다.
 ci-type:
 	@echo "🔍 Running type checks..."
-	@cd $(ROOT) && mypy backend/ || echo "⚠️  mypy: 검사할 타입이 없거나 미설정 (빈 backend/)"
+	@cd $(ROOT) && TARGETS=$$(git ls-files 'backend/**/*.py' 'scripts/*.py'); \
+	if [ -n "$$TARGETS" ]; then \
+		mypy $$TARGETS || (echo "❌ mypy failed"; exit 1); \
+	else \
+		echo "ℹ️  타입 체크 대상 없음 — 건너뜀 (템플릿 초기 상태)"; \
+	fi
+	@echo "✅ Type check passed"
 
 # Test: 유닛 테스트 실행 — 테스트 파일이 없으면(템플릿 초기 상태) 건너뜀
 ci-test:
 	@echo "🔍 Running tests..."
 	@cd $(ROOT) && if git ls-files '*test_*.py' | grep -q .; then \
-		pytest -v --cov=backend --cov-report=term-missing || (echo "❌ Tests failed"; exit 1); \
+		pytest -v --cov --cov-report=term-missing || (echo "❌ Tests failed"; exit 1); \
 	else \
 		echo "ℹ️  테스트 파일 없음 — 건너뜀 (템플릿 초기 상태)"; \
 	fi

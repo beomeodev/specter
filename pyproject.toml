@@ -7,20 +7,11 @@ requires-python = ">=3.14"
 authors = [
     { name = "SPECTER Team" }
 ]
-keywords = ["specification", "traceability", "ai-coding", "myspec"]
+keywords = ["specification", "traceability", "ai-coding", "specter"]
 
-dependencies = [
-    # MCP Server support
-    "mcp>=1.18.0",
-
-    # Python 3.14 free-threading compatibility
-    "cffi>=2.0.0",           # Python 3.14t support
-    "cryptography>=46.0.0",  # Free-threading support
-
-    # Data processing
-    "pyyaml>=6.0.3",      # YAML parsing (spec.md front matter) - Python 3.14t wheels
-    "regex>=2024.0.0",    # EARS/TAG pattern matching
-]
+# First-party code (scripts/, tests/) is stdlib-only by design — the sync engine
+# and pre-commit backstops must run anywhere without an install step.
+dependencies = []
 
 [dependency-groups]
 dev = [
@@ -39,9 +30,6 @@ dev = [
     # Code quality tools (Ruff로 일원화 — lint + format)
     "ruff>=0.14.0",        # Linter + formatter (black/isort/flake8 대체)
 
-    # CLI output enhancement
-    "rich>=13.7.0",        # Terminal output formatting
-
     # Git hooks
     "pre-commit>=3.8.0",   # Git pre-commit automation
 ]
@@ -54,7 +42,7 @@ python_functions = "test_*"
 addopts = "-v"
 
 [tool.coverage.run]
-source = ["backend"]
+source = ["backend", "scripts"]
 omit = ["tests/*", "*/__pycache__/*", "*/test_*.py"]
 parallel = true
 

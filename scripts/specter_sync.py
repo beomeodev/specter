@@ -69,14 +69,16 @@ def run_git(args: list[str], cwd: Path) -> subprocess.CompletedProcess[bytes]:
 def git_out(args: list[str], cwd: Path) -> str:
     result = run_git(args, cwd)
     if result.returncode != 0:
-        raise RuntimeError(f"git {' '.join(args)} failed in {cwd}: {result.stderr.decode(errors='replace')}")
+        raise RuntimeError(
+            f"git {' '.join(args)} failed in {cwd}: {result.stderr.decode(errors='replace')}"
+        )
     return result.stdout.decode().strip()
 
 
 def normalize_repo_url(url: str) -> str:
     normalized = url.strip()
     if normalized.startswith("git@github.com:"):
-        normalized = "https://github.com/" + normalized[len("git@github.com:"):]
+        normalized = "https://github.com/" + normalized[len("git@github.com:") :]
     if normalized.endswith(".git"):
         normalized = normalized[: -len(".git")]
     return normalized.rstrip("/")
@@ -94,7 +96,9 @@ def source_matches(registry_source: str, root: Path) -> bool:
     except OSError:
         pass
     origin = origin_url(root)
-    return bool(origin) and normalize_repo_url(registry_source) == normalize_repo_url(origin)
+    return bool(origin) and normalize_repo_url(registry_source) == normalize_repo_url(
+        origin
+    )
 
 
 def load_manifest(root: Path) -> tuple[list[str], list[str]]:
@@ -109,7 +113,9 @@ def matches_any(path: str, patterns: list[str]) -> bool:
 def manifest_files(root: Path) -> list[str]:
     include, exclude = load_manifest(root)
     tracked = git_out(["ls-tree", "-r", "--name-only", "HEAD"], root).splitlines()
-    return sorted(p for p in tracked if matches_any(p, include) and not matches_any(p, exclude))
+    return sorted(
+        p for p in tracked if matches_any(p, include) and not matches_any(p, exclude)
+    )
 
 
 def dirty_manifest_files(root: Path, files: list[str]) -> list[str]:
@@ -132,11 +138,15 @@ def three_way_merge(current: bytes, base: bytes, other: bytes) -> bytes | None:
             path = Path(tmp) / name
             path.write_bytes(content)
             paths.append(str(path))
-        result = subprocess.run(["git", "merge-file", "-p", *paths], capture_output=True, check=False)
+        result = subprocess.run(
+            ["git", "merge-file", "-p", *paths], capture_output=True, check=False
+        )
         return result.stdout if result.returncode == 0 else None
 
 
-def decide_file(src: bytes, base: bytes | None, dst: bytes | None) -> tuple[str, bytes | None]:
+def decide_file(
+    src: bytes, base: bytes | None, dst: bytes | None
+) -> tuple[str, bytes | None]:
     """Classify one file; return (status, content to write into the target or None)."""
     if dst is None:
         if base is None:
@@ -165,7 +175,9 @@ def load_state(clone_dir: Path) -> dict[str, str]:
     return {str(k): str(v) for k, v in files.items()}
 
 
-def apply_file(clone_dir: Path, relpath: str, status: str, content: bytes | None, src: bytes) -> list[str]:
+def apply_file(
+    clone_dir: Path, relpath: str, status: str, content: bytes | None, src: bytes
+) -> list[str]:
     """Write the decided outcome for one file into the clone; return paths to stage."""
     staged: list[str] = []
     conflict_path = clone_dir / (relpath + CONFLICT_SUFFIX)
@@ -184,7 +196,9 @@ def apply_file(clone_dir: Path, relpath: str, status: str, content: bytes | None
     return staged
 
 
-def commit_and_push(clone_dir: Path, staged: list[str], source_head: str) -> tuple[str | None, str | None]:
+def commit_and_push(
+    clone_dir: Path, staged: list[str], source_head: str
+) -> tuple[str | None, str | None]:
     """Stage, commit, push. Return (commit subject or None, error or None)."""
     run_git(["add", "--", *staged], clone_dir)
     if run_git(["diff", "--cached", "--quiet"], clone_dir).returncode == 0:
@@ -209,7 +223,13 @@ def sync_target(
 ) -> dict:
     repo = target["repo"]
     name = target.get("name") or normalize_repo_url(repo).rsplit("/", 1)[-1]
-    report: dict = {"name": name, "repo": repo, "results": [], "commit": None, "error": None}
+    report: dict = {
+        "name": name,
+        "repo": repo,
+        "results": [],
+        "commit": None,
+        "error": None,
+    }
     clone_dir = work_dir / name
     clone = run_git(["clone", repo, str(clone_dir)], work_dir)
     if clone.returncode != 0:
@@ -238,7 +258,9 @@ def sync_target(
     if dry_run:
         return report
     state = {"source": origin_url(source_root) or str(source_root), "files": baselines}
-    (clone_dir / STATE_FILENAME).write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    (clone_dir / STATE_FILENAME).write_text(
+        json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     staged.append(STATE_FILENAME)
     report["commit"], report["error"] = commit_and_push(clone_dir, staged, source_head)
     return report
@@ -271,7 +293,9 @@ def cmd_sync(args: argparse.Namespace) -> int:
     registry_path = args.registry
     if not registry_path.exists():
         print(f"No sync registry at {registry_path} — nothing to do.")
-        print("This is expected unless you registered target repos (see /ms.sync docs).")
+        print(
+            "This is expected unless you registered target repos (see /ms.sync docs)."
+        )
         return 0
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
     targets = registry.get("targets", [])
@@ -279,17 +303,25 @@ def cmd_sync(args: argparse.Namespace) -> int:
         print(f"Sync registry {registry_path} has no targets — nothing to do.")
         return 0
     if not source_matches(str(registry.get("source", "")), root):
-        print(f"❌ Registry source '{registry.get('source')}' does not match this checkout ({root}).")
-        print("Refusing to broadcast from an unregistered source (fork/clone protection).")
+        print(
+            f"❌ Registry source '{registry.get('source')}' does not match this checkout ({root})."
+        )
+        print(
+            "Refusing to broadcast from an unregistered source (fork/clone protection)."
+        )
         return 1
 
     files = manifest_files(root)
     if not files:
-        print("❌ Manifest matched no tracked files — check scripts/specter_sync_manifest.json.")
+        print(
+            "❌ Manifest matched no tracked files — check scripts/specter_sync_manifest.json."
+        )
         return 1
     dirty = dirty_manifest_files(root, files)
     if dirty:
-        print("❌ Manifest files have uncommitted changes; commit them first (sync baselines are git commits):")
+        print(
+            "❌ Manifest files have uncommitted changes; commit them first (sync baselines are git commits):"
+        )
         for path in dirty:
             print(f"  - {path}")
         return 1
@@ -302,8 +334,10 @@ def cmd_sync(args: argparse.Namespace) -> int:
         print(f"❌ No registered target named '{args.target}'.")
         return 1
 
-    print(f"Broadcasting {len(files)} files @ {source_head[:10]} to {len(selected)} target(s)"
-          + (" [dry-run]" if args.dry_run else ""))
+    print(
+        f"Broadcasting {len(files)} files @ {source_head[:10]} to {len(selected)} target(s)"
+        + (" [dry-run]" if args.dry_run else "")
+    )
     conflicts = 0
     errors = 0
     for target in selected:
@@ -312,8 +346,10 @@ def cmd_sync(args: argparse.Namespace) -> int:
         conflicts += sum(1 for _, status in report["results"] if status == CONFLICT)
         errors += 1 if report["error"] else 0
     if conflicts:
-        print(f"\n⚠️  {conflicts} CONFLICT file(s): resolve in each target project"
-              f" (compare with the pushed *{CONFLICT_SUFFIX} file, merge, delete the marker).")
+        print(
+            f"\n⚠️  {conflicts} CONFLICT file(s): resolve in each target project"
+            f" (compare with the pushed *{CONFLICT_SUFFIX} file, merge, delete the marker)."
+        )
     if errors:
         print(f"\n❌ {errors} target(s) had errors.")
         return 1
@@ -334,22 +370,47 @@ def cmd_register(args: argparse.Namespace) -> int:
     name = args.name or repo_key.rsplit("/", 1)[-1]
     registry["targets"].append({"name": name, "repo": args.repo})
     registry_path.parent.mkdir(parents=True, exist_ok=True)
-    registry_path.write_text(json.dumps(registry, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    registry_path.write_text(
+        json.dumps(registry, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     print(f"Registered sync target '{name}' -> {args.repo} in {registry_path}")
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("command", nargs="?", choices=["sync", "register"], default="sync")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "command", nargs="?", choices=["sync", "register"], default="sync"
+    )
     parser.add_argument("repo", nargs="?", help="repo URL to add (register mode only)")
-    parser.add_argument("--name", help="target name for register mode (default: repo basename)")
-    parser.add_argument("--registry", type=Path, default=REGISTRY_DEFAULT, help="registry JSON path")
-    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parent.parent,
-                        help="SPECTER checkout root (tests only)")
-    parser.add_argument("--work-dir", type=Path, default=None, help="clone workspace (default: temp dir)")
-    parser.add_argument("--target", help="sync only the target with this registered name")
-    parser.add_argument("--dry-run", action="store_true", help="report decisions without writing/pushing")
+    parser.add_argument(
+        "--name", help="target name for register mode (default: repo basename)"
+    )
+    parser.add_argument(
+        "--registry", type=Path, default=REGISTRY_DEFAULT, help="registry JSON path"
+    )
+    parser.add_argument(
+        "--root",
+        type=Path,
+        default=Path(__file__).resolve().parent.parent,
+        help="SPECTER checkout root (tests only)",
+    )
+    parser.add_argument(
+        "--work-dir",
+        type=Path,
+        default=None,
+        help="clone workspace (default: temp dir)",
+    )
+    parser.add_argument(
+        "--target", help="sync only the target with this registered name"
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="report decisions without writing/pushing",
+    )
     return parser
 
 
@@ -357,7 +418,9 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "register":
         if not args.repo:
-            print("❌ register mode needs a repo URL: specter_sync.py register <repo-url> [--name NAME]")
+            print(
+                "❌ register mode needs a repo URL: specter_sync.py register <repo-url> [--name NAME]"
+            )
             return 1
         return cmd_register(args)
     return cmd_sync(args)
