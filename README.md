@@ -470,13 +470,13 @@ GitHub CI는 advisory이기 때문입니다.
 
 ### 4. 브로드캐스트 동기화 플래그
 
-`/ms.sync`는 SPECTER의 워크플로우 파일(`scripts/specter_sync_manifest.json`에 열거)을
+`/ms.sync`는 SPECTER의 워크플로우 파일(`scripts/specter/specter_sync_manifest.json`에 열거)을
 등록된 모든 프로젝트 레포에 clone→3-way 적용→commit→push로 배포합니다. 대상 목록은
 공개 레포 안전을 위해 저장소 **밖**(`~/.claude/specter-sync.json`, 호스트 공유 마운트)에
 두므로, 이 레포를 클론한 제3자에게는 아무 동작도 하지 않습니다. 대상 프로젝트가 특화한
 파일은 baseline 기반 3-way 판정으로 보호되며, 겹치는 수정은 덮어쓰지 않고
 `<파일>.specter-new`와 CONFLICT 리포트로 넘깁니다. 신규 프로젝트 등록:
-`python scripts/specter_sync.py register <repo-url>`.
+`python scripts/specter/specter_sync.py register <repo-url>`.
 
 *   `--dry-run` (사용 대상: `/ms.sync`):
     *   파일별 판정(UPDATE/MERGED/KEPT-LOCAL/CONFLICT …)만 리포트하고 쓰기/push는 하지 않습니다.

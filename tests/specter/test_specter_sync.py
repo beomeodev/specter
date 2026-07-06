@@ -12,7 +12,7 @@ import json
 import subprocess
 from pathlib import Path
 
-MODULE_PATH = Path(__file__).resolve().parent.parent.parent / "scripts" / "specter_sync.py"
+MODULE_PATH = Path(__file__).resolve().parent.parent.parent / "scripts" / "specter" / "specter_sync.py"
 _spec = importlib.util.spec_from_file_location("specter_sync", MODULE_PATH)
 assert _spec and _spec.loader
 sync = importlib.util.module_from_spec(_spec)
@@ -52,7 +52,7 @@ def make_source(tmp_path: Path) -> Path:
     )
     (src / ".claude/commands/ms.sync.md").write_text("must not sync\n")
     (src / AGENTS_RELPATH).write_text("agents v1\n")
-    (src / "scripts").mkdir()
+    (src / sync.MANIFEST_RELPATH).parent.mkdir(parents=True, exist_ok=True)
     (src / sync.MANIFEST_RELPATH).write_text(json.dumps(MANIFEST))
     commit_all(src, "source v1")
     return src

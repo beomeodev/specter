@@ -43,7 +43,7 @@ SPECTER repo after committing workflow changes.
 never synced to that project. Register new projects with:
 
 ```bash
-python scripts/specter_sync.py register git@github.com:me/new-proj.git
+python scripts/specter/specter_sync.py register git@github.com:me/new-proj.git
 ```
 
 (The host-side `np` target should call this at project-creation time.)
@@ -61,7 +61,7 @@ python scripts/specter_sync.py register git@github.com:me/new-proj.git
 ### Step 1: Run the sync engine
 
 ```bash
-python scripts/specter_sync.py [--dry-run] [--target <name>]
+python scripts/specter/specter_sync.py [--dry-run] [--target <name>]
 ```
 
 The script clones each target, applies a per-file 3-way decision against the

@@ -46,7 +46,7 @@ import tempfile
 from pathlib import Path
 
 REGISTRY_DEFAULT = Path.home() / ".claude" / "specter-sync.json"
-MANIFEST_RELPATH = "scripts/specter_sync_manifest.json"
+MANIFEST_RELPATH = "scripts/specter/specter_sync_manifest.json"
 STATE_FILENAME = ".specter-sync-state.json"
 CONFLICT_SUFFIX = ".specter-new"
 # Identity for the sync commits pushed into target repos. Uses the template

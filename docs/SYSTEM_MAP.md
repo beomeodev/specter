@@ -98,7 +98,7 @@ only) and `frontend/` (`package.json` only) are empty template scaffolding, not 
 - `docs/improvements/`: dated audit/plan documents (working record, not templates).
 - `docs/src/` and `docs/log/` were deleted (2026-07-06 prune/hygiene) — unreferenced TS
   reference code and 2025-era pre-commit logs.
-- `scripts/` (repo root): `check_feature_map_gate.py` (unchanged this patch — `git diff` shows no
+- `scripts/specter/` (repo root): `check_feature_map_gate.py` (unchanged this patch — `git diff` shows no
   delta) and `check_tag_chain.py` (see Hot Paths), plus `specter_sync.py` +
   `specter_sync_manifest.json` (the `/ms.sync` broadcast engine).
 - `tests/specter/`: `test_check_feature_map_gate.py`, `test_check_tag_chain.py` (both new/untracked this
@@ -141,7 +141,7 @@ only) and `frontend/` (`package.json` only) are empty template scaffolding, not 
   route to `/ms.fix`, `/ms.expand`, or `docs/todo.md` — it never edits or weakens a gate.
 - `/ms.sync` broadcasts registered workflow files (commands/skills/agents/gate
   scripts/templates/`AGENTS.md`) to other registered project repos via 3-way merge
-  (`scripts/specter_sync.py`, tested by `tests/specter/test_specter_sync.py`).
+  (`scripts/specter/specter_sync.py`, tested by `tests/specter/test_specter_sync.py`).
 - `/ms.fin` / `/ms.merglease` handle publish/release flows (delegated to Antigravity). `/ms.fin`'s
   High-Stakes Diff Digest now computes the diff as the unpushed range (`git diff "$BASE"...HEAD`)
   **plus** the working tree (`git diff HEAD`), explicitly to catch `/ms.fix`-track changes that
@@ -156,12 +156,12 @@ only) and `frontend/` (`package.json` only) are empty template scaffolding, not 
   station-specific invariants inline instead of restating the mechanics.
 
 ## Hot Paths
-- `scripts/check_tag_chain.py` — modified this patch to support the `/ms.fix` track: `FIX-*`
+- `scripts/specter/check_tag_chain.py` — modified this patch to support the `/ms.fix` track: `FIX-*`
   `@CODE` ids (constant `FIX_PREFIX = "FIX-"`) carry no governing `@SPEC`, and a file may declare
   itself test-exempt via the literal marker `@TEST: (presentational — no test)` (regex
   `PRESENTATIONAL_RE`). Uniqueness still applies to FIX ids. Backed by the new
   `tests/specter/test_check_tag_chain.py` (10 tests, all passing).
-- `scripts/check_feature_map_gate.py` — unchanged this patch (`git diff` against HEAD is empty);
+- `scripts/specter/check_feature_map_gate.py` — unchanged this patch (`git diff` against HEAD is empty);
   now has its own test file `tests/specter/test_check_feature_map_gate.py` (6 tests, all passing) where
   it previously had none.
 - `.claude/commands/ms.review.md` — largest command file; owns the Result Model (READY / READY
@@ -209,7 +209,7 @@ libraries/CLIs with no runtime surface.)
 - `docs/templates/constitution-template.md`, `docs/templates/spec-template.md`.
 - `docs/templates/scripts/specter-gate.sh` — the one place gate PASS/WARN/FAIL/MISSING logic is
   computed mechanically (as opposed to being judged by the model).
-- `scripts/check_tag_chain.py` — single source of truth for `FIX-*`/presentational-exemption TAG
+- `scripts/specter/check_tag_chain.py` — single source of truth for `FIX-*`/presentational-exemption TAG
   rules; `FIX_PREFIX` and `PRESENTATIONAL_RE` are the two constants that define the rule.
 - `.claude/skills/ms-design-baseline/assets/tokens.css` — once generated into a consuming
   project, the single source of truth for that project's design values (never inline new ones).

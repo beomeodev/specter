@@ -356,7 +356,7 @@ scripts arrive via `/ms.sync`; this step wires them into the project's pre-commi
 and installs the git hook. Without this step the backstops are dead files.
 
 ```bash
-if [ ! -f scripts/check_tag_chain.py ] || [ ! -f scripts/check_feature_map_gate.py ]; then
+if [ ! -f scripts/specter/check_tag_chain.py ] || [ ! -f scripts/specter/check_feature_map_gate.py ]; then
   echo "⚠️ SPECTER backstop scripts not found under scripts/ — they arrive via /ms.sync."
   echo "   Re-run /ms.init (or just this step) after the first sync. Skipping hook wiring."
 else
@@ -370,13 +370,13 @@ else
     hooks:
       - id: tag-chain
         name: SPECTER TAG-chain backstop (@SPEC -> @TEST -> @CODE)
-        entry: python scripts/check_tag_chain.py
+        entry: python scripts/specter/check_tag_chain.py
         language: system
         pass_filenames: false
         always_run: true
       - id: feature-map-gate
         name: SPECTER Feature Map / gate coherence backstop
-        entry: python scripts/check_feature_map_gate.py
+        entry: python scripts/specter/check_feature_map_gate.py
         language: system
         pass_filenames: false
         always_run: true

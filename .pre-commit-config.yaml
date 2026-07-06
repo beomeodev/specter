@@ -33,13 +33,13 @@ repos:
     hooks:
       - id: tag-chain
         name: SPECTER TAG-chain backstop (@SPEC -> @TEST -> @CODE)
-        entry: python scripts/check_tag_chain.py
+        entry: python scripts/specter/check_tag_chain.py
         language: system
         pass_filenames: false
         always_run: true
       - id: feature-map-gate
         name: SPECTER Feature Map / gate coherence backstop
-        entry: python scripts/check_feature_map_gate.py
+        entry: python scripts/specter/check_feature_map_gate.py
         language: system
         pass_filenames: false
         always_run: true

@@ -88,7 +88,7 @@ need_cmd() {
 # 등록부는 SPECTER 레포 밖(호스트 ~/.claude, 전 컨테이너 공유 마운트)에 두므로
 # 공개 템플릿을 클론한 제3자에게는 만들어지지 않는다. 등록 실패가 np를 막지 않는다.
 register_sync_target() {
-  python3 - "$PROJECT_NAME" "$REPO_SSH" "$SPECTER_TEMPLATE_REPO" <<'PY' || echo "⚠️ specter-sync 등록 실패 — SPECTER에서 수동 등록: python scripts/specter_sync.py register $REPO_SSH"
+  python3 - "$PROJECT_NAME" "$REPO_SSH" "$SPECTER_TEMPLATE_REPO" <<'PY' || echo "⚠️ specter-sync 등록 실패 — SPECTER에서 수동 등록: python scripts/specter/specter_sync.py register $REPO_SSH"
 import json
 import sys
 from pathlib import Path

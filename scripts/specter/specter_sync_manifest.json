@@ -5,8 +5,8 @@
     ".claude/agents/*.md",
     ".claude/skills/*",
     "docs/templates/*",
-    "scripts/check_feature_map_gate.py",
-    "scripts/check_tag_chain.py",
+    "scripts/specter/check_feature_map_gate.py",
+    "scripts/specter/check_tag_chain.py",
     "AGENTS.md",
     "CLAUDE.md"
   ],
