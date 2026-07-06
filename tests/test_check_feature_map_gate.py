@@ -15,7 +15,9 @@ from pathlib import Path
 
 import pytest
 
-MODULE_PATH = Path(__file__).resolve().parent.parent / "scripts" / "check_feature_map_gate.py"
+MODULE_PATH = (
+    Path(__file__).resolve().parent.parent / "scripts" / "check_feature_map_gate.py"
+)
 _spec = importlib.util.spec_from_file_location("check_feature_map_gate", MODULE_PATH)
 assert _spec and _spec.loader
 gate = importlib.util.module_from_spec(_spec)
@@ -28,7 +30,10 @@ CHECKLIST = "docs/prd/feature-map.checklist.md"
 def git(cwd: Path, *args: str) -> None:
     subprocess.run(
         ["git", "-c", "user.name=test", "-c", "user.email=test@local", *args],
-        cwd=cwd, capture_output=True, text=True, check=True,
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        check=True,
     )
 
 
