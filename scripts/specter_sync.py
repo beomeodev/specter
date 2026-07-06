@@ -22,6 +22,13 @@ commit's content is the 3-way merge base:
   changed      | changed      | git merge-file 3-way; clean -> MERGED,
                |              | overlapping -> CONFLICT (+ <file>.specter-new)
   no base yet  | differs      | CONFLICT (conservative first-sync stance)
+  == base      | deleted      | DELETED-UPSTREAM (removed from target too)
+  changed      | deleted      | DELETE-KEPT-LOCAL (fork survives; baseline
+               |              | dropped, so it becomes target-owned)
+
+Deletion propagation applies only to files genuinely deleted from the SPECTER
+checkout (verified against HEAD); a file that merely left the manifest set
+(narrowed globs) is skipped with its baseline intact.
 
 CONFLICT never advances the baseline, so an unresolved conflict resurfaces on
 every sync until the target either adopts the upstream hunks (then a later
@@ -59,6 +66,8 @@ KEPT_LOCAL = "KEPT-LOCAL"
 CONFLICT = "CONFLICT"
 EXCLUDED = "EXCLUDED"
 DELETED_LOCAL = "DELETED-LOCAL"
+DELETED_UPSTREAM = "DELETED-UPSTREAM"
+DELETE_KEPT_LOCAL = "DELETE-KEPT-LOCAL"
 BASELINE_ADVANCING = {NEW, SAME, UPDATE, MERGED}
 
 
@@ -166,6 +175,32 @@ def decide_file(
     return MERGED, merged
 
 
+def source_tracks(root: Path, relpath: str) -> bool:
+    """True when HEAD in the SPECTER checkout still tracks relpath."""
+    return run_git(["cat-file", "-e", f"HEAD:{relpath}"], root).returncode == 0
+
+
+def decide_stale_baseline(
+    root: Path, base_commit: str, relpath: str, dst: bytes | None
+) -> str:
+    """Classify a baseline entry whose file no longer matches the manifest.
+
+    Only files genuinely deleted from the SPECTER checkout propagate as
+    deletions; a file that merely left the manifest (narrowed globs) stays
+    managed-but-skipped so a re-widened manifest can still 3-way merge.
+    """
+    if source_tracks(root, relpath):
+        return SAME  # manifest narrowing, not an upstream deletion
+    if dst is None:
+        return DELETED_UPSTREAM  # target already lost it; just drop the baseline
+    base = git_show(root, base_commit, relpath)
+    if base is not None and dst == base:
+        return DELETED_UPSTREAM
+    # Customized (or baseline content unrecoverable): specialization wins —
+    # keep the target's fork, stop managing it, and say so once.
+    return DELETE_KEPT_LOCAL
+
+
 def load_state(clone_dir: Path) -> dict[str, str]:
     state_path = clone_dir / STATE_FILENAME
     if not state_path.exists():
@@ -254,6 +289,28 @@ def sync_target(
         if not dry_run:
             staged.extend(apply_file(clone_dir, relpath, status, content, src))
         report["results"].append((relpath, status))
+
+    # Deletion propagation: baseline entries whose file left the manifest set.
+    for relpath in sorted(set(baselines) - set(files)):
+        if matches_any(relpath, excludes):
+            report["results"].append((relpath, EXCLUDED))
+            continue
+        dst_path = clone_dir / relpath
+        dst = dst_path.read_bytes() if dst_path.exists() else None
+        status = decide_stale_baseline(source_root, baselines[relpath], relpath, dst)
+        if status == SAME:
+            continue  # manifest narrowing: keep the baseline, touch nothing
+        report["results"].append((relpath, status))
+        if dry_run:
+            continue
+        del baselines[relpath]
+        if status == DELETED_UPSTREAM and dst is not None:
+            dst_path.unlink()
+            staged.append(relpath)
+        conflict_path = clone_dir / (relpath + CONFLICT_SUFFIX)
+        if conflict_path.exists():
+            conflict_path.unlink()
+            staged.append(relpath + CONFLICT_SUFFIX)
 
     if dry_run:
         return report

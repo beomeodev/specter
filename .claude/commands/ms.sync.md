@@ -75,6 +75,13 @@ commit whose content was last applied), commits as
 | customized | unchanged | `KEPT-LOCAL` (specialization wins) |
 | customized | changed | 3-way merge → `MERGED`, or `CONFLICT` if overlapping |
 | no baseline yet, content differs | — | `CONFLICT` (conservative first sync) |
+| unchanged since baseline | **deleted** | `DELETED-UPSTREAM` (removed from the target too) |
+| customized | **deleted** | `DELETE-KEPT-LOCAL` (fork survives; baseline dropped → target-owned from now on) |
+
+Deletion propagation fires only for files genuinely deleted from the SPECTER
+checkout (verified against HEAD). A file that merely left the manifest set
+(narrowed globs) is left untouched with its baseline intact, so re-widening
+the manifest later still 3-way merges.
 
 On `CONFLICT` nothing is overwritten: the new SPECTER version is pushed
 alongside as `<file>.specter-new` and the baseline does not advance, so the

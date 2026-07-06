@@ -314,3 +314,75 @@ def test_register_creates_and_appends_registry(tmp_path: Path) -> None:
     )
     assert code == 0
     assert len(json.loads(registry.read_text())["targets"]) == 1
+
+
+def delete_source(src: Path, relpath: str, message: str) -> None:
+    git(src, "rm", "-q", relpath)
+    git(src, "commit", "-m", message)
+
+
+def test_upstream_deletion_removes_unmodified_target_file(tmp_path: Path) -> None:
+    src = make_source(tmp_path)
+    bare = make_target(tmp_path, "proj")
+    registry = write_registry(tmp_path, src, bare)
+    assert run_sync(tmp_path, src, registry) == 0
+    assert bare_file(bare, CMD_RELPATH) is not None
+
+    delete_source(src, CMD_RELPATH, "retire ms.plan")
+    assert run_sync(tmp_path, src, registry) == 0
+
+    assert bare_file(bare, CMD_RELPATH) is None
+    state = json.loads(bare_file(bare, sync.STATE_FILENAME) or "{}")
+    assert CMD_RELPATH not in state["files"]
+
+
+def test_upstream_deletion_keeps_customized_target_file(tmp_path: Path) -> None:
+    src = make_source(tmp_path)
+    bare = make_target(tmp_path, "proj")
+    registry = write_registry(tmp_path, src, bare)
+    assert run_sync(tmp_path, src, registry) == 0
+
+    customize_target(tmp_path, bare, CMD_RELPATH, "customized plan\n")
+    delete_source(src, CMD_RELPATH, "retire ms.plan")
+    assert run_sync(tmp_path, src, registry) == 0
+
+    # Specialization wins: the fork survives, but it is no longer managed.
+    assert bare_file(bare, CMD_RELPATH) == "customized plan\n"
+    state = json.loads(bare_file(bare, sync.STATE_FILENAME) or "{}")
+    assert CMD_RELPATH not in state["files"]
+
+    # And it must not resurface on the next sync.
+    assert run_sync(tmp_path, src, registry) == 0
+    assert bare_file(bare, CMD_RELPATH) == "customized plan\n"
+
+
+def test_manifest_narrowing_does_not_delete(tmp_path: Path) -> None:
+    src = make_source(tmp_path)
+    bare = make_target(tmp_path, "proj")
+    registry = write_registry(tmp_path, src, bare)
+    assert run_sync(tmp_path, src, registry) == 0
+
+    narrowed = {"include": ["AGENTS.md"], "exclude": []}
+    (src / sync.MANIFEST_RELPATH).write_text(json.dumps(narrowed))
+    commit_all(src, "narrow manifest (ms.plan still tracked)")
+    assert run_sync(tmp_path, src, registry) == 0
+
+    # The file left the manifest but still exists upstream: never delete,
+    # and keep the baseline so a re-widened manifest can still 3-way merge.
+    assert bare_file(bare, CMD_RELPATH) is not None
+    state = json.loads(bare_file(bare, sync.STATE_FILENAME) or "{}")
+    assert CMD_RELPATH in state["files"]
+
+
+def test_dry_run_reports_deletion_without_writing(tmp_path: Path) -> None:
+    src = make_source(tmp_path)
+    bare = make_target(tmp_path, "proj")
+    registry = write_registry(tmp_path, src, bare)
+    assert run_sync(tmp_path, src, registry) == 0
+
+    delete_source(src, CMD_RELPATH, "retire ms.plan")
+    assert run_sync(tmp_path, src, registry, "--dry-run") == 0
+
+    assert bare_file(bare, CMD_RELPATH) is not None
+    state = json.loads(bare_file(bare, sync.STATE_FILENAME) or "{}")
+    assert CMD_RELPATH in state["files"]

@@ -24,6 +24,12 @@ All notable changes to this repository are documented in this file.
 - **`check_tag_chain.py` FIX-트랙 지원**: `FIX-*` id는 `@SPEC` 앵커 면제, presentational 마커
   (`@TEST: (presentational — no test)`) 허용. 테스트 `tests/test_check_tag_chain.py` 추가.
 
+### Added (2)
+- **`/ms.sync` 삭제 전파**: SPECTER에서 실제로 삭제된 manifest 파일은 타겟에서도 제거
+  (`DELETED-UPSTREAM`; 타겟이 커스터마이즈한 파일은 보존하고 baseline만 해제 —
+  `DELETE-KEPT-LOCAL`, 이후 타겟 소유). manifest glob 축소는 삭제로 취급하지 않음.
+  프루닝으로 지운 스킬/에이전트의 낡은 사본이 타겟에 남는 문제를 해결.
+
 ### Removed
 - **프루닝(2026-07-06, 감사 보류 결정 확정)**: 고아 에이전트 7종 삭제(codebase-explorer ·
   constitution-extractor · debug-helper · implementation-planner · integration-designer ·
