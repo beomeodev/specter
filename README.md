@@ -1,18 +1,10 @@
 <div align="center">
     <h1>👻 SPECTER</h1>
-    <h3><em>High-Quality Software Development Workflow with AI</em></h3>
+    <h3><em>Specification-Progressive Enforcement & Constitution-based Traceability, Evolutionary Review</em></h3>
     <p>
         <strong>English</strong> | <a href="./README.ko.md">한국어</a>
     </p>
 </div>
-
-<p align="center">
-    <strong>Specification-Progressive Enforcement & Constitution-based Traceability, Evolutionary Review</strong>
-</p>
-
-<p align="center">
-    Specification-based Progressive Verification · Constitution-based Traceability · Evolutionary Review
-</p>
 
 <p align="center">
     <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v2.3.1-2ea44f" alt="release"></a>
