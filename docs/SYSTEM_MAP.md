@@ -1,9 +1,9 @@
 ---
-generated_at: 2026-07-06T03:07:42Z
-git_head: 990eb21ef58d16bb56b9b3e21f2d84ed1f1f74cd
-git_head_short: 990eb21
+generated_at: 2026-07-06T03:11:08Z
+git_head: 46bb57d364df8dcdc3a20eea618e980ec2948103
+git_head_short: 46bb57d
 git_branch: master
-working_tree: dirty
+working_tree: clean
 scope:
   - AGENTS.md
   - README.md
@@ -34,15 +34,10 @@ stale_when:
 # System Map
 
 ## Snapshot Status
-HEAD is `990eb21` (docs: use standard MIT license text for GitHub detection) on `master`, but
-the working tree is **dirty with a large uncommitted patch**: nearly every command file (25/25),
-14 of 17 agent files, several skill files, `AGENTS.md`, `README.md`, `CHANGELOG.md`,
-`pyproject.toml`, `scripts/check_tag_chain.py`, and `.devcontainer/Makefile` are modified;
-`.env` was renamed to `.env.example`; `docs/log/pre-commit/*.log` were deleted;
-`.claude/skills/ms-foundation-trust/examples_old.md` was deleted; and three new, untracked
-paths exist: `.claude/skills/specter-agent-protocols/`, `tests/test_check_feature_map_gate.py`,
-`tests/test_check_tag_chain.py`. This refresh describes the **working tree as it stands**, not
-just committed HEAD. Re-run the Refresh Procedure once this patch lands (or changes further).
+HEAD is `46bb57d` on `master` with a clean working tree. The 2026-07-06 audit patch has
+landed as four commits (gates alignment, command-contract repairs, agents/skills residue
+cleanup, repo hygiene) — see `CHANGELOG.md [Unreleased]` and the commit messages for the
+per-file rationale. This snapshot describes that committed state.
 
 ## System Purpose
 SPECTER is a command-driven workflow wrapper over GitHub Spec-Kit for Claude Code projects. This
@@ -249,10 +244,6 @@ libraries/CLIs with no runtime surface.)
   gate `/ms.init` injects (marker `MS_FEATUREMAP_GATE_START`).
 
 ## Risk Areas
-- **Working tree is dirty with a broad, uncommitted patch** touching almost every command and
-  most agents — do not assume any of the "current state" facts above are landed on `master`;
-  `git status --short` / `git diff` are the ground truth, not this document's prose, until this
-  patch is committed.
 - `serena` is declared in `.mcp.json` but its configured binary path does not resolve in this
   environment (`/home/dev/.local/bin/serena`: no such file) and no Serena MCP tool was available
   this session — structural scans used `git`/`rg`/`find` only, as in the prior snapshot.
@@ -281,14 +272,12 @@ rg -n "Model Selection" .claude/agents/*.md                              # expec
 
 ## Known Gaps
 - No live consuming project in this repo to exercise `/ms.specter` end-to-end against the
-  uncommitted patch described above — verification here was fixture/test-level (pytest) and
-  read-back-level (skill/command prose), not a real workflow run.
+  audit patch — verification was fixture/test-level (pytest) and read-back-level
+  (skill/command prose), not a real workflow run.
 - Serena MCP is configured in `.mcp.json` but not reachable in this session (binary missing); no
   symbol-level navigation was performed for this refresh.
-- The exact scope/intent of the large uncommitted patch (why each of the 25 command files and 14
-  agent files changed) was inferred from grep/diff evidence, not from a changelog entry per file;
-  `CHANGELOG.md [Unreleased]` covers the headline additions but not every prose edit (e.g. the
-  AGENTS.md §2 pointer consolidation is not called out there).
+- Per-file rationale for the 2026-07-06 audit patch lives in the four commit messages and
+  `CHANGELOG.md [Unreleased]`, not in this map.
 
 ## Refresh Procedure
 1. Read `AGENTS.md`, `.specify/memory/constitution.md` (if present), and any nested `AGENTS.md`
