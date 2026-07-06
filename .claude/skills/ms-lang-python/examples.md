@@ -1,6 +1,6 @@
 # Python 3.13 Code Examples
 
-Production-ready examples for modern Python development with pytest 8.4.2, ruff 0.13.1, mypy 1.8.0, and My-Spec TRUST 5 principles.
+Production-ready examples for modern Python development with pytest 8.4.2, ruff 0.13.1, mypy 1.8.0, and SPECTER TRUST 5 principles.
 
 ---
 
@@ -649,4 +649,4 @@ pytest --cov=src --cov-report=term --cov-fail-under=85 && ruff check . && mypy .
 
 ---
 
-All examples follow My-Spec TRUST 5 principles and Constitution constraints (≤700 SLOC production / tests no limit, ≤10 complexity, ≥85% coverage).
+All examples follow SPECTER TRUST 5 principles and Constitution constraints (≤700 SLOC production / tests no limit, ≤10 complexity, ≥85% coverage).

@@ -60,7 +60,7 @@
       "type": "guardrail",
       "priority": "high",
       "enforcement": "suggest",
-      "description": "GEARS requirements validation (SHALL, WHEN, WHILE, WHERE, IF patterns)",
+      "description": "GEARS requirements validation (GEARS canonical form: [Where][While][When] the <subject> shall <behavior>; IF...then and uppercase SHALL are flagged)",
       "promptTriggers": {
         "keywords": [
           "requirement",
@@ -115,7 +115,7 @@
       "type": "domain",
       "priority": "high",
       "enforcement": "suggest",
-      "description": "Python 3.13+ expertise (pytest, ruff, mypy, FastAPI, async patterns)",
+      "description": "Python 3.14+ expertise (pytest, ruff, mypy, FastAPI, async patterns)",
       "promptTriggers": {
         "keywords": [
           "python",

@@ -7,7 +7,7 @@ description: Living Documentation automation skill that scans TAG-annotated code
 
 ## What it does
 
-Manages Living Documentation lifecycle for My-Spec workflow:
+Manages Living Documentation lifecycle for SPECTER workflow:
 - Scans code for TAG blocks (@CODE, @TEST, @DOC references)
 - Generates API documentation from TAG-annotated code
 - Updates dev daily logs with Git diff summaries
@@ -488,5 +488,3 @@ def sync_with_failopen(cwd: str) -> dict:
 ## Related Skills
 - `ms-workflow-tag-manager`: TAG block generation and templates
 - `ms-foundation-trust`: TAG chain validation (Trackable principle)
-- `moai-alfred-tag-scanning`: TAG scanning and inventory
-- `moai-foundation-specs`: SPEC metadata and validation

@@ -1,37 +1,14 @@
 ---
 name: doc-updater
-description: "Use when: Automatic document synchronization based on code changes is required. Called from /ms.up-docs command."
+description: "Available for /ms.up-docs-style document sync; no command dispatches this agent automatically today."
 model: haiku
 ---
 
 # doc-updater - Document Synchronization Agent
 
 **Model**: Haiku
-**Purpose**: CODE-FIRST Living Document synchronization for My-Spec workflow
+**Purpose**: CODE-FIRST Living Document synchronization for SPECTER workflow
 **Trigger**: `/ms.up-docs` command
-
-## Model Selection (MANDATORY)
-
-**CRITICAL**: This agent MUST use the **Claude Haiku** model.
-
-**Rationale**:
-- Document synchronization is a high-volume, repetitive task requiring speed
-- Haiku provides fast processing for structured document generation and updates
-- Cost-effective for batch operations (scanning TAGs, generating API docs)
-- Simple pattern-based extraction doesn't require complex reasoning
-- Target performance: <10 minutes for full sync, <30 seconds for staged changes
-
-**Before starting any task**:
-1. Verify you are running on Claude Haiku model
-2. If using a different model, STOP and inform the user:
-   ```
-   ⚠️ Model Mismatch Detected
-
-   This agent requires Claude Haiku for optimal performance.
-   Current model: [DETECTED_MODEL]
-
-   Please switch to Claude Haiku and re-run this agent.
-   ```
 
 ## 🎭 Agent Persona
 
@@ -49,7 +26,7 @@ model: haiku
 
 **Conditional Skills**:
 - `ms-foundation-trust` – TRUST validation when quality gates are needed
-- `ms-foundation-tags` – TAG system rules for chain verification
+- `ms-workflow-tag-manager` – TAG system rules for chain verification
 - `ms-lang-python` – Python docstring extraction (if Python project)
 - `ms-lang-typescript` – TypeScript JSDoc extraction (if TypeScript project)
 
@@ -336,7 +313,7 @@ Complete Chain: @SPEC:ID → @TEST:ID → @CODE:ID (all exist)
 3. Commit docs: git add docs/ && git commit -m "docs: sync Living Documents"
 ```
 
-## Conditional Documentation (My-Spec Adaptation)
+## Conditional Documentation (SPECTER Adaptation)
 
 ### Project Type Detection
 
@@ -411,7 +388,7 @@ Continue sync? (Yes/No)
 - API docs (10 TAGs): ~2 minutes
 - Full sync (`--all`): <10 minutes (100 TAGs)
 
-## My-Spec Workflow Integration
+## SPECTER Workflow Integration
 
 **Command relationship**:
 ```
@@ -420,9 +397,7 @@ Continue sync? (Yes/No)
                                       doc-updater agent
 ```
 
-**Called by**:
-- `/ms.up-docs` command (direct)
-- `/ms.fin` command (automatic: `/ms.up-docs --docs=dev`)
+**Called by**: Available for `/ms.up-docs`-style document sync; no command dispatches this agent automatically today.
 
 **Dependencies**:
 - Git repository initialized
@@ -432,16 +407,16 @@ Continue sync? (Yes/No)
 
 ## Constitution Compliance
 
-**TRUST 5 Principles (Section V)**:
+**TRUST 5 Principles (TRUST Review Model — Section IV)**:
 - **Trackable**: TAG chain validation ensures traceability
 - **Readable**: Generated docs follow markdown standards
 - **Unified**: Consistent doc structure across all APIs
 - **Secured**: No sensitive data in auto-generated docs
 - **Test-First**: Links tests to docs via @TEST TAGs
 
-**File Size Constraints (Section II)**:
+**File Size Constraints (Section VI)**:
 - Each API doc: no hard limit (docs are unbounded; split only if unwieldy)
-- Generated content follows My-Spec formatting
+- Generated content follows SPECTER formatting
 
 **Documentation Standards (Section VIII)**:
 - CODE-FIRST: Documentation lives with code, updates with changes
@@ -474,7 +449,7 @@ Continue sync? (Yes/No)
 
 ## Agent Collaboration
 
-**No inter-agent calls**: doc-updater is invoked by `/ms.up-docs` command, not by other agents.
+**No inter-agent calls**: no command dispatches this agent automatically today; it is available for `/ms.up-docs`-style document sync.
 
 **Skills used**:
 - `ms-workflow-living-docs` (core sync algorithms)
@@ -489,11 +464,10 @@ Continue sync? (Yes/No)
 - **Fail-open**: Continues even if some docs fail (logs warnings)
 - **Performance**: Haiku model for speed, <10 min target
 - **Incremental**: Edits existing files rather than regenerating
-- **My-Spec optimized**: Adapted from MoAI's doc-syncer for My-Spec workflow
+- **SPECTER optimized**: Adapted from MoAI-ADK's doc-syncer concept for the SPECTER workflow.
 
 ## References
 
-- **MoAI Reference**: `docs/references/moai-adk/.claude/agents/alfred/doc-syncer.md`
 - **Command**: `.claude/commands/ms.up-docs.md`
 - **Skills**: `ms-workflow-living-docs`, `ms-workflow-tag-manager`
-- **Constitution**: `.specify/memory/constitution.md` Section V, VIII
+- **Constitution**: `.specify/memory/constitution.md` — TRUST Review Model (Section IV), Simplicity-First Architecture (Section VI)

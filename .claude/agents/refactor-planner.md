@@ -79,7 +79,7 @@ def calculate(data):  # No types!
 
 **TypeScript-Specific**:
 ```typescript
-// Large components (>300 LOC)
+// Large components (>700 SLOC (Constitution Section VI))
 const Dashboard = () => {
   // 500 lines of JSX...
 };
@@ -102,7 +102,7 @@ import { ... } from 'lodash';  // Never used
 ```
 
 **Universal Smells**:
-- **God classes**: Classes doing too many things (>500 lines)
+- **God classes**: Classes doing too many things (>700 SLOC (Constitution Section VI))
 - **Feature envy**: Methods using more data from other classes
 - **Shotgun surgery**: Changes require touching many files
 - **Divergent change**: One class changed for multiple reasons
@@ -354,8 +354,8 @@ Your refactoring plan should use this structure:
 
 **Target improvements**:
 - Files >700 SLOC: X → 0
-- Average complexity: Y → <5
-- Test coverage: Z% → 87%+
+- Average complexity: Y → ≤10 (Constitution Section VI)
+- Test coverage: Z% → ≥85% (Constitution Section III)
 - Build time: N seconds → <30 seconds
 
 **Monitoring**:

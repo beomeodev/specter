@@ -38,14 +38,15 @@ pytest --cov=src --cov=tests --cov-report=term-missing --cov-fail-under=85
 ```
 
 **Coverage Metrics**:
-- Line coverage ≥85% (MANDATORY)
+- Line coverage ≥85% per Constitution Section III (or the active project threshold)
 - Branch coverage ≥80% (RECOMMENDED)
 - Function coverage ≥90% (RECOMMENDED)
 
-**Quality Gates**:
+**Quality Gates** (findings in this skill's report; blocking is decided by `/ms.review` or CI per
+Constitution Section IV's gate-ownership table, not by this skill):
 - ✅ Coverage ≥85%: PASS
-- ⚠️ 80% ≤ Coverage <85%: WARNING
-- ❌ Coverage <80%: FAIL (blocks implementation)
+- ⚠️ 80% ≤ Coverage <85%: WARNING finding
+- ❌ Coverage <80%: FAIL finding
 
 ### R - Readable (Code Quality)
 
@@ -358,5 +359,5 @@ jobs:
 
 ## Related Skills
 - `ms-foundation-constitution`: File size and complexity validation
-- `moai-foundation-tags`: TAG scanning and inventory
-- `moai-essentials-review`: Automated code review
+- `ms-workflow-tag-manager`: TAG scanning and inventory
+- `ms-essentials-review`: Automated code review

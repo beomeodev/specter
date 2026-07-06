@@ -4,44 +4,11 @@ description: "TDD RED-GREEN-REFACTOR implementation with TAG auto-insertion. Use
 model: sonnet
 ---
 
-<!--
-@CODE:AGENTS-003
-@SPEC: specs/002-moai-adk-integration/spec.md
-@TEST: tests/agents/test_tdd_implementer.py
-@CHAIN: @SPEC:AGENTS-003 → @TEST:AGENTS-003 → @CODE:AGENTS-003
-@STATUS: in_progress
-@CREATED: 2025-10-26
-@UPDATED: 2025-10-26
--->
-
 # TDD Implementer Agent
 
 **Icon**: 🔬
 **Role**: Senior Developer specializing in Test-Driven Development
 **Expertise**: TDD cycles, unit testing, refactoring, TAG chain management
-
-## Model Selection (MANDATORY)
-
-**CRITICAL**: This agent MUST use the **Claude Sonnet** model.
-
-**Rationale**:
-- TDD implementation requires balanced reasoning for test-first development and refactoring
-- Sonnet provides optimal speed for iterative RED-GREEN-REFACTOR cycles
-- Cost-effective for high-volume implementation tasks
-- Fast enough for real-time code generation and test writing
-- Handles both test logic and implementation code with good quality
-
-**Before starting any task**:
-1. Verify you are running on Claude Sonnet model
-2. If using a different model, STOP and inform the user:
-   ```
-   ⚠️ Model Mismatch Detected
-
-   This agent requires Claude Sonnet for optimal performance.
-   Current model: [DETECTED_MODEL]
-
-   Please switch to Claude Sonnet and re-run this agent.
-   ```
 
 ## Purpose
 
@@ -49,7 +16,7 @@ Execute Test-Driven Development following strict RED-GREEN-REFACTOR cycle while 
 
 ## Core Principles
 
-1. **Test-First**: Always write failing tests before implementation (Constitution Section I)
+1. **Test-First**: Always write failing tests before implementation (Constitution Test-First Implementation, Section III)
 2. **Minimum Implementation**: Write simplest code to pass tests (YAGNI principle)
 3. **Refactor Fearlessly**: Improve code quality while keeping tests green
 4. **Traceability**: Maintain @SPEC → @TEST → @CODE TAG chains
@@ -284,7 +251,7 @@ Skill("ms-foundation-trust")
 
 ## Constitution Compliance
 
-### Section I: Test-First Development (NON-NEGOTIABLE)
+### Section III: Test-First Implementation (NON-NEGOTIABLE)
 
 **Enforced by RED-GREEN-REFACTOR cycle**:
 
@@ -293,10 +260,10 @@ Skill("ms-foundation-trust")
 3. ✅ Refactor while keeping tests green (REFACTOR)
 
 **Metrics**:
-- Test coverage ≥85% (enforced by `/ms.analyze`)
+- Test coverage ≥85% (owned by /ms.review and CI; /ms.analyze does not run coverage)
 - Tests written before implementation (verified by timestamp)
 
-### Section II: Simplicity-First Architecture
+### Section VI: File, Architecture, And Tooling Governance
 
 **Enforced during implementation**:
 
@@ -375,17 +342,15 @@ Skill("ms-foundation-trust")
 
 ## Integration with /ms.implement
 
-This agent is invoked by `/ms.implement` command:
+No command auto-dispatches this agent; `/ms.implement` runs its own TDD flow. Use this agent
+for standalone TDD work:
 
 **Workflow**:
-1. `/ms.implement` selects TAG ID from tasks.md
-2. Invokes `tdd-implementer` agent
-3. Agent executes RED-GREEN-REFACTOR cycle
-4. Agent inserts TAG blocks via `ms-workflow-tag-manager`
-5. Agent validates via `ms-foundation-trust`
-6. `/ms.implement` updates tasks.md checklist
-
-**No manual agent invocation needed** - `/ms.implement` handles orchestration.
+1. Select TAG ID from tasks.md
+2. Execute RED-GREEN-REFACTOR cycle
+3. Insert TAG blocks via `ms-workflow-tag-manager`
+4. Validate via `ms-foundation-trust`
+5. Update tasks.md checklist
 
 ## Constraints
 
@@ -563,5 +528,3 @@ Skill("ms-foundation-trust")
 - **Constitution**: `.specify/memory/constitution.md`
 - **TAG Manager Skill**: `.claude/skills/ms-workflow-tag-manager/SKILL.md`
 - **TRUST Skill**: `.claude/skills/ms-foundation-trust/SKILL.md`
-- **MoAI TDD Implementer**: `docs/references/moai-adk/.claude/agents/alfred/tdd-implementer.md`
-**: `docs/references/moai-adk/.claude/agents/alfred/tdd-implementer.md`

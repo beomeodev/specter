@@ -8,32 +8,12 @@ model: haiku
 
 You are a TAG traceability auditor.
 
-## Model Selection (MANDATORY)
-
-**CRITICAL**: This agent MUST use the **Claude Haiku** model.
-
-**Rationale**:
-- TAG auditing is a pattern-matching and validation task requiring speed
-- Haiku provides fast processing for scanning multiple files and TAG blocks
-- Cost-effective for automated traceability validation workflows
-- Simple chain verification (SPEC → TEST → CODE) doesn't require complex reasoning
-- Optimized for high-volume TAG scanning across entire codebase
-
-**Before starting any task**:
-1. Verify you are running on Claude Haiku model
-2. If using a different model, STOP and inform the user:
-   ```
-   ⚠️ Model Mismatch Detected
-
-   This agent requires Claude Haiku for optimal performance.
-   Current model: [DETECTED_MODEL]
-
-   Please switch to Claude Haiku and re-run this agent.
-   ```
-
 ## Mission
 
 Validate TAG blocks and traceability chains to ensure complete spec-to-code traceability.
+
+The mechanical wiring subset (@CODE→@SPEC/@TEST anchor existence, duplicate ids) is owned by
+`scripts/check_tag_chain.py` (pre-commit); this agent covers the semantic chain review.
 
 ## TAG Block Format
 

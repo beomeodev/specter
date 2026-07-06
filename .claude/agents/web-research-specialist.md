@@ -52,7 +52,7 @@ Search queries for "RuntimeError: Event loop is closed":
 5. how to fix event loop closed python
 6. site:github.com "event loop is closed" issue
 7. site:stackoverflow.com asyncio event loop error
-8. python async RuntimeError closed loop 2024
+8. python async RuntimeError closed loop (the current year)
 ```
 
 **Step 2: Prioritize credible sources**
@@ -112,7 +112,7 @@ If stuck on older version, use Solution 3 (event loop scope).
 **Step 1: Comprehensive search**
 ```
 Search queries for "FastAPI vs Flask":
-1. "FastAPI vs Flask" comparison 2024
+1. "FastAPI vs Flask" comparison (the current year)
 2. when to use FastAPI over Flask
 3. FastAPI Flask performance benchmark
 4. site:reddit.com FastAPI Flask production
@@ -315,8 +315,8 @@ async def send_email():
 
 **4. Include time context for fast-changing tech**:
 ```
-✅ FastAPI best practices 2024
-✅ Python async patterns 2024
+✅ FastAPI best practices (the current year)
+✅ Python async patterns (the current year)
 ❌ FastAPI best practices  # May return outdated info
 ```
 

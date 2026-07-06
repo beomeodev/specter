@@ -7,7 +7,7 @@ description: TypeScript 5.7+ development expertise with modern toolchain - Vites
 
 ## What it does
 
-Provides **TypeScript 5.7+ expertise** for My-Spec TDD development, including:
+Provides **TypeScript 5.7+ expertise** for SPECTER TDD development, including:
 
 - ✅ **Testing Framework**: Vitest 2.1+ (fast, modern alternative to Jest)
 - ✅ **Code Quality**: Biome 1.9+ (unified linter + formatter, replaces ESLint + Prettier)
@@ -668,7 +668,7 @@ const routes = {
 
 ## Constitution Compliance
 
-**My-Spec Requirements**:
+**SPECTER Requirements**:
 - ✅ Production files ≤700 SLOC (split if larger); test files: no limit
 - ✅ Functions ≤100 lines
 - ✅ Complexity ≤10 per function
@@ -748,7 +748,7 @@ tsc --noEmit                        # Type check pass?
 - Skip coverage requirements (<85% fails)
 - Use old TypeScript syntax (upgrade to 5.7+)
 
-## Integration with My-Spec
+## Integration with SPECTER
 
 **TAG Block Format** (TypeScript):
 ```typescript
@@ -791,7 +791,7 @@ describe('AuthService', () => {
 
 ## Changelog
 
-- **v1.0.0** (2025-10-26): Initial TypeScript Skill for My-Spec workflow with Vitest 2.1, Biome 1.9, TypeScript 5.7, Constitution compliance
+- **v1.0.0** (2025-10-26): Initial TypeScript Skill for SPECTER workflow with Vitest 2.1, Biome 1.9, TypeScript 5.7, Constitution compliance
 
 ## Works Well With
 

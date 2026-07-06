@@ -7,7 +7,7 @@ description: Advanced debugging skill for runtime errors with systematic stack t
 
 ## What It Does
 
-Comprehensive debugging support for My-Spec projects with:
+Comprehensive debugging support for SPECTER projects with:
 
 - **Stack trace analysis**: Parse and interpret error stack traces
 - **Error pattern recognition**: Identify common error patterns (NoneType, undefined, async issues)
@@ -575,7 +575,7 @@ print(f"Query took {duration:.2f}s")
 
 ## Changelog
 
-- **v1.0.0** (2025-10-26): Initial release for My-Spec workflow
+- **v1.0.0** (2025-10-26): Initial release for SPECTER workflow
   - Stack trace analysis
   - Error pattern recognition
   - Test-first debugging workflow

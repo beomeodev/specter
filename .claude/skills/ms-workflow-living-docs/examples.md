@@ -6,7 +6,7 @@
 
 ```python
 # Input: Codebase directory
-cwd = "/workspace/my-spec-project"
+cwd = "/workspace/specter-project"
 
 # Execute TAG scan
 import subprocess
@@ -380,7 +380,7 @@ print("✅ Updated README.md with project status")
 
 **Updated README.md**:
 ```markdown
-# My-Spec Project
+# SPECTER Project
 
 <!-- PROJECT_STATUS_START -->
 

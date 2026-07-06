@@ -1,6 +1,6 @@
 # TypeScript 5.7 Code Examples
 
-Production-ready examples for modern TypeScript development with Vitest 2.1, Biome 1.9, and My-Spec TRUST 5 principles.
+Production-ready examples for modern TypeScript development with Vitest 2.1, Biome 1.9, and SPECTER TRUST 5 principles.
 
 ---
 
@@ -595,4 +595,4 @@ pnpm quality-gate
 
 ---
 
-All examples follow My-Spec TRUST 5 principles and Constitution constraints (≤700 SLOC production / tests no limit, ≤10 complexity, ≥85% coverage).
+All examples follow SPECTER TRUST 5 principles and Constitution constraints (≤700 SLOC production / tests no limit, ≤10 complexity, ≥85% coverage).

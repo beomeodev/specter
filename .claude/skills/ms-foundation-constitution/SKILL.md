@@ -152,5 +152,4 @@ awk '/^def / {start=NR} /^def / && start {print NR-start; start=NR}' file.py
 
 ## Related Skills
 - `ms-foundation-trust`: Overall TRUST 5 validation
-- `moai-essentials-refactor`: Refactoring guidance
-- `moai-essentials-review`: Code review automation
+- `ms-essentials-review`: Code review automation

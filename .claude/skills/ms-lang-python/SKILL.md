@@ -7,7 +7,7 @@ description: Python 3.14+ development expertise with free-threading support and 
 
 ## What it does
 
-Provides **Python 3.14+ expertise with free-threading support** for My-Spec TDD development, including:
+Provides **Python 3.14+ expertise with free-threading support** for SPECTER TDD development, including:
 
 - ✅ **Testing Framework**: pytest 8.4.2 (fixtures, asyncio, parametrization)
 - ✅ **Code Quality**: ruff 0.13.1 (unified linter + formatter, replaces black/pylint)
@@ -678,7 +678,7 @@ log.info("user_login", user_id=42)
 
 ## Constitution Compliance
 
-**My-Spec Requirements**:
+**SPECTER Requirements**:
 - ✅ Production files ≤700 SLOC (split if larger); test files: no limit
 - ✅ Functions ≤100 lines
 - ✅ Complexity ≤10 per function
@@ -754,7 +754,7 @@ mypy --strict .                     # Type check pass?
 - Use old type hint syntax (use PEP 695 `class Foo[T]:`)
 - Use `asyncio.gather` without error handling (use TaskGroup instead)
 
-## Integration with My-Spec
+## Integration with SPECTER
 
 **TAG Block Format** (Python):
 ```python
@@ -798,7 +798,7 @@ def test_auth_service():
 
 ## Changelog
 
-- **v1.0.0** (2025-10-26): Initial Python Skill for My-Spec workflow with pytest 8.4.2, ruff 0.13.1, mypy 1.8.0, Python 3.13 features, Constitution compliance
+- **v1.0.0** (2025-10-26): Initial Python Skill for SPECTER workflow with pytest 8.4.2, ruff 0.13.1, mypy 1.8.0, Python 3.13 features, Constitution compliance
 
 ## Works Well With
 
