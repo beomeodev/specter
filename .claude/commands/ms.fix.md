@@ -65,7 +65,7 @@ Fixes must still be traceable — this is what an ungated quick-push would skip.
   `@CODE:FIX-<area>-<NNN>` (e.g. `@CODE:FIX-UPLOADS-003`), `@SPEC: (fix — no spec)`.
   Keep the chain block format identical to `/ms.implement` (see
   `ms-workflow-tag-manager`), `@STATUS: implemented`. The pre-commit backstop
-  (`scripts/check_tag_chain.py`) waives the `@SPEC` anchor for `FIX-*` ids but
+  (`scripts/specter/check_tag_chain.py`) waives the `@SPEC` anchor for `FIX-*` ids but
   still requires the `@TEST` side:
   - **Behavioral fix** (Step 2 wrote/extended a test) → put the matching
     `@TEST:FIX-<area>-<NNN>` anchor in that test file.

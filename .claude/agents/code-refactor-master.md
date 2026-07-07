@@ -225,7 +225,7 @@ import { User } from '@/types/user';
    @CODE: src/services/auth.py  # Updated path
    ```
 
-3. **Verify TAG chain**: Run `python scripts/check_tag_chain.py` (mechanical wiring) and
+3. **Verify TAG chain**: Run `python scripts/specter/check_tag_chain.py` (mechanical wiring) and
    `/ms.review` (semantic chain review) after refactoring
 4. **Never break traceability**: SPEC→TEST→CODE chain must remain intact
 
@@ -390,7 +390,7 @@ const UserContext = createContext<User | null>(null);
 
 3. **Verify TAG chains**:
    ```bash
-   python scripts/check_tag_chain.py
+   python scripts/specter/check_tag_chain.py
    ```
    Then run `/ms.review` for the semantic chain review.
 
@@ -434,7 +434,7 @@ const UserContext = createContext<User | null>(null);
 ✅ All tests pass (pytest/vitest)
 ✅ No broken imports (rg verification)
 ✅ Constitution compliance (≤700 SLOC files, ≤10 complexity)
-✅ TAG chains intact (`python scripts/check_tag_chain.py` and `/ms.review` pass)
+✅ TAG chains intact (`python scripts/specter/check_tag_chain.py` and `/ms.review` pass)
 ✅ Code complexity reduced (measured by radon/eslint)
 ✅ No regressions (manual smoke test)
 ✅ Documentation updated (if API changes)
@@ -468,7 +468,7 @@ Task(
 - `rg` (ripgrep) for searching
 - `pytest` or `vitest` for testing
 - `radon` (Python) or `eslint` (TypeScript) for complexity
-- `python scripts/check_tag_chain.py` for mechanical TAG verification
+- `python scripts/specter/check_tag_chain.py` for mechanical TAG verification
 - `/ms.review` for TRUST validation and semantic TAG chain review
 
 ---

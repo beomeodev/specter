@@ -42,7 +42,7 @@ Manages TAG block lifecycle for SPECTER workflow traceability:
 
 **`FIX-<AREA>-XXX` (reserved — `/ms.fix` track)**: fixes with no governing
 spec. Their TAG block records `@SPEC: (fix — no spec)`; the pre-commit
-backstop (`scripts/check_tag_chain.py`) waives the `@SPEC` anchor for `FIX-*`
+backstop (`scripts/specter/check_tag_chain.py`) waives the `@SPEC` anchor for `FIX-*`
 ids, requires `@TEST:FIX-…` for behavioral fixes, and accepts the literal
 marker `@TEST: (presentational — no test)` for presentational ones. Never use
 the `FIX-` prefix for Feature work.

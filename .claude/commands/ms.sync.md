@@ -117,9 +117,9 @@ receive the pushed changes on their next `git pull` / `make sync` entry flow.
 
 ## Notes
 
-- `/ms.sync` itself and `scripts/specter_sync*` are excluded from the manifest:
+- `/ms.sync` itself and `scripts/specter/specter_sync*` are excluded from the manifest:
   the sync tooling lives only in SPECTER, target projects never receive it.
 - Project-local files (`.claude/settings*.json`, Constitution, `.specify/`) are
   never in the manifest. Keep it that way.
-- Manifest: `scripts/specter_sync_manifest.json` (fnmatch globs; `*` crosses `/`).
+- Manifest: `scripts/specter/specter_sync_manifest.json` (fnmatch globs; `*` crosses `/`).
 - Engine tests: `tests/specter/test_specter_sync.py`.

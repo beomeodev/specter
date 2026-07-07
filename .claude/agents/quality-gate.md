@@ -161,7 +161,7 @@ vitest run --coverage
    ```
 
 2. **TAG chain validation**: mechanical wiring is owned by
-   `scripts/check_tag_chain.py` (pre-commit); this agent reports semantic
+   `scripts/specter/check_tag_chain.py` (pre-commit); this agent reports semantic
    chain issues only.
 
 3. **TAG Chain Verification**:
@@ -242,7 +242,7 @@ vitest run --coverage
    **Warnings** (recommended):
    1. `src/processor.py:120` - Reduce function complexity (current: 12, target: ≤10)
    2. TAG-003 - Add integration test for complete coverage
-   3. Orphaned TAGs - wire the missing anchors (verify with `python scripts/check_tag_chain.py`)
+   3. Orphaned TAGs - wire the missing anchors (verify with `python scripts/specter/check_tag_chain.py`)
 
    ### ✅ Next Steps
    - PASS: Commit approved ✅
@@ -277,7 +277,7 @@ vitest run --coverage
 ### Delegation Rules
 
 - **Code Fixes**: report them — fixes belong to `/ms.implement --mode=refactor` or the main conversation
-- **TAG Repairs**: report them — wiring is verified by `scripts/check_tag_chain.py`
+- **TAG Repairs**: report them — wiring is verified by `scripts/specter/check_tag_chain.py`
 - **TRUST Validation**: the dispatching command runs `trust-validator` separately
 
 ### Quality Standards
@@ -359,7 +359,7 @@ vitest run --coverage
 1. **Unused variable**: Remove `userId` from `src/auth/service.ts:45`
 2. **Function complexity**: Refactor `validateToken` to reduce complexity
 3. **Missing docstring**: Add docstring to `test_service.py:30`
-4. **Orphaned TAGs**: wire the missing anchors (verify with `python scripts/check_tag_chain.py`)
+4. **Orphaned TAGs**: wire the missing anchors (verify with `python scripts/specter/check_tag_chain.py`)
 
 ### ✅ Next Steps
 
@@ -377,7 +377,7 @@ vitest run --coverage
 ### Downstream
 
 - **trust-validator**: Validates TRUST 5 principles (dispatched separately by `/ms.review`)
-- **`scripts/check_tag_chain.py`**: mechanical TAG wiring (pre-commit backstop)
+- **`scripts/specter/check_tag_chain.py`**: mechanical TAG wiring (pre-commit backstop)
 
 ### Collaboration Protocol
 

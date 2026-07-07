@@ -389,8 +389,8 @@ verdict). Escape hatch: `.specify/scripts/bash/specter-stop-gate.sh phase clear`
 
 #### 2.8 Wire The Pre-Commit Backstops (TAG chain + Feature Map coherence)
 
-The two deterministic backstops — `scripts/check_tag_chain.py` (TAG wiring, WI-style
-`@SPEC -> @TEST -> @CODE` anchors) and `scripts/check_feature_map_gate.py` (Feature Map
+The two deterministic backstops — `scripts/specter/check_tag_chain.py` (TAG wiring, WI-style
+`@SPEC -> @TEST -> @CODE` anchors) and `scripts/specter/check_feature_map_gate.py` (Feature Map
 SHA coherence, WI-14) — only protect a project if pre-commit actually runs them. The
 scripts arrive via `/ms.sync`; this step wires them into the project's pre-commit config
 and installs the git hook. Without this step the backstops are dead files.
