@@ -173,7 +173,10 @@ export class AuthService {}
 | 코드 (`/ms.review`) | 구현 직후 | lint·type·test·build + TAG 무결성 + **Done Criteria Execution** — 실행 가능한 완료 기준은 실제로 구동해 검증 (웹 UI는 Playwright로 실제 렌더 확인) |
 
 프롬프트 게이트 아래에는 기계 강제 계층이 있습니다: `/ms.specify`를 거치지 않은 직접
-`/speckit-specify` 호출은 PreToolUse 훅이 거부하고, Feature Map·TAG 체인 무결성은
+`/speckit-specify` 호출은 PreToolUse 훅이 거부하고, `/ms.implement`·`/ms.review` 구간에서
+코드가 변경됐는데 게이트 실행 증거가 없으면 Stop 훅이 턴 종료를 차단하며(최대 연속 3회,
+증거가 있으면 verdict가 FAIL이어도 통과 — 게이트는 실행을 강제하지 성공을 강제하지 않음),
+Feature Map·TAG 체인 무결성은
 pre-commit과 CI(ruff·mypy·pytest·bandit)가 백스톱으로 잡습니다. 에이전트 하나가 환경
 문제로 죽어도 게이트를 조용히 약화하지 않습니다 — 남은 에이전트로 실행하되 결과를 최대
 `WARN`으로 강제하고 `UNAVAILABLE`을 기록합니다.

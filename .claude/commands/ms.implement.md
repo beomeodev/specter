@@ -67,6 +67,14 @@ implementation contract in Step 2. Without the flag, behavior is unchanged.
 
 **Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
+**Open the stop-gate phase** (mechanical turn-end gate; installed by `/ms.init` Step 2.7b):
+
+```bash
+[ -x .specify/scripts/bash/specter-stop-gate.sh ] && .specify/scripts/bash/specter-stop-gate.sh phase implement
+```
+
+Skip silently if the script does not exist (project initialized before Step 2.7b existed).
+
 **IF Constitution, spec.md, plan.md, or tasks.md missing**:
 - Display error: "Required files missing. Run `/ms.init`, `/ms.specify`, `/ms.plan`, and `/ms.tasks` first."
 - Exit
@@ -522,6 +530,16 @@ resume). Reaching this point without an unresolved in-scope blocker means `verdi
 mkdir -p .specify
 printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"implement","verdict":"PASS","artifacts":["%s"]}\n' \
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "specs/<spec-id>/tasks.md" >> .specify/specter-run.jsonl
+```
+
+**Record stop-gate evidence** (this one IS gate-relevant — the Stop hook from `/ms.init`
+Step 2.7b blocks turn-end without it when code changed): record the outcome of the last full
+test run you **actually executed** during this command. `PASS`/`FAIL` as observed;
+`UNAVAILABLE` only when the environment could not run tests at all. Never record a verdict
+you did not observe.
+
+```bash
+[ -x .specify/scripts/bash/specter-stop-gate.sh ] && .specify/scripts/bash/specter-stop-gate.sh record implement <PASS|FAIL|UNAVAILABLE>
 ```
 
 ## Next Steps

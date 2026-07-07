@@ -14,7 +14,12 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-MODULE_PATH = Path(__file__).resolve().parent.parent.parent / "scripts" / "specter" / "check_tag_chain.py"
+MODULE_PATH = (
+    Path(__file__).resolve().parent.parent.parent
+    / "scripts"
+    / "specter"
+    / "check_tag_chain.py"
+)
 _spec = importlib.util.spec_from_file_location("check_tag_chain", MODULE_PATH)
 assert _spec and _spec.loader
 chain = importlib.util.module_from_spec(_spec)

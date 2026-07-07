@@ -46,11 +46,14 @@ SPEC_KIT_REF=main    /ms.init   # latest upstream (exposed to churn — re-verif
 > recent upstream releases; pinning keeps the delegation contract stable. If you move the pin
 > forward, re-check those invocation names (see README "Spec Kit 호환성 → 위임 지점").
 
-> **Forward-compatibility**: the pinned v0.11.x line emits the **skill** layout
+> **Forward-compatibility**: the pinned v0.12.x line emits the **skill** layout
 > (`.claude/skills/speckit-specify/SKILL.md`). Step 2.4's candidate detection patches
 > whichever layout appears, so even if the pin moves to a newer Spec-Kit, gate injection
 > does **not** break `/ms.init` (the delegation *names* are the part to re-verify, not the
-> gate).
+> gate). v0.12.x also renders upstream skills SPECTER does not wrap (`speckit-converge`,
+> `speckit-taskstoissues`, `speckit-constitution`, `speckit-checklist`) — they are outside
+> the delegation contract and stay unwrapped; `/ms.constitution` and `/ms.checklist` are
+> independent SPECTER implementations, not wrappers of the same-named upstream skills.
 
 > **Note**: Spec-Kit dropped the older `--ai` family of flags in favour of
 > `--integration`. Always use `--integration claude`; `--ai claude` is legacy and no
@@ -341,6 +344,46 @@ must never error or bloat session start.
 **IF source file not found**:
 
 -   Display error: "Session status script missing. Expected: docs/templates/scripts/specter-session-status.sh"
+-   This indicates a repository structure issue
+-   Exit with error
+
+#### 2.7b Install The Stop Gate Hook (turn-end gate evidence)
+
+Long conductor sessions can end an `/ms.implement` or `/ms.review` turn with changed code but
+no executed gates — the runtime-gate hole from the 2026-07 transcript audit. Prompts cannot
+police turn end; a Stop hook can. Install a Stop hook that blocks turn-end while a gated phase
+is active and gate-relevant files changed without fresh gate evidence, capped at 3 consecutive
+blocks before it stands down (the harness's built-in 8-block override remains the outer net).
+Fresh evidence with ANY verdict — including FAIL — allows the turn: the hook forces gates to
+run and be reported honestly, never to succeed.
+
+```bash
+mkdir -p .specify/scripts/bash
+cp docs/templates/scripts/specter-stop-gate.sh .specify/scripts/bash/specter-stop-gate.sh
+chmod +x .specify/scripts/bash/specter-stop-gate.sh
+
+if [ -f .claude/settings.json ] && command -v jq >/dev/null 2>&1; then
+  ALREADY=$(jq -r '[.hooks.Stop[]?.hooks[]?.command // empty] | any(test("specter-stop-gate.sh"))' .claude/settings.json 2>/dev/null || echo false)
+  if [ "$ALREADY" != "true" ]; then
+    HOOK_ENTRY='{"hooks":[{"type":"command","command":"\"$CLAUDE_PROJECT_DIR/.specify/scripts/bash/specter-stop-gate.sh\""}]}'
+    jq --argjson entry "$HOOK_ENTRY" '.hooks.Stop = ((.hooks.Stop // []) + [$entry])' .claude/settings.json > .claude/settings.json.tmp \
+      && mv .claude/settings.json.tmp .claude/settings.json
+    echo "✓ Stop gate hook installed in .claude/settings.json"
+  else
+    echo "✓ Stop gate hook already present (idempotent skip)"
+  fi
+else
+  echo "⚠️ .claude/settings.json missing or jq unavailable — hook config not installed; script still copied to .specify/scripts/bash/"
+fi
+```
+
+The hook fails OPEN on any internal error and is inert unless `.specify/.ms-stop-phase` exists
+(`/ms.implement` Step 0 and `/ms.review` Step 1 open it; `/ms.review` clears it on a PASS/WARN
+verdict). Escape hatch: `.specify/scripts/bash/specter-stop-gate.sh phase clear`.
+
+**IF source file not found**:
+
+-   Display error: "Stop gate script missing. Expected: docs/templates/scripts/specter-stop-gate.sh"
 -   This indicates a repository structure issue
 -   Exit with error
 

@@ -99,6 +99,13 @@ this gate to the upstream script's flags; the script only validates `plan.md`+`t
 **If `spec.md` or `plan.md` is missing**: Display error and suggest running `/ms.specify` or
 `/ms.plan`. Do not proceed — SPECTER's review rigor is owned here, not delegated to Spec-Kit.
 
+**Open the stop-gate phase** (mechanical turn-end gate; installed by `/ms.init` Step 2.7b —
+skip silently if the script does not exist):
+
+```bash
+[ -x .specify/scripts/bash/specter-stop-gate.sh ] && .specify/scripts/bash/specter-stop-gate.sh phase review
+```
+
 ---
 
 ### Step 1.5: Tool Availability Check
@@ -337,6 +344,15 @@ are not a CRITICAL trigger unless Section IX or CI explicitly promotes TAG integ
 A WARNING trigger fires if only HIGH/MEDIUM warnings remain — persist the warning summary for
 `/ms.fin` acknowledgement. If all executable gates and deep review checks pass, neither trigger
 fires; remove stale `.specify/review-state.txt` if it exists.
+
+**Record stop-gate evidence** (the Stop hook from `/ms.init` Step 2.7b blocks turn-end without
+it when code changed): record the executable-gate outcome you **actually observed** in this
+step — `PASS`, `WARN`, or `FAIL` as the gates reported; `UNAVAILABLE` only when the tooling
+could not run at all. Never record a verdict you did not observe.
+
+```bash
+[ -x .specify/scripts/bash/specter-stop-gate.sh ] && .specify/scripts/bash/specter-stop-gate.sh record review <PASS|WARN|FAIL|UNAVAILABLE>
+```
 
 
 ---
@@ -581,6 +597,13 @@ WITH WARNINGS), or `FAIL` (NOT READY):
 mkdir -p .specify
 printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"review","verdict":"%s","artifacts":["%s"]}\n' \
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "<PASS|WARN|FAIL>" "$REPORT_FILE" >> .specify/specter-run.jsonl
+```
+
+**Close the stop-gate phase** on a `PASS` or `WARN` verdict (a `FAIL` verdict keeps the phase
+open — the feature is not done, and subsequent fix turns stay gated):
+
+```bash
+[ -x .specify/scripts/bash/specter-stop-gate.sh ] && .specify/scripts/bash/specter-stop-gate.sh phase clear
 ```
 
 ---

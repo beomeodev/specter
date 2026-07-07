@@ -155,7 +155,7 @@ Each step is validated by output artifacts and deterministic checkers, not just 
 | Doc Consistency (`/ms.analyze`) | Just before implementation | Validates spec ↔ plan ↔ tasks drift, orphan tasks, and Constitution compliance. |
 | Code (`/ms.review`) | Right after implementation | Runs lint/type/test/build + TAG integrity + Done Criteria Execution. Validates runnable criteria (e.g., verifying web UIs using Playwright rendering). |
 
-Below the prompt-based gates lies a mechanical enforcement layer: direct `/speckit-specify` calls bypassing `/ms.specify` are rejected by a PreToolUse hook. Feature Map and TAG chain integrity are enforced via pre-commit and CI (ruff, mypy, pytest, bandit) as backstops. If an agent fails due to environmental issues, gates are not silently bypassed; execution continues with remaining agents, marking the result as `WARN` and logging it as `UNAVAILABLE`.
+Below the prompt-based gates lies a mechanical enforcement layer: direct `/speckit-specify` calls bypassing `/ms.specify` are rejected by a PreToolUse hook, and during `/ms.implement`/`/ms.review` a Stop hook blocks turn-end when code changed without fresh gate-execution evidence (max 3 consecutive blocks; fresh evidence with any verdict — even FAIL — allows the turn, because the gate forces gates to run, not to succeed). Feature Map and TAG chain integrity are enforced via pre-commit and CI (ruff, mypy, pytest, bandit) as backstops. If an agent fails due to environmental issues, gates are not silently bypassed; execution continues with remaining agents, marking the result as `WARN` and logging it as `UNAVAILABLE`.
 
 ---
 

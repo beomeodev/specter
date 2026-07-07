@@ -12,7 +12,12 @@ import json
 import subprocess
 from pathlib import Path
 
-MODULE_PATH = Path(__file__).resolve().parent.parent.parent / "scripts" / "specter" / "specter_sync.py"
+MODULE_PATH = (
+    Path(__file__).resolve().parent.parent.parent
+    / "scripts"
+    / "specter"
+    / "specter_sync.py"
+)
 _spec = importlib.util.spec_from_file_location("specter_sync", MODULE_PATH)
 assert _spec and _spec.loader
 sync = importlib.util.module_from_spec(_spec)
