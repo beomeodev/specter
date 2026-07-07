@@ -174,7 +174,7 @@ Below the prompt-based gates lies a mechanical enforcement layer: direct `/speck
 | `/ms.checklist` / `/ms.agent-verify` | Verify current Feature's PRD coverage (Host + Codex/Antigravity) |
 | `/ms.specify` / `/ms.clarify` / `/ms.plan` / `/ms.tasks` | GEARS spec → Clarification → Plan → TAG tasks |
 | `/ms.analyze` | Validate document consistency + agent checks before build |
-| `/ms.implement` | TDD implementation + TAG injection (`--to-end`, `--mode tdd\|refactor`, `--task TNNN`) |
+| `/ms.implement` | TDD implementation + TAG injection (`--to-end`, `--mode tdd\|refactor`, `--task TNNN`, `--pbt` property-based tests from GEARS) |
 | `/ms.review` | Code review + adversarial agent review + execution gates |
 | `/ms.fix` / `/ms.amend` / `/ms.expand` / `/ms.audit` | Alternative tracks (See table above) |
 | `/ms.fin` | Sync docs → Conditional CI → commit · push · PR |

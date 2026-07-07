@@ -25,7 +25,7 @@ Implements the next selected task scope with TAG block insertion.
 ## Usage
 
 ```
-/ms.implement [--mode={tdd|refactor}] [--task TNNN] [--to-end] [TAG_ID]
+/ms.implement [--mode={tdd|refactor}] [--task TNNN] [--to-end] [--pbt] [TAG_ID]
 ```
 
 **No arguments required** - the command selects the first pending phase in `tasks.md` and targets that phase as the default implementation boundary.
@@ -43,6 +43,16 @@ Implements the next selected task scope with TAG block insertion.
 /ms.implement --to-end         # all remaining tasks in tasks.md
 /ms.implement AUTH-001         # all pending tasks for one TAG
 ```
+
+**Property-based testing** (opt-in, decided 2026-07-07):
+
+```
+/ms.implement --pbt            # also derive property-based tests from GEARS criteria
+```
+
+With `--pbt`, invariant-shaped GEARS acceptance criteria additionally get property-based
+tests (Hypothesis for Python, fast-check for TypeScript) during the TDD RED step — see the
+implementation contract in Step 2. Without the flag, behavior is unchanged.
 
 ## Execution Steps
 
@@ -208,6 +218,22 @@ one task.
 Implementation contract:
 - In `tdd` mode: write or update the smallest relevant failing test/verification first, implement the minimum code, then refactor only inside the selected scope.
 - In `refactor` mode: establish or identify the safety net first, make the mechanical or structural change, then run the relevant verification. Do not force an artificial RED when the work is audit-driven.
+- **With `--pbt`** (property-based testing from GEARS; opt-in): during the RED step, classify
+  each in-scope GEARS acceptance criterion. A criterion is **invariant-shaped** when it
+  quantifies over an input class rather than an example — markers: "any/all/every valid X",
+  "always/never", round-trips (encode→decode = identity), idempotence (f(f(x)) = f(x)),
+  bounds/monotonicity ("shall not exceed", "shall preserve order"), and `[Error Handling]`
+  clauses over a whole rejection class. For each invariant-shaped criterion, write ONE
+  property-based test alongside (never instead of) the example-based test — Hypothesis for
+  Python, fast-check for TypeScript, mirroring the project's existing test layout and naming.
+  Rules: generators must encode the criterion's input class, not convenient toy values; when
+  a property fails, add the shrunk counterexample as a permanent example-based regression
+  test before fixing; example-shaped criteria ("when the user submits X, ... shall Y" with a
+  concrete X) get NO property test — do not force properties where none exist. Passing
+  `--pbt` IS the user's approval to add the missing dev dependency (`hypothesis` /
+  `fast-check`) — same approval-by-invocation rule as `/ms.fin` git actions; still report
+  the addition in Step 5. Property tests carry the same `@TEST` TAG as the criterion they
+  verify.
 - Insert TAG blocks yourself in Step 3; do not rely on an automatic skill invocation.
 - Keep the implementation within the selected phase/task/TAG boundary unless a blocker requires user-visible scope adjustment.
 - **Deviations log**: no plan survives contact with the territory intact. When an edge case in
