@@ -1,12 +1,12 @@
 ---
 name: specter-agent-protocols
-description: Canonical external-agent protocols shared by the dual-agent SPECTER commands (/ms.agent-verify, /ms.verify, /ms.analyze, /ms.review, /ms.codex-checklist, /ms.expand) — session-level preflight, single-agent degrade rule, report-write/salvage protocol, and re-round convergence caps. Commands reference this file instead of restating the mechanics; each command keeps only its own report paths and station-specific invariants inline.
+description: Canonical external-agent protocols shared by the dual-agent SPECTER commands (/ms.agent-verify, /ms.verify, /ms.analyze, /ms.review, /ms.codex-checklist, /ms.expand) — session-level preflight, single-agent degrade rule, report-write/salvage protocol, re-round convergence caps, and the auditor bias-prevention doctrine (context isolation, evidence-cited verdicts, UNVERIFIED marking, grade-down-on-doubt). Commands reference this file instead of restating the mechanics; each command keeps only its own report paths and station-specific invariants inline.
 ---
 
 # SPECTER External-Agent Protocols
 
 Single source of truth for the mechanics every Codex/Antigravity station shares.
-A command that invokes an external agent applies these four protocols and states
+A command that invokes an external agent applies these five protocols and states
 inline only what is specific to it (its report paths, single- vs dual-agent
 station, and any degrade direction that differs).
 
@@ -65,3 +65,34 @@ Unbounded re-review loops burn tokens without improving outcomes:
   Record every residual `WARN` in the command's artifacts; hand the
   proceed-or-fix decision to the user. Further rounds require an explicit user
   instruction.
+
+## 5. Auditor Bias-Prevention Doctrine
+
+The value of a verification station is exactly the independence of its verdict.
+These rules bind both sides: how the **driver composes** a reviewer prompt, and
+how the **reviewer grades**. (Adapted 2026-07-07 from MoAI-ADK's plan-auditor
+bias-prevention protocol.)
+
+- **Context isolation (driver-side)**: the reviewer receives only the artifacts
+  the station defines (PRD, Feature Map, spec/plan/tasks, diff — as file paths,
+  per AGENTS.md §2 dispatch discipline). Never include the authoring reasoning,
+  prior drafts, the conversation history, or the driver's own conclusions or
+  expectations ("I believe this passes", "should be fine"). If such context
+  leaks in anyway, the reviewer must state it is ignoring it and grade from the
+  artifacts alone.
+- **Evidence-cited verdicts (reviewer-side)**: a `PASS` on any checked item
+  requires concrete evidence — a `file:line` citation or exact quoted text.
+  "Looks fine" is not a verdict. A report whose PASS items carry no citations
+  fails the deterministic report check (§3) in spirit: treat it as partial and
+  retry once with the citation requirement restated.
+- **UNVERIFIED, not PASS**: an item the reviewer could not actually check
+  (missing tooling, unreadable file, out-of-scope dependency) is marked
+  `UNVERIFIED` with the reason — never silently folded into PASS. Any
+  `UNVERIFIED` item caps the station result at `WARN`, the same convention as
+  agent unavailability (§2).
+- **Grade down on doubt, per item, no offsetting**: the reviewer's default
+  assumption is that defects exist; ambiguous evidence grades down (PASS→WARN,
+  WARN→FAIL), never up. Each dimension is graded independently — a strong PASS
+  in one area never offsets or softens a FAIL in another, and an issue the
+  reviewer identified must appear in the report; talking itself out of a
+  finding it already articulated is malpractice.
