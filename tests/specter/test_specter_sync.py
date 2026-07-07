@@ -401,3 +401,72 @@ def test_dry_run_reports_deletion_without_writing(tmp_path: Path) -> None:
     assert bare_file(bare, CMD_RELPATH) is not None
     state = json.loads(bare_file(bare, sync.STATE_FILENAME) or "{}")
     assert CMD_RELPATH in state["files"]
+
+
+def make_symlink_source(tmp_path: Path, agents_body: str) -> Path:
+    """Source where CLAUDE.md is a symlink to AGENTS.md (SPECTER's real layout),
+    both in the manifest."""
+    src = tmp_path / "specter-src-symlink"
+    src.mkdir()
+    git(src, "init", "-b", "main")
+    (src / ".claude/commands").mkdir(parents=True)
+    (src / CMD_RELPATH).write_text("plan v1\n")
+    (src / ".claude/commands/ms.sync.md").write_text("must not sync\n")
+    (src / AGENTS_RELPATH).write_text(agents_body)
+    (src / "CLAUDE.md").symlink_to(AGENTS_RELPATH)
+    (src / sync.MANIFEST_RELPATH).parent.mkdir(parents=True, exist_ok=True)
+    (src / sync.MANIFEST_RELPATH).write_text(
+        json.dumps(
+            {
+                "include": [".claude/commands/ms.*.md", "AGENTS.md", "CLAUDE.md"],
+                "exclude": [".claude/commands/ms.sync.md"],
+            }
+        )
+    )
+    commit_all(src, "source v1")
+    return src
+
+
+def test_symlinked_manifest_file_resolves_to_target_content(tmp_path: Path) -> None:
+    """git_show follows an in-tree symlink so CLAUDE.md -> AGENTS.md compares by
+    target content, not the 9-byte symlink blob."""
+    agents_v1 = "agents header\n" + "".join(f"line{i}\n" for i in range(1, 11))
+    src = make_symlink_source(tmp_path, agents_v1)
+
+    head = git(src, "rev-parse", "HEAD")
+    resolved = sync.git_show(src, head, "CLAUDE.md")
+    assert resolved == agents_v1.encode()  # followed the symlink, not "AGENTS.md"
+    assert sync.tree_mode(src, head, "CLAUDE.md") == sync.SYMLINK_MODE
+
+
+def test_symlinked_file_merges_upstream_body_onto_customized_target(
+    tmp_path: Path,
+) -> None:
+    """A target that turned CLAUDE.md into a regular file with an extra project
+    tail must 3-way merge upstream AGENTS.md body changes onto its content
+    (MERGED, baseline advances) instead of conflicting forever."""
+    agents_v1 = "agents header\n" + "".join(f"line{i}\n" for i in range(1, 11))
+    src = make_symlink_source(tmp_path, agents_v1)
+    bare = make_target(tmp_path, "proj")
+    registry = write_registry(tmp_path, src, bare)
+
+    # First sync seeds the target CLAUDE.md as AGENTS.md content + baseline.
+    assert run_sync(tmp_path, src, registry) == 0
+    assert bare_file(bare, "CLAUDE.md") == agents_v1
+
+    # Target keeps the body and appends a project-specific tail.
+    tail = "\n## Project-Specific\nlocal rule\n"
+    customize_target(tmp_path, bare, "CLAUDE.md", agents_v1 + tail)
+
+    # Upstream changes the AGENTS.md body that CLAUDE.md points at.
+    agents_v2 = agents_v1.replace("agents header\n", "agents header v2\n")
+    update_source(src, AGENTS_RELPATH, agents_v2, "source v2")
+
+    assert run_sync(tmp_path, src, registry) == 0
+
+    merged = bare_file(bare, "CLAUDE.md")
+    assert "agents header v2" in merged  # upstream body change flowed in
+    assert "local rule" in merged  # project tail preserved
+    assert bare_file(bare, "CLAUDE.md" + sync.CONFLICT_SUFFIX) is None  # no conflict
+    state = json.loads(bare_file(bare, sync.STATE_FILENAME) or "{}")
+    assert state["files"]["CLAUDE.md"] == git(src, "rev-parse", "HEAD")

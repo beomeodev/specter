@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import posixpath
 import subprocess
 import sys
 import tempfile
@@ -139,9 +140,37 @@ def dirty_manifest_files(root: Path, files: list[str]) -> list[str]:
     return [line[3:] for line in out.splitlines()]
 
 
+SYMLINK_MODE = "120000"
+_MAX_SYMLINK_HOPS = 10
+
+
+def tree_mode(root: Path, commit: str, relpath: str) -> str | None:
+    """git tree mode for relpath at commit (e.g. "100644", "120000"), or None."""
+    result = run_git(["ls-tree", commit, "--", relpath], root)
+    if result.returncode != 0 or not result.stdout:
+        return None
+    return result.stdout.split(b" ", 1)[0].decode()
+
+
 def git_show(root: Path, commit: str, relpath: str) -> bytes | None:
-    result = run_git(["show", f"{commit}:{relpath}"], root)
-    return result.stdout if result.returncode == 0 else None
+    """Blob content for relpath at commit, following in-tree symlinks so a
+    symlinked manifest file (e.g. CLAUDE.md -> AGENTS.md) resolves to its
+    target's content. Without this the source side (read via read_bytes, which
+    follows the symlink) and the baseline side would compare full content
+    against the 9-byte symlink target string and conflict forever."""
+    seen: set[str] = set()
+    for _ in range(_MAX_SYMLINK_HOPS):
+        result = run_git(["show", f"{commit}:{relpath}"], root)
+        if result.returncode != 0:
+            return None
+        if tree_mode(root, commit, relpath) != SYMLINK_MODE:
+            return result.stdout
+        target = result.stdout.decode(errors="replace").strip()
+        relpath = posixpath.normpath(posixpath.join(posixpath.dirname(relpath), target))
+        if relpath in seen:  # symlink cycle
+            return None
+        seen.add(relpath)
+    return None
 
 
 def three_way_merge(current: bytes, base: bytes, other: bytes) -> bytes | None:
