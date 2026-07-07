@@ -177,8 +177,19 @@ Tasks to execute:
      results, outstanding warnings from .specify/review-state.txt.
    - Use 'gh' CLI to create a new PR or edit the body if one already exists.
    - Output the PR URL.
+5. Self-review stamp (fail-open — this step must NEVER fail the pipeline):
+   - Purpose: record the workflow's already-computed review verdict as an
+     official GitHub PullRequestReview so it registers as a review contribution
+     on the author's profile. This is NOT a new review — do not re-review code.
+   - Compose a short stamp (verdict + gate results, a few lines, not the full
+     report) from the latest review report in docs/review/; if none exists,
+     summarize this run's CI gate outcome instead.
+   - Submit it as a COMMENT review: 'gh pr review <PR-number> --comment --body
+     "<stamp>"'. COMMENT is mandatory — GitHub forbids approving your own PR.
+   - Submit at most one stamp per /ms.fin run. If submission fails, report the
+     error and continue; never block publish on this step.
 
-Do not edit code files except staging and formatting. Write your results and the PR URL clearly in your final report.
+Do not edit code files except staging and formatting. Write your results, the PR URL, and the self-review stamp status clearly in your final report.
 ```
 
 ---
@@ -193,6 +204,8 @@ Claude summarizes the work:
 📄 Living Documents 동기화 완료 (/ms.up-docs)
 🧭 CI 모드: <RUN: CI 실행 | SKIP: review 후 변경 없음 → 생략 | SKIP: --no-ci>
 🚀 Git 커밋, Push 및 PR 자동 생성이 Antigravity CLI를 통해 처리되었습니다.
+🔖 셀프 리뷰 스탬프: <제출됨 (COMMENT review — contribution graph 반영) | 실패 → 무시하고 진행>
+
 
 📋 다음 단계:
   1. 제공된 PR URL에서 결과 검토 (수동)
