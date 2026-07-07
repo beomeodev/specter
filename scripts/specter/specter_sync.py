@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """SPECTER workflow broadcast sync (/ms.sync engine).
 
-Pushes the manifest-listed workflow files (``scripts/specter_sync_manifest.json``:
+Pushes the manifest-listed workflow files (``scripts/specter/specter_sync_manifest.json``:
 ``.claude`` commands/skills/agents, gate scripts, doc templates, AGENTS.md /
 CLAUDE.md) from this SPECTER checkout to every repo registered in the
 machine-local registry (``~/.claude/specter-sync.json``).
@@ -451,7 +451,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--root",
         type=Path,
-        default=Path(__file__).resolve().parent.parent,
+        default=Path(__file__).resolve().parent.parent.parent,
         help="SPECTER checkout root (tests only)",
     )
     parser.add_argument(
