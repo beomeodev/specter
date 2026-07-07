@@ -1,4 +1,4 @@
-"""End-to-end tests for scripts/specter_sync.py (/ms.sync engine).
+"""End-to-end tests for scripts/specter/specter_sync.py (/ms.sync engine).
 
 Each test builds a throwaway SPECTER source repo and bare target repos on
 disk, then drives the real sync flow (clone -> 3-way decide -> commit -> push)
@@ -29,6 +29,16 @@ MANIFEST = {
     "include": [".claude/commands/ms.*.md", "AGENTS.md"],
     "exclude": [".claude/commands/ms.sync.md"],
 }
+
+
+def test_default_root_resolves_to_repo_root() -> None:
+    # Regression: after relocating the engine under scripts/specter/, the
+    # --root default kept climbing only two levels and built the doubled path
+    # <repo>/scripts/scripts/specter/... , crashing manifest loading. Tests
+    # always inject --root, so pin the untested default here.
+    root = sync.default_root()
+    assert (root / "pyproject.toml").is_file()
+    assert (root / sync.MANIFEST_RELPATH).is_file()
 
 
 def git(cwd: Path, *args: str) -> str:

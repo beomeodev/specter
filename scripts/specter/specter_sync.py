@@ -71,6 +71,11 @@ DELETE_KEPT_LOCAL = "DELETE-KEPT-LOCAL"
 BASELINE_ADVANCING = {NEW, SAME, UPDATE, MERGED}
 
 
+def default_root() -> Path:
+    """Repo root = two directories above this script (scripts/specter/)."""
+    return Path(__file__).resolve().parent.parent.parent
+
+
 def run_git(args: list[str], cwd: Path) -> subprocess.CompletedProcess[bytes]:
     return subprocess.run(["git", *args], cwd=cwd, capture_output=True, check=False)
 
@@ -371,7 +376,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
     files = manifest_files(root)
     if not files:
         print(
-            "❌ Manifest matched no tracked files — check scripts/specter_sync_manifest.json."
+            "❌ Manifest matched no tracked files — check scripts/specter/specter_sync_manifest.json."
         )
         return 1
     dirty = dirty_manifest_files(root, files)
@@ -451,7 +456,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--root",
         type=Path,
-        default=Path(__file__).resolve().parent.parent.parent,
+        default=default_root(),
         help="SPECTER checkout root (tests only)",
     )
     parser.add_argument(

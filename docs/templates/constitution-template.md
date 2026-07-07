@@ -226,7 +226,7 @@ repository.
 - TAG **wiring** (every `@CODE` anchor resolves to same-id `@SPEC` and `@TEST`
   anchors; `@CODE` ids unique; `FIX-*` ids exempt from `@SPEC`) is mechanical
   and IS commit-blocking where the pre-commit backstop
-  (`scripts/check_tag_chain.py`) is installed.
+  (`scripts/specter/check_tag_chain.py`) is installed.
 
 ### TRUST Gate Ownership
 
@@ -310,7 +310,7 @@ git reality or be omitted. Do not hand-stamp today's date on unchanged files.
 
 - Mechanical wiring (`@CODE` -> same-id `@SPEC`/`@TEST` anchors, unique `@CODE`
   ids, the `FIX-*` exemptions above) is enforced by the pre-commit backstop
-  `scripts/check_tag_chain.py` where installed — it blocks the commit.
+  `scripts/specter/check_tag_chain.py` where installed — it blocks the commit.
 - Semantic issues (coverage fidelity, orphaned TAGs, stale references) are
   reported by `/ms.review` or TAG tooling and are warnings by default.
 - A project may promote TAG semantic integrity to blocking only through an

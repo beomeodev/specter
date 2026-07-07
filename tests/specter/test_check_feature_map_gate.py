@@ -1,4 +1,4 @@
-"""Tests for scripts/check_feature_map_gate.py (pre-commit Feature Map backstop).
+"""Tests for scripts/specter/check_feature_map_gate.py (pre-commit Feature Map backstop).
 
 Each test builds a throwaway git repo and drives the real staged-state checks:
 the hook must block a Feature Map edit whose SHA256 is not recorded in the

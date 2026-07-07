@@ -1,4 +1,4 @@
-"""Tests for scripts/check_tag_chain.py (pre-commit TAG-chain backstop).
+"""Tests for scripts/specter/check_tag_chain.py (pre-commit TAG-chain backstop).
 
 Covers the standard @SPEC -> @TEST -> @CODE wiring rules and the /ms.fix
 track exemption: FIX-* @CODE ids carry no governing spec, so they are exempt
@@ -40,6 +40,15 @@ def write(root: Path, relpath: str, text: str) -> None:
     path = root / relpath
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
+
+
+def test_default_root_resolves_to_repo_root() -> None:
+    # Regression: relocating this script under scripts/specter/ once left the
+    # default scan root pointing at <repo>/scripts, silently no-op'ing the gate.
+    # Pin the invariant so a future move can't repeat it without failing here.
+    root = chain.default_root()
+    assert (root / "pyproject.toml").is_file()
+    assert (root / "scripts" / "specter" / "check_tag_chain.py").is_file()
 
 
 def test_empty_tree_passes(tmp_path: Path) -> None:

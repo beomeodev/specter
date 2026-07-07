@@ -116,9 +116,14 @@ def collect(root: Path) -> tuple[dict[str, list[str]], set[str], set[str], set[s
     return code, spec, test, presentational
 
 
+def default_root() -> Path:
+    """Repo root = two directories above this script (scripts/specter/)."""
+    return Path(__file__).resolve().parent.parent.parent
+
+
 def main(root: Path | None = None) -> int:
     if root is None:
-        root = Path(__file__).resolve().parent.parent
+        root = default_root()
     code, spec, test, presentational = collect(root)
     if not code:
         return 0  # nothing has opted into the chain yet
