@@ -23,20 +23,20 @@ This command performs **complete project initialization**:
 **IMPORTANT**: This step automatically installs Spec-Kit from upstream.
 
 Execute the Spec-Kit installation command. The default is **pinned to a verified release**
-(`v0.11.6`) — this is the *loose-coupling* posture: upstream is pre-1.0 and renames its
+(`v0.12.5`) — this is the *loose-coupling* posture: upstream is pre-1.0 and renames its
 integration surface often (command→skill, `speckit.x`→`speckit-x`), so pinning protects
 SPECTER's wrappers from surprise breakage. The pin is overridable via `SPEC_KIT_REF` for
 anyone who wants to track latest or test a newer tag:
 
 ```bash
-SPEC_KIT_REF="${SPEC_KIT_REF:-v0.11.6}"
+SPEC_KIT_REF="${SPEC_KIT_REF:-v0.12.5}"
 uvx --from "git+https://github.com/github/spec-kit.git@$SPEC_KIT_REF" specify init --here --force --integration claude
 ```
 
 To track latest or a different tag instead of the pinned default, export the variable first:
 
 ```bash
-SPEC_KIT_REF=v0.11.6 /ms.init   # default: verified pinned release (recommended)
+SPEC_KIT_REF=v0.12.5 /ms.init   # default: verified pinned release (recommended)
 SPEC_KIT_REF=main    /ms.init   # latest upstream (exposed to churn — re-verify seams)
 ```
 
@@ -56,15 +56,15 @@ SPEC_KIT_REF=main    /ms.init   # latest upstream (exposed to churn — re-verif
 > `--integration`. Always use `--integration claude`; `--ai claude` is legacy and no
 > longer supported by current upstream releases.
 
-**What this does** (verified against a live v0.11.6 `specify init`):
+**What this does** (verified against a live v0.12.5 `specify init`, 2026-07-07):
 
--   Downloads the selected Spec-Kit ref from GitHub (`SPEC_KIT_REF`, default pinned `v0.11.6`)
+-   Downloads the selected Spec-Kit ref from GitHub (`SPEC_KIT_REF`, default pinned `v0.12.5`)
 -   Extracts bundled template files to the current directory
 -   Creates directory structure:
     -   `.specify/` - Spec-Kit metadata, `templates/`, `scripts/bash/`, `memory/`,
         `workflows/`, `integrations/`
-    -   Agent-specific Claude integration files. On v0.11.x this is the **skill** layout
-        (`.claude/skills/speckit-*/SKILL.md`); older releases used the command layout
+    -   Agent-specific Claude integration files. On v0.11.x/v0.12.x this is the **skill**
+        layout (`.claude/skills/speckit-*/SKILL.md`); older releases used the command layout
         (`.claude/commands/speckit.*.md`). Step 2.4 detects whichever exists.
 -   Appends a small `<!-- SPECKIT START/END -->` block to `CLAUDE.md`. SPECTER's `CLAUDE.md`
     is a symlink to `AGENTS.md`, so this block lands (non-destructively, marker-managed) at
@@ -105,34 +105,31 @@ cp docs/templates/constitution-template.md .specify/memory/constitution.md
 -   This indicates a repository structure issue
 -   Exit with error
 
-#### 2.3 Install GEARS Spec-Template
+#### 2.3 Install GEARS Spec-Template (overrides layer + core)
 
 Step 1 (`specify init --force`) overwrites `.specify/templates/spec-template.md` with
 the upstream (classic EARS) template. Restore the SPECTER GEARS version on top of it —
-the same copy-after-init pattern used for the constitution in Step 2.2. The `mkdir -p`
-guard makes this safe even if a future Spec-Kit stops creating `.specify/templates/`:
+the same copy-after-init pattern used for the constitution in Step 2.2 — at **two layers**:
 
 ```bash
-mkdir -p .specify/templates
+mkdir -p .specify/templates/overrides
+cp docs/templates/spec-template.md .specify/templates/overrides/spec-template.md
 cp docs/templates/spec-template.md .specify/templates/spec-template.md
 ```
 
-**Why the core path** (not an `overrides/` entry): historically the `/speckit.specify`
-command created each new `spec.md` by copying `.specify/templates/spec-template.md`
-directly. Installing GEARS at that core path is what actually reached new specs, and it
-must be re-applied after every `specify init --force` (hence here in `/ms.init`).
+**Why both layers**: v0.12.x resolves templates through a priority stack —
+`overrides/` (1) → presets (2) → extensions (3) → core `.specify/templates/` (4) —
+implemented in `resolve_template()` in `.specify/scripts/bash/common.sh` and consumed by
+`create-new-feature.sh`. The `overrides/` copy sits at priority 1, so **no installed preset
+or extension can ever shadow GEARS** (this closes the old caveat where a
+`specify init --preset <name>` layer could sit above core). The core copy stays as a
+belt-and-braces fallback for anyone pinning `SPEC_KIT_REF` to a pre-0.12 release whose
+scripts do not know the overrides layer.
 
-> ✅ **Verified against a live `specify init` (upstream `main`, v0.11.x).** Current Spec-Kit
-> resolves the spec template through a **preset/template resolution stack**
-> (`specify preset resolve spec-template`) rather than a hardcoded copy. For a default
-> (no-`--preset`) init, the stack's **`core` layer *is* `.specify/templates/spec-template.md`**
-> — exactly this file. `specify preset resolve spec-template` was confirmed to resolve to
-> this path (`top layer from: core`), so overwriting it here makes GEARS reach every new
-> `spec.md`. The `mkdir -p` keeps the copy from erroring even if a future layout drops the
-> directory.
-> **Caveat**: if someone runs `specify init --preset <name>` with a preset that ships its own
-> `spec-template`, that preset layer can sit above `core` and override GEARS. `/ms.init` does
-> not pass `--preset`, so the default path is safe.
+> ✅ **Verified end-to-end against a live v0.12.5 `specify init` (2026-07-07)**: a sentinel
+> GEARS template placed at `.specify/templates/overrides/spec-template.md` was picked up by
+> `create-new-feature.sh` and reached the newly created `specs/NNN-*/spec.md`. Both copies
+> must be re-applied after every `specify init --force` (hence here in `/ms.init`).
 
 **IF source file not found**:
 
@@ -456,7 +453,7 @@ Display completion message:
 ❌ Error: Spec-Kit installation failed
 
 The command failed to install Spec-Kit:
-    SPEC_KIT_REF="${SPEC_KIT_REF:-v0.11.6}" uvx --from "git+https://github.com/github/spec-kit.git@$SPEC_KIT_REF" specify init --here --force --integration claude
+    SPEC_KIT_REF="${SPEC_KIT_REF:-v0.12.5}" uvx --from "git+https://github.com/github/spec-kit.git@$SPEC_KIT_REF" specify init --here --force --integration claude
 
 Please check:
 1. Internet connection
@@ -464,7 +461,7 @@ Please check:
 3. uvx/uv installed correctly
 
 You can try manual installation (pinned default; override with SPEC_KIT_REF=main to track latest):
-    uvx --from "git+https://github.com/github/spec-kit.git@v0.11.6" specify init --here --force --integration claude
+    uvx --from "git+https://github.com/github/spec-kit.git@v0.12.5" specify init --here --force --integration claude
 
 Then run /ms.init again.
 ```

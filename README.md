@@ -8,7 +8,7 @@
 
 <p align="center">
     <a href="./CHANGELOG.md"><img src="https://img.shields.io/badge/release-v2.3.1-2ea44f" alt="release"></a>
-    <a href="https://github.com/github/spec-kit"><img src="https://img.shields.io/badge/built%20on-Spec--Kit%20v0.11.6-cc785c" alt="built on Spec-Kit"></a>
+    <a href="https://github.com/github/spec-kit"><img src="https://img.shields.io/badge/built%20on-Spec--Kit%20v0.12.5-cc785c" alt="built on Spec-Kit"></a>
     <a href="#required-tools"><img src="https://img.shields.io/badge/Python-3.14%2B%20·%20uv-3776ab" alt="Python 3.14+ · uv"></a>
     <a href="https://claude.com/claude-code"><img src="https://img.shields.io/badge/Claude%20Code-workflow%20overlay-d97757" alt="Claude Code overlay"></a>
     <a href="#gates"><img src="https://img.shields.io/badge/gates-lint%20·%20type%20·%20test-5a0fc8" alt="gates"></a>
@@ -206,7 +206,7 @@ cd my-new-project
 /ms.init
 ```
 
-`/ms.init` is pinned to a verified Spec-Kit release (`v0.11.6`). Because upstream is pre-1.0 and changes its integration surface frequently, pinning protects wrappers from unexpected breakage. To track the latest, run `SPEC_KIT_REF=main /ms.init` — though you may need to re-verify command delegation names as listed in the [Spec-Kit Compatibility](#spec-kit-compatibility) section below.
+`/ms.init` is pinned to a verified Spec-Kit release (`v0.12.5`). Because upstream is pre-1.0 and changes its integration surface frequently, pinning protects wrappers from unexpected breakage. To track the latest, run `SPEC_KIT_REF=main /ms.init` — though you may need to re-verify command delegation names as listed in the [Spec-Kit Compatibility](#spec-kit-compatibility) section below.
 
 ### Project Structure
 
@@ -238,7 +238,7 @@ SPECTER is a compatibility layer that delegates work to upstream skills **by nam
 
 Upstream renaming will break only these delegations. Before bumping the pin (`SPEC_KIT_REF`), ensure these names remain correct.
 
-| SPECTER Wrapper | Delegation Target (Pinned v0.11.6) |
+| SPECTER Wrapper | Delegation Target (Pinned v0.12.5) |
 | --- | --- |
 | `/ms.specify` | `/speckit-specify` (+ `/ms.init` injects the gate) |
 | `/ms.clarify` | `/speckit-clarify` |
@@ -248,6 +248,8 @@ Upstream renaming will break only these delegations. Before bumping the pin (`SP
 | `/ms.implement` | `/speckit-implement` |
 
 > * `/ms.checklist` intentionally does NOT delegate to `/speckit-checklist` (runs independent verification against the PRD).*
+> * v0.12.x also renders upstream skills outside this contract (`speckit-converge`, `speckit-taskstoissues`, `speckit-constitution`, `speckit-checklist`) — SPECTER does not wrap them; `/ms.constitution` and `/ms.checklist` are independent implementations, not wrappers of the same-named upstream skills.*
+> * GEARS template injection uses the v0.12.x resolution stack: `/ms.init` installs the GEARS spec-template at `.specify/templates/overrides/` (priority 1 — no preset or extension can shadow it) plus the core path as a pre-0.12 fallback.*
 
 ### Identity Invariants (Non-negotiable)
 
