@@ -23,7 +23,8 @@ FEATURE_RAW="${1:-}"
 FEATURE=""
 if [ -n "$FEATURE_RAW" ]; then
   if [[ "$FEATURE_RAW" =~ ^[0-9]+$ ]]; then
-    FEATURE=$(printf '%03d' "$FEATURE_RAW")
+    # 10# forces decimal: a leading zero ("069") must not be read as octal.
+    FEATURE=$(printf '%03d' "$((10#$FEATURE_RAW))")
   else
     FEATURE="$FEATURE_RAW"
   fi
@@ -177,15 +178,25 @@ if [ -n "$FEATURE" ]; then
       any_fail=true
     fi
 
-    if [ -f "$FEATURE_MAP" ]; then
+    # Split-slate support: a checklist may pin its own map file via the
+    # "**Feature Map**:" field (e.g. feature-map_072_*.md with the master
+    # frozen); its recorded SHA256 must be checked against that file, not
+    # against the master map.
+    map_field=$(extract_field "$FEATURE_CHECKLIST" "Feature Map")
+    feature_map_path="$FEATURE_MAP"
+    [ -n "$map_field" ] && feature_map_path="${map_field%% *}"
+    if [ -f "$feature_map_path" ]; then
       recorded_sha=$(extract_field "$FEATURE_CHECKLIST" "Feature Map SHA256")
-      current_sha=$(sha256sum "$FEATURE_MAP" | awk '{print $1}')
+      current_sha=$(sha256sum "$feature_map_path" | awk '{print $1}')
       if [ -n "$recorded_sha" ] && [ "$recorded_sha" = "$current_sha" ]; then
         feature_checklist_sha_ok=true
       else
         add_reason "feature checklist Feature Map SHA256 stale (recorded=${recorded_sha:-none}, current=${current_sha})"
         any_fail=true
       fi
+    elif [ "$feature_map_path" != "$FEATURE_MAP" ]; then
+      add_reason "missing: $feature_map_path"
+      any_missing=true
     fi
   fi
 
