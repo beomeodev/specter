@@ -71,6 +71,8 @@ which upstream command must run first.
 Require the global checklist to be current. Run the deterministic gate checker:
 
 ```bash
+# self-heal: the runtime copy is project-local (never synced); refresh it from the synced template
+install -D -m 0755 docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
 .specify/scripts/bash/specter-gate.sh
 ```
 

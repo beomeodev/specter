@@ -107,6 +107,8 @@ crosses the clarify boundary.
 2. Confirm the per-Feature cycle can start by running the deterministic gate
    checker instead of manually re-deriving these facts:
    ```bash
+   # self-heal: the runtime copy is project-local (never synced); refresh it from the synced template
+   install -D -m 0755 docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
    .specify/scripts/bash/specter-gate.sh
    ```
    This mechanically checks that the Feature Map exists, `docs/prd/feature-map.checklist.md`

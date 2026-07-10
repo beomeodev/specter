@@ -97,6 +97,8 @@ which would be too late.
 2. Run the deterministic gate checker for that Feature instead of manually
    re-deriving these facts:
    ```bash
+   # self-heal: the runtime copy is project-local (never synced); refresh it from the synced template
+   install -D -m 0755 docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
    .specify/scripts/bash/specter-gate.sh NNN
    ```
    This mechanically checks the global checklist (existence, Mode, Result, SHA),

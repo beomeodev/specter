@@ -116,6 +116,8 @@ Before auditing a Feature, run the deterministic gate checker instead of manuall
 re-deriving these facts:
 
 ```bash
+# self-heal: the runtime copy is project-local (never synced); refresh it from the synced template
+install -D -m 0755 docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
 .specify/scripts/bash/specter-gate.sh
 ```
 
@@ -371,6 +373,17 @@ Feature's number (as a string, e.g. `"006"`):
 mkdir -p .specify
 printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"checklist","verdict":"%s","artifacts":["docs/prd/checklists/feature-%s.checklist.md"]}\n' \
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "<PASS|WARN|FAIL>" "<NNN>" >> .specify/specter-run.jsonl
+```
+
+On `WARN`/`FAIL`, extend the JSON with `caught` — an array of short **verbatim quotes** from
+the checklist audit just written, one per real finding (never paraphrase or re-grade; `[]` if
+the non-PASS verdict carried no content finding) — and, only when the verdict was capped by an
+environmental degrade rather than by findings, `cap` with the reason (e.g.
+`"single-agent-degrade"`). PASS lines stay minimal. Re-rounds overwrite report files; this
+ledger line is where the original catch survives for gate-value audits. Example:
+
+```json
+{"ts":"…","cycle":"feature","feature":"006","step":"checklist","verdict":"WARN","artifacts":["…"],"caught":["done criterion (d) lacks PRD evidence row"],"cap":"single-agent-degrade"}
 ```
 
 ## Next Command

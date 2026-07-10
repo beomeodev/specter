@@ -335,6 +335,17 @@ printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"analyze","verdict":"
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "<PASS|WARN|FAIL>" "specs/<spec-id>/analyze.codex.md\",\"specs/<spec-id>/analyze.antigravity.md" >> .specify/specter-run.jsonl
 ```
 
+On `WARN`/`FAIL`, extend the JSON with `caught` — an array of short **verbatim quotes** from
+the two analyze reports, one per real finding (never paraphrase or re-grade; `[]` if the
+non-PASS verdict carried no content finding) — and, only when the verdict was capped by an
+environmental degrade rather than by findings, `cap` with the reason (e.g.
+`"single-agent-degrade"`). PASS lines stay minimal. Re-rounds overwrite report files; this
+ledger line is where the original catch survives for gate-value audits. Example:
+
+```json
+{"ts":"…","cycle":"feature","feature":"006","step":"analyze","verdict":"WARN","artifacts":["…"],"caught":["tasks omit RED test for FR-007 error path"],"cap":"single-agent-degrade"}
+```
+
 ## Next Command
 
 After `/ms.analyze` passes, run `/ms.implement`.

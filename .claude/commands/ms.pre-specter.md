@@ -108,6 +108,8 @@ turns are the conditional questions the underlying commands raise.
 2. Detect a prior setup (re-run) with the deterministic gate checker instead of
    re-deriving the facts from prose:
    ```bash
+   # self-heal: the runtime copy is project-local (never synced); refresh it from the synced template
+   install -D -m 0755 docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
    .specify/scripts/bash/specter-gate.sh
    ```
    If **both** `global_result_ok` **and** `constitution_section_ix_established`

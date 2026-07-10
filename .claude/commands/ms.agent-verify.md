@@ -53,6 +53,8 @@ Then verify the checklist is actually usable — existence alone is not the gate
 deterministic checker for the resolved Feature:
 
 ```bash
+# self-heal: the runtime copy is project-local (never synced); refresh it from the synced template
+install -D -m 0755 docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
 .specify/scripts/bash/specter-gate.sh NNN
 ```
 
@@ -216,6 +218,17 @@ to the Feature number as a string:
 mkdir -p .specify
 printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"agent-verify","verdict":"%s","artifacts":["docs/prd/checklists/feature-%s.codex-verify.md","docs/prd/checklists/feature-%s.antigravity-verify.md"]}\n' \
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "<PASS|WARN|FAIL>" "<NNN>" "<NNN>" >> .specify/specter-run.jsonl
+```
+
+On `WARN`/`FAIL`, extend the JSON with `caught` — an array of short **verbatim quotes** from
+the two verify reports, one per real finding (never paraphrase or re-grade; `[]` if the
+non-PASS verdict carried no content finding) — and, only when the verdict was capped by an
+environmental degrade rather than by findings, `cap` with the reason (e.g.
+`"single-agent-degrade"`). PASS lines stay minimal. Re-rounds overwrite report files; this
+ledger line is where the original catch survives for gate-value audits. Example:
+
+```json
+{"ts":"…","cycle":"feature","feature":"006","step":"agent-verify","verdict":"WARN","artifacts":["…"],"caught":["checklist cites fabricated C220; C144 missing"],"cap":"single-agent-degrade"}
 ```
 
 ## Next Command

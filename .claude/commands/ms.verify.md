@@ -304,6 +304,17 @@ printf '{"ts":"%s","cycle":"pre","feature":null,"step":"verify","verdict":"%s","
   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<PASS|WARN|FAIL>" >> .specify/specter-run.jsonl
 ```
 
+On `WARN`/`FAIL`, extend the JSON with `caught` — an array of short **verbatim quotes** from
+the audit report just written, one per real finding (never paraphrase or re-grade; `[]` if the
+non-PASS verdict carried no content finding) — and, only when the verdict was capped by an
+environmental degrade rather than by findings, `cap` with the reason (e.g.
+`"single-agent-degrade"`). PASS lines stay minimal. Re-rounds overwrite report files; this
+ledger line is where the original catch survives for gate-value audits. Example:
+
+```json
+{"ts":"…","cycle":"pre","feature":null,"step":"verify","verdict":"WARN","artifacts":["docs/prd/feature-map.checklist.md"],"caught":["F-12 has no PRD evidence row for SC-3"],"cap":"single-agent-degrade"}
+```
+
 ## Next Command
 
 After `/ms.verify` passes, run `/ms.constitution`.
