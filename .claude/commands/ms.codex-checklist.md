@@ -17,7 +17,7 @@ the generated Feature Map.
 
 ```bash
 /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
-/ms.codex-checklist --model gpt-5.5 --effort high @docs/prd/PRD.md
+/ms.codex-checklist --model gpt-5.6-sol --effort high @docs/prd/PRD.md
 ```
 
 Execution is always background. Users do not pass `--background`.
@@ -25,7 +25,7 @@ Execution is always background. Users do not pass `--background`.
 Default Codex runtime:
 
 ```text
-model: gpt-5.5
+model: gpt-5.6-sol
 effort: medium
 ```
 
@@ -71,7 +71,7 @@ Invoke the Codex plugin rescue command in background mode with default runtime
 selection unless the user explicitly provided overrides:
 
 ```text
-/codex:rescue --background --fresh --model gpt-5.5 --effort medium <prompt>
+/codex:rescue --background --fresh --model gpt-5.6-sol --effort medium <prompt>
 ```
 
 If the user provided `--model` or `--effort`, pass those values through instead

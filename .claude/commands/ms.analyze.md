@@ -25,7 +25,7 @@ lint, typecheck, coverage, or code-level TAG scans from this command.
 /ms.analyze
 /ms.analyze --background
 /ms.analyze --skip-codex
-/ms.analyze --model gpt-5.5 --effort high
+/ms.analyze --model gpt-5.6-sol --effort high
 ```
 
 Codex runs in the foreground by default. Use `--background` only when the
@@ -34,7 +34,7 @@ document set is large and the user explicitly wants to resume later.
 Default Codex runtime:
 
 ```text
-model: gpt-5.5
+model: gpt-5.6-sol
 effort: medium
 ```
 
@@ -127,7 +127,7 @@ present a single-agent run as dual; never block `/ms.analyze` on an environment 
 
 #### A. Codex Review
 ```text
-/codex:rescue --fresh --model gpt-5.5 --effort medium <prompt>
+/codex:rescue --fresh --model gpt-5.6-sol --effort medium <prompt>
 ```
 Codex must read:
 - `.specify/memory/constitution.md`

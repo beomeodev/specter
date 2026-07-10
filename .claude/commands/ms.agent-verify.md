@@ -11,7 +11,7 @@ Execution is foreground: Codex and Antigravity run in parallel and this command 
 
 Default Codex/Antigravity runtimes:
 ```text
-Codex model: gpt-5.5
+Codex model: gpt-5.6-sol
 Antigravity model: gemini-3.5-flash
 effort: medium
 ```
@@ -21,7 +21,7 @@ effort: medium
 ```bash
 /ms.agent-verify
 /ms.agent-verify Feature 003
-/ms.agent-verify --model gpt-5.5 --effort high Feature 003
+/ms.agent-verify --model gpt-5.6-sol --effort high Feature 003
 ```
 
 ## Output
@@ -83,7 +83,7 @@ Invoke the Codex and Antigravity plugin rescue commands in the foreground, in pa
 
 #### A. Run Codex
 ```text
-/codex:rescue --fresh --model gpt-5.5 --effort medium <Codex Prompt>
+/codex:rescue --fresh --model gpt-5.6-sol --effort medium <Codex Prompt>
 ```
 
 #### B. Run Antigravity
