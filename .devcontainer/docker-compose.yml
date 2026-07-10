@@ -25,6 +25,10 @@ services:
       # agy는 앱 디렉토리(자격증명 포함)를 ~/.gemini/antigravity-cli/에 만든다
       # (Gemini CLI 계승 경로) — ~/.config/agy가 아님. 호스트 1회 로그인이
       # 전 컨테이너에 공유되도록 ~/.gemini 전체를 마운트한다 (~/.codex와 동일 방식).
+      # 주의: agy 업데이트가 이 경로를 옮기면(예: ~/.agy) 에러 없이 "컨테이너
+      # 재생성 후 OAuth 재로그인 요구" 증상으로만 나타난다. 그때 컨테이너에서
+      # agy를 한 번 실행한 직후 `find ~ -maxdepth 3 -mmin -2 -type d`로 새 앱
+      # 디렉토리를 찾아 이 마운트를 그 경로로 바꿀 것 (2026-07-10 실측 방법).
       # 호스트에 디렉터리 필요: mkdir -p ~/.gemini
       - ${HOME}/.gemini:/home/dev/.gemini
       - ${HOME}/.npm:/home/dev/.npm
