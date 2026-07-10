@@ -22,8 +22,11 @@ services:
       - ${HOME}/.codex:/home/dev/.codex
       - ${HOME}/.claude:/home/dev/.claude
       # Antigravity CLI(agy) 자격증명 영속화 (rebuild 후에도 로그인 유지).
-      # 호스트에 디렉터리 필요: mkdir -p ~/.config/agy
-      - ${HOME}/.config/agy:/home/dev/.config/agy
+      # agy는 앱 디렉토리(자격증명 포함)를 ~/.gemini/antigravity-cli/에 만든다
+      # (Gemini CLI 계승 경로) — ~/.config/agy가 아님. 호스트 1회 로그인이
+      # 전 컨테이너에 공유되도록 ~/.gemini 전체를 마운트한다 (~/.codex와 동일 방식).
+      # 호스트에 디렉터리 필요: mkdir -p ~/.gemini
+      - ${HOME}/.gemini:/home/dev/.gemini
       - ${HOME}/.npm:/home/dev/.npm
       # gh CLI 인증 영속화 (rebuild 후에도 gh auth 유지). 호스트에 디렉터리 필요:
       #   mkdir -p ~/.config/gh
