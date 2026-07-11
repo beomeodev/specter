@@ -2,6 +2,18 @@
 
 Canonical form: `[Where <static>] [While <runtime>] [When <trigger>] the <subject> shall <behavior>.`
 
+## Contents
+
+- 1. Unconditional (no clause)
+- 2. When (event-driven)
+- 3. While (runtime state)
+- 4. Where (static condition)
+- 5. Error handling (replaces classic `IF...then`)
+- 6. Combined clauses (fixed order Where → While → When)
+- 7. Classic EARS → GEARS migration table
+- 8. Forbidden phrases → fix
+- 9. Given-When-Then mapping (testability, R6)
+
 ## 1. Unconditional (no clause)
 
 ### ✅ GOOD

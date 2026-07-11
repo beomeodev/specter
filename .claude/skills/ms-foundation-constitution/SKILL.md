@@ -150,6 +150,12 @@ awk '/^def / {start=NR} /^def / && start {print NR-start; start=NR}' file.py
     npm run lint -- --max-complexity 10
 ```
 
+## Examples
+
+Full before/after validation walkthroughs (file-size PASS/FAIL, complexity
+PASS/FAIL with refactoring splits, function-length checks): see
+[examples.md](examples.md).
+
 ## Related Skills
 - `ms-foundation-trust`: Overall TRUST 5 validation
 - `ms-essentials-review`: Code review automation

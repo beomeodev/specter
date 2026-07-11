@@ -10,6 +10,12 @@ business tooling outside SPECTER's scope, not by the PRD).
 
 Pick the template that matches the project's size — offer the choice, don't default to Standard.
 
+## Contents
+
+- Standard Template
+- One-Page Template
+- Feature-Brief Template (lightweight)
+
 ## Standard Template
 
 ```markdown

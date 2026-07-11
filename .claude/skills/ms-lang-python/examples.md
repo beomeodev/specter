@@ -1,8 +1,18 @@
-# Python 3.13 Code Examples
+# Python Code Examples
 
-Production-ready examples for modern Python development with pytest 8.4.2, ruff 0.13.1, mypy 1.8.0, and SPECTER TRUST 5 principles.
+Production-ready examples for modern Python development with pytest, ruff, mypy, and SPECTER TRUST 5 principles.
 
 ---
+
+## Contents
+
+- Example 1: pytest 8.4.2 with Fixtures and Async Tests
+- Example 2: ruff 0.13.1 Configuration and Workflow
+- Example 3: Type Safety with mypy 1.8.0 and Pydantic 2.7.0
+- Example 4: FastAPI 0.115.0 REST API with Async Handlers
+- Example 5: asyncio.TaskGroup Concurrent Patterns
+- Example 6: Quality Gate Workflow
+- Quick Reference
 
 ## Example 1: pytest 8.4.2 with Fixtures and Async Tests
 

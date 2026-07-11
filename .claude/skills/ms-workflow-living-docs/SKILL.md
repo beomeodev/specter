@@ -485,6 +485,12 @@ def sync_with_failopen(cwd: str) -> dict:
         }
 ```
 
+## Examples
+
+Worked examples for every mode (TAG scanning, daily-log sync, chain validation
+reports, README sync, parallel generation, incremental vs full sync, /ms.fin
+integration, fail-open handling, benchmarks): see [examples.md](examples.md).
+
 ## Related Skills
 - `ms-workflow-tag-manager`: TAG block generation and templates
 - `ms-foundation-trust`: TAG chain validation (Trackable principle)

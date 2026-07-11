@@ -1,8 +1,18 @@
-# TypeScript 5.7 Code Examples
+# TypeScript Code Examples
 
-Production-ready examples for modern TypeScript development with Vitest 2.1, Biome 1.9, and SPECTER TRUST 5 principles.
+Production-ready examples for modern TypeScript development with Vitest, Biome, and SPECTER TRUST 5 principles.
 
 ---
+
+## Contents
+
+- Example 1: Vitest 2.1 with Fixtures and Async Tests
+- Example 2: Biome 1.9 Configuration and Workflow
+- Example 3: Type Safety with TypeScript 5.7
+- Example 4: React Component with TypeScript
+- Example 5: Input Validation with Zod
+- Example 6: Quality Gate Workflow
+- Quick Reference
 
 ## Example 1: Vitest 2.1 with Fixtures and Async Tests
 

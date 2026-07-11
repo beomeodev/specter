@@ -1,6 +1,6 @@
 ---
 name: ms-foundation-ears
-description: Requirements validation skill that enforces the GEARS syntax (Generalized EARS) — the canonical "[Where <static>] [While <runtime>] [When <trigger>] the <subject> shall <behavior>" form — checks clause order, concrete subjects, error-handling labels (no IF...then), detects ambiguous forbidden phrases (fast, secure, user-friendly), ensures Given-When-Then testability, and gives concrete rewrite suggestions. Classic EARS is accepted as a legacy-compatible subset. Use when writing specifications, clarifying requirements, validating SPEC documents, detecting ambiguous language, or ensuring requirements measurability.
+description: Requirements validation skill that enforces the GEARS syntax (Generalized EARS) — the canonical "[Where static-precondition] [While runtime-state] [When trigger] the subject shall behavior" form — checks clause order, concrete subjects, error-handling labels (no IF...then), detects ambiguous forbidden phrases (fast, secure, user-friendly), ensures Given-When-Then testability, and gives concrete rewrite suggestions. Classic EARS is accepted as a legacy-compatible subset. Use when writing specifications, clarifying requirements, validating SPEC documents, detecting ambiguous language, or ensuring requirements measurability.
 ---
 
 # Foundation: GEARS Requirements Validation

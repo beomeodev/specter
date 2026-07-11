@@ -1,5 +1,18 @@
 # Living-Docs Manager Skill - Examples
 
+## Contents
+
+- Example 1: TAG Scanning for API Documentation
+- Example 2: Dev Daily Log Sync
+- Example 3: TAG Chain Validation Report
+- Example 4: README Sync with Project Status
+- Example 5: Parallel API Doc Generation
+- Example 6: Staged Changes Only (Incremental Sync)
+- Example 7: Full Sync (All Docs)
+- Example 8: /ms.fin Integration (Auto Sync Before Commit)
+- Example 9: Error Handling (Fail-open)
+- Example 10: Performance Benchmarking
+
 ## Example 1: TAG Scanning for API Documentation
 
 **Scenario**: Scan code for @CODE tags and generate API docs

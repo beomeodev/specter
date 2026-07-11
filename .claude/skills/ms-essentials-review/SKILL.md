@@ -381,17 +381,6 @@ rg '@CODE:AUTH-001' -l
 
 ---
 
-## Changelog
-
-- **v1.0.0** (2025-10-26): Initial release for SPECTER workflow
-  - TRUST 5 principles validation
-  - Constitution compliance checking
-  - Security vulnerability scanning
-  - TAG chain integrity verification
-  - Python/TypeScript/JavaScript support
-
----
-
 ## Works Well With
 
 - `ms-essentials-debug`: Use after fixing issues identified in review

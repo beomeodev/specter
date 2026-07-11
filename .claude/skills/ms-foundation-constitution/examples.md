@@ -1,5 +1,13 @@
 # Constitution Compliance Examples
 
+## Contents
+
+- Example 1: File Size Validation (PASS)
+- Example 2: File Size Validation (FAIL)
+- Example 3: Complexity Validation (PASS)
+- Example 4: Complexity Validation (FAIL)
+- Example 5: Function Size Validation
+
 ## Example 1: File Size Validation (PASS)
 
 **File**: `src/auth/utils.py` (245 SLOC)

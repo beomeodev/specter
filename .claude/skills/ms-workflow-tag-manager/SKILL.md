@@ -350,5 +350,11 @@ rg "@(SPEC|TEST|CODE):AUTH-001" -n specs/ tests/ src/
 
 **No manual TAG creation required** - `/ms.implement` handles it automatically.
 
+## Examples
+
+Worked examples (Python/TypeScript/multi-language TAG generation, chain validation,
+status lifecycle, duplicate detection, /ms.implement auto-insertion): see
+[examples.md](examples.md).
+
 ## Related Skills
 - `ms-foundation-trust`: TAG chain validation (Trackable principle)
