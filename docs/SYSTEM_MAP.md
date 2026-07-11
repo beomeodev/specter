@@ -21,7 +21,6 @@ tools:
   - find
   - uv run pytest --cov
 graphify: not_installed
-serena: unavailable
 stale_when:
   - git_head differs from current HEAD
   - changed files overlap documented invariants or shared modules
@@ -138,9 +137,6 @@ Not applicable — this repository ships no deployed application or server; the
   before treating the token-saving claim as realized.
 - `graphifyy` is a ~3-month-old upstream (v0.9.12 pinned): expect API churn;
   bump `GRAPHIFY_VERSION` deliberately and re-verify hooks + query output.
-- `serena` is declared in `.mcp.json` but its binary does not resolve in this
-  environment; structural scans use `git`/`rg`/`find` (and, in consuming
-  projects, Graphify).
 - `docs/improvements/*.md` are historical working records, not
   currently-authoritative plans.
 
@@ -160,8 +156,6 @@ rg -n "GRAPHIFY_VERSION" .claude/commands/ms.init.md   # exactly one pin definit
 - Graphify was exercised against a scratchpad clone of this repo (build 1.85s,
   257 nodes; incremental 1.6s; query ≈1.6k tokens), not yet against a real
   consuming project.
-- Serena MCP is configured but unreachable; no symbol-level navigation was
-  performed for this refresh.
 
 ## Refresh Procedure
 1. Read `AGENTS.md` (§9 for the graph/map division) and

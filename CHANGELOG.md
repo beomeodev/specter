@@ -13,6 +13,12 @@ All notable changes to this repository are documented in this file.
 - **`/ms.specter` Step 0.6**: 사이클 시작 시 그래프 self-heal(`--update`); 바이너리 부재 시
   `UNAVAILABLE` WARN 기록 후 계속 — 그래프는 가속기이며 게이트가 아님(FAIL 불가 불변식).
 
+### Removed
+- **Serena MCP 완전 제거**: `.mcp.json`·`settings.json` 엔트리, `.serena/` 디렉토리, AGENTS.md
+  §9·`codebase-snapshot` 스킬의 폴백 프로즈. 근거: 2026-06-18 설정 이후 47개 세션에서 도구 호출
+  0건 + 바이너리 경로 미해결, 심볼 내비게이션 역할은 Graphify가 대체. `check_tag_chain.py`의
+  `.serena` 스캔 제외 항목은 소비 프로젝트 잔존 디렉토리 방어용으로 존치.
+
 ### Changed
 - **`codebase-snapshot` 스킬 축소**: SYSTEM_MAP에서 구조 인벤토리 섹션(`Repository Shape`,
   `Hot Paths`) 폐지 — 구조 사실은 그래프 또는 실시간 `rg`/`find`가 담당하고, 맵은 저변동성

@@ -194,9 +194,6 @@ is cohesive. This is the default for every track (`/ms.fin`, `/ms.fix`,
   via the `.claude/skills/codebase-snapshot/SKILL.md` procedure when stale.
   Structural facts (file lists, counts, call relationships) belong to the
   graph or a live `rg`/`find` scan, never to the map.
-- Use Serena MCP for symbol-level navigation when configured and useful, but do
-  not block exploration if Serena is unavailable; fall back to `rg`, `find`,
-  and `git`.
 
 ---
 

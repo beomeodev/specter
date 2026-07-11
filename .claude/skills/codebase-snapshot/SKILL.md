@@ -1,6 +1,6 @@
 ---
 name: codebase-snapshot
-description: Agent-facing codebase exploration and SYSTEM_MAP maintenance skill. Use when starting a new task, creating or refreshing docs/SYSTEM_MAP.md, checking whether stored architecture knowledge is stale, or recording invariants, risk areas, and verification commands with git metadata. Structural facts (file lists, call relationships, hot paths) are answered by the Graphify code graph when graphify-out/graph.json exists — this skill maintains the curated prose the graph cannot express. Uses Serena MCP for symbol-level navigation when available, with rg/find/git fallback.
+description: Agent-facing codebase exploration and SYSTEM_MAP maintenance skill. Use when starting a new task, creating or refreshing docs/SYSTEM_MAP.md, checking whether stored architecture knowledge is stale, or recording invariants, risk areas, and verification commands with git metadata. Structural facts (file lists, call relationships, hot paths) are answered by the Graphify code graph when graphify-out/graph.json exists — this skill maintains the curated prose the graph cannot express, with rg/find/git as the no-graph fallback.
 ---
 
 # Codebase Snapshot
@@ -66,7 +66,6 @@ scope:
 tools:
   - <tools used>
 graphify: <used|available|unavailable|not_installed>
-serena: <used|configured|unavailable|not_configured>
 stale_when:
   - git_head differs from current HEAD
   - changed files overlap documented invariants or shared modules
@@ -100,16 +99,7 @@ results.
      `rg -n "<keyword>"` for workflow names, routes, services, tests, TAGs,
      commands, and config references.
 
-4. Use Serena when available:
-   - Use symbol overview and reference lookup for code-heavy projects.
-   - Use Serena for cross-file symbol relationships, semantic navigation, and
-     refactor-sensitive dependency checks.
-   - If Serena is configured but not useful for the current scan, record
-     `serena: configured`.
-   - If Serena is not configured, continue with `rg`, `find`, and `git`.
-   - Record `serena: unavailable` or `serena: not_configured` when applicable.
-
-5. Separate facts from inference:
+4. Separate facts from inference:
    - Facts must cite concrete paths, commands, or observed files.
    - Inferences must be labeled as such and kept short.
 
@@ -200,5 +190,6 @@ this map. If an older map still carries them, drop them at the next refresh.
 - Do not dump full file trees.
 - Do not claim tests or tooling passed unless run.
 - Do not hide dirty working tree state.
-- Do not make Serena a hard dependency.
+- Do not make the Graphify graph a hard dependency — `rg`/`find`/`git` always
+  suffice.
 - Prefer updating an existing section over appending duplicate summaries.

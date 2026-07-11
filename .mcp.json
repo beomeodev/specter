@@ -7,25 +7,6 @@
         "@upstash/context7-mcp"
       ],
       "env": {}
-    },
-    "serena": {
-      "command": "/home/dev/.local/bin/serena",
-      "args": [
-        "start-mcp-server",
-        "--project",
-        "/workspace/specter",
-        "--context",
-        "codex",
-        "--transport",
-        "stdio",
-        "--enable-web-dashboard",
-        "false",
-        "--open-web-dashboard",
-        "false"
-      ],
-      "env": {
-        "PYTHON_GIL": "1"
-      }
     }
   }
 }
