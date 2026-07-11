@@ -38,6 +38,7 @@ SPECTER is a Claude Code workflow overlay built on top of GitHub [Spec-Kit](http
 - **Constitution** — Extracts project standards once, pins them in a single place, and re-injects them at every step.
 - **TAG Traceability** — Enables back-traceability from requirements to code using a `@SPEC → @TEST → @CODE` anchor chain (one comment line per file).
 - **Dual-Agent Cross-Verification** — Employs Codex and Antigravity as independent reviewers participating in every gate.
+- **Graphify Code Graph** — A local tree-sitter code graph (no LLM, no API key) built by `/ms.init` and kept current by git hooks; agents answer structural questions with `graphify query/path/explain` instead of re-exploring the codebase.
 
 It targets three core issues:
 
@@ -50,15 +51,12 @@ When a user submits valid credentials, the auth service shall issue a session to
 [Error Handling] When credentials are invalid, the auth service shall return a generic authentication error.
 ```
 
-**It's hard to trace why code exists.** The TAG chain connects requirements to tests, code, and documentation:
+**It's hard to trace why code exists.** The TAG anchor chain connects requirements to tests and code — one grep-able comment line per artifact:
 
-```typescript
-/**
- * @SPEC:AUTH-001 User Authentication
- * @TEST:AUTH-001 tests/auth.test.ts::should_authenticate_user
- * @CODE:AUTH-001
- */
-export class AuthService {}
+```text
+specs/001-auth/tasks.md    **TAG**: @SPEC:AUTH-001
+tests/auth.test.ts         // @TEST:AUTH-001
+src/auth/service.ts        // @CODE:AUTH-001
 ```
 
 The current release is `v2.3.1` — see [CHANGELOG.md](./CHANGELOG.md) for changes.
@@ -88,7 +86,7 @@ You don't need to run these commands one by one. The Pre-Feature cycle is handle
 ────────────────────────────────────────────────────────────────────
  📄  Setup
 ────────────────────────────────────────────────────────────────────
-     0. /ms.init            Install Spec-Kit + Default Constitution
+     0. /ms.init            Install Spec-Kit + Constitution + code graph
      1. /ms.prd             Co-author PRD — Discovery interview for unknowns (Out-of-cycle)
                             docs/prd/PRD.md (or multiple PRDs)
                             │
@@ -163,7 +161,7 @@ Below the prompt-based gates lies a mechanical enforcement layer: direct `/speck
 
 | Command | Role |
 | --- | --- |
-| `/ms.init` | Install Spec-Kit + Inject SPECTER overlays, hooks, and backstops |
+| `/ms.init` | Install Spec-Kit + Inject SPECTER overlays, hooks, backstops, and the Graphify code graph |
 | `/ms.prd` | Co-author PRD via discovery interview (Out-of-cycle) |
 | `/ms.pre-specter` | Bulk run the Pre-Feature cycle (featuremap → constitution) |
 | `/ms.featuremap` | Decompose PRD into a Feature DAG and generate per-feature prompts |
@@ -295,6 +293,7 @@ The step-by-step execution plan follows: Cleanup → Renderer → Driver-aware p
 ## Required Tools
 
 - `git`, `ripgrep` 13+, `uv`/`uvx`
+- Graphify (`graphifyy`, version-pinned — `/ms.init` installs it via `uv tool install --python 3.12`; the graph lives in each project's gitignored `graphify-out/`)
 - Claude Code
 - Codex CLI (Authenticated) + Codex plugin for Claude Code (`openai/codex-plugin-cc`)
 - Google Antigravity CLI `agy` (Authenticated) + Antigravity plugin (`sakibsadmanshajib/antigravity-plugin`)
