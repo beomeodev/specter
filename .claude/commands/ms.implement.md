@@ -248,8 +248,9 @@ Implementation contract:
   the actual code forces a deviation from `plan.md`, pick the conservative option, append one
   entry to `specs/{SPEC_ID}/implementation-notes.md` (`what the plan said → what was found →
   what was done instead → why`), and keep going — do not stop the run for a deviation that
-  stays inside the task's scope. `/ms.review` includes this file in its report and `/ms.amend`
-  consumes it when a deviation turns out to supersede a requirement.
+  stays inside the task's scope. `/ms.review` includes this file in its report; a deviation
+  that turns out to supersede a requirement routes to `/ms.expand` (requirements are only
+  ever invented by the user, never patched in place).
 
 This generates or modifies the implementation files while following Constitution principles and existing project patterns.
 

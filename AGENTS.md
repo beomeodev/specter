@@ -157,8 +157,8 @@ When committing, split changes by logical unit: each commit is one coherent
 concern (a feature with its tests and docs is one commit; an unrelated refactor
 or config change is another). Default to multiple commits when the diff spans
 more than one concern, and collapse to a single commit only when the whole change
-is cohesive. This is the default for every track (`/ms.fin`, `/ms.fix`,
-`/ms.amend`, and direct commits).
+is cohesive. This is the default for every track (`/ms.fin`, `/ms.fix`, and direct
+commits).
 
 ---
 

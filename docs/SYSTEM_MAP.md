@@ -62,8 +62,8 @@ empty scaffolding.
   `/ms.analyze` → `/ms.implement` → `/ms.review`. Step 0 self-heals the gate
   checker copy and the Graphify graph (WARN-only) before the cycle starts.
 - `/ms.fix` is the lightweight non-requirement track (TDD+TAG+gate, no spec
-  ceremony); `/ms.amend` records post-implementation decisions; `/ms.audit` is
-  advisory and gate-neutral.
+  ceremony); `/ms.audit` is advisory and gate-neutral. Post-implementation
+  deviations live in `specs/<id>/implementation-notes.md` (Deviations log).
 - `/ms.sync` broadcasts the file set in
   `scripts/specter/specter_sync_manifest.json` (commands, agents, skills,
   templates, the two backstop scripts, `AGENTS.md`, `CLAUDE.md`) to registered

@@ -113,10 +113,12 @@ Resolution follows this ladder — always take the LOWEST rung that fits, record
 decision, and continue only if a rung short of PARK applies:
 
 1. **Conform** — difference is PRD-neutral (names, signatures, file locations):
-   update the spec via the `/ms.amend` path to match as-built reality. Record, proceed.
+   append an `## Amendment` block to the Feature's `spec.md` (never edit existing
+   FR text in place; old → as-built → why) and update `plan.md` to match, keeping
+   `/ms.analyze` drift detection green. Record, proceed.
 2. **Conservative choice** — a `[DEPENDS]` clarify answer no longer holds but the PRD
-   still admits a resolution: pick the most conservative reading of the PRD, amend,
-   record as **WARN**, proceed.
+   still admits a resolution: pick the most conservative reading of the PRD, record
+   it the same Amendment-block way, record as **WARN**, proceed.
 3. **PARK** — resolving would require a new requirement, a PRD edit, or weakening any
    gate: stop this Feature AND everything downstream of it. Requirements are invented
    only by the user (`/ms.expand`); gates are never weakened, day or night.

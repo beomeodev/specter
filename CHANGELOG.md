@@ -14,6 +14,11 @@ All notable changes to this repository are documented in this file.
   `UNAVAILABLE` WARN 기록 후 계속 — 그래프는 가속기이며 게이트가 아님(FAIL 불가 불변식).
 
 ### Removed
+- **`/ms.amend` 커맨드 폐기**: 전 프로젝트에서 호출 0회 — 실제 역할은 2026-07-04 도입된
+  Deviations log(`specs/<id>/implementation-notes.md`, `/ms.implement`가 기록·`/ms.review`가
+  보고)가 대체 중이었음. 요구사항을 대체하는 변경은 `/ms.expand` 경유로 명문화. Amendment
+  블록 규율(기존 FR 제자리 수정 금지, old→as-built→why append)은 overnight-run 체인 모드의
+  드리프트 사다리에 인라인으로 승계.
 - **context7 MCP 제거**: `.mcp.json`(마지막 엔트리라 파일째 삭제)·`settings.json` MCP 키,
   README 선택 의존성/링크, ms.implement·ms.tasks의 "or Context7" 문구. 근거: 전 프로젝트
   ~240세션에서 실호출 1건 — 매 세션 시스템 프롬프트 instructions 상주 + npx 스폰 비용 대비

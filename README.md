@@ -138,7 +138,7 @@ Tracks determined by the nature of changes outside the main cycle.
 | No new requirements (bug/copy/style fixes) | `/ms.fix` | Maintains TDD, TAG, and gates while skipping spec/clarify/plan/tasks ceremonies. |
 | Experimental throwaway work | `spike` skill | Triggered via natural language ("let's experiment"), time-boxed, merge prohibited, output is a single findings note. |
 | Incremental requirements on baseline | `/ms.expand` | Append '## PRD Amendment N' to the PRD → decompose only the diff. Existing features remain unchanged, no global re-audit, rejects freeform input. |
-| Design changes discovered during build | `/ms.amend` | Replaces rather than edits existing FRs, recorded as an Amendment block. |
+| Design changes discovered during build | Deviations log / `/ms.expand` | In-scope deviations append to `specs/<id>/implementation-notes.md` during `/ms.implement` (reported by `/ms.review`); a change that supersedes a requirement goes through `/ms.expand`. |
 | All features green but product-level check needed | `/ms.audit` | 6 modules (exposure, cold-start, threat model, perf/a11y, gate value, blind spots). Advisory only — blocks nothing; findings route to `/ms.fix`, `/ms.expand`, or todo. |
 | Global product reconstruction | `/ms.pre-specter` | Recreates the Feature Map and re-verifies from global gates. |
 
@@ -176,7 +176,7 @@ Below the prompt-based gates lies a mechanical enforcement layer: direct `/speck
 | `/ms.analyze` | Validate document consistency + agent checks before build |
 | `/ms.implement` | TDD implementation + TAG injection (`--to-end`, `--mode tdd\|refactor`, `--task TNNN`, `--pbt` property-based tests from GEARS) |
 | `/ms.review` | Code review + adversarial agent review + execution gates |
-| `/ms.fix` / `/ms.amend` / `/ms.expand` / `/ms.audit` | Alternative tracks (See table above) |
+| `/ms.fix` / `/ms.expand` / `/ms.audit` | Alternative tracks (See table above) |
 | `/ms.fin` | Sync docs → Conditional CI → commit · push · PR |
 | `/ms.merglease` | Merge PR → Automate semver → tag → GitHub Release |
 | `/ms.up-docs` | Sync living docs |
