@@ -1,6 +1,6 @@
 ---
 name: codebase-snapshot
-description: Agent-facing codebase exploration and SYSTEM_MAP maintenance skill. Use when starting a new task, creating or refreshing docs/SYSTEM_MAP.md, checking whether stored architecture knowledge is stale, mapping repository structure, identifying hot paths, invariants, state transitions, shared modules, validation commands, or recording codebase understanding with git metadata. Uses Serena MCP for symbol-level navigation when available, with rg/find/git fallback when Serena is unavailable.
+description: Agent-facing codebase exploration and SYSTEM_MAP maintenance skill. Use when starting a new task, creating or refreshing docs/SYSTEM_MAP.md, checking whether stored architecture knowledge is stale, or recording invariants, risk areas, and verification commands with git metadata. Structural facts (file lists, call relationships, hot paths) are answered by the Graphify code graph when graphify-out/graph.json exists — this skill maintains the curated prose the graph cannot express. Uses Serena MCP for symbol-level navigation when available, with rg/find/git fallback.
 ---
 
 # Codebase Snapshot
@@ -13,12 +13,33 @@ current codebase quickly without trusting stale memory.
 This skill is for agents, not end-user documentation. Prefer precise, verifiable
 facts over narrative explanations. Mark assumptions clearly.
 
+## Division Of Labor With Graphify
+
+When `graphify-out/graph.json` exists (installed by `/ms.init` Step 2.9, kept
+current by post-commit hooks), the map and the graph split cleanly:
+
+- **Graph owns structure**: file inventories, symbol locations, call/import
+  relationships, "what connects A to B". Answer these with `graphify
+  query/path/explain` — never by writing them into SYSTEM_MAP.md, where they go
+  stale by the next commit.
+- **Map owns curated prose**: system purpose, workflow semantics, invariants,
+  risk areas, verification commands, runtime-path diagrams — knowledge a parser
+  cannot extract. This content is deliberately slow-moving, which is what keeps
+  the map trustworthy between refreshes.
+- Never paste Graphify output (GRAPH_REPORT.md, wiki, query results) into
+  SYSTEM_MAP.md: `graphify-out/` is regenerated state; embedding it recreates
+  the staleness problem the split exists to solve.
+
+Where no graph exists (e.g. a prose-heavy repo like the SPECTER template
+itself), structural questions fall back to `rg`/`find` at ask-time — still not
+to inventory sections in the map.
+
 ## When To Use
 
 - At the start of a non-trivial coding task.
 - When `docs/SYSTEM_MAP.md` is missing.
 - When `docs/SYSTEM_MAP.md` exists but its `git_head` differs from current HEAD.
-- When touched paths overlap documented hot paths or invariants.
+- When touched paths overlap documented invariants or shared modules.
 - Before planning work that depends on architecture, state flow, shared modules,
   test strategy, or command behavior.
 
@@ -44,10 +65,11 @@ scope:
   - <paths examined>
 tools:
   - <tools used>
+graphify: <used|available|unavailable|not_installed>
 serena: <used|configured|unavailable|not_configured>
 stale_when:
   - git_head differs from current HEAD
-  - changed files overlap documented hot paths or invariants
+  - changed files overlap documented invariants or shared modules
   - command, agent, skill, template, or workflow files are modified
 ---
 ```
@@ -68,10 +90,14 @@ results.
    - `git rev-parse HEAD`
    - `git rev-parse --short HEAD`
 
-3. Map structure with cheap deterministic tools:
-   - `find . -maxdepth 2 -type d -not -path './.git*' | sort`
-   - `find . -maxdepth 3 -type f -not -path './.git/*' | sort`
-   - `rg -n "<keyword>"` for workflow names, routes, services, tests, TAGs,
+3. Map structure with the cheapest tool available:
+   - If `graphify-out/graph.json` exists, prefer `graphify query "<question>"`,
+     `graphify path "<A>" "<B>"`, and `graphify explain "<node>"` — treat the
+     returned file:line pointers as leads to verify, not as truth.
+   - Otherwise (or to verify graph results):
+     `find . -maxdepth 2 -type d -not -path './.git*' | sort`,
+     `find . -maxdepth 3 -type f -not -path './.git/*' | sort`, and
+     `rg -n "<keyword>"` for workflow names, routes, services, tests, TAGs,
      commands, and config references.
 
 4. Use Serena when available:
@@ -90,7 +116,9 @@ results.
 ## Feature-Scoped Exploration (pre-implementation)
 
 When the trigger is a specific feature request rather than a map refresh, run a
-narrower pass and report it inline (no SYSTEM_MAP edit needed):
+narrower pass and report it inline (no SYSTEM_MAP edit needed). If the Graphify
+graph exists, start each numbered step with a graph query (`graphify query`,
+`graphify path`) and use Glob/Grep to verify the returned pointers:
 
 1. **Similar implementations** — Glob/Grep for features of the same class; read
    the closest one end to end.
@@ -113,9 +141,7 @@ Use these sections:
 
 ## Snapshot Status
 ## System Purpose
-## Repository Shape
 ## Primary Workflows
-## Hot Paths
 ## State And Data Flow
 ## Runtime Paths
 ## Shared Modules And Single Sources Of Truth
@@ -126,13 +152,16 @@ Use these sections:
 ## Refresh Procedure
 ```
 
+There are deliberately **no** `Repository Shape` or `Hot Paths` sections:
+per-file inventories and "modified this patch" facts go stale on the next
+commit and belong to the Graphify graph (or a live `rg`/`find` scan), not to
+this map. If an older map still carries them, drop them at the next refresh.
+
 ### Section Guidance
 
 - `Snapshot Status`: summarize whether the map is current for the recorded HEAD.
 - `System Purpose`: one paragraph describing what the repository exists to do.
-- `Repository Shape`: list main directories and their roles.
 - `Primary Workflows`: explain user/agent workflows and command sequence.
-- `Hot Paths`: files or directories most likely to affect behavior.
 - `State And Data Flow`: persisted artifacts, generated docs, command flow, or
   runtime state transitions.
 - `Runtime Paths` (**required for any project that gets deployed or serves

@@ -2,6 +2,23 @@
 
 All notable changes to this repository are documented in this file.
 
+## [Unreleased]
+
+### Added
+- **Graphify 코드 그래프 도입 (`/ms.init` Step 2.9)**: 소비 프로젝트에 tree-sitter 로컬 코드
+  그래프(`graphifyy`, `GRAPHIFY_VERSION` 핀, 도구 인터프리터는 3.12로 격리)를 필수 설치 —
+  초기 `--code-only` 빌드, post-commit/post-checkout 자동 재빌드 훅, `graphify-out/` gitignore.
+  구조 탐색(`graphify query/path/explain`)의 읽기 규칙은 `AGENTS.md §9`에 명문화 (그래프는
+  검증할 file:line 포인터, 코드 수정 후 `graphify update .`).
+- **`/ms.specter` Step 0.6**: 사이클 시작 시 그래프 self-heal(`--update`); 바이너리 부재 시
+  `UNAVAILABLE` WARN 기록 후 계속 — 그래프는 가속기이며 게이트가 아님(FAIL 불가 불변식).
+
+### Changed
+- **`codebase-snapshot` 스킬 축소**: SYSTEM_MAP에서 구조 인벤토리 섹션(`Repository Shape`,
+  `Hot Paths`) 폐지 — 구조 사실은 그래프 또는 실시간 `rg`/`find`가 담당하고, 맵은 저변동성
+  큐레이션 프로즈(목적·워크플로·불변식·리스크·검증 커맨드)만 유지. Graphify 분업 원칙과
+  `graphify:` 메타데이터 필드 추가. `docs/SYSTEM_MAP.md`를 새 스키마로 재생성.
+
 ## [2.3.1] - 2026-07-06
 
 ### Added

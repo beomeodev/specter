@@ -144,7 +144,14 @@ crosses the clarify boundary.
    If the ledger is missing, unreadable, or every step already lacks a matching entry, start
    normally at Step 1 — a missing/corrupt ledger never blocks the run, it only loses the resume
    shortcut.
-6. **State the context manifest.** After the reads above, tell the rest of the run what is
+6. **Self-heal the exploration graph (never blocks).** If the `graphify` binary is
+   available, run `graphify . --code-only --no-viz --update` (AST-only, seconds, no
+   API cost) so this cycle's structural queries see the current tree. If the binary
+   is missing, append `graphify: UNAVAILABLE — structural exploration falls back to
+   rg/find (setup: /ms.init Step 2.9)` to the collected-warnings list and continue.
+   Graph freshness is an accelerator concern, never a gate verdict — this item can
+   produce a WARN, never a FAIL.
+7. **State the context manifest.** After the reads above, tell the rest of the run what is
    already loaded so downstream steps don't re-read it:
    ```text
    📎 이번 세션에 이미 로드됨: constitution.md, feature-map.md §Feature NNN, <attached PRD refs>

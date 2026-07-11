@@ -1,21 +1,17 @@
 ---
-generated_at: 2026-07-06T03:11:08Z
-git_head: 46bb57d364df8dcdc3a20eea618e980ec2948103
-git_head_short: 46bb57d
+generated_at: 2026-07-11T05:31:00Z
+git_head: 2e6732a1c4238a0751a82b21357312af7acfdc4f
+git_head_short: 2e6732a
 git_branch: master
-working_tree: clean
+working_tree: dirty (uncommitted graphify-adoption patch — this refresh is part of it)
 scope:
   - AGENTS.md
   - README.md
   - CHANGELOG.md
   - .claude/
   - docs/
-  - docs/templates/
-  - docs/ops/
-  - scripts/
-  - tests/
-  - backend/
-  - frontend/
+  - scripts/specter/
+  - tests/specter/
   - pyproject.toml
   - .mcp.json
   - .pre-commit-config.yaml
@@ -24,258 +20,159 @@ tools:
   - rg
   - find
   - uv run pytest --cov
+graphify: not_installed
 serena: unavailable
 stale_when:
   - git_head differs from current HEAD
-  - changed files overlap documented hot paths or invariants
+  - changed files overlap documented invariants or shared modules
   - command, agent, skill, template, or workflow files are modified
 ---
 
 # System Map
 
 ## Snapshot Status
-HEAD is `46bb57d` on `master` with a clean working tree. The 2026-07-06 audit patch has
-landed as four commits (gates alignment, command-contract repairs, agents/skills residue
-cleanup, repo hygiene) — see `CHANGELOG.md [Unreleased]` and the commit messages for the
-per-file rationale. This snapshot describes that committed state.
+HEAD is `2e6732a` on `master`. The working tree carries the uncommitted
+2026-07-11 graphify-adoption patch (AGENTS.md §9/§11, `/ms.init` Step 2.9,
+`/ms.specter` Step 0.6, `codebase-snapshot` slim-down, this map). This map
+follows the slimmed schema: structural inventory (file lists, per-file hot-path
+notes) is intentionally absent — see `Refresh Procedure` and AGENTS.md §9 for
+where structure is answered instead.
 
 ## System Purpose
-SPECTER is a command-driven workflow wrapper over GitHub Spec-Kit for Claude Code projects. This
-repository is the **template/tooling repo itself** — it ships the `/ms.*` command definitions,
-skills, agents, Constitution/spec templates, and deterministic gate scripts that a consuming
-project installs via `/ms.init`. There is no application runtime here; `backend/` (`.gitkeep`
-only) and `frontend/` (`package.json` only) are empty template scaffolding, not a shipped app.
-
-## Repository Shape
-- `AGENTS.md`: repository-wide agent contract (this file's own contents, at the top of every
-  session's context). The per-command "session read policy" prose is consolidated into pointers
-  at `AGENTS.md §2`.
-- `README.md`, `CHANGELOG.md`: public entry point + release notes. `CHANGELOG.md` now carries an
-  `## [Unreleased]` section (verified) documenting `/ms.sync`, `/ms.prd`, `/ms.audit`, the six new
-  workflow skills, the `/ms.fin` High-Stakes Diff Digest, and `/ms.review`'s Migration Rollback
-  analysis (6.6b) — all ahead of any tag.
-- `.claude/commands/` (25 files): the `/ms.*` slash-command definitions. Confirmed via `ls`:
-  `ms.agent-verify`, `ms.amend`, `ms.analyze`, `ms.audit`, `ms.checklist`, `ms.clarify`,
-  `ms.codex-checklist`, `ms.constitution`, `ms.expand`, `ms.featuremap`, `ms.fin`, `ms.fix`,
-  `ms.implement`, `ms.init`, `ms.merglease`, `ms.plan`, `ms.prd`, `ms.pre-specter`, `ms.review`,
-  `ms.specify`, `ms.specter`, `ms.sync`, `ms.tasks`, `ms.up-docs`, `ms.verify`. There is **no**
-  `ms.codex-verify.md` anywhere in the tree (renamed to `ms.agent-verify.md`); no "My-Spec"
-  naming remains (`rg -ri "my-spec|myspec"` returns nothing in `.claude/`, `README.md`,
-  `AGENTS.md`). The `codex-verify`/`antigravity-verify` strings that remain (e.g. in
-  `ms.agent-verify.md`, `ms.specter.md`, `README.md`) are per-Feature **artifact filenames**
-  (`feature-NNN.codex-verify.md`), not a command name — expected and correct.
-- `.claude/skills/` (21 dirs): reusable capabilities. Confirmed via `ls`:
-  `codebase-snapshot`, `git-worktrees`, `ms-design-baseline`, `ms-essentials-debug`,
-  `ms-essentials-review`, `ms-foundation-constitution`, `ms-foundation-ears`,
-  `ms-foundation-prd`, `ms-foundation-trust`, `ms-lang-python`, `ms-lang-typescript`,
-  `ms-ops-debugging`, `ms-workflow-living-docs`, `ms-workflow-tag-manager`, `overnight-run`,
-  `parallel-features`, `specter-agent-protocols`, `spike`, `testing-skills-with-subagents`,
-  `transcript-mining`, `webapp-testing`. Skill triggering is owned by each SKILL.md's
-  frontmatter description — the parallel `skill-rules.json` registry was deleted (2026-07-06
-  prune; it was wired to nothing and drifted). The five generic dead-weight skills
-  (`api-testing-patterns`, `ci-cd-optimization`, `cross-cutting-concerns`,
-  `ms-architecture-patterns`, `ms-database-design`) were deleted in the same prune.
-  `specter-agent-protocols` is reference-only, pulled in by command prose
-  (`/ms.agent-verify`, `/ms.verify`, `/ms.analyze`, `/ms.review`, `/ms.codex-checklist`,
-  `/ms.expand`), not user-triggered by keyword.
-- `.claude/agents/` (10 files): specialist subagent definitions. Confirmed via `ls`:
-  `code-refactor-master`, `doc-updater`, `git-hygiene`, `library-researcher`, `local-ci`,
-  `quality-gate`, `refactor-planner`, `spec-builder`, `trust-validator`,
-  `web-research-specialist`. Seven orphan agents (codebase-explorer, constitution-extractor,
-  debug-helper, implementation-planner, integration-designer, tag-auditor, tdd-implementer)
-  were deleted in the 2026-07-06 prune — nothing dispatched them; codebase-explorer's
-  feature-scoped exploration checklist was folded into the `codebase-snapshot` skill.
-  `quality-gate.md` still reports
-  CRITICAL/severity findings but explicitly defers the block/warn/approve decision to
-  `/ms.review` ("blocking decisions belong to /ms.review's call", "→ /ms.review decides
-  approve/warn/block based on the report") — it no longer owns blocking policy itself.
-- `docs/templates/`: Constitution/spec templates +
-  `docs/templates/scripts/`: `check_feature_map_gate.py`-equivalent installers, plus
-  `specter-gate.sh`, `speckit-specify-gate-hook.sh`, `specter-overnight.sh`,
-  `specter-session-status.sh` (all confirmed present via `ls`).
-- `docs/ops/`: operational runbooks not tied to a command file (e.g.
-  `antigravity-write-flag.md`).
-- `docs/improvements/`: dated audit/plan documents (working record, not templates).
-- `docs/src/` and `docs/log/` were deleted (2026-07-06 prune/hygiene) — unreferenced TS
-  reference code and 2025-era pre-commit logs.
-- `scripts/specter/` (repo root): `check_feature_map_gate.py` (unchanged this patch — `git diff` shows no
-  delta) and `check_tag_chain.py` (see Hot Paths), plus `specter_sync.py` +
-  `specter_sync_manifest.json` (the `/ms.sync` broadcast engine).
-- `tests/specter/`: `test_check_feature_map_gate.py`, `test_check_tag_chain.py` (both new/untracked this
-  patch) and `test_specter_sync.py`. All 32 tests pass; coverage 91.44% against an 85% floor
-  (verified by running `uv run pytest --cov -q`).
-- `backend/`, `frontend/`: scaffolding-only template directories, not a running app.
-- `.env` → `.env.example` (renamed, tracked); real `.env` stays gitignored (`.gitignore` line 52
-  confirms `.env` is ignored while the comment on line 51 notes `.env.example` is the tracked
-  template).
-- `.mcp.json`: declares `context7` and `serena` MCP servers. `serena`'s configured command
-  (`/home/dev/.local/bin/serena start-mcp-server ...`) does **not resolve** in this environment
-  (`which serena` and the literal path both fail) and no `serena__*` tool was offered in this
-  session's deferred-tool list — hence `serena: unavailable` in the frontmatter, not
-  `not_configured` (it *is* configured in `.mcp.json`; it just isn't reachable here).
-- `pyproject.toml`: `dependencies = []` (first-party `scripts/`/`tests/` is stdlib-only by
-  design, per its own comment); `[tool.coverage.run] source = ["backend", "scripts"]`,
-  `fail_under = 85` in `[tool.coverage.report]`. Actual measured coverage this session: 91.44%.
-- `docs/dev_daily.md`, `docs/todo.md`: append-only working log / scratchpad templates.
-- `docs/SYSTEM_MAP.md`: this snapshot.
+SPECTER is a command-driven workflow wrapper over GitHub Spec-Kit for Claude
+Code projects. This repository is the **template/tooling repo itself** — it
+ships the `/ms.*` command definitions (25 files under `.claude/commands/`),
+skills (21 dirs under `.claude/skills/`), agents (10 files under
+`.claude/agents/`), Constitution/spec templates, and deterministic gate scripts
+that a consuming project installs via `/ms.init` and receives updates to via
+`/ms.sync`. There is no application runtime here; `backend/`/`frontend/` are
+empty scaffolding.
 
 ## Primary Workflows
-- `/ms.init` bootstraps the workflow overlay into a consuming project (patches upstream Spec-Kit
-  files, installs `docs/templates/scripts/*`, wires pre-commit hooks, and — new — copies
-  `specter-overnight.sh` for the `overnight-run` skill). Step 2.8, "Wire The Pre-Commit Backstops
-  (TAG chain + Feature Map coherence)", writes both `check_tag_chain.py` and
-  `check_feature_map_gate.py` into the target project's `.pre-commit-config.yaml` and runs
-  `pre-commit install` (verified at `.claude/commands/ms.init.md:350-389`).
+- `/ms.init` bootstraps the overlay into a consuming project: Spec-Kit install
+  (pinned via `SPEC_KIT_REF`), Constitution/GEARS templates, Feature-Map gate
+  injection, gate/hook scripts, pre-commit backstops (Step 2.8), and the
+  Graphify code graph + rebuild hooks (Step 2.9, pinned via
+  `GRAPHIFY_VERSION`).
 - **Pre-Feature (one-time)**: `/ms.pre-specter` conducts `/ms.featuremap` →
-  `/ms.codex-checklist` → `/ms.verify` → `/ms.constitution`. `/ms.expand` is the incremental
-  alternative for a PRD Amendment instead of a full re-run. `/ms.prd` sits *before*
-  `/ms.pre-specter` as a pre-workflow PRD co-authoring command (no gates, never invoked by a
-  conductor).
-- **Per-Feature**: `/ms.specter` conducts `/ms.checklist` → `/ms.agent-verify` → `/ms.specify` →
-  `/ms.clarify` (human stop) → `/ms.plan` → `/ms.tasks` → `/ms.analyze` → `/ms.implement` →
-  `/ms.review`.
-- `/ms.fix` is the lightweight track for non-requirement changes (TDD+TAG+gate, no
-  spec/clarify/plan/tasks ceremony) — `check_tag_chain.py` now has first-class support for it
-  (see Hot Paths). `/ms.amend` records post-implementation decisions.
-- `/ms.audit` is an advisory, product-level completeness audit outside any conductor; findings
-  route to `/ms.fix`, `/ms.expand`, or `docs/todo.md` — it never edits or weakens a gate.
-- `/ms.sync` broadcasts registered workflow files (commands/skills/agents/gate
-  scripts/templates/`AGENTS.md`) to other registered project repos via 3-way merge
-  (`scripts/specter/specter_sync.py`, tested by `tests/specter/test_specter_sync.py`).
-- `/ms.fin` / `/ms.merglease` handle publish/release flows (delegated to Antigravity). `/ms.fin`'s
-  High-Stakes Diff Digest now computes the diff as the unpushed range (`git diff "$BASE"...HEAD`)
-  **plus** the working tree (`git diff HEAD`), explicitly to catch `/ms.fix`-track changes that
-  never went through `/ms.review` (`.claude/commands/ms.fin.md:66-73`). `/ms.merglease` commits
-  the Progress Ledger update (`docs/prd/feature-map.progress.md`) as its own step before tagging
-  a release (`.claude/commands/ms.merglease.md:95-100`).
-- `/ms.up-docs` synchronizes documentation after implementation.
-- The dual-agent mechanics shared by `/ms.agent-verify`, `/ms.verify`, `/ms.analyze`,
-  `/ms.review`, `/ms.codex-checklist`, and `/ms.expand` (session-level preflight, single-agent
-  degrade rule, report-write/salvage protocol, re-round convergence caps) now live in one place:
-  the `specter-agent-protocols` skill. Each command keeps only its own report paths and
-  station-specific invariants inline instead of restating the mechanics.
-
-## Hot Paths
-- `scripts/specter/check_tag_chain.py` — modified this patch to support the `/ms.fix` track: `FIX-*`
-  `@CODE` ids (constant `FIX_PREFIX = "FIX-"`) carry no governing `@SPEC`, and a file may declare
-  itself test-exempt via the literal marker `@TEST: (presentational — no test)` (regex
-  `PRESENTATIONAL_RE`). Uniqueness still applies to FIX ids. Backed by the new
-  `tests/specter/test_check_tag_chain.py` (10 tests, all passing).
-- `scripts/specter/check_feature_map_gate.py` — unchanged this patch (`git diff` against HEAD is empty);
-  now has its own test file `tests/specter/test_check_feature_map_gate.py` (6 tests, all passing) where
-  it previously had none.
-- `.claude/commands/ms.review.md` — largest command file; owns the Result Model (READY / READY
-  WITH WARNINGS / NOT READY), the executable gates, Done Criteria Execution, and dual-agent
-  review; also owns Migration Rollback analysis (6.6b, per `CHANGELOG.md [Unreleased]`).
-- `.claude/commands/ms.init.md` — Step 2.8 is the single place pre-commit backstop wiring is
-  defined for consuming projects; also installs `specter-overnight.sh`.
-- `.claude/skills/specter-agent-protocols/SKILL.md` — new canonical source for preflight/degrade/
-  salvage/convergence mechanics shared by six dual-agent commands; edit here, not per-command, to
-  change the shared mechanics.
-- `docs/templates/scripts/specter-gate.sh` — deterministic PASS/WARN/FAIL/MISSING gate checker
-  consumed by `/ms.verify`/`/ms.checklist`.
-- `.pre-commit-config.yaml` (repo root, and the copy `/ms.init` installs into consuming
-  projects) — now wired to both `check_tag_chain.py` and `check_feature_map_gate.py`.
+  `/ms.codex-checklist` → `/ms.verify` → `/ms.constitution`. `/ms.prd` sits
+  before it (co-authoring, no gates); `/ms.expand` is the incremental PRD
+  Amendment track.
+- **Per-Feature**: `/ms.specter` conducts `/ms.checklist` → `/ms.agent-verify`
+  → `/ms.specify` → `/ms.clarify` (human stop) → `/ms.plan` → `/ms.tasks` →
+  `/ms.analyze` → `/ms.implement` → `/ms.review`. Step 0 self-heals the gate
+  checker copy and the Graphify graph (WARN-only) before the cycle starts.
+- `/ms.fix` is the lightweight non-requirement track (TDD+TAG+gate, no spec
+  ceremony); `/ms.amend` records post-implementation decisions; `/ms.audit` is
+  advisory and gate-neutral.
+- `/ms.sync` broadcasts the file set in
+  `scripts/specter/specter_sync_manifest.json` (commands, agents, skills,
+  templates, the two backstop scripts, `AGENTS.md`, `CLAUDE.md`) to registered
+  repos via 3-way merge.
+- `/ms.fin` / `/ms.merglease` handle publish/release (delegated to
+  Antigravity).
+- Dual-agent mechanics (preflight, degrade, salvage, convergence, auditor
+  bias-prevention) live once in the `specter-agent-protocols` skill.
 
 ## State And Data Flow
-- Workflow state is file-based: `docs/prd/feature-map.md` + `*.checklist.md` +
-  `*.codex-verify.md`/`*.antigravity-verify.md` (per-Feature, produced in a consuming project —
-  not present in this template repo itself), `.specify/memory/constitution.md`,
-  `.specify/.ms-gate-pass-<NNN>` (short-lived token).
-- `docs/prd/feature-map.progress.md` is a separate Progress Ledger kept out of the Feature Map's
-  SHA256 so bookkeeping updates don't trigger false staleness; `/ms.merglease` now commits its
-  own updates to this file as an explicit step.
-- `docs/dev_daily.md` / `docs/todo.md`: append-only log / scratchpad.
-- `docs/design/DESIGN.md` (new, per-consuming-project): generated by `ms-design-baseline` the
-  first time a Feature ships a UI surface; read-not-regenerated by every later UI Feature.
-- `CHANGELOG.md`: now carries a standing `## [Unreleased]` section that `/ms.merglease`
-  presumably drains at release time (Progress Ledger + tag/release step).
-- `docs/SYSTEM_MAP.md`: this refreshable snapshot.
+- Workflow state is file-based, produced in consuming projects:
+  `docs/prd/feature-map.md` + `*.checklist.md` + `*.codex-verify.md` /
+  `*.antigravity-verify.md`, `.specify/memory/constitution.md`, the TTL-bounded
+  `.specify/.ms-gate-pass-<NNN>` token, and the `.specify/specter-run.jsonl`
+  run-state ledger (bookkeeping only, never a gate source).
+- `docs/prd/feature-map.progress.md` is the Progress Ledger, kept out of the
+  Feature Map's SHA256 so bookkeeping never triggers false staleness.
+- `graphify-out/` (consuming projects only) is regenerated state: gitignored,
+  rebuilt by post-commit/post-checkout hooks, queried at need. Never committed,
+  never pasted into this map.
+- `CHANGELOG.md [Unreleased]` stages not-yet-tagged changes;
+  `docs/dev_daily.md` / `docs/todo.md` are append-only log/scratchpad.
 
 ## Runtime Paths
-Not applicable — this repository ships no deployed application or server; `backend/`/`frontend/`
-are unpopulated template scaffolding, and the `/ms.*` commands run inside a Claude Code session,
-not as a hosted service. (Per the skill's own guidance: omit this section for pure
-libraries/CLIs with no runtime surface.)
+Not applicable — this repository ships no deployed application or server; the
+`/ms.*` commands run inside a Claude Code session.
 
 ## Shared Modules And Single Sources Of Truth
-- `AGENTS.md` — the always-on fallback contract; commands now point to `AGENTS.md §2` for
-  session read policy instead of restating it per-command.
-- `README.md` — Spec-Kit compatibility/delegation table (§ "Spec Kit 호환성 → 위임 지점").
-- `CHANGELOG.md` — `## [Unreleased]` is the staging area for not-yet-tagged changes.
-- `.claude/commands/*.md`, `.claude/skills/*/SKILL.md`.
-- `.claude/skills/specter-agent-protocols/SKILL.md` — single source of truth for dual-agent
-  preflight/degrade/salvage/convergence mechanics (new this patch).
-- `docs/templates/constitution-template.md`, `docs/templates/spec-template.md`.
-- `docs/templates/scripts/specter-gate.sh` — the one place gate PASS/WARN/FAIL/MISSING logic is
-  computed mechanically (as opposed to being judged by the model).
-- `scripts/specter/check_tag_chain.py` — single source of truth for `FIX-*`/presentational-exemption TAG
-  rules; `FIX_PREFIX` and `PRESENTATIONAL_RE` are the two constants that define the rule.
-- `.claude/skills/ms-design-baseline/assets/tokens.css` — once generated into a consuming
-  project, the single source of truth for that project's design values (never inline new ones).
+- `AGENTS.md` — always-on agent contract; §2 session read policy, §9
+  exploration/graph/map division of labor, §10 layout invariants. `CLAUDE.md`
+  is a symlink to it.
+- `scripts/specter/specter_sync_manifest.json` — the one list of what
+  `/ms.sync` broadcasts.
+- `.claude/skills/specter-agent-protocols/SKILL.md` — dual-agent mechanics.
+- `.claude/skills/codebase-snapshot/SKILL.md` — SYSTEM_MAP schema and the
+  graph/map division of labor.
+- `docs/templates/scripts/specter-gate.sh` — the one place gate
+  PASS/WARN/FAIL/MISSING is computed mechanically.
+- `scripts/specter/check_tag_chain.py` — TAG rules incl. the `FIX-*` /
+  presentational carve-out (`FIX_PREFIX`, `PRESENTATIONAL_RE`).
+- Version pins: `SPEC_KIT_REF` (Spec-Kit) and `GRAPHIFY_VERSION` (Graphify),
+  both in `.claude/commands/ms.init.md`.
 
 ## Invariants
-- Keep workflow changes surgical; do not weaken a gate to fit upstream Spec-Kit churn (README
-  "정체성 불변식").
-- `/ms.*` commands stay commands (never migrated to skills); `.claude/skills/` holds reusable
-  capabilities, not new top-level entrypoints. Confirmed: all 25 `/ms.*` files remain under
-  `.claude/commands/`, and the new dual-agent mechanics were extracted to a *skill* referenced by
-  commands, not migrated out of command files entirely.
-- Dual verification (Codex + Antigravity) is never silently skipped — an unavailable agent forces
-  an explicit `UNAVAILABLE` record and a `WARN` degrade, never a silent PASS (now codified once in
-  `specter-agent-protocols` §2 Degrade Rule instead of per-command).
-- The `.specify/.ms-gate-pass-<NNN>` token is scoped to a single `/ms.specify` invocation and
-  TTL-bounded (~1h) so a dead session can't leave a standing bypass.
-- `docs/templates/scripts/specter-gate.sh` must always emit its JSON contract (never abort with
-  no output), even when a checklist file is malformed.
-- Preserve TAG (`@SPEC → @TEST → @CODE`/`@DOC`) traceability semantics when editing tagged code;
-  the one sanctioned exception is the `/ms.fix` track's `FIX-*`/presentational carve-out in
-  `check_tag_chain.py` — do not widen that exemption beyond FIX ids without updating the tests.
-- `/ms.specify` must never accept freeform feature input; direct `/speckit.specify` (or its
-  hyphenated `/speckit-specify` form) must never bypass the Feature-Map/checklist/Constitution
-  gate `/ms.init` injects (marker `MS_FEATUREMAP_GATE_START`).
+- Keep workflow changes surgical; never weaken a gate to fit upstream churn
+  (README "정체성 불변식"; divorce tripwire documented there).
+- `/ms.*` commands stay commands; `.claude/skills/` holds reusable
+  capabilities, not new entrypoints.
+- Dual verification (Codex + Antigravity) is never silently skipped — an
+  unavailable agent forces an explicit `UNAVAILABLE` record and a `WARN`
+  degrade (`specter-agent-protocols` §2).
+- The Graphify graph is an exploration accelerator, never a correctness
+  invariant: its absence or staleness may produce a WARN
+  (`/ms.specter` Step 0.6), never a FAIL, and no blocking gate may depend on
+  it. `graphify-out/` stays gitignored.
+- The `.specify/.ms-gate-pass-<NNN>` token is single-invocation and
+  TTL-bounded (~1h).
+- `specter-gate.sh` must always emit its JSON contract, even on malformed
+  input.
+- Preserve TAG (`@SPEC → @TEST → @CODE`/`@DOC`) semantics; the only sanctioned
+  exemption is the `/ms.fix` `FIX-*`/presentational carve-out — do not widen it
+  without updating the tests.
+- `/ms.specify` never accepts freeform feature input; direct
+  `/speckit-specify` never bypasses the injected Feature-Map gate (marker
+  `MS_FEATUREMAP_GATE_START`).
 
 ## Risk Areas
-- `serena` is declared in `.mcp.json` but its configured binary path does not resolve in this
-  environment (`/home/dev/.local/bin/serena`: no such file) and no Serena MCP tool was available
-  this session — structural scans used `git`/`rg`/`find` only, as in the prior snapshot.
-- `specter-agent-protocols` is reference-only (pulled in by six command files), not
-  prompt-triggered — an intentional exception, not a missing description.
-- `docs/improvements/*.md` are historical working records, not templates — do not treat their
-  content as currently-authoritative without checking whether it says DONE/PARTIAL/pending.
-- `docs/log/` was deleted in this patch (4 pre-commit log files) — if any command or script still
-  writes to `docs/log/pre-commit/`, confirm it recreates the directory rather than failing.
-- Four skills from the prior snapshot (`webapp-testing`, `ms-foundation-prd`, `ms-design-baseline`,
-  `ms-ops-debugging`) remain unexercised in a real consuming project — verified by fixture/dry-read
-  only, not by an end-to-end `/ms.specter` run.
+- Graphify adoption is design-verified only: installed-and-measured in zero
+  consuming projects so far. Trial one real code repo, then measure read-path
+  compliance via transcript mining (graph queries vs `rg`/`Read` fan-outs)
+  before treating the token-saving claim as realized.
+- `graphifyy` is a ~3-month-old upstream (v0.9.12 pinned): expect API churn;
+  bump `GRAPHIFY_VERSION` deliberately and re-verify hooks + query output.
+- `serena` is declared in `.mcp.json` but its binary does not resolve in this
+  environment; structural scans use `git`/`rg`/`find` (and, in consuming
+  projects, Graphify).
+- `docs/improvements/*.md` are historical working records, not
+  currently-authoritative plans.
 
 ## Verification Commands
 ```bash
 git status --short
 git rev-parse HEAD
-uv run pytest --cov -q          # 28 tests, 91.44% coverage, 85% floor
+uv run pytest --cov -q          # 53 tests, 90.47% coverage, 85% floor
 bash -n docs/templates/scripts/specter-gate.sh docs/templates/scripts/speckit-specify-gate-hook.sh
-rg -n "ms.codex-verify|My-Spec|MySpec" -ri .claude README.md AGENTS.md   # expect zero hits
-rg -n "Model Selection" .claude/agents/*.md                              # expect zero hits
+rg -n "GRAPHIFY_VERSION" .claude/commands/ms.init.md   # exactly one pin definition
 ```
 
 ## Known Gaps
-- No live consuming project in this repo to exercise `/ms.specter` end-to-end against the
-  audit patch — verification was fixture/test-level (pytest) and read-back-level
-  (skill/command prose), not a real workflow run.
-- Serena MCP is configured in `.mcp.json` but not reachable in this session (binary missing); no
-  symbol-level navigation was performed for this refresh.
-- Per-file rationale for the 2026-07-06 audit patch lives in the four commit messages and
-  `CHANGELOG.md [Unreleased]`, not in this map.
+- No live consuming project in this repo to exercise `/ms.specter` (including
+  the new Step 0.6 graph self-heal) end-to-end; verification is
+  fixture/test-level and read-back-level.
+- Graphify was exercised against a scratchpad clone of this repo (build 1.85s,
+  257 nodes; incremental 1.6s; query ≈1.6k tokens), not yet against a real
+  consuming project.
+- Serena MCP is configured but unreachable; no symbol-level navigation was
+  performed for this refresh.
 
 ## Refresh Procedure
-1. Read `AGENTS.md`, `.specify/memory/constitution.md` (if present), and any nested `AGENTS.md`
-   under the area being touched.
-2. Capture current git metadata (`git status --short`, `git rev-parse HEAD`, `git branch
-   --show-current`).
-3. Re-scan repository shape (`find . -maxdepth 2 -type d`, `find . -maxdepth 3 -type f`) and diff
-   against the `Repository Shape` section above.
-4. Re-check every path named in `Hot Paths` and `Shared Modules` still exists at the stated role.
-5. Re-run `uv run pytest --cov -q` to confirm the coverage figure quoted here is still accurate.
-6. Update sections with only verified facts; mark unresolved items under `Known Gaps` rather than
-   guessing.
+1. Read `AGENTS.md` (§9 for the graph/map division) and
+   `.claude/skills/codebase-snapshot/SKILL.md`.
+2. Capture git metadata (`git status --short`, `git rev-parse HEAD`,
+   `git branch --show-current`).
+3. Answer structural questions at ask-time: Graphify queries where a graph
+   exists, otherwise `rg`/`find`. Do not add inventory sections back to this
+   map.
+4. Re-check every path named under `Shared Modules` still exists at the stated
+   role.
+5. Re-run `uv run pytest --cov -q` and update the figures quoted here.
+6. Update sections with only verified facts; record unresolved items under
+   `Known Gaps` rather than guessing.

@@ -368,7 +368,7 @@ SPECTER는 현재 Claude Code 전용이지만, **Codex CLI에서도 동등하게
 
 - [AGENTS.md](./AGENTS.md) — AI coding rules ([CLAUDE.md](./CLAUDE.md)는 심링크)
 - [CHANGELOG.md](./CHANGELOG.md) — 릴리즈 이력
-- [docs/SYSTEM_MAP.md](./docs/SYSTEM_MAP.md) — agent-facing architecture snapshot
+- [docs/SYSTEM_MAP.md](./docs/SYSTEM_MAP.md) — 큐레이션된 프로즈 스냅샷(불변식·리스크·검증); 구조 탐색은 소비 프로젝트의 Graphify 코드 그래프가 담당 (`/ms.init` Step 2.9)
 - [.claude/commands/](./.claude/commands/) · [.claude/agents/](./.claude/agents/) · [.claude/skills/](./.claude/skills/)
 
 ---

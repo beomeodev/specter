@@ -434,6 +434,49 @@ fi
 Deliberate admin bypass stays possible via `git commit --no-verify` — the backstops
 constrain the agent, not the human.
 
+#### 2.9 Install The Graphify Code Graph (structural exploration accelerator)
+
+Occasional full-codebase re-exploration — and the partial exploration that feature
+rework forces — is where sessions burn tokens on `rg`/`Read` fan-outs. Graphify
+replaces that with a tree-sitter code graph built locally (`--code-only`: no LLM,
+no API key) and queried on demand: `graphify query/path/explain` returns file:line
+pointers at ~1-2k tokens per answer. The read-path rules agents follow live in
+`AGENTS.md §9` (arrives via `/ms.sync`); this step installs the write path —
+binary, initial graph, and self-updating git hooks.
+
+```bash
+GRAPHIFY_VERSION="0.9.12"   # verified pin — bump deliberately, like SPEC_KIT_REF
+# 3.13+/free-threaded interpreters lack prebuilt tree-sitter wheels; pin the
+# tool's own interpreter to 3.12 instead of touching the project's Python.
+if command -v uv >/dev/null 2>&1; then
+  uv tool install --force --python 3.12 "graphifyy==${GRAPHIFY_VERSION}"
+elif command -v pipx >/dev/null 2>&1; then
+  pipx install --force --python python3.12 "graphifyy==${GRAPHIFY_VERSION}"
+else
+  echo "⛔ Step 2.9 failed: neither uv nor pipx found — install one and re-run this step."
+fi
+
+if command -v graphify >/dev/null 2>&1; then
+  grep -qxF 'graphify-out/' .gitignore 2>/dev/null || echo 'graphify-out/' >> .gitignore
+  graphify . --code-only --no-viz   # initial graph (seconds, code files only)
+  graphify hook install             # post-commit/post-checkout AST-only rebuilds
+  echo "✓ Graphify graph at graphify-out/graph.json; git hooks keep it current"
+else
+  echo "⛔ graphify binary unavailable after install (check ~/.local/bin is on PATH) — fix and re-run Step 2.9."
+fi
+```
+
+- `graphify-out/` must stay gitignored: the post-commit hook rewrites it after
+  every commit, so committing it would dirty the tree in a loop.
+- The hooks are post-commit/post-checkout — they can never block a commit. A
+  machine without the binary just skips the rebuild; the next `graphify` run (or
+  `/ms.specter` Step 0's self-heal) catches the graph up. In multi-container
+  setups, install the binary in every environment that commits (same rule as the
+  Codex/Antigravity plugins in Step 3's report).
+- Do not wire graph freshness into a blocking gate: the graph is an exploration
+  accelerator, not a correctness invariant. `/ms.specter` Step 0 self-heals it
+  and records a WARN when it cannot — never a FAIL.
+
 ### Step 3: Report Success
 
 Display completion message:
@@ -447,6 +490,7 @@ Display completion message:
 - ✅ Deterministic gate checker: .specify/scripts/bash/specter-gate.sh
 - ✅ Direct-call bypass hook: .specify/scripts/bash/speckit-specify-gate-hook.sh (+ .claude/settings.json PreToolUse entry)
 - ✅ SessionStart status hook: .specify/scripts/bash/specter-session-status.sh (+ .claude/settings.json SessionStart entry)
+- ✅ Graphify code graph: graphify-out/graph.json (+ post-commit/post-checkout rebuild hooks, graphify-out/ gitignored)
 
 🧩 Codex & Antigravity Plugins Setup (inside Claude Code):
 1. Open Claude Code in the project environment.

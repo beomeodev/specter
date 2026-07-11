@@ -174,16 +174,26 @@ is cohesive. This is the default for every track (`/ms.fin`, `/ms.fix`,
 
 ---
 
-## 9. System Map Handling
+## 9. Codebase Exploration And System Map Handling
 
-- If `docs/SYSTEM_MAP.md` exists, read it before non-trivial coding, planning,
-  or workflow changes.
-- Treat `docs/SYSTEM_MAP.md` as a stale-prone snapshot, not as authority over
-  current code. Check its `git_head`, `generated_at`, `working_tree`, and
-  `stale_when` metadata before relying on it.
-- If the map is missing or stale for the task, use the
-  `.claude/skills/codebase-snapshot/SKILL.md` procedure to refresh it with
-  current git metadata and verified facts.
+- When `graphify-out/graph.json` exists, structural exploration goes through
+  the Graphify code graph first: `graphify query "<question>"` for broad
+  context, `graphify path "<A>" "<B>"` for relationships, `graphify explain
+  "<node>"` for one concept. Results are file:line pointers to verify by
+  reading the cited files — never treat them as authoritative on their own.
+- After modifying code, run `graphify update .` (AST-only, seconds, no API
+  cost) so later queries in the session see your edits; the post-commit hook
+  keeps the graph current between sessions.
+- If the graph or the `graphify` binary is missing in a SPECTER-initialized
+  project, say so explicitly and fall back to `rg`, `find`, and `git`; setup
+  lives in `/ms.init` Step 2.9. Never block work on a missing graph.
+- `docs/SYSTEM_MAP.md` is a curated prose snapshot — purpose, workflows,
+  invariants, risk areas, verification commands — not a structural inventory.
+  If it exists, read it before non-trivial coding or workflow changes, check
+  its `git_head`/`stale_when` metadata before relying on it, and refresh it
+  via the `.claude/skills/codebase-snapshot/SKILL.md` procedure when stale.
+  Structural facts (file lists, counts, call relationships) belong to the
+  graph or a live `rg`/`find` scan, never to the map.
 - Use Serena MCP for symbol-level navigation when configured and useful, but do
   not block exploration if Serena is unavailable; fall back to `rg`, `find`,
   and `git`.
@@ -247,8 +257,10 @@ intended hybrid structure; do not migrate it to a different shape on a whim.
 
 ## 11. Pre-Work Checklist
 
-- Have I read `docs/SYSTEM_MAP.md` if it exists, and checked whether it is
-  stale for this task?
+- For exploration: did I query the Graphify graph first if
+  `graphify-out/graph.json` exists, instead of fanning out `rg`/`Read`?
+- Have I read `docs/SYSTEM_MAP.md`'s curated invariants/risks if it exists, and
+  checked whether it is stale for this task?
 - Have I read the relevant files?
 - Have I checked existing patterns, tests, types, and constants?
 - Is the requirement clear enough to implement and verify?

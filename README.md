@@ -308,7 +308,7 @@ Optional: Context7 MCP (Latest library documentation), GitHub CLI (PR/release au
 
 - [AGENTS.md](./AGENTS.md) — AI coding rules ([CLAUDE.md](./CLAUDE.md) is a symlink)
 - [CHANGELOG.md](./CHANGELOG.md) — Release history
-- [docs/SYSTEM_MAP.md](./docs/SYSTEM_MAP.md) — Agent-facing architecture snapshot
+- [docs/SYSTEM_MAP.md](./docs/SYSTEM_MAP.md) — Curated prose snapshot (invariants, risks, verification); structural exploration goes through the Graphify code graph in consuming projects (`/ms.init` Step 2.9)
 - [.claude/commands/](./.claude/commands/) · [.claude/agents/](./.claude/agents/) · [.claude/skills/](./.claude/skills/)
 
 ---
