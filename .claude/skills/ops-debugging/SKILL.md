@@ -1,5 +1,5 @@
 ---
-name: ms-ops-debugging
+name: ops-debugging
 description: Symptom-indexed playbook for deployment/environment debugging — SSH tunnels, reverse proxies, TLS, container lifecycle, secret rotation, and real-time API integration failures that "work locally, break deployed." Every entry traces to a real diagnosed incident (probe -> resolution), stated at the failure-class level so it generalizes across projects. Use when a deploy-only symptom, a "works here but not there" report, or an environment-boundary failure needs the fastest-discriminating probe, not generic debugging methodology (that lives in /ms.fix's Hard-Bug Discipline).
 ---
 

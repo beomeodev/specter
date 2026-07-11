@@ -402,7 +402,7 @@ before the dual-agent review so both agents can see the results in their prompt 
    long-running process (server, watcher) once its criterion has been observed. For web-UI done
    criteria, use the `webapp-testing` skill to drive the browser and capture screenshot/console
    evidence instead of asserting on a green test run alone — if this Feature used
-   `ms-design-baseline` (`/ms.implement` Step 1.6), the same screenshot also confirms the design
+   `design-baseline` (`/ms.implement` Step 1.6), the same screenshot also confirms the design
    tokens actually render, not just that the files exist on disk.
 5. **Phase E2E scenario**: if this Feature is a Phase's last Feature (per the Feature Map DAG),
    also execute that Phase's end-to-end scenario as one additional RUNNABLE criterion.
@@ -448,7 +448,7 @@ Answer three questions, concretely, from the actual migration content (not gener
 3. **비가역 연산 플래그** — explicitly list any: `DROP` of tables/columns, type/nullability
    narrowing against existing rows, in-place data transforms, and **re-encryption or
    re-keying of stored secrets** (decryption under a rotated key is cryptographically
-   unrecoverable — see ms-ops-debugging C2; this class has destroyed real data before).
+   unrecoverable — see ops-debugging C2; this class has destroyed real data before).
 
 Present the analysis in the Korean report and **wait for the user's explicit ack**. An
 unacknowledged migration analysis is a CRITICAL trigger in the Result Model (Step 6) — the

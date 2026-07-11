@@ -1,5 +1,5 @@
 ---
-name: ms-design-baseline
+name: design-baseline
 description: Generates a minimal, coherent, ready-to-ship design foundation (docs/design/DESIGN.md + tokens.css + a neutral base stylesheet) the first time a Feature creates a UI surface and no design baseline exists yet. Use when a Feature's in-scope deliverables include a web UI and there is no design input from the user — produces real default values (palette, type scale, spacing, WCAG floors), not design-judgment prose. Later UI work reads the generated tokens instead of hardcoding new values.
 ---
 

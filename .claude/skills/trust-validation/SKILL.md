@@ -1,6 +1,6 @@
 ---
-name: ms-foundation-trust
-description: Comprehensive code quality validator enforcing TRUST 5 principles - Test-First (≥85% coverage with pytest/vitest), Readable (≤700 SLOC production files / tests no limit, ≤10 complexity), Unified (strict type checking with mypy/tsc), Secured (OWASP Top 10 implementation patterns + trivy/bandit scanning, cryptographic best practices, input validation, authorization checks, adversarial abuse-case review for IDOR/multi-tenant isolation), Trackable (complete TAG chain integrity SPEC→TEST→CODE→DOC) with detailed compliance reports and remediation guidance. Use when validating quality before merging PRs, running quality gate checks, checking release readiness, validating TRUST compliance, or performing comprehensive code reviews
+name: trust-validation
+description: Comprehensive code quality validator enforcing TRUST 5 principles - Test-First (≥85% coverage with pytest/vitest), Readable (≤700 SLOC production files / tests no limit, ≤10 complexity), Unified (strict type checking with mypy/tsc), Secured (OWASP Top 10 implementation patterns + trivy/bandit scanning, cryptographic best practices, input validation, authorization checks, adversarial abuse-case review for IDOR/multi-tenant isolation), Trackable (complete TAG anchor chain integrity SPEC→TEST→CODE) with detailed compliance reports and remediation guidance. Use when validating quality before merging PRs, running quality gate checks, checking release readiness, validating TRUST compliance, or performing comprehensive code reviews
 ---
 
 # Foundation: TRUST 5 Validation

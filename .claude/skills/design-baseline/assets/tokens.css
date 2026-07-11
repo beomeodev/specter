@@ -1,4 +1,4 @@
-/* ms-design-baseline: token layer. Global tokens -> semantic tokens; dark mode
+/* design-baseline: token layer. Global tokens -> semantic tokens; dark mode
    is a semantic remap of the same names, never a second palette. Edit the
    global values here; everything else in base.css reads only the semantic
    custom properties. */

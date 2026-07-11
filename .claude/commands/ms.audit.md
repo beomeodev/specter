@@ -83,7 +83,7 @@ Repo-grounded, not generic:
    check each against an existing defense — including standing conveniences (debug bypasses,
    OTP/auth shortcuts, `--admin` habits) which are findings unless consciously re-accepted
    by the user *in this audit*.
-4. Existing per-Feature security scans (ms-foundation-trust) already cover code-level OWASP;
+4. Existing per-Feature security scans (trust-validation) already cover code-level OWASP;
    do not repeat them — this module owns the product-level surface only.
 
 ### Module D: Perf/A11y Smoke (web UI only, optional tooling degrades gracefully)
@@ -92,7 +92,7 @@ Repo-grounded, not generic:
    p50/p95 against a stated budget (default: p95 < 1s for interactive endpoints unless the
    PRD says otherwise — the budget used must be printed with the result).
 2. **A11y**: if Lighthouse/axe tooling is available, run it on the main screens; otherwise
-   check the `ms-design-baseline` WCAG floors (contrast pairs, target sizes, body size) in
+   check the `design-baseline` WCAG floors (contrast pairs, target sizes, body size) in
    the shipped CSS and skip the rest with an explicit "skipped: no tooling" line.
 
 ### Module E: Gate Value Review — "게이트들은 최근에 실제로 뭘 잡았나"

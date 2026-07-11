@@ -43,6 +43,11 @@ All notable changes to this repository are documented in this file.
   `.serena` 스캔 제외 항목은 소비 프로젝트 잔존 디렉토리 방어용으로 존치.
 
 ### Changed
+- **스킬 리네이밍 — `ms-` 접두 제거**: MoAI/ms 유래 표식은 무의미 판정. `ms-design-baseline`→
+  `design-baseline`, `ms-foundation-prd`→`prd-authoring`, `ms-foundation-trust`→
+  `trust-validation`, `ms-ops-debugging`→`ops-debugging`. 프론트매터 `name:`, asset 헤더,
+  커맨드 참조(ms.review·ms.prd·ms.fix·ms.implement·ms.pre-specter·ms.audit) 전수 갱신.
+  `/ms.*` 커맨드 이름은 워크플로 네임스페이스라 유지.
 - **TAG 블록 → 베어 앵커 축소**: 파일당 주석 한 줄(`# @CODE:ID` / `# @TEST:ID`)로 축소하고
   소비자 0인 메타데이터(@STATUS/@CREATED/@UPDATED/@CHAIN 블록/@DOC 앵커) 신규 작성 중단 —
   근거는 240세션 감사(게이트는 앵커만 파싱, 메타데이터 소비자 전무). 기존 블록은 하위호환

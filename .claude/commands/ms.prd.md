@@ -10,7 +10,7 @@ PRD the pipeline can consume — by systematically surfacing the user's **unknow
 single workflow gate runs. This command sits **before** `/ms.pre-specter` and is deliberately
 **not part of any conductor cycle**: PRD authoring is human-paced thinking, not a gated step.
 
-The methodology core lives in the `ms-foundation-prd` skill (interview discipline, 8-phase
+The methodology core lives in the `prd-authoring` skill (interview discipline, 8-phase
 structure, templates, SPECTER wiring); this command owns the *macro flow* around it — the
 unknowns-discovery passes that must happen before interviewing even makes sense.
 
@@ -125,7 +125,7 @@ For gaps the user can only resolve by *reacting* ("보면 안다"):
 - **Brainstorm**: present 3-4 genuinely divergent directions to react to (not variations of
   one idea).
 - **Prototype**: route through the `spike` skill (T1 ≤15min probe) — a throwaway HTML mock or
-  feasibility probe; the findings note feeds back here. UI mocks use `ms-design-baseline`
+  feasibility probe; the findings note feeds back here. UI mocks use `design-baseline`
   tokens so reacting to the mock is reacting to something shippable.
 - **References**: when the user can't articulate what they want, ask for a reference — an
   existing repo/module/library/design they like — and **read its source** (not a screenshot)
@@ -139,9 +139,9 @@ Read the whole worklog back and present a 10-line summary of everything decided 
 remaining 🔶/🔵 tags. This is the last cheap moment to catch a contradiction. One user
 confirmation, then write.
 
-### Step 7: Write the PRD (delegate to `ms-foundation-prd`)
+### Step 7: Write the PRD (delegate to `prd-authoring`)
 
-Sweep the Parking Lot (hard rule from Step 1). Then apply the `ms-foundation-prd` skill:
+Sweep the Parking Lot (hard rule from Step 1). Then apply the `prd-authoring` skill:
 8-phase structure, GEARS-compatible acceptance criteria, Testing Decisions (seams), template
 choice scaled to project size, no file paths, no unresolved placeholders (`TBD`/`_or_equivalent`
 — `/ms.checklist` WARNs on them anywhere and FAILs them inside done criteria;

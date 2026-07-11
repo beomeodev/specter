@@ -103,7 +103,7 @@ turns are the conditional questions the underlying commands raise.
      PRDs and confirm the full set with the user. If none can be found or
      confirmed, stop and ask for the PRD path. Never guess PRD content.
    - If no PRD exists yet anywhere (not just unattached — genuinely not yet written),
-     the `ms-foundation-prd` skill is the recommended pre-step for co-authoring one with
+     the `prd-authoring` skill is the recommended pre-step for co-authoring one with
      the user before running this command.
 2. Detect a prior setup (re-run) with the deterministic gate checker instead of
    re-deriving the facts from prose:

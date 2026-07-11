@@ -19,7 +19,7 @@ Feature Map baseline already exists:
   color/style/layout polish, a refactor of existing code, a config tweak → **`/ms.fix`** (this
   command). Continue below. A deploy/environment-boundary incident (SSH tunnel, reverse proxy,
   TLS, container lifecycle, secret rotation, "works locally, breaks deployed") is also a `/ms.fix`
-  — use the `ms-ops-debugging` skill for the fastest-discriminating probe per failure class.
+  — use the `ops-debugging` skill for the fastest-discriminating probe per failure class.
 - **New requirement, and a checked baseline already exists** — a new GEARS "shall", a new
   endpoint, a new DB schema/migration, a new external integration, added to a product that
   already has a decomposed Feature Map → **`/ms.expand`**. Append the requirement to the

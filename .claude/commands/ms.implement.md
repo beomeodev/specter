@@ -118,7 +118,7 @@ Read `tasks.md` and select an implementation boundary before coding.
 
 ## Phase 4: FR-2 Session Management
 
-**TAG**: @SPEC:AUTH-002 -> @TEST:AUTH-002 -> @CODE:AUTH-002
+**TAG**: @SPEC:AUTH-002
 
 -   [ ] T017 Create session service
 ```
@@ -165,7 +165,7 @@ tree, or dashboard)?
 
 **IF a UI surface is in scope AND `docs/design/DESIGN.md` does not exist yet**:
 
-1. Use the `ms-design-baseline` skill to generate `docs/design/DESIGN.md` + `tokens.css` +
+1. Use the `design-baseline` skill to generate `docs/design/DESIGN.md` + `tokens.css` +
    `base.css` before writing any markup/component code.
 2. All UI code in this Feature reads the generated tokens; do not hardcode a color, font size, or
    spacing value that isn't already a semantic token.

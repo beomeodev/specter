@@ -1,5 +1,5 @@
 ---
-name: ms-foundation-prd
+name: prd-authoring
 description: PRD-authoring skill that co-writes a Product Requirements Document with the user through a one-question-at-a-time interview, tagging gaps inline (assumption/open question) and producing output that /ms.featuremap and /ms.checklist can consume directly — explicit commitments, GEARS-compatible acceptance criteria, and a Testing Decisions section. Use when no PRD exists yet and the user wants to co-author one before /ms.pre-specter, or when extending an existing PRD with a new `## PRD Amendment N` section for /ms.expand.
 ---
 

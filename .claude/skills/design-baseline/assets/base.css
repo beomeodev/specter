@@ -1,4 +1,4 @@
-/* ms-design-baseline: neutral base stylesheet. Reads only the semantic tokens
+/* design-baseline: neutral base stylesheet. Reads only the semantic tokens
    in tokens.css — never hardcode a color/size here. Import tokens.css first. */
 
 *, *::before, *::after {
