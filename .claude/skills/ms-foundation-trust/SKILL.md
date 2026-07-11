@@ -357,7 +357,8 @@ jobs:
           rg '@(SPEC|TEST|CODE):' -n specs/ tests/ src/ | wc -l
 ```
 
-## Related Skills
-- `ms-foundation-constitution`: File size and complexity validation
-- `ms-workflow-tag-manager`: TAG scanning and inventory
-- `ms-essentials-review`: Automated code review
+## Related Sources
+- File size / complexity limits: Constitution §II (`constitution-template.md`)
+- TAG chain rules and scanning: `/ms.implement` Step 3 +
+  `scripts/specter/check_tag_chain.py`
+- Review rubric and executable gates: `/ms.review`

@@ -84,12 +84,13 @@ touching code:
 Fixes must still be traceable — this is what an ungated quick-push would skip.
 
 - **Correcting code that already has a TAG** → reuse that TAG; bump its
-  `@UPDATED` (git-derived, per `ms-workflow-tag-manager`) and, if behavior
+  `@UPDATED` (git-derived — the last commit that touched the file, never
+  today's date) and, if behavior
   changed, note it.
 - **New code with no governing SPEC** → assign a **FIX-id** TAG:
   `@CODE:FIX-<area>-<NNN>` (e.g. `@CODE:FIX-UPLOADS-003`), `@SPEC: (fix — no spec)`.
-  Keep the chain block format identical to `/ms.implement` (see
-  `ms-workflow-tag-manager`), `@STATUS: implemented`. The pre-commit backstop
+  Keep the chain block format identical to `/ms.implement`,
+  `@STATUS: implemented`. The pre-commit backstop
   (`scripts/specter/check_tag_chain.py`) waives the `@SPEC` anchor for `FIX-*` ids but
   still requires the `@TEST` side:
   - **Behavioral fix** (Step 2 wrote/extended a test) → put the matching

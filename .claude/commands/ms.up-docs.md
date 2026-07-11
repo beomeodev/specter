@@ -419,6 +419,5 @@ CHANGELOG.md           # Change history (manual — no command updates it automa
 ## References
 
 - SPECTER TAGS: `.specify/memory/constitution.md` Section V
-- TAG System: `ms-workflow-tag-manager` Skill
-- Living Docs: `ms-workflow-living-docs` Skill
+- TAG chain rules: `/ms.implement` Step 3 and `scripts/specter/check_tag_chain.py`
 - Document standards: `AGENTS.md` Section 2 (Documentation Updates)

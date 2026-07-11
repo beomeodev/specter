@@ -14,6 +14,13 @@ All notable changes to this repository are documented in this file.
   `UNAVAILABLE` WARN 기록 후 계속 — 그래프는 가속기이며 게이트가 아님(FAIL 불가 불변식).
 
 ### Removed
+- **미발화 스킬 8종 폐기** (~6,200줄; 커맨드 매개 세션에서 설명-트리거 스킬은 구조적으로 발화
+  불가 — wire or retire): ms-essentials-review·ms-foundation-constitution(리뷰 루브릭·제한치는
+  ms.review와 constitution-template §II가 소유), ms-lang-python·ms-lang-typescript(테스트 품질
+  독트린은 salvage 후 폐기), ms-essentials-debug(Hard-Bug Discipline은 /ms.fix로 이식 후 폐기),
+  ms-workflow-living-docs(up-docs가 소유), ms-workflow-tag-manager(규칙은 ms.implement/ms.fix
+  인라인이 소유; 자기모순적 @UPDATED 수동 스탬프 프로토콜 포함), ms-foundation-ears(GEARS 독트린
+  2건 salvage 후 폐기 — 문법의 단일 소스는 constitution-template §II + spec-template).
 - **미발화 에이전트 8종 폐기** (240세션 디스패치 0회 실증): code-refactor-master,
   refactor-planner(리팩터 트랙은 `/ms.implement --mode=refactor`·`/ms.fix`가 소유), git-hygiene,
   doc-updater(fin→up-docs가 수행), library-researcher(context7 제거로 데이터 소스 소멸),

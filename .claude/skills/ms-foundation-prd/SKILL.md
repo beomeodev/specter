@@ -91,7 +91,8 @@ for an internal tool).
 5. **Success metrics** — including at least one **guardrail metric** (a thing that must NOT get
    worse as a side effect of shipping this), not just an adoption/growth number.
 6. **User stories & acceptance criteria** — write acceptance criteria in
-   GEARS-compatible form (see `ms-foundation-ears`) so `/ms.featuremap` can lift them directly
+   GEARS-compatible form (canonical form and rules: Constitution §II /
+   `constitution-template.md`) so `/ms.featuremap` can lift them directly
    into a Feature's `### Done criteria` without a rewrite pass.
 7. **Testing Decisions** — for each major commitment from phase 6, name the seam it will be
    tested at (unit/integration/e2e/manual) and point to prior art already in the codebase for that
@@ -152,6 +153,6 @@ choice rather than defaulting to the heaviest one:
 
 ## Works well with
 
-- `ms-foundation-ears`: acceptance criteria written in phase 6 should already be GEARS-compatible.
+- Constitution §II (GEARS): acceptance criteria written in phase 6 should already be GEARS-compatible.
 - `/ms.pre-specter`: the natural next step once a Standard-template PRD is complete.
 - `/ms.expand`: consumes this skill's `## PRD Amendment N` output directly.
