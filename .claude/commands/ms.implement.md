@@ -156,7 +156,7 @@ Next step: /ms.review
 **ELSE**:
   → Skip (no external libraries)
 
-Do not claim that a `library-researcher` agent or a specific model ran unless it actually did.
+Do not claim that a specific agent or model ran unless it actually did.
 
 ### Step 1.6: Design Baseline (UI Features Only)
 
@@ -348,7 +348,7 @@ Documentation principles:
 - CODE-FIRST: derive docs from the implemented code and tests.
 - Preserve manual content; use generated markers only where the repo already uses them.
 - TAG traceability warnings are reported, not treated as implementation blockers unless Constitution Section IX or CI promotes them.
-- Do not claim a `doc-updater` agent or a specific model ran unless it actually did.
+- Do not claim a specific agent or model ran unless it actually did.
 
 ### Step 4: Update tasks.md Checklist
 

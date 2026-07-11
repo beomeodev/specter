@@ -14,6 +14,13 @@ All notable changes to this repository are documented in this file.
   `UNAVAILABLE` WARN 기록 후 계속 — 그래프는 가속기이며 게이트가 아님(FAIL 불가 불변식).
 
 ### Removed
+- **미발화 에이전트 8종 폐기** (240세션 디스패치 0회 실증): code-refactor-master,
+  refactor-planner(리팩터 트랙은 `/ms.implement --mode=refactor`·`/ms.fix`가 소유), git-hygiene,
+  doc-updater(fin→up-docs가 수행), library-researcher(context7 제거로 데이터 소스 소멸),
+  spec-builder(upstream speckit-specify 엔진의 일), quality-gate·trust-validator(ms.review가
+  디스패치를 지시했으나 51사이클 0회 — TRUST 검사는 인라인 수행이 실태라 유령 배선을 인라인
+  문구로 교정). salvage 감사 결과 8종 합산 비중복 콘텐츠 0건. 생존: local-ci(22회),
+  web-research-specialist(3회, 사망 페어 참조 정리).
 - **`/ms.amend` 커맨드 폐기**: 전 프로젝트에서 호출 0회 — 실제 역할은 2026-07-04 도입된
   Deviations log(`specs/<id>/implementation-notes.md`, `/ms.implement`가 기록·`/ms.review`가
   보고)가 대체 중이었음. 요구사항을 대체하는 변경은 `/ms.expand` 경유로 명문화. Amendment

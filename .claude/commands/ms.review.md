@@ -63,7 +63,7 @@ review findings and executable gates:
 
 - local CI gates via the `local-ci` agent: lint → types → tests → build, using the
   repository's own workflow commands
-- TRUST code checks via the `quality-gate` or `trust-validator` agent: coverage,
+- TRUST code checks run inline with the repository's own tooling: coverage,
   file/function size, complexity, strict typing, security scan, TAG integrity reporting
 - advisory Codex code review persisted to `docs/review/{spec-id}.codex-review.md` unless `--skip-codex` is supplied
 - unresolved HIGH/CRITICAL review issues persisted to `.specify/review-state.txt`
@@ -343,7 +343,8 @@ Rules:
 
 #### B. TRUST Code Gate
 
-Run `quality-gate` or `trust-validator` for code-level TRUST checks:
+Run the code-level TRUST checks inline with the repository's own tooling
+(coverage runner, linter, type checker, security scanner):
 
 - coverage threshold from Constitution Section III (Test-First Implementation) or the active project threshold
 - production file SLOC and function length limits

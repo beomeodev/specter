@@ -72,7 +72,7 @@ Extends `/speckit-tasks` to generate implementation tasks with automatic TAG ID 
 **ELSE**:
   → Skip (no external libraries)
 
-Do not claim that a `library-researcher` agent or a specific model ran unless it actually did.
+Do not claim that a specific agent or model ran unless it actually did.
 
 ### 2. Run Base Command
 

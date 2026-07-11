@@ -314,7 +314,7 @@ Execute `/speckit-specify` with the checked Feature prompt bundle and Constituti
 /speckit-specify <checked Feature prompt bundle from Step 0.4>
 ```
 
-Create the specification in `specs/{SPEC_ID}/spec.md` with GEARS and TRUST guidance applied. Do not claim that a `spec-builder` agent or a specific model ran unless it actually did.
+Create the specification in `specs/{SPEC_ID}/spec.md` with GEARS and TRUST guidance applied. Do not claim that a specific agent or model ran unless it actually did.
 
 Delete the Step 0.3 gate-pass token now that this call has completed (success or failure) — it is
 scoped to this single invocation:

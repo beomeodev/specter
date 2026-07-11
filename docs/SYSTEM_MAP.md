@@ -40,9 +40,11 @@ where structure is answered instead.
 ## System Purpose
 SPECTER is a command-driven workflow wrapper over GitHub Spec-Kit for Claude
 Code projects. This repository is the **template/tooling repo itself** — it
-ships the `/ms.*` command definitions (25 files under `.claude/commands/`),
-skills (21 dirs under `.claude/skills/`), agents (10 files under
-`.claude/agents/`), Constitution/spec templates, and deterministic gate scripts
+ships the `/ms.*` command definitions (24 files under `.claude/commands/`),
+skills (13 dirs under `.claude/skills/`), agents (2 files under
+`.claude/agents/`: `local-ci`, `web-research-specialist` — the 2026-07-11
+usage audit retired the eight never-dispatched ones), Constitution/spec
+templates, and deterministic gate scripts
 that a consuming project installs via `/ms.init` and receives updates to via
 `/ms.sync`. There is no application runtime here; `backend/`/`frontend/` are
 empty scaffolding.
