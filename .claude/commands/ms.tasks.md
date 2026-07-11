@@ -61,7 +61,7 @@ Extends `/speckit-tasks` to generate implementation tasks with automatic TAG ID 
 **IF external libraries detected**:
 
 1. Identify required libraries, versions, and use cases.
-2. Use available documentation tooling directly, preferring official docs or Context7 when available.
+2. Use available documentation tooling directly, preferring official docs.
 3. Extract only task-shaping facts:
    - implementation sequence
    - file/module organization

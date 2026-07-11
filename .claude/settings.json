@@ -29,9 +29,5 @@
       "Bash(git push -f:*)",
       "Bash(git clean -fdx:*)"
     ]
-  },
-  "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "context7"
-  ]
+  }
 }

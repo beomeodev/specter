@@ -300,7 +300,7 @@ The step-by-step execution plan follows: Cleanup → Renderer → Driver-aware p
 - Google Antigravity CLI `agy` (Authenticated) + Antigravity plugin (`sakibsadmanshajib/antigravity-plugin`)
 - Project-specific testing, linting, and type-checking tools
 
-Optional: Context7 MCP (Latest library documentation), GitHub CLI (PR/release automation in `/ms.fin` and `/ms.merglease`)
+Optional: GitHub CLI (PR/release automation in `/ms.fin` and `/ms.merglease`)
 
 ---
 
@@ -315,6 +315,6 @@ Optional: Context7 MCP (Latest library documentation), GitHub CLI (PR/release au
 
 ## Credits
 
-[Spec-Kit](https://github.com/github/spec-kit) · [Claude Code](https://claude.com/claude-code) · [Context7 MCP](https://context7.com/) · [ripgrep](https://github.com/BurntSushi/ripgrep)
+[Spec-Kit](https://github.com/github/spec-kit) · [Claude Code](https://claude.com/claude-code) · [ripgrep](https://github.com/BurntSushi/ripgrep)
 
 MIT License

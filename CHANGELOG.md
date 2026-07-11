@@ -14,6 +14,10 @@ All notable changes to this repository are documented in this file.
   `UNAVAILABLE` WARN 기록 후 계속 — 그래프는 가속기이며 게이트가 아님(FAIL 불가 불변식).
 
 ### Removed
+- **context7 MCP 제거**: `.mcp.json`(마지막 엔트리라 파일째 삭제)·`settings.json` MCP 키,
+  README 선택 의존성/링크, ms.implement·ms.tasks의 "or Context7" 문구. 근거: 전 프로젝트
+  ~240세션에서 실호출 1건 — 매 세션 시스템 프롬프트 instructions 상주 + npx 스폰 비용 대비
+  무가치. 의존 페어인 library-researcher 에이전트는 별도 검토 트랙.
 - **Serena MCP 완전 제거**: `.mcp.json`·`settings.json` 엔트리, `.serena/` 디렉토리, AGENTS.md
   §9·`codebase-snapshot` 스킬의 폴백 프로즈. 근거: 2026-06-18 설정 이후 47개 세션에서 도구 호출
   0건 + 바이너리 경로 미해결, 심볼 내비게이션 역할은 Graphify가 대체. `check_tag_chain.py`의

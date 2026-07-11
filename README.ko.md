@@ -360,7 +360,7 @@ SPECTER는 현재 Claude Code 전용이지만, **Codex CLI에서도 동등하게
 - Google Antigravity CLI `agy` (인증 완료) + Antigravity plugin (`sakibsadmanshajib/antigravity-plugin`)
 - 프로젝트별 테스트/린트/타입체크 도구
 
-선택: Context7 MCP (최신 라이브러리 문서), GitHub CLI (`/ms.fin`·`/ms.merglease`의 PR/release 자동화)
+선택: GitHub CLI (`/ms.fin`·`/ms.merglease`의 PR/release 자동화)
 
 ---
 
@@ -375,6 +375,6 @@ SPECTER는 현재 Claude Code 전용이지만, **Codex CLI에서도 동등하게
 
 ## Credits
 
-[Spec-Kit](https://github.com/github/spec-kit) · [Claude Code](https://claude.com/claude-code) · [Context7 MCP](https://context7.com/) · [ripgrep](https://github.com/BurntSushi/ripgrep)
+[Spec-Kit](https://github.com/github/spec-kit) · [Claude Code](https://claude.com/claude-code) · [ripgrep](https://github.com/BurntSushi/ripgrep)
 
 MIT License

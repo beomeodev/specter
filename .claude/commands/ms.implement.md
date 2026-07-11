@@ -149,7 +149,7 @@ Next step: /ms.review
 **IF external library detected**:
 
 1. Identify the exact library, version constraints, and API surface needed.
-2. Use available documentation tooling directly, preferring official docs or Context7 when available.
+2. Use available documentation tooling directly, preferring official docs.
 3. Record the relevant API facts in the implementation notes before coding.
 4. If documentation cannot be verified and the API is unstable or high-risk, stop and surface the uncertainty instead of guessing.
 
