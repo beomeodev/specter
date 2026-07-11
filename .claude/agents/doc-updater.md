@@ -1,7 +1,7 @@
 ---
 name: doc-updater
 description: "Available for /ms.up-docs-style document sync; no command dispatches this agent automatically today."
-model: haiku
+model: sonnet
 ---
 
 # doc-updater - Document Synchronization Agent

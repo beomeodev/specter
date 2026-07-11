@@ -1,7 +1,7 @@
 ---
 name: refactor-planner
 description: Strategic refactoring planner for SPECTER projects - analyzes codebase and creates comprehensive refactoring plans
-model: sonnet
+model: opus
 ---
 
 # Refactor Planner (SPECTER Edition)

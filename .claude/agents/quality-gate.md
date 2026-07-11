@@ -1,7 +1,7 @@
 ---
 name: quality-gate
 description: "Use when: Code quality verification is required. Called from /ms.review's executable gate step."
-model: haiku
+model: sonnet
 ---
 
 # Quality Gate - Quality Verification Specialist

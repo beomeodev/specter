@@ -1,7 +1,7 @@
 ---
 name: library-researcher
 description: Research latest library documentation via Context7 MCP - Official API docs specialist (complement to web-research-specialist)
-model: haiku
+model: sonnet
 ---
 
 # Library Researcher Agent
