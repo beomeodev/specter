@@ -1,21 +1,21 @@
 ---
 name: ms-ops-debugging
-description: Symptom-indexed playbook for deployment/environment debugging — SSH tunnels, reverse proxies, TLS, container lifecycle, secret rotation, and real-time API integration failures that "work locally, break deployed." Every entry traces to a real diagnosed incident (probe -> resolution), stated at the failure-class level so it generalizes across projects. Use when a deploy-only symptom, a "works here but not there" report, or an environment-boundary failure needs the fastest-discriminating probe, not generic debugging methodology (that's ms-essentials-debug's job).
+description: Symptom-indexed playbook for deployment/environment debugging — SSH tunnels, reverse proxies, TLS, container lifecycle, secret rotation, and real-time API integration failures that "work locally, break deployed." Every entry traces to a real diagnosed incident (probe -> resolution), stated at the failure-class level so it generalizes across projects. Use when a deploy-only symptom, a "works here but not there" report, or an environment-boundary failure needs the fastest-discriminating probe, not generic debugging methodology (that lives in /ms.fix's Hard-Bug Discipline).
 ---
 
 # Ops & Deployment Debugging
 
 ## What it does
 
-`ms-essentials-debug` owns generic debugging methodology (5-Whys, hypothesis discipline,
-instrumentation). This skill owns a narrower, evidence-based slice: failures that only manifest
+Generic debugging methodology (repro-minimise, hypothesis discipline, instrumentation) lives
+in `/ms.fix`'s Hard-Bug Discipline. This skill owns a narrower, evidence-based slice: failures that only manifest
 at an environment boundary — a deploy, a tunnel, a proxy, a container, a rotated secret, a
 platform-native API — where the fastest path to a fix is recognizing the failure *class*, not
 re-deriving it from first principles every time.
 
 Every entry below traces to a real diagnosed incident, stated at the failure-class level with
 project specifics stripped — this is not a generic textbook list. If a failure class isn't below,
-fall back to `ms-essentials-debug`'s general discipline.
+fall back to `/ms.fix`'s Hard-Bug Discipline.
 
 ## When to use
 
@@ -265,7 +265,7 @@ workflow mechanics, which may be stale and is out of this skill's scope regardle
 
 ## Works well with
 
-- `ms-essentials-debug`: generic debugging methodology this skill doesn't duplicate.
-- `/ms.fix`: ops incidents (deploy/environment issues, no new requirement) usually arrive as fixes.
-- For environment/deployment-class errors, use this skill's symptom index instead of
-  `ms-essentials-debug`'s generic code-error categories.
+- `/ms.fix`: ops incidents (deploy/environment issues, no new requirement) usually arrive as
+  fixes; its Hard-Bug Discipline covers the generic methodology this skill doesn't duplicate.
+- For environment/deployment-class errors, use this skill's symptom index instead of generic
+  code-error categories.

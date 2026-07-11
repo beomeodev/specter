@@ -54,6 +54,31 @@ needs user approval — the mini-plan below is how this track satisfies it):
 Stay **surgical** (Constitution Change Discipline): touch only what the fix
 requires; don't refactor adjacent code.
 
+**Hard-Bug Discipline** — when the cause isn't obvious after a first look, before
+touching code:
+
+1. **Reproduce + minimise**: get a red-capable command (failing test, curl script,
+   CLI against a fixture) that reproduces the symptom the user actually described,
+   then shrink it until every remaining element is load-bearing (removing any one
+   turns it green). The minimal repro becomes the regression test.
+2. **Hypothesise before instrumenting**: write 3-5 ranked, falsifiable hypotheses
+   ("if X is the cause, changing Y makes it disappear") before testing any of
+   them — single-hypothesis anchoring on the first plausible idea is the most
+   common failure mode.
+3. **One probe per prediction**: change one variable at a time; prefer a
+   debugger/REPL breakpoint over logs; if logging, tag every debug line with a
+   unique prefix (e.g. `[DEBUG-a4f2]`) so cleanup is one grep — never "log
+   everything and grep". For performance bugs, baseline first (profiler, timing
+   harness, query plan); logs are the wrong tool there.
+4. **Fix at the correct seam**: write the regression test *before* the fix, at a
+   seam that exercises the real bug pattern as it occurs at the call site (a
+   single-caller unit test is the wrong seam if the bug needs multiple callers).
+   If no correct seam exists, that itself is the finding — flag the architecture
+   gap; a test at the wrong seam gives false confidence.
+5. **Close out**: re-run the original un-minimised repro to confirm it no longer
+   fires, strip all `[DEBUG-...]` instrumentation and throwaway harnesses, and
+   record which hypothesis won in the commit message.
+
 ## Step 3: TAG for traceability (closes the fix-track Trackable gap)
 
 Fixes must still be traceable — this is what an ungated quick-push would skip.

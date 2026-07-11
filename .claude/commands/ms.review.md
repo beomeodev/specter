@@ -255,7 +255,23 @@ Check error handling consistency: custom exceptions vs generic Error, logging pa
 
 #### E. Test Quality
 
-Validate AAA pattern, boundary tests, mock usage. **HIGH** if no tests for critical paths.
+Validate AAA pattern and boundary tests. **HIGH** if no tests for critical paths.
+Prefer integration-style tests through the public API — a good test describes WHAT
+the code does for a caller and survives a refactor that doesn't change behavior.
+Named anti-patterns to flag (language-neutral):
+
+- **Implementation-detail coupling**: mocking internal collaborators, asserting on
+  call counts/order, or testing private methods — breaks on refactors with no
+  behavior change.
+- **Side-channel verification**: bypassing the public interface to check state
+  directly (e.g. querying the DB row instead of calling the retrieval function)
+  instead of verifying through the interface a caller would use.
+- **Tautological tests**: the expected value is recomputed the same way the
+  implementation computes it — demand an independent literal so the test can
+  actually fail.
+- **Mock placement**: mocks belong only at system boundaries (external APIs,
+  databases — prefer a test DB, time/randomness, filesystem) — never on
+  classes/modules the project itself controls.
 
 #### F. Performance
 

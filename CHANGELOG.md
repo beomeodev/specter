@@ -29,6 +29,12 @@ All notable changes to this repository are documented in this file.
   `.serena` 스캔 제외 항목은 소비 프로젝트 잔존 디렉토리 방어용으로 존치.
 
 ### Changed
+- **폐기 전 salvage 편입**: 미발화 스킬에 갇혀 있던 증거 기반 독트린을 살아있는 워크플로로 이식 —
+  테스트 품질 안티패턴 4종(구현 세부 결합·사이드채널 검증·동어반복 테스트·목 경계 규칙)을
+  `/ms.review` Test Quality 항목으로(언어 중립화), Hard-Bug Discipline 5단계(최소 재현→가설
+  선행→단일 프로브→올바른 seam→클로즈아웃)를 `/ms.fix` Step 2로, GEARS 보강 2건(금지 약한
+  조동사 can/could/might/should, GEARS→Given-When-Then 절 매핑)을 constitution-template §II로.
+  `ms-ops-debugging`의 위임 참조는 `/ms.fix` Hard-Bug Discipline으로 재지정.
 - **`codebase-snapshot` 스킬 축소**: SYSTEM_MAP에서 구조 인벤토리 섹션(`Repository Shape`,
   `Hot Paths`) 폐지 — 구조 사실은 그래프 또는 실시간 `rg`/`find`가 담당하고, 맵은 저변동성
   큐레이션 프로즈(목적·워크플로·불변식·리스크·검증 커맨드)만 유지. Graphify 분업 원칙과

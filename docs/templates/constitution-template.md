@@ -99,6 +99,11 @@ the <concrete subject> shall <verifiable behavior>.
 Clauses are optional, but when present they must appear in this order:
 `Where -> While -> When -> shall`.
 
+GEARS maps 1:1 to Given-When-Then acceptance scenarios: `Where` + `While` ->
+Given, `When` -> When, `shall` -> Then. This mapping is what makes a
+requirement testable — every FR's clauses should be recoverable from its
+acceptance scenario and vice versa.
+
 ### GEARS Is Required For
 
 - new user-facing behavior contracts
@@ -122,7 +127,10 @@ Clauses are optional, but when present they must appear in this order:
 
 Plain statements must still be specific and verifiable. Do not use vague phrases
 such as "fast", "secure", "safe", "user-friendly", "well", or
-"appropriately" without measurable criteria.
+"appropriately" without measurable criteria. Weak modal verbs are equally
+forbidden in requirements: "can", "could", "might" (resolve the condition into
+`Where`/`When`) and "should", "would be good" (commit to a `Where`-gated
+`shall`).
 
 ### Rules
 
