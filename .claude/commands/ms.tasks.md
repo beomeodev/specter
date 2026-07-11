@@ -17,7 +17,8 @@ Extends `/speckit-tasks` to generate implementation tasks with automatic TAG ID 
 - Library/documentation pattern check when plan.md depends on current third-party APIs
 - Automatic TAG ID generation for each Functional Requirement
 - Domain extraction from FR titles (AUTH, USER, PAY, etc.)
-- TAG metadata insertion (@SPEC -> @TEST -> @CODE, @DOC optional)
+- TAG anchor assignment (`@SPEC:{TAG_ID}` anchors in tasks.md; `@TEST`/`@CODE`
+  anchors are inserted by `/ms.implement` in the real test/implementation files)
 - Constitution-aware task breakdown (respects file size limits)
 - Library-informed task structure (tasks reflect actual implementation patterns)
 
@@ -203,7 +204,7 @@ Add TAG chains to tasks.md for each User Story:
 ```markdown
 ## Phase 3: FR-1 Authentication (Priority: P0)
 
-**TAG**: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
+**TAG**: @SPEC:AUTH-001
 
 **Goal**: Implement user authentication
 **Independent Test**: Users can log in with email/password
@@ -213,6 +214,12 @@ Add TAG chains to tasks.md for each User Story:
 -   [ ] T015 Create auth service...
 -   [ ] T016 Add login endpoint...
 ```
+
+tasks.md carries **only** the `@SPEC` anchor. Never write `@TEST:`/`@CODE:`
+anchor forms here: the chain's test/code anchors must come from the real test
+and implementation files (`/ms.implement` Step 3) — restating them in tasks.md
+either self-satisfies the backstop's `@TEST` requirement before any test
+exists, or collides with the real `@CODE` anchor as a duplicate.
 
 ### 5. Report Output
 
@@ -246,10 +253,10 @@ Display next steps:
 
 ## TAG Format
 
-**Chain Format**:
+**Chain** (one anchor kind per artifact):
 
 ```
-@SPEC:{TAG_ID} -> @TEST:{TAG_ID} -> @CODE:{TAG_ID}
+@SPEC:{TAG_ID} (tasks.md) -> @TEST:{TAG_ID} (test file) -> @CODE:{TAG_ID} (implementation file)
 ```
 
 **Domain Extraction Examples**:

@@ -267,25 +267,27 @@ TAGS exist to make requirement/test/code/doc relationships easy to find with
 Use ASCII separators in machine-readable TAG chains:
 
 ```text
-@SPEC:TAG-ID -> @TEST:TAG-ID -> @CODE:TAG-ID -> @DOC:TAG-ID
+@SPEC:TAG-ID -> @TEST:TAG-ID -> @CODE:TAG-ID
 ```
 
-`@DOC` is optional.
+`@DOC` anchors are retired (nothing consumed them); tolerate them in legacy
+files, never require or write them.
 
 ### Placement
 
-- `@SPEC:TAG-ID`: placed in `spec.md` near the relevant requirement or Feature
-  section.
+- `@SPEC:TAG-ID`: placed in `tasks.md` (phase header, written by `/ms.tasks`)
+  or `spec.md` near the relevant requirement. Only the `@SPEC` anchor may
+  appear in spec/tasks documents — `@TEST`/`@CODE` anchor forms there would
+  pre-satisfy or collide with the real file anchors.
 - `@TEST:TAG-ID`: placed once at the top of a relevant test file.
 - `@CODE:TAG-ID`: placed once at the top of a relevant implementation file.
-- `@DOC:TAG-ID`: placed in generated or maintained docs when useful.
 
 ### File-Level Only
 
-- Use file-level TAG blocks only.
+- Use one file-level anchor line only.
 - Do not add line-level `@TEST` docstrings to every test function.
-- When one test file covers multiple FR groups, use one file-level TAG block plus
-  a short `Covers:` line listing the relevant FR/TAG groups.
+- When one test file covers multiple FR groups, use one anchor line per id (or
+  one anchor plus a short `Covers:` line listing the relevant FR/TAG groups).
 
 ### Multi-File Work
 
@@ -295,24 +297,24 @@ Use ASCII separators in machine-readable TAG chains:
   (ignored by the backstop) instead of declaring a second anchor.
 - Multiple test files may share the same `@TEST:TAG-ID` when they verify the same
   requirement or Feature slice.
-- `/ms.fix` work uses `FIX-*` ids: no `@SPEC` anchor is required (the block
-  records `@SPEC: (fix — no spec)`), and a purely presentational fix declares
+- `/ms.fix` work uses `FIX-*` ids: no `@SPEC` anchor is required or written,
+  and a purely presentational fix declares
   `@TEST: (presentational — no test)` in place of a test anchor.
 
-### TAG Block Format
+### Anchor Format
 
 ```typescript
-/**
- * @CODE:AUTH-001
- * @SPEC: specs/001-auth-spec/spec.md
- * @TEST: tests/auth/service.test.ts
- * @CHAIN: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
- * @STATUS: implemented
- */
+// @CODE:AUTH-001
 ```
 
-`@CREATED` and `@UPDATED` are optional. If `@UPDATED` is present, it must reflect
-git reality or be omitted. Do not hand-stamp today's date on unchanged files.
+```python
+# @TEST:AUTH-001
+```
+
+One comment line, no metadata. Legacy multi-line TAG blocks (`@SPEC:`/`@TEST:`
+path references, `@CHAIN`, `@STATUS`, `@CREATED`, `@UPDATED`) remain valid in
+already-tagged files — the backstop parses only anchors — but new work writes
+bare anchors and never hand-stamps dates.
 
 ### Validation
 

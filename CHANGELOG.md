@@ -43,6 +43,13 @@ All notable changes to this repository are documented in this file.
   `.serena` 스캔 제외 항목은 소비 프로젝트 잔존 디렉토리 방어용으로 존치.
 
 ### Changed
+- **TAG 블록 → 베어 앵커 축소**: 파일당 주석 한 줄(`# @CODE:ID` / `# @TEST:ID`)로 축소하고
+  소비자 0인 메타데이터(@STATUS/@CREATED/@UPDATED/@CHAIN 블록/@DOC 앵커) 신규 작성 중단 —
+  근거는 240세션 감사(게이트는 앵커만 파싱, 메타데이터 소비자 전무). 기존 블록은 하위호환
+  (백스톱이 앵커 외 전부 무시; 소급 재작성 금지). tasks.md는 `@SPEC` 앵커만 보유하도록 변경 —
+  기존 체인 표기(`-> @TEST -> @CODE`)가 @TEST 요건을 자기충족시키고 @CODE 중복 오발동(atlas
+  실발동 사례)을 일으키던 문제 해소, 게이트가 더 정직해짐. `check_tag_chain.py`는 주석만 수정
+  (동작 무변경, 테스트 그대로 통과).
 - **폐기 전 salvage 편입**: 미발화 스킬에 갇혀 있던 증거 기반 독트린을 살아있는 워크플로로 이식 —
   테스트 품질 안티패턴 4종(구현 세부 결합·사이드채널 검증·동어반복 테스트·목 경계 규칙)을
   `/ms.review` Test Quality 항목으로(언어 중립화), Hard-Bug Discipline 5단계(최소 재현→가설

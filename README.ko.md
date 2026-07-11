@@ -44,7 +44,7 @@ GitHub [Spec-Kit](https://github.com/github/spec-kit) 위에 올라가는 Claude
 - **GEARS 요구사항** — 모호한 PRD를 검증 가능한 요구사항 문장으로 변환
 - **Feature Map 게이트** — PRD의 모든 약속(commitment)에 정확히 하나의 Feature 소유자를 강제
 - **Constitution** — 프로젝트 기준을 1회 추출해 단일 위치에 고정, 매 단계 재주입
-- **TAG 추적성** — `@SPEC → @TEST → @CODE → @DOC` 체인으로 요구사항부터 코드까지 역추적
+- **TAG 추적성** — `@SPEC → @TEST → @CODE` 앵커 체인(파일당 주석 한 줄)으로 요구사항부터 코드까지 역추적
 - **이중 에이전트 교차검증** — Codex와 Antigravity가 독립 리뷰어로 매 게이트에 참여
 
 세 가지 문제를 겨냥합니다.

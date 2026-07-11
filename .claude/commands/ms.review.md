@@ -351,7 +351,7 @@ Run the code-level TRUST checks inline with the repository's own tooling
 - function complexity limits
 - strict typing and zero-warning lint policy
 - security scan results where tooling exists
-- TAG integrity report: `@SPEC -> @TEST -> @CODE` with optional `@DOC`; warning by default unless Section IX or CI promotes it
+- TAG integrity report: `@SPEC -> @TEST -> @CODE`; warning by default unless Section IX or CI promotes it
 
 #### C. Gate Result Handling
 

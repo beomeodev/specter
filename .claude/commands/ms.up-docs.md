@@ -132,7 +132,7 @@ EXIT: Code 0
    {code_examples}
 
    ## TAG Chain
-   @SPEC:{TAG_ID} -> @TEST:{TAG_ID} -> @CODE:{TAG_ID} -> @DOC:{TAG_ID} (optional)
+   @SPEC:{TAG_ID} -> @TEST:{TAG_ID} -> @CODE:{TAG_ID}
    ```
 
 **Output**: List of updated API doc files
@@ -208,12 +208,12 @@ rg '@(SPEC|TEST|CODE|DOC):([A-Z]+-[0-9]+)' -n
 # - duplicate @SPEC declarations
 # - @CODE/@TEST without any @SPEC
 # - broken CHAIN references
-# - missing @DOC as informational only
 ```
 
 **TAG policy**:
 - TAG integrity is best-effort by default.
-- `@DOC` is optional.
+- `@DOC` anchors are retired: tolerate them in legacy files, never require or
+  write them.
 - Multiple `@TEST:ID` occurrences are allowed for multi-file work; `@CODE:ID`
   anchors are unique per id (secondary files restate the chain on a `@CHAIN:` line
   — Constitution Section V, enforced by the pre-commit backstop).

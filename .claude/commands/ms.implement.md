@@ -1,11 +1,11 @@
 ---
-description: "Implement feature with TAG blocks"
+description: "Implement feature with TAG anchors"
 argument-hint: "[optional task IDs or guidance — defaults to first pending phase]"
 ---
 
 # /ms.implement - Implementation with Traceability
 
-Implements the next selected task scope with TAG block insertion.
+Implements the next selected task scope with TAG anchor insertion.
 
 ## Overview
 
@@ -16,7 +16,7 @@ Implements the next selected task scope with TAG block insertion.
 **Additional Features** (provided by `/ms.implement`):
 - Scope selection from `tasks.md` with current phase as the default boundary
 - Latest library documentation check when the implementation depends on current third-party APIs
-- File-level TAG block insertion for best-effort traceability (`@SPEC -> @TEST -> @CODE`, `@DOC` optional)
+- File-level TAG anchor insertion for best-effort traceability (`@SPEC -> @TEST -> @CODE`)
 - Documentation sync instructions via `/ms.up-docs` or direct doc updates
 - `tasks.md` checklist update with read-back verification
 
@@ -109,7 +109,7 @@ Read `tasks.md` and select an implementation boundary before coding.
 ```markdown
 ## Phase 3: FR-1 Authentication
 
-**TAG**: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
+**TAG**: @SPEC:AUTH-001
 
 ### Implementation
 
@@ -242,7 +242,7 @@ Implementation contract:
   `fast-check`) — same approval-by-invocation rule as `/ms.fin` git actions; still report
   the addition in Step 5. Property tests carry the same `@TEST` TAG as the criterion they
   verify.
-- Insert TAG blocks yourself in Step 3; do not rely on an automatic skill invocation.
+- Insert TAG anchors yourself in Step 3; do not rely on an automatic skill invocation.
 - Keep the implementation within the selected phase/task/TAG boundary unless a blocker requires user-visible scope adjustment.
 - **Deviations log**: no plan survives contact with the territory intact. When an edge case in
   the actual code forces a deviation from `plan.md`, pick the conservative option, append one
@@ -254,81 +254,34 @@ Implementation contract:
 
 This generates or modifies the implementation files while following Constitution principles and existing project patterns.
 
-### Step 3: Insert TAG Blocks
+### Step 3: Insert TAG Anchors
 
-Locate generated files and insert TAG metadata.
+TAG anchors are single comment lines, not metadata blocks. The pre-commit
+backstop (`scripts/specter/check_tag_chain.py`) parses only the anchor form
+`@KIND:ID`, and nothing consumes status/timestamp metadata (2026-07-11 usage
+audit) — so none is written.
 
-#### 3.1 Scan Generated Files
+Insert at most one anchor line at the top of each generated or meaningfully
+modified file:
 
-Scan for newly created files:
+- Implementation file: `# @CODE:{TAG_ID}` (Python) / `// @CODE:{TAG_ID}` (TS/JS)
+- Test file: `# @TEST:{TAG_ID}` / `// @TEST:{TAG_ID}`
+- The `@SPEC:{TAG_ID}` anchor already lives in `tasks.md` (written by
+  `/ms.tasks`); do not restate it in code files.
 
--   **Code files**: `src/**/*.{ts,py}`, `backend/src/**/*.{ts,py}`, `frontend/src/**/*.{ts,py,vue}`
--   **Test files**: `tests/**/*.{ts,py}`, `backend/tests/**/*.{ts,py}`, `frontend/tests/**/*.{ts,py}`
--   **Spec file**: From tasks.md TAG chain
+Rules:
 
-#### 3.2 Insert TAG Blocks
-
-Generate TAG blocks for each file:
-
-```bash
-generate_tag_block() {
-  local lang="$1"
-  local tag_id="$2"
-  local spec_path="$3"
-  local test_path="$4"
-  local target_path="${5:-}"
-
-  # Determine tag type from the target file. Keep this file-level only.
-  local tag_type="CODE"
-  local normalized_path="${target_path//\\//}"
-  local base_name="${normalized_path##*/}"
-  if [[ "$normalized_path" == tests/* ]] || [[ "$normalized_path" == test/* ]] || [[ "$normalized_path" == */tests/* ]] || [[ "$normalized_path" == */test/* ]] || [[ "$normalized_path" == */__tests__/* ]] || [[ "$base_name" == *.test.* ]] || [[ "$base_name" == *.spec.* ]] || [[ "$base_name" == test_* ]] || [[ "$base_name" == *_test.* ]]; then
-    tag_type="TEST"
-  fi
-
-  local date=$(date +%Y-%m-%d)
-  # @UPDATED reflects git reality, not creation time. For an already-tracked
-  # file use its last-commit date; for a new file it equals @CREATED (today).
-  # A hand-stamped "today" on an unchanged file is a false Trackable signal.
-  local updated="$date"
-  if [ -n "$target_path" ]; then
-    local git_date
-    git_date=$(git log -1 --format=%cs -- "$target_path" 2>/dev/null)
-    [ -n "$git_date" ] && updated="$git_date"
-  fi
-
-  case "$lang" in
-    ts|js|tsx|jsx)
-      cat <<EOF
-/**
- * @${tag_type}:${tag_id}
- * @SPEC: ${spec_path}
- * @TEST: ${test_path}
- * @CHAIN: @SPEC:${tag_id} -> @TEST:${tag_id} -> @CODE:${tag_id}
- * @STATUS: implemented
- * @CREATED: ${date}
- * @UPDATED: ${updated}
- */
-EOF
-      ;;
-    py)
-      cat <<EOF
-"""
-@${tag_type}:${tag_id}
-@SPEC: ${spec_path}
-@TEST: ${test_path}
-@CHAIN: @SPEC:${tag_id} -> @TEST:${tag_id} -> @CODE:${tag_id}
-@STATUS: implemented
-@CREATED: ${date}
-@UPDATED: ${updated}
-"""
-EOF
-      ;;
-  esac
-}
-```
-
-For each generated or meaningfully modified file, insert at most one file-level TAG block at the top using Edit tool. Use @CODE for implementation files and @TEST for test files. Multiple files may share the same TAG_ID. Do not add line-level @TEST tags inside individual test functions.
+- Each `@CODE:{TAG_ID}` anchor lives in exactly one file — the backstop rejects
+  duplicate `@CODE` ids. A secondary file restates the relationship on a
+  `@CHAIN:` line (`@CHAIN: @SPEC:X -> @TEST:X -> @CODE:X`), which the backstop
+  ignores.
+- Multiple test files may share one `@TEST:{TAG_ID}`; a test file covering
+  several ids carries one anchor line per id.
+- Do not add line-level anchors inside individual functions.
+- Legacy multi-line TAG blocks (`@SPEC:`/`@TEST:` path references, `@CHAIN`,
+  `@STATUS`, `@CREATED`, `@UPDATED`) in already-tagged files remain valid — the
+  backstop ignores everything except anchors. Do not rewrite them
+  retroactively; new work writes bare anchors only.
 
 ### Step 3.5: Update Documentation (Living Docs)
 
@@ -365,7 +318,7 @@ Documentation principles:
 ```markdown
 ## Phase 3: FR-1 Authentication
 
-**TAG**: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
+**TAG**: @SPEC:AUTH-001
 
 ### Implementation
 
@@ -426,35 +379,22 @@ Display next steps:
 4. When all tasks are complete, run `/ms.review` for code quality, Codex advisory review, and executable gates
 ```
 
-## TAG Block Format
+## TAG Anchor Format
 
 **TypeScript**:
 
 ```typescript
-/**
- * @CODE:AUTH-001
- * @SPEC: specs/001-auth-spec/spec.md
- * @TEST: tests/unit/auth.test.ts
- * @CHAIN: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
- * @STATUS: implemented
- * @CREATED: 2025-10-09
- * @UPDATED: 2025-10-09
- */
+// @CODE:AUTH-001
 ```
 
 **Python**:
 
 ```python
-"""
-@CODE:AUTH-001
-@SPEC: specs/001-auth-spec/spec.md
-@TEST: tests/unit/test_auth.py
-@CHAIN: @SPEC:AUTH-001 -> @TEST:AUTH-001 -> @CODE:AUTH-001
-@STATUS: implemented
-@CREATED: 2025-10-09
-@UPDATED: 2025-10-09
-"""
+# @TEST:AUTH-001
 ```
+
+One comment line per file, no metadata (see Step 3 for the rules and the
+legacy-block compatibility note).
 
 ## Error Handling
 

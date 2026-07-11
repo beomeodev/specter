@@ -164,9 +164,9 @@ commits).
 
 ## 8. TAGS, GEARS, And TRUST Outside `/ms`
 
-- TAGS are optional outside `/ms.*` workflows. Preserve existing TAG blocks when
-  editing tagged code, but do not introduce TAG ceremony into untagged ordinary
-  work unless requested.
+- TAGS are optional outside `/ms.*` workflows. Preserve existing TAG anchors
+  (and legacy TAG blocks) when editing tagged code, but do not introduce TAG
+  ceremony into untagged ordinary work unless requested.
 - GEARS is useful for ambiguous behavior contracts, but plain acceptance
   criteria are enough for small or non-workflow tasks.
 - TRUST is a quality review rubric outside `/ms.*`; executable checks still come

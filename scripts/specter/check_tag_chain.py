@@ -8,8 +8,7 @@ test actually cover the spec) stays an agentic ``/ms.review`` concern and is
 intentionally NOT checked here -- this only proves the chain is *wired*.
 
 ``/ms.fix`` track exemption: ``@CODE:FIX-*`` ids carry no governing spec by
-design (their block records ``@SPEC: (fix — no spec)``), so the same-id
-``@SPEC`` anchor requirement is waived for them. The ``@TEST`` anchor stays
+design, so the same-id ``@SPEC`` anchor requirement is waived for them. The ``@TEST`` anchor stays
 required unless the same file declares the presentational marker
 ``@TEST: (presentational — no test)``. Uniqueness applies to FIX ids too.
 
@@ -43,7 +42,7 @@ SKIP_DIRS = {
     "build",
 }
 
-# Text source files where TAG blocks live.
+# Text source files where TAG anchors live.
 SCAN_SUFFIXES = {
     ".py",
     ".ts",
@@ -64,7 +63,7 @@ ANCHOR_RE = re.compile(r"@(SPEC|TEST|CODE|DOC):([A-Za-z0-9][A-Za-z0-9._-]*)")
 # /ms.fix track: ids with this prefix have no governing spec.
 FIX_PREFIX = "FIX-"
 
-# Presentational-fix marker (declares "no test" explicitly in the TAG block).
+# Presentational-fix marker (declares "no test" explicitly next to the anchor).
 PRESENTATIONAL_RE = re.compile(r"@TEST:\s*\(presentational")
 
 

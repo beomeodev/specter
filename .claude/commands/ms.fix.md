@@ -82,23 +82,21 @@ touching code:
 ## Step 3: TAG for traceability (closes the fix-track Trackable gap)
 
 Fixes must still be traceable — this is what an ungated quick-push would skip.
+Anchors are single comment lines, same format as `/ms.implement` Step 3; no
+metadata block.
 
-- **Correcting code that already has a TAG** → reuse that TAG; bump its
-  `@UPDATED` (git-derived — the last commit that touched the file, never
-  today's date) and, if behavior
-  changed, note it.
-- **New code with no governing SPEC** → assign a **FIX-id** TAG:
-  `@CODE:FIX-<area>-<NNN>` (e.g. `@CODE:FIX-UPLOADS-003`), `@SPEC: (fix — no spec)`.
-  Keep the chain block format identical to `/ms.implement`,
-  `@STATUS: implemented`. The pre-commit backstop
-  (`scripts/specter/check_tag_chain.py`) waives the `@SPEC` anchor for `FIX-*` ids but
-  still requires the `@TEST` side:
+- **Correcting code that already has a TAG** → reuse that TAG id; nothing else
+  to update (a legacy metadata block in the file stays as it is).
+- **New code with no governing SPEC** → add a **FIX-id** anchor at the top of
+  the file: `# @CODE:FIX-<area>-<NNN>` (e.g. `@CODE:FIX-UPLOADS-003`). The
+  pre-commit backstop (`scripts/specter/check_tag_chain.py`) waives the `@SPEC`
+  anchor for `FIX-*` ids but still requires the `@TEST` side:
   - **Behavioral fix** (Step 2 wrote/extended a test) → put the matching
     `@TEST:FIX-<area>-<NNN>` anchor in that test file.
-  - **Presentational fix** (Step 2 skipped RED-GREEN) → declare it in the TAG
-    block: `@TEST: (presentational — no test)`. This exact marker is what the
-    backstop accepts in place of a test anchor; never use it on a behavioral
-    change.
+  - **Presentational fix** (Step 2 skipped RED-GREEN) → add the marker line
+    `@TEST: (presentational — no test)` next to the anchor. This exact marker
+    is what the backstop accepts in place of a test anchor; never use it on a
+    behavioral change.
 
 ## Step 4: Lightweight docs (scale to size)
 

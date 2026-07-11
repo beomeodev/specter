@@ -125,7 +125,7 @@ Not applicable — this repository ships no deployed application or server; the
   TTL-bounded (~1h).
 - `specter-gate.sh` must always emit its JSON contract, even on malformed
   input.
-- Preserve TAG (`@SPEC → @TEST → @CODE`/`@DOC`) semantics; the only sanctioned
+- Preserve TAG (`@SPEC → @TEST → @CODE`) anchor semantics; the only sanctioned
   exemption is the `/ms.fix` `FIX-*`/presentational carve-out — do not widen it
   without updating the tests.
 - `/ms.specify` never accepts freeform feature input; direct

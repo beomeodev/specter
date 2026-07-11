@@ -36,7 +36,7 @@ SPECTER is a Claude Code workflow overlay built on top of GitHub [Spec-Kit](http
 - **GEARS Requirements** — Translates ambiguous PRDs into verifiable requirement statements.
 - **Feature Map Gates** — Enforces exactly one Feature owner for every PRD commitment.
 - **Constitution** — Extracts project standards once, pins them in a single place, and re-injects them at every step.
-- **TAG Traceability** — Enables back-traceability from requirements to code using a `@SPEC → @TEST → @CODE → @DOC` chain.
+- **TAG Traceability** — Enables back-traceability from requirements to code using a `@SPEC → @TEST → @CODE` anchor chain (one comment line per file).
 - **Dual-Agent Cross-Verification** — Employs Codex and Antigravity as independent reviewers participating in every gate.
 
 It targets three core issues:

@@ -12,7 +12,7 @@ Validates code compliance with Constitution Section V (TRUST 5 Principles):
 - **R**eadable: File/function size limits, complexity ≤10
 - **U**nified: Type safety, linter compliance
 - **S**ecured: No vulnerabilities, input validation
-- **T**rackable: Complete TAG chains (@SPEC → @TEST → @CODE → @DOC)
+- **T**rackable: Complete TAG chains (@SPEC → @TEST → @CODE)
 
 ## When to use
 
@@ -229,10 +229,9 @@ assume it.
 ### T - Trackable (TAG Chain Integrity)
 
 **TAG Structure**:
-- `@SPEC:ID` in `specs/<spec-id>/spec.md`
+- `@SPEC:ID` in `specs/<spec-id>/tasks.md` (or `spec.md`)
 - `@TEST:ID` in `tests/`
 - `@CODE:ID` in `src/`
-- `@DOC:ID` in `docs/`
 
 **Chain Validation**:
 ```bash
