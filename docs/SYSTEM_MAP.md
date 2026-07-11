@@ -46,8 +46,8 @@ skills (13 dirs under `.claude/skills/`), agents (2 files under
 usage audit retired the eight never-dispatched ones), Constitution/spec
 templates, and deterministic gate scripts
 that a consuming project installs via `/ms.init` and receives updates to via
-`/ms.sync`. There is no application runtime here; `backend/`/`frontend/` are
-empty scaffolding.
+`/ms.sync`. There is no application runtime here; `backend/` is an empty
+scaffolding placeholder.
 
 ## Primary Workflows
 - `/ms.init` bootstraps the overlay into a consuming project: Spec-Kit install
@@ -139,8 +139,6 @@ Not applicable — this repository ships no deployed application or server; the
   before treating the token-saving claim as realized.
 - `graphifyy` is a ~3-month-old upstream (v0.9.12 pinned): expect API churn;
   bump `GRAPHIFY_VERSION` deliberately and re-verify hooks + query output.
-- `docs/improvements/*.md` are historical working records, not
-  currently-authoritative plans.
 
 ## Verification Commands
 ```bash

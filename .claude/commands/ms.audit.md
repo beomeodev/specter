@@ -20,7 +20,7 @@ conductor and never will be.
 
 - After a Phase's last Feature ships (the natural checkpoint — the Phase E2E scenario just
   passed, now ask what the *product* looks like).
-- On a cadence (monthly pairs well with the weekly-triage routine, one level up).
+- On a cadence (e.g. monthly).
 - On instinct — "뭔가 빈 구멍이 있을 것 같은데" is a valid trigger; this command is that
   instinct, systematized.
 

@@ -11,9 +11,7 @@
 # Fails OPEN (allows) only when the requested skill can't be determined at all
 # (malformed stdin, unexpected schema) — a broken hook must never block
 # unrelated Skill calls. Missing `jq` no longer blanket-allows: it falls back
-# to a plain-text scan for the skill field (see F-4 in
-# docs/improvements/2026-07-03-workflow-audit-and-plan.md).
-# See docs/improvements/2026-07-03-workflow-audit-and-plan.md WI-13.
+# to a plain-text scan for the skill field.
 
 INPUT="$(cat 2>/dev/null || true)"
 
