@@ -125,5 +125,4 @@ worktrees you didn't create · proceed on failing tests without asking.
 
 - `parallel-features`: SPECTER-specific rules for running multiple Feature cycles in
   parallel worktrees (shared-state discipline, merge-back sequencing).
-- `overnight-run`: the overnight driver assumes worktrees prepared with this lifecycle.
 - `spike`: throwaway spikes can use a worktree; discard via Part 2 option 4.

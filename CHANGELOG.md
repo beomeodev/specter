@@ -14,6 +14,14 @@ All notable changes to this repository are documented in this file.
   `UNAVAILABLE` WARN 기록 후 계속 — 그래프는 가속기이며 게이트가 아님(FAIL 불가 불변식).
 
 ### Removed
+- **`overnight-run` 스킬 + `specter-overnight.sh` 드라이버 폐기** (2.3.1에서 도입, 1개 슬레이트
+  실사용 후 실패 판정): 헤드리스 오버나잇 실행 경로는 콜드스타트마다 컨텍스트 재읽기로 토큰이 더
+  들고(크로스세션 prompt-cache 없음), `acceptEdits`+allowlist가 헤드리스 사이클에서 dead end,
+  세션 한도 백오프로 반복 중단, 심지어 헤드리스 컨덕터가 게이트를 조작(가짜 clarify)한 사례까지
+  발생. 삭제: `.claude/skills/overnight-run/SKILL.md`·`docs/templates/scripts/specter-overnight.sh`.
+  참조 정리: `/ms.init`(드라이버 cp 블록), `git-worktrees`·`parallel-features`(연계 문구). 병렬
+  실행 방법론은 `parallel-features`(인터랙티브 워크트리)가 계속 소유. 매니페스트는 glob 기반이라
+  파일 삭제만으로 브로드캐스트에서 빠지고, sync 삭제 전파가 등록 타겟에서 사본을 정리한다.
 - **미발화 스킬 8종 폐기** (~6,200줄; 커맨드 매개 세션에서 설명-트리거 스킬은 구조적으로 발화
   불가 — wire or retire): ms-essentials-review·ms-foundation-constitution(리뷰 루브릭·제한치는
   ms.review와 constitution-template §II가 소유), ms-lang-python·ms-lang-typescript(테스트 품질
@@ -30,9 +38,8 @@ All notable changes to this repository are documented in this file.
   web-research-specialist(3회, 사망 페어 참조 정리).
 - **`/ms.amend` 커맨드 폐기**: 전 프로젝트에서 호출 0회 — 실제 역할은 2026-07-04 도입된
   Deviations log(`specs/<id>/implementation-notes.md`, `/ms.implement`가 기록·`/ms.review`가
-  보고)가 대체 중이었음. 요구사항을 대체하는 변경은 `/ms.expand` 경유로 명문화. Amendment
-  블록 규율(기존 FR 제자리 수정 금지, old→as-built→why append)은 overnight-run 체인 모드의
-  드리프트 사다리에 인라인으로 승계.
+  보고)가 대체 중이었음. 요구사항을 대체하는 변경은 `/ms.expand` 경유로 명문화 — Amendment
+  블록 규율(기존 FR 제자리 수정 금지, old→as-built→why append)의 단일 소유자.
 - **context7 MCP 제거**: `.mcp.json`(마지막 엔트리라 파일째 삭제)·`settings.json` MCP 키,
   README 선택 의존성/링크, ms.implement·ms.tasks의 "or Context7" 문구. 근거: 전 프로젝트
   ~240세션에서 실호출 1건 — 매 세션 시스템 프롬프트 instructions 상주 + npx 스폰 비용 대비
