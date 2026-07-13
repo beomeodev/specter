@@ -1,6 +1,6 @@
 ---
 name: specter-agent-protocols
-description: Canonical external-agent protocols shared by the dual-agent SPECTER commands (/ms.agent-verify, /ms.verify, /ms.analyze, /ms.review, /ms.codex-checklist, /ms.expand) — session-level preflight, single-agent degrade rule, report-write/salvage protocol, re-round convergence caps, and the auditor bias-prevention doctrine (context isolation, evidence-cited verdicts, UNVERIFIED marking, grade-down-on-doubt). Commands reference this file instead of restating the mechanics; each command keeps only its own report paths and station-specific invariants inline.
+description: Canonical external-agent protocols shared by the dual-agent SPECTER commands (/ms.agent-verify, /ms.verify, /ms.analyze, /ms.review, /ms.codex-checklist, /ms.expand) — session-level preflight, single-agent degrade rule, report-write/salvage protocol, re-round convergence caps, and the auditor bias-prevention doctrine (context isolation, evidence-cited verdicts, UNVERIFIED marking, grade-down-on-doubt, defect-claim symmetry) plus the verification-report structure (Claim/Evidence/Baseline/Gaps/Residual-risk). Commands reference this file instead of restating the mechanics; each command keeps only its own report paths and station-specific invariants inline.
 ---
 
 # SPECTER External-Agent Protocols
@@ -96,3 +96,32 @@ bias-prevention protocol.)
   in one area never offsets or softens a FAIL in another, and an issue the
   reviewer identified must appear in the report; talking itself out of a
   finding it already articulated is malpractice.
+- **Absence of evidence is not evidence**: what was not observed is neither a
+  success nor a failure — it belongs in the report's Gaps section (§6), never
+  in the verdict, in either direction.
+- **Defect-claim symmetry**: the UNVERIFIED convention applies to defect claims
+  too. A suspected defect, debt, or drift is a hypothesis — marked `UNVERIFIED`
+  until the domain tool confirms it — never asserted as fact from pattern
+  matching alone. (Real case: a grep-based estimate of "29 items need cleanup"
+  audited to 0 by the actual tool.)
+
+## 6. Verification-Report Structure
+
+Every verification-style report — any report claiming something was checked —
+carries five sections. This structure exists because final verdicts
+systematically under-report what a station actually observed (2026-07-10 gate
+audit): what was *not* observed must survive in the report, not evaporate into
+a one-word verdict.
+
+- **Claim** — the specific statement being verified, not just the station name.
+- **Evidence** — the commands run and their output, verbatim (trim to the
+  relevant lines; never paraphrase a result). This is §5's evidence-cited
+  verdict rule applied to the whole report.
+- **Baseline** — what the result is compared against, measured in *this* run —
+  not remembered from a previous run, not assumed.
+- **Gaps** — what was not observed: paths not exercised, tools unavailable,
+  scopes excluded, inputs not tried. The defensive core of the report. An
+  empty Gaps section must state the basis for claiming exhaustive observation;
+  a bare "none" is the empty-section cliché this structure exists to prevent.
+- **Residual-risk** — what can still go wrong even though everything above was
+  observed (timing, environment differences, untested scale).
