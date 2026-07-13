@@ -108,6 +108,40 @@ rationale, the new tag, and the release URL.
 
 ---
 
+### Step 1.5: 🔎 Verify Delegated End-State (silent-stall net)
+
+Antigravity's self-report is not completion evidence — a delegated run has merged
+the PR and then stalled silently without creating the tag/release (observed
+2026-07). Verify the end state directly with git/gh before reporting:
+
+```bash
+gh pr view <PR_NUM> --json state,mergedAt          # ① PR is MERGED
+git fetch origin master >/dev/null 2>&1
+git merge-base --is-ancestor origin/master HEAD && git rev-parse HEAD  # ② local master pulled to the merge commit
+git tag -l "<tag>" && git ls-remote --tags origin "<tag>"              # ③ tag exists locally AND on origin
+gh release view "<tag>"                            # ④ GitHub Release exists
+git log origin/master --oneline -3                 # ⑤ progress-ledger commit reached master
+                                                   #    (only if docs/prd/feature-map.progress.md exists)
+```
+
+Interpretation:
+
+- **All applicable items hold** → report `위임 완주` in Step 2.
+- **Something is missing AND the delegation report gives no reason for stopping**
+  (silent stall) → complete ONLY the missing items yourself, idempotently — never
+  re-run completed steps. Follow the same rules the prompt gave Antigravity
+  (automatic semver with its recorded rationale, annotated tag, release notes,
+  ledger commit on master). Report `부분 정지 → <항목> 직접 완결` in Step 2.
+- **Something is missing AND the report states why it stopped** (e.g. merge halted
+  on a real CI failure — an intentional stop): do NOT fill the gap. Report the
+  failure per the existing rule below; the stop was correct. This verification
+  exists for *silent* stalls only.
+
+This step is read-only checks plus missing-item completion — it is not a new gate
+and produces no verdict.
+
+---
+
 ### Step 2: Report Success
 
 Claude summarizes the work — including any billing/infra CI warning or a stop-on-real-failure
@@ -117,6 +151,7 @@ report from Antigravity:
 ✅ /ms.merglease 완료! (Antigravity 위임 완료)
 
 🔀 PR 머지 및 릴리즈 태그 생성이 Antigravity CLI를 통해 백그라운드/서브세션에서 성공적으로 처리되었습니다.
+🔎 위임 종상태 검증: <위임 완주 | 부분 정지 → <항목> 직접 완결>
 📦 버전: <computed bump> (<rationale summary>)
 ⚠️ GitHub CI: <정상 통과 | billing/infra로 건너뜀: 체크 이름 | 실패로 머지 중단>
 ```

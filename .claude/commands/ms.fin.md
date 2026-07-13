@@ -194,6 +194,42 @@ Do not edit code files except staging and formatting. Write your results, the PR
 
 ---
 
+### Step 3.5: 🔎 Verify Delegated End-State (silent-stall net)
+
+Antigravity's self-report is not completion evidence — delegated runs have stalled
+silently mid-pipeline (observed 2026-07: stopped before committing). Before
+reporting success, verify the end state directly with git/gh:
+
+```bash
+git status --porcelain                      # ① no publish-intended changes left in the tree
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+git log origin/"$BRANCH"..HEAD --oneline    # ② empty → branch fully pushed
+gh pr view --json state,url                 # ③ PR exists and is OPEN
+```
+
+The self-review stamp (prompt task 5) is fail-open by design — report its status
+as delegated, never repair or block on it.
+
+Interpretation:
+
+- **All three hold** → report `위임 완주` in Step 4.
+- **Something is missing AND the delegation report gives no reason for stopping**
+  (silent stall) → complete ONLY the missing items yourself, idempotently — never
+  re-run the whole pipeline or redo completed steps. Follow the same rules the
+  prompt gave Antigravity, including `CI_MODE`: if the stall happened before the
+  CI gate ran and `CI_MODE=RUN`, run the gate first, and a real failure stops the
+  publish exactly as it would have in the delegation. Report
+  `부분 정지 → <항목> 직접 완결` in Step 4.
+- **Something is missing AND the report states why it stopped** (e.g. the CI gate
+  failed — an intentional stop): do NOT fill the gap. Report the failure per the
+  existing rules; the stop was correct. This verification exists for *silent*
+  stalls only.
+
+This step is read-only checks plus missing-item completion — it is not a new gate
+and produces no verdict.
+
+---
+
 ### Step 4: Report Success
 
 Claude summarizes the work:
@@ -204,6 +240,7 @@ Claude summarizes the work:
 📄 Living Documents 동기화 완료 (/ms.up-docs)
 🧭 CI 모드: <RUN: CI 실행 | SKIP: review 후 변경 없음 → 생략 | SKIP: --no-ci>
 🚀 Git 커밋, Push 및 PR 자동 생성이 Antigravity CLI를 통해 처리되었습니다.
+🔎 위임 종상태 검증: <위임 완주 | 부분 정지 → <항목> 직접 완결>
 🔖 셀프 리뷰 스탬프: <제출됨 (COMMENT review — contribution graph 반영) | 실패 → 무시하고 진행>
 
 
