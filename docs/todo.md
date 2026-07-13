@@ -82,7 +82,7 @@ output-styles 3종·@MX:DEBT·moai-memory·cadence-bridge·agent-patterns는 명
 ### 작업 2 — SessionStart에 dirty-snapshot 기록 추가 (작업 1과 한 커밋)
 
 **목적**: 세션 시작 시점 기존 변경을 기록해 ① 작업 1의 offphase 검사가 사용자 사전 변경을
-차단하지 않게, ② 병렬 Feature·overnight에서 "에이전트 변경 vs 기존 변경" 구분 근거.
+차단하지 않게, ② 병렬 Feature에서 "에이전트 변경 vs 기존 변경" 구분 근거.
 (phase 게이트는 phase-open 시점 서명이 이미 baseline 역할 — 이 스냅샷은 offphase 경로 전용.)
 
 **수정 파일**: `docs/templates/scripts/specter-session-status.sh` 확장.

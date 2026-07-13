@@ -1,6 +1,6 @@
 ---
 name: parallel-features
-description: SPECTER-specific methodology for running two or more independent Feature cycles concurrently in separate git worktrees — eligibility test (DAG independence + plan-time file-overlap check), per-worktree vs shared-state rules, union-merge setup for append-shaped workflow files, and merge-back sequencing (rebase + gate re-run for the second merge). Use when the Feature Map DAG shows independent branches and the user wants to run them in parallel (interactively or via the overnight driver), or when deciding whether two Features are safe to parallelize at all.
+description: SPECTER-specific methodology for running two or more independent Feature cycles concurrently in separate git worktrees — eligibility test (DAG independence + plan-time file-overlap check), per-worktree vs shared-state rules, union-merge setup for append-shaped workflow files, and merge-back sequencing (rebase + gate re-run for the second merge). Use when the Feature Map DAG shows independent branches and the user wants to run them in parallel, or when deciding whether two Features are safe to parallelize at all.
 ---
 
 <!-- Methodology adapted from arittr/spectacular (decomposing-tasks, executing-parallel-phase,
@@ -65,8 +65,7 @@ conflict loudly.
    conductors in the same working tree (the second would build on the first's
    uncommitted implementation).
 3. Concurrency form is your choice: two interactive sessions side by side, or
-   sequential-in-time but isolated-in-space (the `overnight-run` driver does exactly
-   this).
+   sequential-in-time but isolated-in-space.
 4. **Verify before trusting**: a conductor's success claim ≠ a usable branch. Check
    the worktree's run ledger shows `review` PASS/WARN and the branch has commits
    (`git rev-parse HEAD != master`).

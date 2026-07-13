@@ -252,13 +252,7 @@ as Steps 2.2–2.3 so it survives a future `specify init --force`:
 mkdir -p .specify/scripts/bash
 cp docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
 chmod +x .specify/scripts/bash/specter-gate.sh
-cp docs/templates/scripts/specter-overnight.sh .specify/scripts/bash/specter-overnight.sh 2>/dev/null \
-  && chmod +x .specify/scripts/bash/specter-overnight.sh \
-  || echo "ℹ️ specter-overnight.sh not present (arrives via /ms.sync) — overnight driver skipped"
 ```
-
-The overnight driver (`specter-overnight.sh`, used by the `overnight-run` skill) is optional —
-its absence never fails `/ms.init`.
 
 This script owns only mechanical gate facts (checklist Result lines, Feature Map SHA256
 equality, Constitution Section IX establishment, per-Feature/dual-agent artifact existence) for
