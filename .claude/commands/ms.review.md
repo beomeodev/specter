@@ -286,6 +286,36 @@ Check missing auth on endpoints, sensitive data in logs, stack trace exposure.
 - **Overcomplication**: speculative abstractions, unrequested flexibility/config, error handling for impossible cases, "200 lines that could be 50". Senior test: would a senior call it overcomplicated?
 - **Non-surgical diff**: changed lines that DON'T trace to the task — adjacent "improvements", style churn, refactors of unbroken code, deletion of pre-existing (not orphaned-by-this-change) code. (Planned refactor tasks are exempt — they ARE the request.)
 
+#### I. Boundary Verification (Conditional)
+
+Only when the Feature's diff touches a seam between layers — API ↔ frontend,
+app ↔ DB, route ↔ file layout — or defines/edits a state machine. Skip entirely
+otherwise; this is not per-review ceremony. Unit tests structurally miss these
+bugs because each side passes in isolation.
+
+Method, one line: **read both sides of the seam together — a check that passed
+one side at a time is not a boundary check.**
+
+1. API response shape mismatches hidden by generic casts (`as T`, `Any`,
+   schema-less deserialization) — does the declared type match what the server
+   actually sends?
+2. File path ↔ router mapping mismatches (route groups, dynamic segments,
+   catch-alls) — does every route the code links to resolve to a real file?
+3. State machines with transitions that are defined but never implemented
+   (dead transitions) — or implemented but undeclared.
+4. camelCase ↔ snake_case field-name drift across DB / API / frontend layers.
+5. Every API endpoint the frontend calls actually exists server-side (method
+   and path both).
+6. Async workflows returning more than one response shape (immediate `202`
+   acknowledgement vs final result) — is the union expressed in the types, or
+   does the client only handle one shape?
+7. Type-cast escapes (`as unknown as`, `# type: ignore`, `@ts-ignore`) sitting
+   exactly on a boundary — each one is a candidate hidden shape mismatch;
+   verify the real shape behind it.
+
+Findings use the standard severity model: a mismatch that breaks a runtime path
+is **HIGH**; a latent drift not yet on an executed path is **MEDIUM**.
+
 ---
 
 ### Step 5.5: ultrathink Pattern Analysis
