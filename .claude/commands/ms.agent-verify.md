@@ -1,6 +1,6 @@
 ---
 description: "Run a foreground Codex & Antigravity verification of the current per-Feature checklist"
-argument-hint: "[Feature NNN] [--model MODEL] [--effort low|medium|high]"
+argument-hint: "[Feature NNN] [--model MODEL] [--effort low|medium|high|xhigh|max]"
 ---
 
 # /ms.agent-verify - Per-Feature Dual-Agent Verification
@@ -11,9 +11,9 @@ Execution is foreground: Codex and Antigravity run in parallel and this command 
 
 Default Codex/Antigravity runtimes:
 ```text
-Codex model: gpt-5.6-sol
+Codex model: gpt-5.6-luna
 Antigravity model: gemini-3.5-flash
-effort: medium
+effort: xhigh
 ```
 
 ## Usage
@@ -21,7 +21,7 @@ effort: medium
 ```bash
 /ms.agent-verify
 /ms.agent-verify Feature 003
-/ms.agent-verify --model gpt-5.6-sol --effort high Feature 003
+/ms.agent-verify --model gpt-5.6-luna --effort xhigh Feature 003
 ```
 
 ## Output
@@ -83,7 +83,7 @@ Invoke the Codex and Antigravity plugin rescue commands in the foreground, in pa
 
 #### A. Run Codex
 ```text
-/codex:rescue --fresh --model gpt-5.6-sol --effort medium <Codex Prompt>
+/codex:rescue --fresh --model gpt-5.6-luna --effort xhigh <Codex Prompt>
 ```
 
 #### B. Run Antigravity

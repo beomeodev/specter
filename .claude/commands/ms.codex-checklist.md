@@ -1,6 +1,6 @@
 ---
 description: "Start a background Codex PRD-only checklist run for Feature Map verification"
-argument-hint: "[@docs/prd/PRD.md ...] [--model MODEL] [--effort low|medium|high]"
+argument-hint: "[@docs/prd/PRD.md ...] [--model MODEL] [--effort low|medium|high|xhigh|max]"
 ---
 
 # /ms.codex-checklist - Independent PRD Checklist
@@ -17,7 +17,7 @@ the generated Feature Map.
 
 ```bash
 /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
-/ms.codex-checklist --model gpt-5.6-sol --effort high @docs/prd/PRD.md
+/ms.codex-checklist --model gpt-5.6-luna --effort xhigh @docs/prd/PRD.md
 ```
 
 Execution is always background. Users do not pass `--background`.
@@ -25,8 +25,8 @@ Execution is always background. Users do not pass `--background`.
 Default Codex runtime:
 
 ```text
-model: gpt-5.6-sol
-effort: medium
+model: gpt-5.6-luna
+effort: xhigh
 ```
 
 ## Output
@@ -71,7 +71,7 @@ Invoke the Codex plugin rescue command in background mode with default runtime
 selection unless the user explicitly provided overrides:
 
 ```text
-/codex:rescue --background --fresh --model gpt-5.6-sol --effort medium <prompt>
+/codex:rescue --background --fresh --model gpt-5.6-luna --effort xhigh <prompt>
 ```
 
 If the user provided `--model` or `--effort`, pass those values through instead

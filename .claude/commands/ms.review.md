@@ -1,6 +1,6 @@
 ---
 description: "Code quality review after implementation"
-argument-hint: "[--quick] [--fast] [--verbose] [--focus <category>] [--no-interactive] [--skip-codex] [--background] [--model MODEL] [--effort low|medium|high] [--runtime-agent=agy]"
+argument-hint: "[--quick] [--fast] [--verbose] [--focus <category>] [--no-interactive] [--skip-codex] [--background] [--model MODEL] [--effort low|medium|high|xhigh|max] [--runtime-agent=agy]"
 ---
 
 # /ms.review - Code Quality Review
@@ -37,7 +37,7 @@ Performs deep code quality review and executable code-gate validation after `/ms
 /ms.review
 /ms.review --background
 /ms.review --skip-codex
-/ms.review --model gpt-5.6-sol --effort high
+/ms.review --model gpt-5.6-luna --effort xhigh
 ```
 
 Codex runs in the foreground by default. Use `--background` only when the review
@@ -46,8 +46,8 @@ is large and the user explicitly wants to resume later.
 Default Codex runtime:
 
 ```text
-model: gpt-5.6-sol
-effort: medium
+model: gpt-5.6-luna
+effort: xhigh
 ```
 
 **When to run**: After implementing all tasks, before final commit.
@@ -474,7 +474,7 @@ agent's report path (`docs/review/{spec-id}.codex-review.md` /
 #### A. Codex & Antigravity Code Review (same prompt body, different agent)
 
 ```text
-/codex:rescue --fresh --model gpt-5.6-sol --effort medium <prompt>
+/codex:rescue --fresh --model gpt-5.6-luna --effort xhigh <prompt>
 /antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <prompt>
 ```
 
@@ -645,7 +645,7 @@ open — the feature is not done, and subsequent fix turns stay gated):
 | `--no-interactive` | Skip Step 8's interactive action prompts — for CI/CD pipelines. |
 | `--skip-codex` (or `--skip-agents`) | Skip the advisory Codex (and Antigravity) code review. |
 | `--background` | Start Codex/Antigravity in the background; rerun `/ms.review` after both reports appear. |
-| `--model MODEL` / `--effort LEVEL` | Override the default `gpt-5.6-sol` / `medium` agent runtime. |
+| `--model MODEL` / `--effort LEVEL` | Override the default `gpt-5.6-luna` / `xhigh` agent runtime. |
 | `--runtime-agent=agy` | Delegate Step 6.6's Done Criteria Execution to Antigravity instead of the host. A documented knob, not a default — keep host-run until Antigravity has proven stable in this environment. |
 | `--fast` | Skip slow optional static-analysis tools (jscpd, extended complexity scans). Never skips lint, typecheck, tests, or build — those executable gates stay owned by `/ms.review`. TAG findings remain warning/report-only unless Section IX or CI promotes them to blocking. |
 | `--focus <category>` | Emphasize one qualitative aspect while still running executable gates. Categories: `security` (auth, logging, error exposure), `performance` (N+1 queries, recomputation), `naming` (domain-term consistency), `architecture` (layer violations), `tests` (quality, boundary cases, mocks), `maintainability` (comments, error handling, duplication). |
