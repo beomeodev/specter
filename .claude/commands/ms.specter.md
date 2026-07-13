@@ -80,6 +80,9 @@ adds anything the conventional-path form doesn't already resolve on its own.
   defines a mechanical auto-fix (see `/ms.plan` below).
 - **`/ms.clarify`** → always hand control to the human. Ask the questions the
   command produces (Korean), wait for answers, apply them, then resume.
+- **Step entry** → no step runs unless every earlier step in the sequence has a
+  PASS/WARN ledger entry for this Feature (Step 0.5's step-order invariant). A
+  conductor never skips forward silently.
 
 This is the cycle-level expression of "autonomy only inside the control fence":
 the conductor moves on its own, but only through PASS/WARN, and only the human
@@ -143,7 +146,22 @@ crosses the clarify boundary.
    ```
    If the ledger is missing, unreadable, or every step already lacks a matching entry, start
    normally at Step 1 — a missing/corrupt ledger never blocks the run, it only loses the resume
-   shortcut.
+   shortcut. Fail-open here means "start from the beginning", never "enter a mid-sequence step
+   unverified".
+
+   **Step-order invariant (no silent skips).** The same per-step last-entry-wins data enforces
+   order, not just the resume shortcut: before executing any step of the sequence, every earlier
+   step must already have a `PASS`/`WARN` ledger entry for this Feature. If one is missing, do
+   not execute the later step — go back to the **first** missing step and run the cycle from
+   there, announcing it:
+   ```text
+   ⚠️ 단계 순서 가드: <목표 step> 진입 전 선행 <누락 step> 기록 없음 → <누락 step>부터 실행
+   ```
+   When the **user explicitly asks** to start at a specific step ("plan부터"), still check the
+   earlier entries; if any are missing, report exactly which and get one confirmation before
+   honoring the instruction — user discretion is respected, only the conductor's *silent* skip
+   is forbidden. This guard enforces order only; it never reads, weakens, or overrides any
+   gate's verdict (§10 identity rule).
 6. **Self-heal the exploration graph (never blocks).** If the `graphify` binary is
    available, run `graphify . --code-only --no-viz --update` (AST-only, seconds, no
    API cost) so this cycle's structural queries see the current tree. If the binary

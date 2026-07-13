@@ -141,7 +141,22 @@ turns are the conditional questions the underlying commands raise.
    ```
    If the ledger is missing, unreadable, or every step already lacks a matching entry, start
    normally at Step 1 — a missing/corrupt ledger never blocks the run, it only loses the resume
-   shortcut.
+   shortcut. Fail-open here means "start from the beginning", never "enter a mid-sequence step
+   unverified".
+
+   **Step-order invariant (no silent skips).** The same per-step last-entry-wins data enforces
+   order, not just the resume shortcut: before executing any step of the sequence, every earlier
+   step must already have a `PASS`/`WARN` entry (`codex-checklist`'s `PENDING` counts as "not yet
+   done" here too). If one is missing, do not execute the later step — go back to the **first**
+   missing step and run the cycle from there, announcing it:
+   ```text
+   ⚠️ 단계 순서 가드: <목표 step> 진입 전 선행 <누락 step> 기록 없음 → <누락 step>부터 실행
+   ```
+   When the user explicitly asks to start at a specific step, still check the earlier entries;
+   if any are missing, report exactly which and get one confirmation before honoring the
+   instruction — user discretion is respected, only the conductor's *silent* skip is forbidden.
+   This guard enforces order only; it never reads, weakens, or overrides any gate's verdict
+   (§10 identity rule).
 5. **State the context manifest.** After the reads above, tell the rest of the run what is
    already loaded so downstream steps don't re-read it:
    ```text
