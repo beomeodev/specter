@@ -32,11 +32,30 @@ esac
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
 
+# Feature binding (2026-07-18 audit finding #4): the gate-pass token is
+# per-Feature (.ms-gate-pass-<NNN>), so the tool input must name that same
+# Feature. A live token for Feature 006 must not admit a different Feature or
+# a freeform direct call. Failure to determine the target Feature from the
+# input is a DENY, not an allow — freeform input is exactly what /ms.specify
+# refuses, so it must not slip through here either.
+#
 # TTL: a token left behind by a session that died between /ms.specify's
 # Step 0.3 (write) and Step 3.2 (delete) must not grant a standing bypass —
 # only a token written in the last 60 minutes counts as a live gate-pass.
-if find "${PROJECT_DIR}/.specify" -maxdepth 1 -name '.ms-gate-pass-*' -mmin -60 2>/dev/null | grep -q .; then
-  exit 0
+# (Within that window the token stays valid for retries of the SAME Feature;
+# /ms.specify deletes it at Step 3.2.)
+if command -v jq >/dev/null 2>&1; then
+  ARGS="$(printf '%s' "$INPUT" | jq -r '.tool_input.args // empty' 2>/dev/null || true)"
+else
+  ARGS="$INPUT"
+fi
+
+FEATURE_NUM="$(printf '%s' "$ARGS" | grep -oE 'Feature[ _]?0*[0-9]{1,3}' | head -1 | grep -oE '[0-9]+' || true)"
+if [ -n "$FEATURE_NUM" ]; then
+  FEATURE_NUM="$(printf '%03d' "$((10#$FEATURE_NUM))")"
+  if find "${PROJECT_DIR}/.specify" -maxdepth 1 -name ".ms-gate-pass-${FEATURE_NUM}" -mmin -60 2>/dev/null | grep -q .; then
+    exit 0
+  fi
 fi
 
 cat <<'JSON'
@@ -44,7 +63,7 @@ cat <<'JSON'
   "hookSpecificOutput": {
     "hookEventName": "PreToolUse",
     "permissionDecision": "deny",
-    "permissionDecisionReason": "Direct /speckit-specify bypasses SPECTER gates. Run /ms.specify."
+    "permissionDecisionReason": "Direct /speckit-specify bypasses SPECTER gates (no live gate-pass token for this Feature, or no Feature identifiable in the input). Run /ms.specify."
   }
 }
 JSON

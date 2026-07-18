@@ -51,7 +51,8 @@ def write_feature_files(
     checklists = repo / "docs" / "prd" / "checklists"
     checklists.mkdir(parents=True, exist_ok=True)
     map_line = f"**Feature Map**: {map_field}\n" if map_field else ""
-    (checklists / f"feature-{feature}.checklist.md").write_text(
+    checklist = checklists / f"feature-{feature}.checklist.md"
+    checklist.write_text(
         f"# Feature {feature} Checklist\n\n"
         f"**Mode**: per-feature\n"
         f"**Feature**: Feature {feature}: sample feature\n"
@@ -59,9 +60,13 @@ def write_feature_files(
         f"**Feature Map SHA256**: {sha}\n"
         f"**Result**: PASS\n"
     )
+    checklist_sha = sha256(checklist)
     for agent in ("codex", "antigravity"):
         (checklists / f"feature-{feature}.{agent}-verify.md").write_text(
-            f"# {agent} verify\n\n**Result**: PASS\n"
+            f"# {agent} verify\n\n"
+            f"**Feature**: Feature {feature}: sample feature\n"
+            f"**Checklist SHA256**: {checklist_sha}\n"
+            f"**Result**: PASS\n"
         )
 
 
@@ -142,6 +147,59 @@ def test_stale_split_slate_sha_still_fails(repo: Path) -> None:
     data = gate_json(run_gate(repo, "006"))
     assert data["overall"] == "FAIL"
     assert any("SHA256 stale" in r for r in data["reasons"])
+
+
+def test_stale_verify_report_checklist_sha_fails(repo: Path) -> None:
+    """2026-07-18 audit #3: a verify report hashed against an older checklist
+    revision must FAIL — editing the checklist after verification invalidates
+    the dual-agent PASS."""
+    write_feature_files(
+        repo, "006", map_field=None, sha=sha256(repo / "docs/prd/feature-map.md")
+    )
+    checklist = repo / "docs/prd/checklists/feature-006.checklist.md"
+    checklist.write_text(checklist.read_text() + "\nedited after agent verify\n")
+    data = gate_json(run_gate(repo, "006"))
+    assert data["overall"] == "FAIL"
+    assert any("Checklist SHA256 stale" in r for r in data["reasons"])
+
+
+def test_verify_report_for_other_feature_fails(repo: Path) -> None:
+    """2026-07-18 audit #3: a verify report naming a different Feature must
+    FAIL even when its checklist hash happens to match."""
+    write_feature_files(
+        repo, "006", map_field=None, sha=sha256(repo / "docs/prd/feature-map.md")
+    )
+    checklists = repo / "docs/prd/checklists"
+    checklist_sha = sha256(checklists / "feature-006.checklist.md")
+    (checklists / "feature-006.codex-verify.md").write_text(
+        "# codex verify\n\n"
+        "**Feature**: Feature 005: sample feature\n"
+        f"**Checklist SHA256**: {checklist_sha}\n"
+        "**Result**: PASS\n"
+    )
+    data = gate_json(run_gate(repo, "006"))
+    assert data["overall"] == "FAIL"
+    assert any("does not match requested Feature" in r for r in data["reasons"])
+
+
+def test_degrade_placeholder_report_passes_as_warn(repo: Path) -> None:
+    """The specter-agent-protocols degrade placeholder (Result WARN +
+    Availability) must satisfy the gate at WARN, not FAIL."""
+    write_feature_files(
+        repo, "006", map_field=None, sha=sha256(repo / "docs/prd/feature-map.md")
+    )
+    checklists = repo / "docs/prd/checklists"
+    checklist_sha = sha256(checklists / "feature-006.checklist.md")
+    (checklists / "feature-006.antigravity-verify.md").write_text(
+        "# Antigravity Verification (degraded)\n\n"
+        "**Mode**: antigravity-per-feature-verify\n"
+        "**Feature**: Feature 006\n"
+        f"**Checklist SHA256**: {checklist_sha}\n"
+        "**Result**: WARN\n"
+        "**Availability**: UNAVAILABLE (binary not on PATH)\n"
+    )
+    data = gate_json(run_gate(repo, "006"))
+    assert data["overall"] == "WARN"
 
 
 def test_missing_split_slate_map_reports_missing(repo: Path) -> None:

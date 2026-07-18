@@ -134,12 +134,17 @@ feature_checklist_feature_match=false
 feature_checklist_result=""
 feature_checklist_result_ok=false
 feature_checklist_sha_ok=false
+feature_checklist_current_sha=""
 codex_verify_exists=false
 codex_verify_result=""
 codex_verify_result_ok=false
+codex_verify_feature_match=false
+codex_verify_sha_ok=false
 antigravity_verify_exists=false
 antigravity_verify_result=""
 antigravity_verify_result_ok=false
+antigravity_verify_feature_match=false
+antigravity_verify_sha_ok=false
 
 if [ -n "$FEATURE" ]; then
   FEATURE_CHECKLIST="docs/prd/checklists/feature-${FEATURE}.checklist.md"
@@ -148,6 +153,7 @@ if [ -n "$FEATURE" ]; then
 
   if [ -f "$FEATURE_CHECKLIST" ]; then
     feature_checklist_exists=true
+    feature_checklist_current_sha=$(sha256sum "$FEATURE_CHECKLIST" | awk '{print $1}')
   else
     add_reason "missing: $FEATURE_CHECKLIST"
     any_missing=true
@@ -200,6 +206,10 @@ if [ -n "$FEATURE" ]; then
     fi
   fi
 
+  # Verify-report binding (2026-07-18 audit finding #3): a verify report must
+  # name the requested Feature AND be hashed against the CURRENT checklist.
+  # Without this, a stale PASS from an earlier checklist/Feature-Map revision
+  # would satisfy the gate after the checklist was rewritten.
   if [ -f "$CODEX_VERIFY" ]; then
     codex_verify_exists=true
     codex_verify_result=$(extract_field "$CODEX_VERIFY" "Result")
@@ -209,6 +219,22 @@ if [ -n "$FEATURE" ]; then
     else
       add_reason "codex-verify Result is '${codex_verify_result:-missing}', expected PASS or WARN"
       any_fail=true
+    fi
+    codex_verify_feature_field=$(extract_field "$CODEX_VERIFY" "Feature")
+    if [[ "$codex_verify_feature_field" == *"Feature ${FEATURE}"* ]] || [[ "$codex_verify_feature_field" == *"Feature ${FEATURE_RAW}"* ]]; then
+      codex_verify_feature_match=true
+    else
+      add_reason "codex-verify Feature field '${codex_verify_feature_field:-missing}' does not match requested Feature ${FEATURE} (stale or reused report — re-run /ms.agent-verify)"
+      any_fail=true
+    fi
+    if $feature_checklist_exists; then
+      codex_recorded_checklist_sha=$(extract_field "$CODEX_VERIFY" "Checklist SHA256")
+      if [ -n "$codex_recorded_checklist_sha" ] && [ "$codex_recorded_checklist_sha" = "$feature_checklist_current_sha" ]; then
+        codex_verify_sha_ok=true
+      else
+        add_reason "codex-verify Checklist SHA256 stale (recorded=${codex_recorded_checklist_sha:-none}, current=${feature_checklist_current_sha}) — re-run /ms.agent-verify"
+        any_fail=true
+      fi
     fi
   else
     add_reason "missing: $CODEX_VERIFY"
@@ -224,6 +250,22 @@ if [ -n "$FEATURE" ]; then
     else
       add_reason "antigravity-verify Result is '${antigravity_verify_result:-missing}', expected PASS or WARN"
       any_fail=true
+    fi
+    antigravity_verify_feature_field=$(extract_field "$ANTIGRAVITY_VERIFY" "Feature")
+    if [[ "$antigravity_verify_feature_field" == *"Feature ${FEATURE}"* ]] || [[ "$antigravity_verify_feature_field" == *"Feature ${FEATURE_RAW}"* ]]; then
+      antigravity_verify_feature_match=true
+    else
+      add_reason "antigravity-verify Feature field '${antigravity_verify_feature_field:-missing}' does not match requested Feature ${FEATURE} (stale or reused report — re-run /ms.agent-verify)"
+      any_fail=true
+    fi
+    if $feature_checklist_exists; then
+      antigravity_recorded_checklist_sha=$(extract_field "$ANTIGRAVITY_VERIFY" "Checklist SHA256")
+      if [ -n "$antigravity_recorded_checklist_sha" ] && [ "$antigravity_recorded_checklist_sha" = "$feature_checklist_current_sha" ]; then
+        antigravity_verify_sha_ok=true
+      else
+        add_reason "antigravity-verify Checklist SHA256 stale (recorded=${antigravity_recorded_checklist_sha:-none}, current=${feature_checklist_current_sha}) — re-run /ms.agent-verify"
+        any_fail=true
+      fi
     fi
   else
     add_reason "missing: $ANTIGRAVITY_VERIFY"
@@ -275,8 +317,12 @@ cat <<JSON
     "feature_checklist_sha_ok": ${feature_checklist_sha_ok},
     "codex_verify_exists": ${codex_verify_exists},
     "codex_verify_result_ok": ${codex_verify_result_ok},
+    "codex_verify_feature_match": ${codex_verify_feature_match},
+    "codex_verify_sha_ok": ${codex_verify_sha_ok},
     "antigravity_verify_exists": ${antigravity_verify_exists},
-    "antigravity_verify_result_ok": ${antigravity_verify_result_ok}
+    "antigravity_verify_result_ok": ${antigravity_verify_result_ok},
+    "antigravity_verify_feature_match": ${antigravity_verify_feature_match},
+    "antigravity_verify_sha_ok": ${antigravity_verify_sha_ok}
   },
   "overall": "${overall}",
   "reasons": ${reasons_json}

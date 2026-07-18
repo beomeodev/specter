@@ -29,8 +29,23 @@ of blocking the command.
 
 - If one agent of a dual-agent station is unavailable after retry: run the
   station with the remaining agent only, force the station result to at most
-  `WARN`, and write `<Agent>: UNAVAILABLE (<reason>)` into the missing agent's
-  report path in place of a normal report.
+  `WARN`, and write a **degrade placeholder report** at the missing agent's
+  report path — a minimal but VALID report, not free text, so deterministic
+  gates (`specter-gate.sh`) can still parse it:
+
+  ```markdown
+  # <Agent> <Station> (degraded)
+
+  **Mode**: <the station's normal Mode value>
+  **Feature**: Feature NNN
+  **Checklist SHA256**: <current checklist sha — when the station's gate checks it>
+  **Result**: WARN
+  **Availability**: UNAVAILABLE (<reason>)
+  ```
+
+  A bare `<Agent>: UNAVAILABLE (<reason>)` line is NOT a valid placeholder —
+  it carries no `**Result**:` field, so the gate reads it as FAIL and an
+  environment issue alone blocks the cycle (2026-07-18 audit finding #2).
 - **Never** present a single-agent run as if both agents ran.
 - **Never** block a cycle on an external-agent environment issue alone —
   degrade, record it, continue.

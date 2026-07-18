@@ -520,17 +520,18 @@ Unless `--skip-codex` (or `--skip-agents`) is supplied, invoke both Codex and An
 Apply the Preflight and Degrade Rule from
 `.claude/skills/specter-agent-protocols/SKILL.md` (§1–2). For this command: a **dual-agent
 station** — if one agent is unavailable after preflight + one retry, run it single-agent, cap
-the station result at `WARN`, and record `<Agent>: UNAVAILABLE (<reason>)` in the missing
-agent's report path (`docs/review/{spec-id}.codex-review.md` /
-`{spec-id}.antigravity-review.md`). Never present a single-agent run as dual; never block
-`/ms.review` on an environment issue alone.
+the station result at `WARN`, and write the §2 degrade placeholder report (`**Result**: WARN`
++ `**Availability**: UNAVAILABLE (<reason>)`) at the missing agent's report path
+(`docs/review/{spec-id}.codex-review.md` / `{spec-id}.antigravity-review.md`). Never present
+a single-agent run as dual; never block `/ms.review` on an environment issue alone.
 
 **Implementer recusal**: before dispatch, check `specs/{spec-id}/implementation-notes.md`
 for an `External implementation:` record (written by `/ms.implement` when the user approved
 delegating implementation). If the recorded agent is one of this station's reviewers, recuse
 it for this Feature: run the station single-agent with the other agent, cap the station
-result at `WARN`, and record `<Agent>: RECUSED (implemented this Feature)` in the recused
-agent's report path. Self-review is never dual review.
+result at `WARN`, and write a degrade placeholder report (`**Result**: WARN` +
+`**Availability**: RECUSED (implemented this Feature)`) at the recused agent's report path.
+Self-review is never dual review.
 
 #### A. Codex & Antigravity Code Review (same prompt body, different agent)
 

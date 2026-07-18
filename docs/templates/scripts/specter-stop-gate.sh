@@ -85,7 +85,7 @@ hook_mode() {
   fi
   git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
 
-  local phase start_sig cur_sig ev_sig count
+  local phase start_sig cur_sig ev_sig ev_phase count
   phase="$(sed -n 1p "$PHASE_FILE" 2>/dev/null)"
   start_sig="$(sed -n 2p "$PHASE_FILE" 2>/dev/null)"
   cur_sig="$(tree_signature)"
@@ -98,9 +98,13 @@ hook_mode() {
     exit 0
   fi
 
-  # Fresh evidence — gates ran against exactly this tree. Any verdict allows.
+  # Fresh evidence — gates ran against exactly this tree, in THIS phase. Any
+  # verdict allows; evidence recorded for a different phase does not (an
+  # implement-time record must not satisfy the review phase — 2026-07-18
+  # audit finding #16).
   ev_sig="$(grep -m1 '^sig=' "$EVIDENCE_FILE" 2>/dev/null | cut -d= -f2-)"
-  if [ -n "$ev_sig" ] && [ "$ev_sig" = "$cur_sig" ]; then
+  ev_phase="$(grep -m1 '^phase=' "$EVIDENCE_FILE" 2>/dev/null | cut -d= -f2-)"
+  if [ -n "$ev_sig" ] && [ "$ev_sig" = "$cur_sig" ] && [ "$ev_phase" = "$phase" ]; then
     reset_blocks
     exit 0
   fi

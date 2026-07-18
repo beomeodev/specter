@@ -394,12 +394,15 @@ if [ ! -f scripts/specter/check_tag_chain.py ] || [ ! -f scripts/specter/check_f
   echo "⚠️ SPECTER backstop scripts not found under scripts/ — they arrive via /ms.sync."
   echo "   Re-run /ms.init (or just this step) after the first sync. Skipping hook wiring."
 else
-  if [ -f .pre-commit-config.yaml ] && grep -q 'check_tag_chain.py' .pre-commit-config.yaml; then
-    echo "✓ SPECTER backstop hooks already wired (idempotent skip)"
+  [ -f .pre-commit-config.yaml ] || printf 'repos:\n' > .pre-commit-config.yaml
+  # Check each backstop individually (2026-07-18 audit finding #19): a partial
+  # install — e.g. an older project that only has the TAG hook — must still
+  # receive the missing hook. One string match must never vouch for both.
+  if grep -q 'check_tag_chain.py' .pre-commit-config.yaml; then
+    echo "✓ tag-chain backstop already wired (idempotent skip)"
   else
-    [ -f .pre-commit-config.yaml ] || printf 'repos:\n' > .pre-commit-config.yaml
     cat >> .pre-commit-config.yaml <<'HOOKS'
-  # --- SPECTER backstops (installed by /ms.init Step 2.8) ---
+  # --- SPECTER backstop: TAG chain (installed by /ms.init Step 2.8) ---
   - repo: local
     hooks:
       - id: tag-chain
@@ -408,6 +411,16 @@ else
         language: system
         pass_filenames: false
         always_run: true
+HOOKS
+    echo "✓ tag-chain backstop appended to .pre-commit-config.yaml"
+  fi
+  if grep -q 'check_feature_map_gate.py' .pre-commit-config.yaml; then
+    echo "✓ feature-map-gate backstop already wired (idempotent skip)"
+  else
+    cat >> .pre-commit-config.yaml <<'HOOKS'
+  # --- SPECTER backstop: Feature Map gate (installed by /ms.init Step 2.8) ---
+  - repo: local
+    hooks:
       - id: feature-map-gate
         name: SPECTER Feature Map / gate coherence backstop
         entry: python scripts/specter/check_feature_map_gate.py
@@ -415,7 +428,7 @@ else
         pass_filenames: false
         always_run: true
 HOOKS
-    echo "✓ SPECTER backstop hooks appended to .pre-commit-config.yaml"
+    echo "✓ feature-map-gate backstop appended to .pre-commit-config.yaml"
   fi
   if command -v pre-commit >/dev/null 2>&1; then
     pre-commit install && echo "✓ pre-commit git hook installed"

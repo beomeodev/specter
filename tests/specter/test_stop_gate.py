@@ -102,6 +102,15 @@ def test_fresh_evidence_allows_even_fail_verdict(repo: Path) -> None:
     assert not (repo / BLOCKS_FILE).exists()
 
 
+def test_evidence_from_other_phase_does_not_satisfy(repo: Path) -> None:
+    """2026-07-18 audit #16: evidence recorded for the implement phase must
+    not satisfy the review phase — the gates must run in THIS phase."""
+    run_gate(repo, "phase", "review")
+    (repo / "app.py").write_text("x = 2\n")
+    run_gate(repo, "record", "implement", "PASS")
+    assert hook_decision(run_gate(repo)) == "block"
+
+
 def test_evidence_goes_stale_on_further_edits(repo: Path) -> None:
     run_gate(repo, "phase", "implement")
     (repo / "app.py").write_text("x = 2\n")
