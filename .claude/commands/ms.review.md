@@ -322,7 +322,8 @@ Only when `plan.md` contains a `## State Ownership & Invariants` section
 (written by `/ms.plan` Step 3.4). Skip entirely otherwise — but if the diff
 introduces a state machine or stores the same stateful fact in more than one
 place while `plan.md` has no such section, raise that gap itself as a
-**MEDIUM** finding (plan omission) and review the state handling ad hoc.
+**HIGH** finding (a required plan-time gate was skipped) and review the state
+handling ad hoc.
 
 Verify the implementation against the plan's declarations:
 
@@ -407,11 +408,12 @@ Run the code-level TRUST checks inline with the repository's own tooling
 
 #### C. Gate Result Handling
 
-Per the Result Model (Step 6): a CRITICAL trigger fires if executable gates fail CRITICAL, or
-unresolved HIGH issues remain — write `.specify/review-state.txt` in that case. TAG-only findings
-are not a CRITICAL trigger unless Section IX or CI explicitly promotes TAG integrity to blocking.
-A WARNING trigger fires if only HIGH/MEDIUM warnings remain — persist the warning summary for
-`/ms.fin` acknowledgement. If all executable gates and deep review checks pass, neither trigger
+Per the Result Model (Step 6): a CRITICAL trigger fires if executable gates fail CRITICAL.
+Unresolved HIGH review findings (non-gate) are a WARNING trigger, never a CRITICAL one — persist
+them to `.specify/review-state.txt` and the warning summary for `/ms.fin` acknowledgement. This
+is the single severity→trigger mapping: CRITICAL finding or CRITICAL gate failure → CRITICAL
+trigger; HIGH/MEDIUM findings → WARNING trigger; no other step redefines it. TAG-only findings
+are not a CRITICAL trigger unless Section IX or CI explicitly promotes TAG integrity to blocking. If all executable gates and deep review checks pass, neither trigger
 fires; remove stale `.specify/review-state.txt` if it exists.
 
 **Record stop-gate evidence** (the Stop hook from `/ms.init` Step 2.7b blocks turn-end without
@@ -751,9 +753,9 @@ review timestamp as a warning, then continues.
 
 - **No implemented files** (`src/`, `tests/` both missing): report it and direct the user to run
   `/ms.implement` first.
-- **Missing context documents** (e.g. `plan.md` absent): proceed with limited context, note which
-  checks are skipped as a result (architecture validation, naming consistency), and recommend
-  `/ms.plan`.
+- **Missing required documents**: `spec.md` or `plan.md` absent is blocking — do not proceed
+  (same rule as Step 1); direct the user to `/ms.specify` / `/ms.plan`. Optional context files
+  (e.g. `implementation-notes.md`) may be absent — note the skipped checks and continue.
 - **Optional tool missing** (e.g. `jscpd`): skip that specific check, note the install command
   (e.g. `npm install -g jscpd`), and continue with the rest of the review.
 

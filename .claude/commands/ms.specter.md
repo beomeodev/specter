@@ -7,8 +7,10 @@ argument-hint: "<Feature NNN> [@docs/prd/<PRD>.md] [@docs/prd/feature-map.md]"
 
 Run a single Feature through the entire SPECTER per-Feature cycle automatically.
 The conductor invokes each `/ms.*` step in order, reads each step's PASS / WARN /
-FAIL verdict, and advances on its own. The only mandatory human stop is
-`/ms.clarify`; the run ends at `/ms.review` (publishing is left to `/ms.fin`).
+FAIL verdict, and advances on its own. The only always-mandatory human stop is
+`/ms.clarify`; `/ms.review` adds a conditional stop (explicit user ack of the
+migration rollback analysis, Step 6.6b) when the Feature's diff includes
+schema/data migrations. The run ends at `/ms.review` (publishing is left to `/ms.fin`).
 
 `/ms.specter` does **not** replace or weaken any gate. Every underlying command
 still runs in full and still writes its own audit artifact. The conductor only
@@ -216,7 +218,7 @@ If `/ms.specify` still refuses (an unexpected gate failure), stop and report it.
 
 ### Step 4: `/ms.clarify` — 🔴 human stop
 
-Run `/ms.clarify`. This is the one mandatory human interaction.
+Run `/ms.clarify`. This is the one always-mandatory human interaction (the conditional migration ack in `/ms.review` Step 6.6b is the only other stop).
 
 - Present every clarification question the command raises, in Korean, with its
   A/B/C options.
@@ -308,6 +310,7 @@ exactly the silent-quality-loss failure mode this report exists to prevent.
 | --- | --- | --- |
 | any step | `Result: FAIL` | stop, report audit + blocking fixes |
 | `/ms.clarify` | always | human Q&A, then resume |
+| `/ms.review` | migration in diff (Step 6.6b) | stop, present rollback analysis, wait for explicit user ack |
 | `/ms.plan` | design-level reality FAIL | stop, surface the design question |
 | `/ms.agent-verify` | agent write failure after retry | stop, report the failing agent |
 | `/ms.implement` | in-scope blocker | stop, surface the blocker |

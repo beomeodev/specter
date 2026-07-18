@@ -260,6 +260,9 @@ Implementation contract:
   `fast-check`) — same approval-by-invocation rule as `/ms.fin` git actions; still report
   the addition in Step 5. Property tests carry the same `@TEST` TAG as the criterion they
   verify.
+- If `plan.md` contains a `## State Ownership & Invariants` section, every declared invariant
+  gets at least one test that can actually go red on violation, written during the RED step.
+  A missing invariant test is a `/ms.review` Step 5-J HIGH finding.
 - Insert TAG anchors yourself in Step 3; do not rely on an automatic skill invocation.
 - Keep the implementation within the selected phase/task/TAG boundary unless a blocker requires user-visible scope adjustment.
 - **Deviations log**: no plan survives contact with the territory intact. When an edge case in

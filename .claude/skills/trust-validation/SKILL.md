@@ -7,7 +7,7 @@ description: Comprehensive code quality validator enforcing TRUST 5 principles -
 
 ## What it does
 
-Validates code compliance with Constitution Section V (TRUST 5 Principles):
+Validates code compliance with Constitution Section IV (TRUST Review Model):
 - **T**est First: Coverage ≥85%
 - **R**eadable: File/function size limits, complexity ≤10
 - **U**nified: Type safety, linter compliance
@@ -34,7 +34,7 @@ Validates code compliance with Constitution Section V (TRUST 5 Principles):
 
 **Validation Command** (Python):
 ```bash
-pytest --cov=src --cov=tests --cov-report=term-missing --cov-fail-under=85
+pytest --cov=src --cov-report=term-missing --cov-fail-under=85
 ```
 
 **Coverage Metrics**:
@@ -45,8 +45,8 @@ pytest --cov=src --cov=tests --cov-report=term-missing --cov-fail-under=85
 **Quality Gates** (findings in this skill's report; blocking is decided by `/ms.review` or CI per
 Constitution Section IV's gate-ownership table, not by this skill):
 - ✅ Coverage ≥85%: PASS
-- ⚠️ 80% ≤ Coverage <85%: WARNING finding
-- ❌ Coverage <80%: FAIL finding
+- ❌ Coverage <85%: FAIL finding (the validation command itself exits non-zero below 85 —
+  single threshold, no intermediate WARNING band)
 
 ### R - Readable (Code Quality)
 

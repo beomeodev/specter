@@ -261,7 +261,9 @@ Feature.)
 Use this result model:
 
 - `PASS`: `/ms.implement` may proceed.
-- `WARN`: `/ms.implement` may proceed after the user acknowledges the warning.
+- `WARN`: `/ms.implement` may proceed once the warning is acknowledged. In a conducted run,
+  the conductor's recorded warning (carried into the final report) is that acknowledgement —
+  `/ms.specter` behavior; in a manual run, the user acknowledges.
 - `FAIL`: `/ms.implement` must not proceed.
 
 **FAIL conditions:**

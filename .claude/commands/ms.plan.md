@@ -185,8 +185,10 @@ After reality verification:
 
 Trigger — this section is REQUIRED in `plan.md` when either holds for the Feature:
 
-- it introduces or modifies a **state machine** (a status/lifecycle field with
-  transitions, e.g. `pending → processing → done/failed`), or
+- it introduces or modifies a **state machine** — an explicit status/lifecycle
+  field with transitions (e.g. `pending → processing → done/failed`), **or an
+  implicit one** encoded in boolean/timestamp/lease/counter fields that gate
+  lifecycle behavior — or
 - the **same stateful fact will live in more than one place** (DB + file,
   DB + external service, cache + source of record).
 
@@ -216,6 +218,9 @@ Rules:
 
 - If the same state must be writable in two places, the plan must say how and
   when they reconcile — "both get updated" is not an answer.
+- Multi-store reconciliation must state its failure story: what partial failure
+  leaves behind, whether the reconciliation step is idempotent/retryable, and
+  which store wins on disagreement.
 - Every invariant listed here is a test obligation: `/ms.implement` writes at
   least one test per invariant that can actually go red, and `/ms.review`
   Step 5-J verifies both the tests and the ownership claims.
@@ -242,7 +247,7 @@ After plan.md is created, append Constitution reference section to document:
 
 ## 📜 Constitution
 
-This plan follows the project [Constitution](.specify/memory/constitution.md).
+This plan follows the project [Constitution](../../.specify/memory/constitution.md).
 
 **Key Sections:**
 -   **Section IV**: TRUST Review Model

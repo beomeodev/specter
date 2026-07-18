@@ -270,7 +270,7 @@ Display next steps:
 -   **SPEC_NOT_FOUND**: Run `/ms.specify` first
 -   **TASKS_GENERATION_FAILED**: Base command failed
 -   **RIPGREP_NOT_FOUND**: Install ripgrep ≥13.0
--   **DUPLICATE_SPEC_TAG**: duplicate @SPEC TAG detected; CODE/TEST multi-file TAGs are allowed
+-   **DUPLICATE_SPEC_TAG**: duplicate @SPEC TAG detected; `@TEST` may span multiple files, but each `@CODE` id lives in exactly one file (pre-commit backstop enforces this)
 
 ## Run-State Ledger (bookkeeping, not a gate)
 

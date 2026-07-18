@@ -132,9 +132,11 @@ turns are the conditional questions the underlying commands raise.
    filtered to `cycle: "pre"`. The step sequence is
    `featuremap → codex-checklist → verify → constitution`. Take, per step name, the **last**
    matching line (later entries supersede earlier ones) and find the first step in the sequence
-   that has no `PASS`/`WARN` entry yet (`codex-checklist`'s own entry is `PENDING` until the
-   consuming step confirms its artifact — treat a `PENDING`-only entry as "not yet done" for
-   resume purposes) — resume the cycle there instead of restarting at Step 1, and announce the
+   that has no `PASS`/`WARN` entry yet (`codex-checklist` records only `PENDING` by design and
+   is never upgraded — treat a `PENDING` entry **with its artifact present**
+   (`docs/prd/codex/checklist.md` non-empty) as satisfied for resume purposes; a `PENDING`
+   entry without the artifact counts as "not yet done") — resume the cycle there instead of
+   restarting at Step 1, and announce the
    resume point:
    ```text
    ↩️ 이전 실행 이어서 진행: <step>부터 재개 (이전 단계는 이미 PASS/WARN 기록됨)
@@ -146,8 +148,9 @@ turns are the conditional questions the underlying commands raise.
 
    **Step-order invariant (no silent skips).** The same per-step last-entry-wins data enforces
    order, not just the resume shortcut: before executing any step of the sequence, every earlier
-   step must already have a `PASS`/`WARN` entry (`codex-checklist`'s `PENDING` counts as "not yet
-   done" here too). If one is missing, do not execute the later step — go back to the **first**
+   step must already have a `PASS`/`WARN` entry (`codex-checklist`'s `PENDING` counts as
+   satisfied when its artifact exists — same artifact rule as the resume shortcut; without the
+   artifact it counts as "not yet done"). If one is missing, do not execute the later step — go back to the **first**
    missing step and run the cycle from there, announcing it:
    ```text
    ⚠️ 단계 순서 가드: <목표 step> 진입 전 선행 <누락 step> 기록 없음 → <누락 step>부터 실행

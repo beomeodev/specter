@@ -44,9 +44,12 @@ Example:
 Before anything else, verify the input is a Feature section originating from the Feature Map.
 
 **Checks:**
-1. The Feature Map exists at its single conventional path — `docs/prd/feature-map.md`
-   (`/ms.featuremap` writes exactly this one file; it never writes `docs/feature-map.md`
-   or per-feature split files):
+1. The Feature Map exists at its canonical master path — `docs/prd/feature-map.md`
+   (`/ms.featuremap` writes this master file; it never writes `docs/feature-map.md`).
+   Exception: a checklist may pin a split-slate map via its `**Feature Map**:` field
+   (the gate script supports this) — when such a pin exists, that pinned file is the
+   authoritative map for this Feature and the conductor passes its resolved path.
+   Otherwise:
    ```bash
    FEATUREMAP_FILE=$(ls docs/prd/feature-map.md 2>/dev/null)
    ```
