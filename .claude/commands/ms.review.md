@@ -316,6 +316,28 @@ one side at a time is not a boundary check.**
 Findings use the standard severity model: a mismatch that breaks a runtime path
 is **HIGH**; a latent drift not yet on an executed path is **MEDIUM**.
 
+#### J. State Ownership & Invariants Verification (Conditional)
+
+Only when `plan.md` contains a `## State Ownership & Invariants` section
+(written by `/ms.plan` Step 3.4). Skip entirely otherwise — but if the diff
+introduces a state machine or stores the same stateful fact in more than one
+place while `plan.md` has no such section, raise that gap itself as a
+**MEDIUM** finding (plan omission) and review the state handling ad hoc.
+
+Verify the implementation against the plan's declarations:
+
+1. **Ownership**: writes to each declared stateful concept go through its
+   declared owner only. `rg` for mutations of the status/state field across
+   the diff — any write outside the owner is **HIGH**.
+2. **Undeclared copies**: the diff introduces no new store of already-owned
+   state that the plan does not declare. An undeclared writable copy is
+   **HIGH**; an undeclared read-only cache is **MEDIUM**.
+3. **Invariant tests**: every declared invariant has at least one test that
+   can go red on violation. A missing invariant test is **HIGH** (Test-First).
+4. **Transaction boundary**: mutations declared atomic actually run in one
+   transaction/critical section. A multi-step mutation that can partially
+   land is **HIGH**.
+
 ---
 
 ### Step 5.5: ultrathink Pattern Analysis

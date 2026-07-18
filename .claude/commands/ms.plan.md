@@ -181,6 +181,45 @@ After reality verification:
   bottom. The human reviews the top of this document; the top must carry the decisions where
   their veto is worth the most. (Execution order lives in `tasks.md`, not here.)
 
+### 3.4. State Ownership & Invariants (Conditional)
+
+Trigger — this section is REQUIRED in `plan.md` when either holds for the Feature:
+
+- it introduces or modifies a **state machine** (a status/lifecycle field with
+  transitions, e.g. `pending → processing → done/failed`), or
+- the **same stateful fact will live in more than one place** (DB + file,
+  DB + external service, cache + source of record).
+
+Skip silently otherwise — do not add an empty or `N/A` section for stateless
+Features.
+
+(Basis: 2026-07-18 five-project transcript audit — the only defect class that
+escaped every existing gate was state rules scattered across stores/modules;
+one project stored batch-job state in DB + meta file + external API and hit
+3 real incidents.)
+
+When triggered, `plan.md` MUST contain:
+
+```markdown
+## State Ownership & Invariants
+
+- **Owned state**: <each stateful concept and its single source of truth —
+  exactly one table/file/module owns each concept>
+- **Derived copies**: <every other place the state appears; each is read-only
+  or names its reconciliation path back to the owner>
+- **Invariants**: <rules that must never break, phrased testably —
+  e.g. "a completed session accepts no new answers">
+- **Transaction boundary**: <what mutates atomically together, and where>
+```
+
+Rules:
+
+- If the same state must be writable in two places, the plan must say how and
+  when they reconcile — "both get updated" is not an answer.
+- Every invariant listed here is a test obligation: `/ms.implement` writes at
+  least one test per invariant that can actually go red, and `/ms.review`
+  Step 5-J verifies both the tests and the ownership claims.
+
 ### 4. Run Base Plan Command
 
 Execute `/speckit-plan` with Constitution-enhanced context and the Reality
