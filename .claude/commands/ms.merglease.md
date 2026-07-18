@@ -28,6 +28,22 @@ creation to the **Google Antigravity CLI**.
 
 ## Execution Steps
 
+### Step 0: WIP-Publish Preflight (host, blocking)
+
+Before delegating, check for merge-blocking WIP markers (2026-07-18 audit #13):
+
+```bash
+cat .specify/review-state.txt 2>/dev/null
+cat .specify/.ms-wip-publish 2>/dev/null
+```
+
+If either file exists, this branch was published with unresolved CRITICAL/HIGH review findings
+or via `/ms.fin --no-ci` (explicit WIP publish). **STOP and show the contents; proceed only
+after the user explicitly confirms merging a WIP branch.** `/ms.merglease`'s
+invocation-approval does NOT cover this case — the WIP state is information the user may not
+have had when invoking. After end-state verification (Step 1.5) completes, delete
+`.specify/.ms-wip-publish`; `review-state.txt` stays owned by `/ms.review`'s own lifecycle.
+
 ### Step 1: 🚀 Delegate Merge & Release Pipeline to Antigravity
 
 Invoke Google Antigravity to perform the entire merge, checkout, tagging, and release creation
@@ -86,10 +102,12 @@ Tasks to execute:
    - Only display the version/notes for confirmation if the caller passed '--confirm'; otherwise
      proceed directly to tagging with the computed (or explicit) version.
 
-6. Create and Push Tag:
+6. Create and Push Tag — SKIP this step AND step 7 entirely if the caller passed
+   '--no-release' (no tag, no GitHub Release; state "release skipped by --no-release"
+   in the final report):
    - Create an annotated git tag for the new version and push it to origin.
 
-7. Create GitHub Release:
+7. Create GitHub Release (skipped under '--no-release', see step 6):
    - Create a GitHub Release using the 'gh release create' command, with the notes from step 5.
 
 8. Progress Ledger update (if 'docs/prd/feature-map.progress.md' exists):
@@ -122,6 +140,7 @@ git tag -l "<tag>" && git ls-remote --tags origin "<tag>"              # ③ tag
 gh release view "<tag>"                            # ④ GitHub Release exists
 git log origin/master --oneline -3                 # ⑤ progress-ledger commit reached master
                                                    #    (only if docs/prd/feature-map.progress.md exists)
+# With --no-release, items ③–④ are expected to be absent — skip them.
 ```
 
 Interpretation:

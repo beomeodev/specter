@@ -240,7 +240,8 @@ direct-call bypass regardless of whether upstream is command-based or skill-base
 
 -   Display notice listing the probed candidates: gate injection skipped (re-run after
     Step 1 installs it)
--   Continue (non-fatal)
+-   Continue (non-fatal), but record this as an **incomplete-install condition** —
+    Step 3's completion report must reflect it, never claim full success (audit #18)
 
 #### 2.5 Install The Deterministic Gate Checker Script
 
@@ -290,6 +291,9 @@ else
   echo "⚠️ .claude/settings.json missing or jq unavailable — hook config not installed; script still copied to .specify/scripts/bash/"
 fi
 ```
+
+If the ⚠️ branch fired, record it as an **incomplete-install condition** — Step 3's
+completion report must reflect it, never claim the PreToolUse entry exists (audit #18).
 
 The hook script fails open (allows) on any internal error — a missing `jq`, malformed input, or
 any other unexpected condition never blocks unrelated Skill calls. It only denies when the
@@ -486,7 +490,17 @@ fi
 
 ### Step 3: Report Success
 
-Display completion message:
+Display completion message. **Report honestly (2026-07-18 audit #18)** — the template below
+is the FULL-success form. If any step recorded an incomplete-install condition (Step 2.4 gate
+injection skipped, Step 2.6 hook config not installed), the direct-call bypass defense is NOT
+installed: change the header to "⚠️ SPECTER initialized with INCOMPLETE protection", replace
+the affected ✅ line with ❌ plus the exact step to re-run, and never claim the PreToolUse
+entry exists. Before printing the ✅ direct-call line, re-verify both halves mechanically:
+
+```bash
+grep -rl 'MS_FEATUREMAP_GATE_START' .claude/commands/speckit* .claude/skills/speckit-* 2>/dev/null
+jq '.hooks.PreToolUse' .claude/settings.json 2>/dev/null
+```
 
 ```
 ✅ SPECTER initialized successfully!

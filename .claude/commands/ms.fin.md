@@ -111,10 +111,18 @@ artifacts deliberately fall through to `RUN`:
 CI_MODE="RUN"; CI_REASON="changed since review, or no clean review baseline"
 if [ "$1" = "--no-ci" ]; then
   CI_MODE="SKIP"; CI_REASON="--no-ci (explicit WIP publish)"
+  # Merge-blocking WIP marker (2026-07-18 audit #13): a --no-ci publish must
+  # not reach /ms.merglease looking as if gates had passed — merglease's
+  # Step 0 preflight surfaces this marker and requires explicit user ack.
+  mkdir -p .specify
+  printf 'reason=--no-ci publish\nts=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .specify/.ms-wip-publish
 elif [ ! -f .specify/review-state.txt ] && [ -f .specify/review-hash.cache ]; then
   # Recompute hashes of currently changed files and compare to the review cache.
+  # Untracked files included (2026-07-18 audit #14): a file added after review
+  # is invisible to `git diff HEAD` and must not slip through the hash match.
   CHANGED=$( { git diff --name-only --diff-filter=ACMRTUXB HEAD 2>/dev/null; \
-               git diff --cached --name-only --diff-filter=ACMRTUXB 2>/dev/null; } \
+               git diff --cached --name-only --diff-filter=ACMRTUXB 2>/dev/null; \
+               git ls-files --others --exclude-standard 2>/dev/null; } \
              | sort -u | sed '/^$/d' )
   printf '%s\n' "$CHANGED" \
     | xargs -P "$(nproc)" -I{} sh -c 'echo "$(sha1sum "{}" 2>/dev/null | cut -d" " -f1)  {}"' \
