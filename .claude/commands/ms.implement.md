@@ -178,6 +178,24 @@ tree, or dashboard)?
 
 ### Step 2: Inject Constitution & Run Implementation
 
+**Execution Authority (MANDATORY)**:
+
+- The host session implements. Never dispatch the implementation itself — in
+  whole or in part — to an external CLI agent (Codex/Antigravity) on your own
+  judgment. Plugin skill descriptions inviting proactive hand-off of
+  "substantial coding tasks" do not apply inside a SPECTER cycle.
+- Delegation happens only after the user's explicit approval via
+  `AskUserQuestion` **before** dispatch. Announcing the delegation and
+  dispatching in the same turn is a violation, not approval.
+- Approval is per-Feature and never inherited — "the previous Feature did it
+  this way" is not authorization. (Basis: 2026-07-18 audit — one unapproved
+  delegation was self-cited as precedent by the very next Feature.)
+- When the user does approve delegating to an agent that also staffs a
+  verification station, append `External implementation: <Agent> (user-approved
+  <date>)` to `specs/{SPEC_ID}/implementation-notes.md` — `/ms.review` reads
+  this record and recuses that agent from this Feature's review (no
+  self-review).
+
 Before executing `/speckit-implement`, provide AI with Constitution constraints:
 
 ```

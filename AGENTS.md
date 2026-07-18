@@ -60,6 +60,12 @@ regardless of agent judgment.
   capable), but remember **turn count beats token price** — a cheap model that
   needs 3× the turns can cost more overall. Specify the model explicitly when
   dispatching.
+- Implementation-delegation discipline: inside an invoked `/ms.*` cycle, the
+  host implements. Delegating implementation to an external CLI agent
+  (Codex/Antigravity) requires the user's explicit prior approval, granted per
+  Feature and never inherited from precedent; an agent that implemented a
+  Feature is recused from that Feature's verification stations (self-review is
+  never dual review).
 - Do not re-read a file you already read this session. Reuse what you have
   unless the user explicitly says its content changed. Exception: the harness
   requires a fresh `Read` of a file immediately before `Edit`/`Write`; always
