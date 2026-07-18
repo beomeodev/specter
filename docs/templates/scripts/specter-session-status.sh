@@ -45,14 +45,15 @@ if [ -f "$LEDGER" ]; then
   fi
 fi
 
-# Next eligible Feature: first row still planned in the Progress Ledger
-# (WI-1's split file), which is already written in DAG order.
+# Next planned Feature: first ⬜ row in ledger order. This does NOT check the
+# DAG or predecessor state (2026-07-18 audit #28) — real eligibility is decided
+# by /ms.checklist; this line is a pointer, not a verdict.
 if [ -f "$PROGRESS" ]; then
   NEXT_ROW=$(grep -m1 '⬜ planned' "$PROGRESS" 2>/dev/null || true)
   NEXT_FEATURE=$(printf '%s' "$NEXT_ROW" | sed -E 's/^\|[[:space:]]*([0-9]+).*/\1/' || true)
   case "$NEXT_FEATURE" in
     ''|*[!0-9]*) ;;
-    *) PARTS+=("next eligible: ${NEXT_FEATURE}") ;;
+    *) PARTS+=("next planned (deps unchecked): ${NEXT_FEATURE}") ;;
   esac
 fi
 

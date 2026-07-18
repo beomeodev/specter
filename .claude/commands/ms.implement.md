@@ -79,6 +79,13 @@ Skip silently if the script does not exist (project initialized before Step 2.7b
 - Display error: "Required files missing. Run `/ms.init`, `/ms.specify`, `/ms.plan`, and `/ms.tasks` first."
 - Exit
 
+**Prior-step check (direct-call path — 2026-07-18 audit #6)**: read
+`.specify/specter-run.jsonl` (if present) for this Feature's `analyze` entry with
+`PASS`/`WARN`. In a conducted run the conductor guarantees order; when `/ms.implement`
+is invoked directly and no such entry exists (or the last one is `FAIL`), do not
+silently proceed — tell the user analyze has not passed for this Feature and get
+explicit confirmation to continue without it.
+
 **Reference key sections**:
 - Constitution Section III (Test-First Implementation)
 - Constitution Section IV (TRUST Review Model)

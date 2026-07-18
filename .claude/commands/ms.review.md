@@ -161,9 +161,11 @@ Save the charter in memory for later reporting and re-run comparisons.
 ### Step 3: Smart File Discovery
 
 Discover the review's target files in priority order: (1) `git diff` against `origin/main` for
-`src/`/`tests/` files (`.ts .js .py .tsx .jsx`); (2) if empty, staged files under the same filter;
-(3) if still empty, a bounded smoke sample — up to 200 source files under `src`/`tests`. Split the
-result into TS/JS and Python subsets for Step 4's language-specific static analysis.
+source files (`.ts .js .py .tsx .jsx`) under the shared scan roots — `src tests backend frontend
+app lib packages`, the same set `check_tag_chain.py` SCAN_ROOTS uses (2026-07-18 audit #25);
+(2) if empty, staged files under the same filter; (3) if still empty, a bounded smoke sample —
+up to 200 source files under those roots. Split the result into TS/JS and Python subsets for
+Step 4's language-specific static analysis.
 
 ---
 

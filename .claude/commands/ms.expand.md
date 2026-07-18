@@ -111,9 +111,11 @@ Then run:
 Decompose the amendment text into an extension of `docs/prd/feature-map.md`:
 
 - **New PRD Commitment Index rows** for every commitment in the amendment, each with exactly one
-  owning Feature (a new Feature — see below, or an existing Feature only if the amendment is
-  pure clarification of that Feature's own already-owned scope; if genuinely unsure, treat it as
-  a new Feature).
+  owning **new** Feature (decided 2026-07-18, audit #29: amendment commitments never attach to
+  existing Features — an existing Feature's spec/checklist is already closed and no gate reopens
+  it). Pure wording cleanups that add no testable behavior are not commitments at all — leave
+  them out of the index. If unsure whether something is a commitment, it is one, and it gets a
+  new Feature.
 - **New `## Feature NNN:` sections**, numbered from the next free Feature number(s), written with
   the identical fixed template used by `/ms.featuremap` (Source PRDs, PRD references, In scope,
   Explicitly out of scope, Key decisions, Done criteria ending in "CI passes green").
@@ -146,8 +148,20 @@ Same contract as `/ms.codex-checklist`, scoped to the amendment only:
 - Output: `docs/prd/codex/checklist-delta-N.md`, same table structure as
   `docs/prd/codex/checklist.md`.
 - Execution is always background, same as `/ms.codex-checklist`.
+- **This artifact is consumed at Step 3** — the delta verify joins on it; it is never
+  fire-and-forget.
 
 ### Step 3: Delta Verify (Foreground)
+
+**Join point (2026-07-18 audit #5)**: before auditing, wait for Step 2's
+`docs/prd/codex/checklist-delta-N.md` to exist, non-empty, with the expected table structure —
+then treat its items as audit inputs: every delta C-item must be either covered by the new
+Features or explicitly dispositioned in the reconciliation section below. If the file has not
+appeared, apply the `specter-agent-protocols` §3 protocol (retry once, salvage from markers);
+if Codex still produced nothing, apply the §2 Degrade Rule — proceed host+Antigravity only,
+cap the result at `WARN`, and record `Codex: UNAVAILABLE (<reason>)` in the reconciliation
+section. (Without this join, the dual-agent guarantee silently degrades to a single agent —
+and the Antigravity-unavailable degrade below would leave zero independent verifiers.)
 
 Host + Antigravity audit, scoped to only:
 

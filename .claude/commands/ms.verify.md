@@ -209,7 +209,7 @@ Use this structure:
 **PRDs**: <source label -> path list>
 **Feature Map**: docs/prd/feature-map.md
 **Feature Map SHA256**: <sha256 of docs/prd/feature-map.md at audit time>
-**Git Ref**: <git rev-parse HEAD at audit time>
+**Git Ref**: <git rev-parse HEAD at audit time — record only after checking `git status --porcelain docs/prd/`: if audited PRDs/Feature Map are uncommitted, this ref does NOT contain what was audited and `/ms.expand`'s delta baseline breaks (audit #30); tell the user to commit first, or write `DIRTY` here if they decline>
 **Result**: PASS | WARN | FAIL
 **Generated**: YYYY-MM-DD
 

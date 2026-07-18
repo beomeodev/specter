@@ -129,7 +129,7 @@ initialize_tag_counters() {
   # Existing SPEC tags are authoritative for requirement IDs. CODE/TEST may
   # appear multiple times for the same ID, so they are only a collision fallback.
   local existing_tags
-  existing_tags=$(rg -o '@(SPEC|TEST|CODE):([A-Z][A-Z0-9-]*-[0-9]{3})' specs src tests backend frontend 2>/dev/null \
+  existing_tags=$(rg -o '@(SPEC|TEST|CODE):([A-Z][A-Z0-9-]*-[0-9]{3})' specs src tests backend frontend app lib packages 2>/dev/null \
     | sed -E 's/.*:([A-Z][A-Z0-9-]*-[0-9]{3})/\1/' \
     | sort -u)
 
@@ -157,7 +157,7 @@ generate_tag_id() {
     tag=$(printf "%s-%03d" "$domain" "$next")
     # Protect against existing repo tags and IDs already assigned earlier in
     # this same tasks generation pass.
-    if ! rg -q "@(SPEC|TEST|CODE):${tag}\b|${tag}\b" specs src tests backend frontend 2>/dev/null \
+    if ! rg -q "@(SPEC|TEST|CODE):${tag}\b|${tag}\b" specs src tests backend frontend app lib packages 2>/dev/null \
        && ! printf '%s\n' "${NEW_TAG_IDS[@]}" | rg -q "^${tag}$"; then
       break
     fi

@@ -83,8 +83,11 @@ Repo-grounded, not generic:
    check each against an existing defense — including standing conveniences (debug bypasses,
    OTP/auth shortcuts, `--admin` habits) which are findings unless consciously re-accepted
    by the user *in this audit*.
-4. Existing per-Feature security scans (trust-validation) already cover code-level OWASP;
-   do not repeat them — this module owns the product-level surface only.
+4. Code-level OWASP checks belong to `/ms.review`'s inline TRUST code gate (Step 6.5B) —
+   but only when it actually ran: verify via the run-state ledger's `review` entries for the
+   audited Features, and include the code-level security surface of any Feature without one.
+   Never assume the standalone `trust-validation` skill ran — no workflow command invokes it
+   (2026-07-18 audit #26). This module otherwise owns the product-level surface only.
 
 ### Module D: Perf/A11y Smoke (web UI only, optional tooling degrades gracefully)
 

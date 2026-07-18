@@ -55,9 +55,11 @@ user before proceeding.
    To keep the PRD from becoming blurry, the Feature Map MUST include a thin **PRD Commitment Index**
    that maps each PRD commitment from each source document to exactly one owning Feature.
 2. **1 Feature = the smallest vertical slice that can be implemented, merged, and verified
-   independently.** Each Feature starts from the state where the previous Feature is merged to main;
-   each is its own branch. Size sense: smaller than a Phase, larger than a trivial one-PR chore
-   (roughly a few days to ~1 week).
+   independently.** A Feature becomes eligible to start once its dependencies are **specified**
+   (their `specs/` directories exist) — the single eligibility standard shared with
+   `/ms.checklist` and `/ms.specify` (decided 2026-07-18, audit #7). Merge-back to main still
+   follows the DAG order; each Feature is its own branch. Size sense: smaller than a Phase,
+   larger than a trivial one-PR chore (roughly a few days to ~1 week).
 3. **Every deferred item has an owner.** Anything pushed out of scope MUST name its owning Feature
    as `→ Feature NNN`. No responsibility gaps allowed.
 
@@ -217,8 +219,8 @@ last Feature.**
 > this table cannot drift. Update `✅ shipped` by hand (or via /ms.merglease) when a Feature releases.
 > Legend: ⬜ planned · 🚧 specified (a `specs/<NNN>-*` dir exists) · ✅ shipped (merged + released)
 >
-> **Next Feature** = the lowest-order Feature whose dependencies are all done and which has no
-> `specs/` directory yet.
+> **Next Feature** = the lowest-order Feature whose dependencies are all specified or shipped
+> and which has no `specs/` directory yet.
 
 | Feature | Depends on | Status |
 |---------|------------|--------|

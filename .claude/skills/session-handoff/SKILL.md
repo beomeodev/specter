@@ -105,7 +105,8 @@ fail-open, never block session end on bookkeeping.
 
 ## Overlap rule (session-status hook)
 
-The SessionStart hook already injects the last ledger step and the next eligible
-Feature into the new session. Never restate those in the block body — if the next
+The SessionStart hook already injects the last ledger step and the next planned
+Feature (dependency-unchecked — `/ms.checklist` decides real eligibility) into
+the new session. Never restate those in the block body — if the next
 session must confirm them, express that as one 전제 검증 command
 (e.g. `tail -n 1 .specify/specter-run.jsonl` → last step/verdict), nothing more.

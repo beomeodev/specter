@@ -122,8 +122,12 @@ bias-prevention protocol.)
 
 ## 6. Verification-Report Structure
 
-Every verification-style report — any report claiming something was checked —
-carries five sections. This structure exists because final verdicts
+Every verification-style report the **host composes** — verify/audit summaries,
+station reconciliation sections — carries five sections. Dual-agent station
+report files stay in their compact machine-parsed form (`**Result**:` +
+Findings + Verdict — what the deterministic gates read); their gaps and
+residual-risk content lives in the host's station summary, not in the agent
+files (2026-07-18 audit #22 reconciliation). This structure exists because final verdicts
 systematically under-report what a station actually observed (2026-07-10 gate
 audit): what was *not* observed must survive in the report, not evaporate into
 a one-word verdict.

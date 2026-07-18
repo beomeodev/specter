@@ -31,6 +31,13 @@ This command extends `/speckit-plan` to include explicit Constitution references
 - Display error: "Required files missing. Run `/ms.init` and `/ms.specify` first."
 - Exit
 
+**Prior-step check (direct-call path — 2026-07-18 audit #6)**: read
+`.specify/specter-run.jsonl` (if present) for this Feature's `clarify` entry with
+`PASS`/`WARN`. In a conducted run the conductor guarantees order; when `/ms.plan` is
+invoked directly and no such entry exists, do not silently proceed — tell the user
+clarify has not run for this Feature and get explicit confirmation to continue
+without it.
+
 ### 2. Provide Constitution Guidelines to `/speckit-plan`
 
 **IMPORTANT**: `/speckit-plan` will read `constitution.md` internally. `/ms.plan`'s role is to provide **reading guidelines**, not to read it ourselves.

@@ -31,7 +31,7 @@ scope, not just merge conflicts.
 
 ## 2. One-time setup: union merge for append-shaped files
 
-Three workflow files are appended to by every cycle and WILL collide at merge time.
+Two workflow files are appended to by every cycle and WILL collide at merge time.
 They are order-insensitive logs, so git's union driver is safe for them. Run once per
 project (idempotent):
 
@@ -40,10 +40,15 @@ grep -q "specter-run.jsonl merge=union" .gitattributes 2>/dev/null || cat >> .gi
 
 # SPECTER parallel-features: append-shaped workflow logs merge by union
 .specify/specter-run.jsonl merge=union
-docs/prd/feature-map.progress.md merge=union
 docs/dev_daily.md merge=union
 EOF
 ```
+
+`docs/prd/feature-map.progress.md` is **NOT** union-mergeable (2026-07-18 audit #8):
+`/ms.specify` rewrites its Status column and `/ms.merglease` edits existing rows, so a
+line-level union can keep duplicate or contradictory rows side by side. It is a derived
+cache, not a log — at the second branch's merge-back, rebase onto the updated main and
+let `/ms.specify` recompute the ledger (or recompute it by hand); never union-merge it.
 
 Do NOT add union merge for anything else — checklists, specs, and source files must
 conflict loudly.
@@ -54,7 +59,8 @@ conflict loudly.
 |---|---|
 | `specs/<NNN>-*`, `docs/prd/checklists/feature-<NNN>.*` | Per-Feature — disjoint by construction, no conflict |
 | Source code | Per-worktree — guaranteed disjoint by Test B |
-| `.specify/specter-run.jsonl`, `feature-map.progress.md`, `dev_daily.md` | Append-shaped — union merge (Section 2) |
+| `.specify/specter-run.jsonl`, `dev_daily.md` | Append-shaped — union merge (Section 2) |
+| `feature-map.progress.md` | Derived cache — NEVER union; recompute after rebase (Section 2) |
 | `docs/prd/feature-map.md` (normative) | **Must not change during a cycle.** Cycles only read it. If a cycle needs to edit it, STOP the parallel run — that's `/ms.expand` or amend territory, and it invalidates the other worktree's gate SHA |
 
 ## 4. Execution

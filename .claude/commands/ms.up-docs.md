@@ -96,7 +96,7 @@ EXIT: Code 0
 **Process**:
 1. Scan for TAG blocks in code files:
    ```bash
-   rg '@CODE:([A-Z]+-[0-9]+)' -n src/ --only-matching
+   rg '@CODE:([A-Z]+-[0-9]+)' -n src backend frontend app lib packages --only-matching 2>/dev/null
    ```
 
 2. For each TAG, extract:
@@ -109,7 +109,6 @@ EXIT: Code 0
    ```markdown
    # {TAG_ID}: {Function Name}
 
-   **Status**: {@CODE STATUS}
    **Location**: {file_path:line_number}
    **SPEC**: {spec_path}
    **TEST**: {test_path}
@@ -182,8 +181,11 @@ EXIT: Code 0
 
 **Process**:
 1. Scan for completed features:
-   - Check `specs/*/spec.md` with `status: completed`
-   - Count total vs completed specs
+   - Check `docs/prd/feature-map.progress.md` for `✅ shipped` rows — the actual
+     completion source (no step ever writes `status: completed` into spec.md;
+     2026-07-18 audit #32). Fall back to counting `specs/` directories when the
+     ledger is absent.
+   - Count total vs shipped Features
 
 2. Update README sections:
    - **Project Status**: Features completed, test coverage, TAG integrity
