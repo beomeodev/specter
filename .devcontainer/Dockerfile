@@ -126,6 +126,10 @@ RUN echo '#!/bin/bash\nnpx -y @anthropic-ai/claude-code "$@"' > /usr/local/bin/c
 RUN echo '#!/bin/bash\nnpx -y @openai/codex "$@"' > /usr/local/bin/codex \
     && chmod +x /usr/local/bin/codex
 
+# Kimi Code CLI: Moonshot AI의 코딩 에이전트
+RUN echo '#!/bin/bash\nnpx -y @moonshot-ai/kimi-code "$@"' > /usr/local/bin/kimi \
+    && chmod +x /usr/local/bin/kimi
+
 # Antigravity CLI(agy)는 npm 패키지가 아니라 Go 바이너리라 dev 사용자 홈
 # (~/.local/bin)에 설치해야 한다. 따라서 USER 전환 이후(파일 하단)에 설치한다.
 

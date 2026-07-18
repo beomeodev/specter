@@ -24,6 +24,7 @@
 #   pm map cx
 #   pm map cr
 #   pm map gm
+#   pm map km
 # ============================================================================
 
 set -euo pipefail
@@ -342,6 +343,7 @@ DONE
   pm $TICKER cx   # Codex
   pm $TICKER cr   # Codex resume
   pm $TICKER gm   # Antigravity (agy)
+  pm $TICKER km   # Kimi Code
 DONE
   else
     echo ""
@@ -391,6 +393,7 @@ GitHub repo:
   pm $TICKER cx   # Codex
   pm $TICKER cr   # Codex resume
   pm $TICKER gm   # Antigravity (agy)
+  pm $TICKER km   # Kimi Code
 DONE
 NP_SCRIPT
 
@@ -525,4 +528,5 @@ cat <<FINAL
   pm map cx
   pm map cr
   pm map gm
+  pm map km
 FINAL

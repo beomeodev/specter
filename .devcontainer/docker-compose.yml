@@ -21,6 +21,10 @@ services:
       - ../:/workspace/${PROJECT_NAME}
       - ${HOME}/.codex:/home/dev/.codex
       - ${HOME}/.claude:/home/dev/.claude
+      # Kimi Code CLI(kimi) 자격증명 영속화 (rebuild 후에도 로그인 유지).
+      # kimi는 config/세션/로그를 ~/.kimi-code/ 에 저장한다 (KIMI_CODE_HOME로 변경 가능).
+      # 호스트에 디렉터리 필요: mkdir -p ~/.kimi-code
+      - ${HOME}/.kimi-code:/home/dev/.kimi-code
       # Antigravity CLI(agy) 자격증명 영속화 (rebuild 후에도 로그인 유지).
       # agy는 앱 디렉토리(자격증명 포함)를 ~/.gemini/antigravity-cli/에 만든다
       # (Gemini CLI 계승 경로) — ~/.config/agy가 아님. 호스트 1회 로그인이

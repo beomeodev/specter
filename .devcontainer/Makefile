@@ -135,7 +135,7 @@ go:
 	@$(MAKE) -s $(proj) && $(MAKE) $(agent)
 
 # ======= 프로젝트별 단축어 (자동 생성 - 수정 금지) =======
-.PHONY: $(PROJ_TICKER)cc $(PROJ_TICKER)cx $(PROJ_TICKER)cr $(PROJ_TICKER)gm
+.PHONY: $(PROJ_TICKER)cc $(PROJ_TICKER)cx $(PROJ_TICKER)cr $(PROJ_TICKER)gm $(PROJ_TICKER)km
 $(PROJ_TICKER)cc:
 	@$(MAKE) -s sync repo=$(PROJ_REPO) && $(MAKE) cc
 
@@ -147,6 +147,9 @@ $(PROJ_TICKER)cr:
 
 $(PROJ_TICKER)gm:
 	@$(MAKE) -s sync repo=$(PROJ_REPO) && $(MAKE) gm
+
+$(PROJ_TICKER)km:
+	@$(MAKE) -s sync repo=$(PROJ_REPO) && $(MAKE) km
 
 
 # ======= 새 프로젝트 시작 가이드 =======
@@ -228,7 +231,7 @@ cacheup:
 nbup:
 	$(COMPOSE) --profile notebook up -d jupyter
 
-.PHONY: dev-up du dev-shell ds codex cx codex-resume cr, claude cc antigravity agy ag gm
+.PHONY: dev-up du dev-shell ds codex cx codex-resume cr, claude cc antigravity agy ag gm kimi km
 
 # Build/refresh the app container image and ensure it is running
 dev-up du: start
@@ -254,6 +257,11 @@ claude cc: dev-up
 # 인증: .env의 GEMINI_API_KEY/ANTIGRAVITY_API_KEY 또는 최초 1회 대화형 OTP 로그인
 antigravity agy ag gm: dev-up
 	$(COMPOSE) exec app agy
+
+# Launch the Kimi Code CLI (kimi) inside the running container
+# 인증: 최초 1회 `/login` (OAuth) 또는 ~/.kimi-code/config.toml에 API 키 설정
+kimi km: dev-up
+	$(COMPOSE) exec app kimi
 
 
 # ======= CI 파이프라인 (로컬 + GitHub Actions 공통) =======
