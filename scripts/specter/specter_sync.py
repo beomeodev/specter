@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import os
 import posixpath
 import subprocess
 import sys
@@ -69,6 +70,7 @@ EXCLUDED = "EXCLUDED"
 DELETED_LOCAL = "DELETED-LOCAL"
 DELETED_UPSTREAM = "DELETED-UPSTREAM"
 DELETE_KEPT_LOCAL = "DELETE-KEPT-LOCAL"
+UNSAFE = "UNSAFE-TARGET-PATH"
 BASELINE_ADVANCING = {NEW, SAME, UPDATE, MERGED}
 
 
@@ -244,6 +246,30 @@ def load_state(clone_dir: Path) -> dict[str, str]:
     return {str(k): str(v) for k, v in files.items()}
 
 
+def unsafe_target_reason(clone_dir: Path, relpath: str) -> str | None:
+    """Return why ``relpath`` is unsafe to touch inside the clone, else None.
+
+    A target repo can commit a symlink at a managed path (or at one of its
+    parent directories) pointing outside the clone; reading or writing through
+    it would escape the sync sandbox with this process's file permissions.
+    Managed paths are plain files by contract, so any symlink component is
+    refused (2026-07-18 audit finding #20).
+    """
+    root = Path(os.path.realpath(clone_dir))
+    for candidate in (clone_dir / relpath, clone_dir / (relpath + CONFLICT_SUFFIX)):
+        p = candidate
+        while p != clone_dir:
+            if p == p.parent:
+                return f"path escapes clone root: {candidate}"
+            if p.is_symlink():
+                return f"symlinked path component: {p}"
+            p = p.parent
+        resolved = Path(os.path.realpath(candidate))
+        if resolved != root and root not in resolved.parents:
+            return f"path escapes clone root: {candidate}"
+    return None
+
+
 def apply_file(
     clone_dir: Path, relpath: str, status: str, content: bytes | None, src: bytes
 ) -> list[str]:
@@ -312,6 +338,9 @@ def sync_target(
         if matches_any(relpath, excludes):
             report["results"].append((relpath, EXCLUDED))
             continue
+        if unsafe_target_reason(clone_dir, relpath):
+            report["results"].append((relpath, UNSAFE))
+            continue
         src = (source_root / relpath).read_bytes()
         base_commit = baselines.get(relpath)
         base = git_show(source_root, base_commit, relpath) if base_commit else None
@@ -328,6 +357,9 @@ def sync_target(
     for relpath in sorted(set(baselines) - set(files)):
         if matches_any(relpath, excludes):
             report["results"].append((relpath, EXCLUDED))
+            continue
+        if unsafe_target_reason(clone_dir, relpath):
+            report["results"].append((relpath, UNSAFE))
             continue
         dst_path = clone_dir / relpath
         dst = dst_path.read_bytes() if dst_path.exists() else None

@@ -296,6 +296,36 @@ def test_dry_run_writes_nothing(tmp_path: Path) -> None:
     assert bare_file(bare, sync.STATE_FILENAME) is None
 
 
+def test_symlinked_target_path_is_refused(tmp_path: Path) -> None:
+    """2026-07-18 audit #20: a target repo committing a symlink at a managed
+    path must not let sync read or write through it outside the clone."""
+    src = make_source(tmp_path)
+    outside = tmp_path / "outside.txt"
+    outside.write_text("untouched\n")
+
+    bare = tmp_path / "proj.git"
+    bare.mkdir()
+    git(bare, "init", "--bare", "-b", "main")
+    seed = tmp_path / "proj-seed"
+    git(tmp_path, "clone", str(bare), str(seed))
+    git(seed, "checkout", "-b", "main")
+    (seed / "README.md").write_text("# proj\n")
+    link = seed / CMD_RELPATH
+    link.parent.mkdir(parents=True)
+    link.symlink_to(outside)
+    commit_all(seed, "target init with symlinked managed path")
+    git(seed, "push", "origin", "main")
+
+    registry = write_registry(tmp_path, src, bare)
+    run_sync(tmp_path, src, registry)
+
+    assert outside.read_text() == "untouched\n"
+    synced = bare_file(bare, AGENTS_RELPATH)
+    assert synced is not None  # safe managed files still sync
+    linked = bare_file(bare, CMD_RELPATH)
+    assert linked != (src / CMD_RELPATH).read_text()  # symlink path untouched
+
+
 def test_register_creates_and_appends_registry(tmp_path: Path) -> None:
     src = make_source(tmp_path)
     registry = tmp_path / "registry.json"

@@ -148,6 +148,12 @@ Ask for user approval before:
 - starting local servers
 - committing, amending commits, pushing, merging, or creating releases
 
+The same approval-by-invocation rule covers command-defined runtime checks:
+running `/ms.review` or `/ms.audit` **is** the user's approval for the server/
+entrypoint boots and tool installs those commands' steps explicitly define
+(Done Criteria Execution, audit cold-start). Ad-hoc server starts or installs
+outside an invoked command still ask first.
+
 Approval for git publishing is satisfied by invocation, not per-action asks:
 `git commit`/`git push`/`gh pr` are deliberately in the project permission
 allowlist (`.claude/settings.json`), and running `/ms.fin`, `/ms.fix`, or

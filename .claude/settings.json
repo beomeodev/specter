@@ -10,17 +10,19 @@
       "Bash(git diff:*)",
       "Bash(git log:*)",
       "Bash(git add:*)",
-      "Bash(git restore:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(gh pr:*)",
       "Bash(uv run:*)",
-      "Bash(uv sync:*)",
       "Bash(pytest:*)",
       "Bash(ruff:*)",
       "Bash(mypy:*)",
       "Bash(pre-commit run:*)",
       "Bash(make -C .devcontainer -f Makefile ci:*)"
+    ],
+    "ask": [
+      "Bash(git restore:*)",
+      "Bash(uv sync:*)"
     ],
     "deny": [
       "Bash(rm -rf:*)",

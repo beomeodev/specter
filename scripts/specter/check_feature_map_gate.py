@@ -21,6 +21,7 @@ hook constrains the agent, not the human.
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import subprocess
 import sys
@@ -59,7 +60,19 @@ def main() -> int:
 
     staged_map = git_show("", FEATURE_MAP)
     if staged_map is None:
-        return 0  # feature-map.md was deleted in this commit; nothing to check
+        # Deletion is the most destructive Feature Map edit and must not pass
+        # the backstop silently (2026-07-18 audit finding #17). Deliberate
+        # teardown keeps two admin overrides, both human-initiated.
+        if os.environ.get("SPECTER_ALLOW_MAP_DELETE") == "1":
+            return 0
+        print(
+            "Feature Map gate coherence check failed:\n"
+            f"  {FEATURE_MAP} is being DELETED in this commit.\n\n"
+            "Deleting the normative Feature Map dismantles the SPECTER gates.\n"
+            "If this teardown is deliberate, re-run with "
+            "SPECTER_ALLOW_MAP_DELETE=1 git commit ..., or use git commit --no-verify."
+        )
+        return 1
 
     current_sha = hashlib.sha256(staged_map.encode("utf-8")).hexdigest()
 

@@ -105,9 +105,22 @@ def test_map_edit_with_fresh_committed_checklist_passes(repo: Path) -> None:
     assert gate.main() == 0
 
 
-def test_map_deletion_passes(repo: Path) -> None:
+def test_map_deletion_fails_by_default(repo: Path) -> None:
+    """2026-07-18 audit #17: deleting the normative Feature Map is the most
+    destructive edit and must not pass the backstop silently."""
     write(repo, FEATURE_MAP, "# Map v1\n")
     git(repo, "add", FEATURE_MAP)
     git(repo, "commit", "-qm", "add map")
     git(repo, "rm", "-q", FEATURE_MAP)
+    assert gate.main() == 1
+
+
+def test_map_deletion_with_explicit_override_passes(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write(repo, FEATURE_MAP, "# Map v1\n")
+    git(repo, "add", FEATURE_MAP)
+    git(repo, "commit", "-qm", "add map")
+    git(repo, "rm", "-q", FEATURE_MAP)
+    monkeypatch.setenv("SPECTER_ALLOW_MAP_DELETE", "1")
     assert gate.main() == 0
