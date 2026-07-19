@@ -353,7 +353,7 @@ DONE
 fi
 
 git init
-git branch -M main
+git branch -M master
 git add .
 
 if git diff --cached --quiet; then
@@ -371,7 +371,7 @@ gh repo create "${GITHUB_USER}/${PROJECT_NAME}" \
 git remote set-url origin "$REPO_SSH"
 
 echo "🚀 GitHub push..."
-git push -u origin main
+git push -u origin master
 
 register_sync_target
 
