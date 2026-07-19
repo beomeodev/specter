@@ -7,7 +7,7 @@ description: PRD-authoring skill that co-writes a Product Requirements Document 
 
 ## What it does
 
-SPECTER has thorough PRD *auditing* (`/ms.featuremap`, `/ms.checklist`, `/ms.verify`) but no
+SPECTER has thorough PRD *auditing* (`/ms.featuremap`, `/ms.checklist`, `/ms.pre-verify`) but no
 PRD-*authoring* support — until now. This skill co-writes a PRD with the user through a guided
 interview, in a form the rest of the pipeline can consume without rework:
 

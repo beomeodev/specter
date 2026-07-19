@@ -223,8 +223,8 @@ intended hybrid structure; do not migrate it to a different shape on a whim.
     clarify). It never weakens or bypasses the gates it invokes: it only reads verdicts,
     advances on PASS/WARN, stops on FAIL, and is bound by the same Feature-Map /
     direct-call-bypass gates as the steps it drives.
-  - `/ms.pre-specter` — one-time PRD-setup conductor (featuremap → codex-checklist →
-    verify → constitution), same conductor discipline; hands the first Feature to
+  - `/ms.pre-specter` — one-time PRD-setup conductor (featuremap → featuremap-checklist →
+    pre-verify → constitution), same conductor discipline; hands the first Feature to
     `/ms.specter`.
   - `/ms.prd` — pre-workflow PRD co-authoring; sits before `/ms.pre-specter`, never invoked
     by any conductor, runs no gates; output feeds `/ms.pre-specter` or `/ms.expand`.

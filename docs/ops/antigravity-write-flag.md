@@ -1,6 +1,6 @@
 # Antigravity write-flag re-apply procedure
 
-`/ms.verify`, `/ms.agent-verify`, `/ms.codex-checklist`, `/ms.analyze`, and `/ms.review` all
+`/ms.pre-verify`, `/ms.verify`, `/ms.featuremap-checklist`, `/ms.analyze`, and `/ms.review` all
 preflight-check that Antigravity (`agy`) has its write flag set before invoking it. That check can
 start failing after an unrelated plugin update, because the flag lives outside git.
 

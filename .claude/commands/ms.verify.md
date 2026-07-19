@@ -1,183 +1,164 @@
 ---
-description: "Verify Feature Map against PRDs and the independent Codex checklist"
-argument-hint: ""
+description: "Run a foreground Codex & Antigravity verification of the current per-Feature checklist"
+argument-hint: "[Feature NNN] [--model MODEL] [--effort low|medium|high|xhigh|max]"
 ---
 
-# /ms.verify - Global Feature Map Verification
+# /ms.verify - Per-Feature Dual-Agent Verification
 
-Verify `docs/prd/feature-map.md` against the source PRDs and the independent
-Codex PRD checklist created by `/ms.codex-checklist`.
+Run Codex and Antigravity in the foreground (in parallel) to review the current per-Feature checklist. This command is advisory, but `/ms.specify` requires both result files unless the user explicitly skips verification.
 
-This command replaces the old `/ms.checklist --global` flow. It owns the global
-gate artifact consumed by `/ms.constitution`, `/ms.checklist`, and
-`/ms.specify`.
+Execution is foreground: Codex and Antigravity run in parallel and this command returns only after both have finished and written their reports. Running in the foreground makes write failures or crashes observable immediately instead of leaving a silently missing output file.
 
-**Three-layer station** (`specter-agent-protocols` §7): Layer 1 runs the
-deterministic structural checks, Layer 2 runs Codex and Antigravity as
-independent semantic auditors who each write their own verdict, and Layer 3
-computes the station Result mechanically. The host — which drove the Feature
-Map's authoring — assembles the canonical gate file from those outputs but
-never grades anything: no reconciliation findings of its own, no verdict of its
-own, no re-grading of an agent's finding (§5 no-unilateral-host-downgrade).
+Default Codex/Antigravity runtimes:
+```text
+Codex model: gpt-5.6-luna
+Antigravity model: gemini-3.5-flash
+effort: xhigh
+```
 
 ## Usage
 
 ```bash
 /ms.verify
+/ms.verify Feature 003
+/ms.verify --model gpt-5.6-luna --effort xhigh Feature 003
 ```
 
-## Required Inputs
+## Output
 
-These files must exist before the station can run:
-
-- `docs/prd/feature-map.md`
-- `docs/prd/feature-map.progress.md`
-- `docs/prd/codex/checklist.md` (the independent PRD-only baseline)
-- every source PRD recorded in `docs/prd/feature-map.md`
-
-**Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
-
-If `docs/prd/codex/checklist.md` is missing, stop:
-
+Codex must write:
 ```text
-⏳ Codex PRD checklist is not available yet.
-
-Run or wait for:
-  /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
-
-Then retry:
-  /ms.verify
+docs/prd/checklists/feature-NNN.codex-verify.md
 ```
 
-## Verification Contract
-
-The station compares the following sources:
-
-1. The original PRD set.
-2. The independent Codex PRD checklist.
-3. `docs/prd/feature-map.md`.
-
-and produces three artifacts:
-
+Antigravity must write:
 ```text
-docs/prd/feature-map.codex-verify.md            (Codex global verdict, Layer 2)
-docs/prd/feature-map.antigravity-checklist.md   (Antigravity global verdict, Layer 2)
-docs/prd/feature-map.checklist.md               (canonical global gate, assembled)
+docs/prd/checklists/feature-NNN.antigravity-verify.md
 ```
-
-The canonical gate's `**Result**` is copied verbatim from the Layer-3
-aggregation receipt — it is never authored by the host.
 
 ## Execution Steps
 
-### Step 0.1: External Agent Preflight (session-level, once)
+### Step 0: Resolve Target Feature
 
-Apply the Preflight and Degrade Rule from
-`.claude/skills/specter-agent-protocols/SKILL.md` (§1–2). For this command: a
-**dual-agent station**.
+If the user names a Feature (`Feature 003`, `003`, or a matching Feature title), use that Feature.
 
-- If **one** agent is unavailable after preflight + one retry: run the station
-  single-agent and write the §2 degrade placeholder at the missing agent's
-  report path (`docs/prd/feature-map.codex-verify.md` /
-  `docs/prd/feature-map.antigravity-checklist.md`) — `**Result**: WARN` +
-  `**Availability**: UNAVAILABLE (<reason>)`, plus the `**Mode**:` and
-  `**Feature Map SHA256**:` fields so the aggregation can parse it. The
-  aggregation then caps the station at `WARN` mechanically.
-- If **both** agents are unavailable: **stop and report**. A global gate with
-  zero independent verifiers would be a host-only verdict — exactly the
-  self-judgment this station exists to remove (§7 typed degrade). Never run
-  the audit host-only.
+Otherwise, infer the latest per-Feature checklist from:
+```text
+docs/prd/checklists/feature-NNN.checklist.md
+```
 
-### Step 0.2: Layer 1 — Deterministic Structural Gate
+If no per-Feature checklist exists, stop and tell the user to run `/ms.checklist` first.
 
-Run the structural checker before spending any agent:
+Then verify the checklist is actually usable — existence alone is not the gate. Run the
+deterministic checker for the resolved Feature:
 
 ```bash
 # self-heal: the runtime copy is project-local (never synced); refresh it from the synced template
 install -D -m 0755 docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
-.specify/scripts/bash/specter-gate.sh structural
+.specify/scripts/bash/specter-gate.sh NNN
 ```
 
-Read the JSON `verdict` and `reasons[]`:
+If `feature_checklist_result_ok` is false (Result is FAIL/missing) or `feature_checklist_sha_ok`
+is false (the Feature Map changed since the checklist was written), stop and tell the user to
+fix the Feature section and re-run `/ms.checklist` — dual-agent verification of a failed or
+stale checklist wastes both agents. Ignore this script's `codex_verify`/`antigravity_verify`
+fields here; producing those files is this command's own job.
 
-- `PASS`/`WARN` → continue (a structural WARN is carried into the final
-  report, never dropped).
-- `FAIL` → **stop before dispatching agents**. Report every `reasons[]` entry
-  as a Blocking Fix. Fix `docs/prd/feature-map.md` (in a conducted run,
-  `/ms.featuremap`'s fix-round rules apply), then rerun `/ms.verify` from this
-  step. Structural defects are mechanical; burning two agent runs on a map
-  that fails shape checks wastes both agents.
-
-Layer 1 judges shape only. A structural `PASS` says nothing about whether the
-PRD was semantically preserved — that is exactly what Layer 2 exists to audit.
-
-### Step 0.3: Compute the Feature Map hash for report binding
+Then run the Layer-1 structural check as a second fail-fast (three-layer
+contract, `specter-agent-protocols` §7):
 
 ```bash
-FEATURE_MAP_SHA=$(sha256sum docs/prd/feature-map.md | awk '{print $1}')
+.specify/scripts/bash/specter-gate.sh structural NNN
 ```
 
-Substitute `{FEATURE_MAP_SHA}` into both agent prompts below. The aggregation
-fails any report whose recorded hash does not match the current map — a
-verdict for a previous map revision is stale, not reusable.
+If its `verdict` is `FAIL` (placeholder in done criteria, cited C-ID missing
+from the Codex checklist, malformed Feature section), stop and route back to
+`/ms.checklist` — structural defects are mechanical and do not need two agents
+to find.
 
-### Step 1: Layer 2 — Dual Independent Global Audits (Foreground, Parallel)
+**Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
-Invoke both agents in the foreground, in parallel, and wait for both to finish.
-Each performs the **full** semantic audit independently and writes its own
-verdict file. Foreground execution makes write failures observable immediately.
+### Step 0.5: External Agent Preflight (session-level, once)
 
+Apply the Preflight and Degrade Rule from
+`.claude/skills/specter-agent-protocols/SKILL.md` (§1–2). For this command: a
+**dual-agent station** — if one agent is unavailable after preflight + one retry,
+run the station single-agent and write the §2 degrade placeholder (a VALID
+report — `**Mode**:` with this station's normal value, `**Feature**:`,
+`**Checklist SHA256**:`, `**Result**: WARN`, `**Availability**: UNAVAILABLE
+(<reason>)`) at the missing agent's report path
+(`feature-NNN.codex-verify.md` / `feature-NNN.antigravity-verify.md`); the
+Layer-3 aggregation then caps the station at `WARN` mechanically. A bare
+`<Agent>: UNAVAILABLE` line is not a valid placeholder. Never present a
+single-agent run as dual; never block the cycle on an environment issue alone.
+
+### Step 1: Run Codex & Antigravity In Foreground (Parallel)
+
+Invoke the Codex and Antigravity plugin rescue commands in the foreground, in parallel, and wait for both to finish before reporting:
+
+#### A. Run Codex
 ```text
 /codex:rescue --fresh --model gpt-5.6-luna --effort xhigh <Codex Prompt>
+```
+
+#### B. Run Antigravity
+```text
 /antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <Antigravity Prompt>
 ```
 
-**Report-Write Protocol**: apply `specter-agent-protocols` §3 to each report —
-deterministic file check (exists, non-empty, contains `**Result**:`), retry
-once, salvage from the `===REPORT BEGIN===`/`===REPORT END===` markers. If no
-markers exist either, that is an **agent-authored failure**: leave the report
-missing/invalid for the aggregation to grade `FAIL` (§3 step 3) — the Degrade
-Rule applies only to Step 0.1 preflight failures, never to an agent that ran.
+If the user provided `--model` or `--effort`, pass those values through instead of the defaults.
 
-Prompt template — substitute `{AGENT}` (`Codex` / `Antigravity using Google
-Antigravity`), `{MODE}` (`codex-global-verify` / `antigravity-global-verify`),
-and `{REPORT_PATH}` (`docs/prd/feature-map.codex-verify.md` /
-`docs/prd/feature-map.antigravity-checklist.md`):
+**Report-Write Protocol**: apply `specter-agent-protocols` §3 — deterministic file check
+(exists, non-empty, contains `**Result**:`), retry once, salvage from the
+`===REPORT BEGIN===`/`===REPORT END===` markers. If no markers exist either, that is an
+**agent-authored failure**: leave the report missing/invalid for the aggregation to grade
+`FAIL` (§3 step 3) — the Step 0.5 Degrade Rule applies only to preflight failures, never
+to an agent that ran.
+
+### Step 2: Agent Prompts
+
+Before dispatching, compute the current checklist hash and substitute it into
+both prompts (the gate verifies it — a report hashed against an older
+checklist revision is stale and FAILs):
+
+```bash
+CHECKLIST_SHA=$(sha256sum docs/prd/checklists/feature-NNN.checklist.md | awk '{print $1}')
+```
+
+#### A. Codex Prompt
+Forward this task to Codex:
 
 ```text
-You are performing an independent global Feature Map audit for SPECTER as {AGENT}.
+You are verifying one SPECTER per-Feature checklist. Keep output short.
 
 Read:
 - docs/prd/feature-map.md
-- docs/prd/codex/checklist.md (independent PRD-only checklist)
-- every source PRD recorded in docs/prd/feature-map.md
+- docs/prd/feature-map.checklist.md
+- docs/prd/checklists/feature-NNN.checklist.md
+- the Source PRDs and PRD references named by Feature NNN
+- docs/prd/featuremap-checklist.md if it exists (legacy path: docs/prd/codex/checklist.md)
 
-Do not edit any files except writing {REPORT_PATH}.
-Structural shape (required headings, DAG cycles, ownership row format) is
-already machine-checked — focus on semantics:
+Do not edit the Feature Map, PRDs, specs, plans, tasks, or canonical checklist.
+Only write docs/prd/checklists/feature-NNN.codex-verify.md.
 
-1. Does the PRD Commitment Index cover every functional and non-functional
-   requirement, acceptance criterion, integration/data/migration promise, and
-   explicit exclusion in the source PRD set? Name any PRD commitment with no
-   index row.
-2. Is every commitment owned by the RIGHT Feature (not just exactly one)?
-   Flag ownership that contradicts the PRD's own grouping.
-3. Does every independent-checklist item (C-IDs) survive into the Feature Map,
-   or carry a justified false-positive explanation?
-4. Does the Feature Map invent product behavior absent from the PRD set?
-5. Are stubs forwarded correctly (each stub names the Feature that activates
-   real behavior), and does each Phase's last Feature carry that Phase's E2E
-   scenario?
+Check only for blocking or high-signal issues:
+- owned PRD commitments missing from Feature scope, out-of-scope, decisions, or done criteria
+- acceptance criteria or NFRs missing from done criteria or tests
+- overreach into another Feature's owned commitments
+- out-of-scope items without destination Features
+- done criteria that are not observable or do not end with "CI passes green"
+- invented behavior not supported by PRD evidence
 
-Grade down on doubt; cite PRD/section evidence for every finding and every
-PASS claim. Write this output to {REPORT_PATH}:
+Write this concise output:
 
-# Feature Map {AGENT} Verification
+# Feature NNN Codex Verification
 
-**Mode**: {MODE}
-**Feature Map SHA256**: {FEATURE_MAP_SHA}
+**Mode**: codex-per-feature-verify
+**Feature**: Feature NNN
+**Checklist**: docs/prd/checklists/feature-NNN.checklist.md
+**Checklist SHA256**: {CHECKLIST_SHA}
 **Result**: PASS | WARN | FAIL
-**Generated By**: {AGENT}
+**Generated By**: Codex
 
 ## Findings
 
@@ -186,143 +167,102 @@ PASS claim. Write this output to {REPORT_PATH}:
 
 ## Verdict
 
-One paragraph summarizing the overall quality and blocking issues.
+One short paragraph. If no blocking findings exist, say so directly.
 
 Also echo the finished report between ===REPORT BEGIN=== and ===REPORT END=== markers in your
 final message, verbatim, so it can be salvaged if the file write fails.
 ```
 
-### Step 2: Layer 3 — Mechanical Aggregation
+#### B. Antigravity Prompt
+Forward this task to Antigravity:
+
+```text
+You are verifying one SPECTER per-Feature checklist using Google Antigravity. Keep output short.
+
+Read:
+- docs/prd/feature-map.md
+- docs/prd/feature-map.checklist.md
+- docs/prd/checklists/feature-NNN.checklist.md
+- the Source PRDs and PRD references named by Feature NNN
+- docs/prd/feature-map.antigravity-checklist.md if it exists
+
+Do not edit the Feature Map, PRDs, specs, plans, tasks, or canonical checklist.
+Only write docs/prd/checklists/feature-NNN.antigravity-verify.md.
+
+Check only for blocking or high-signal issues:
+- owned PRD commitments missing from Feature scope, out-of-scope, decisions, or done criteria
+- acceptance criteria or NFRs missing from done criteria or tests
+- overreach into another Feature's owned commitments
+- out-of-scope items without destination Features
+- done criteria that are not observable or do not end with "CI passes green"
+- invented behavior not supported by PRD evidence
+
+Write this concise output:
+
+# Feature NNN Antigravity Verification
+
+**Mode**: antigravity-per-feature-verify
+**Feature**: Feature NNN
+**Checklist**: docs/prd/checklists/feature-NNN.checklist.md
+**Checklist SHA256**: {CHECKLIST_SHA}
+**Result**: PASS | WARN | FAIL
+**Generated By**: Antigravity
+
+## Findings
+
+| Severity | Finding | Evidence | Required Fix |
+| --- | --- | --- | --- |
+
+## Verdict
+
+One short paragraph. If no blocking findings exist, say so directly.
+
+Also echo the finished report between ===REPORT BEGIN=== and ===REPORT END=== markers in your
+final message, verbatim, so it can be salvaged if the file write fails.
+```
+
+### Step 3: Layer-3 Aggregation And Report
+
+After both agents finish, compute the station verdict mechanically — never by
+reading and weighing the reports yourself (`specter-agent-protocols` §7):
 
 ```bash
-.specify/scripts/bash/specter-gate.sh aggregate verify --ledger --round <R>
+.specify/scripts/bash/specter-gate.sh aggregate verify NNN --ledger --round <R>
 ```
 
 `<R>` is the current §4 convergence round (1 on the first run, 2/3 on
-re-rounds).
+re-rounds) — the receipt records which round produced this verdict.
 
-The station's report set is fixed by the station name — never pass file paths,
-and never omit a report that turned out badly (§7). The receipt JSON contains
-the per-report grading, the station `verdict`, any `cap`
-(`single-agent-degrade`), verbatim `caught` rows, and `reasons[]`. The
-`--ledger` flag appends the `.specify/specter-run.jsonl` line mechanically —
-do not hand-write a ledger line for this station.
+The receipt JSON is the station's outcome of record: per-report grading
+(including SHA staleness and degrade placeholders), the station `verdict`, any
+`cap`, and verbatim `caught` rows. `--ledger` appends the
+`.specify/specter-run.jsonl` line mechanically — do not hand-write one for
+this station.
 
-- `verdict: PASS`/`WARN` → continue to Step 3.
-- `verdict: FAIL` → the map (or a report) failed. Report the receipt's
-  `reasons[]` and both reports' Findings verbatim as Blocking Fixes. Fix the
-  map, then rerun from Step 0.2 — the SHA binding makes the old reports stale
-  automatically, so both agents run again (`--fresh`, §4: every round fresh,
-  prior findings travel as file paths).
-
-### Step 3: Assemble The Canonical Global Gate (host: paths and metadata only)
-
-Write `docs/prd/feature-map.checklist.md`. Every judgment field is a verbatim
-copy from the receipt or the agent reports; the host contributes paths,
-metadata, and layout only:
-
-```markdown
-# Feature Map Global Verification
-
-**Mode**: global
-**Codex Checklist**: docs/prd/codex/checklist.md
-**Global Codex Verify**: docs/prd/feature-map.codex-verify.md
-**Antigravity Checklist**: docs/prd/feature-map.antigravity-checklist.md
-**PRDs**: <source label -> path list>
-**Feature Map**: docs/prd/feature-map.md
-**Feature Map SHA256**: <the FEATURE_MAP_SHA the reports were graded against>
-**Git Ref**: <git rev-parse HEAD at audit time — record only after checking `git status --porcelain docs/prd/`: if audited PRDs/Feature Map are uncommitted, this ref does NOT contain what was audited and `/ms.expand`'s delta baseline breaks (audit #30); tell the user to commit first, or write `DIRTY` here if they decline>
-**Result**: <receipt verdict, copied verbatim>
-**Generated**: YYYY-MM-DD
-
-## Structural Gate (Layer 1)
-
-<the `structural` JSON verdict and reasons[], copied verbatim>
-
-## Agent Verdicts (Layer 2)
-
-| Report | Result | Availability |
-| --- | --- | --- |
-<one row per receipt input: path, result, availability — copied from the receipt>
-
-## Findings (verbatim from agent reports)
-
-<the Findings table rows of both reports, copied verbatim, prefixed with the
-reporting agent's name — no re-grading, no paraphrase, no omission>
-
-## Blocking Fixes
-
-<mechanical criterion — no judgment: the Required Fix cell of every row whose
-Severity cell is CRITICAL or HIGH, copied verbatim, in file order; empty only
-when no such row exists>
-
-## Non-Blocking Improvements
-
-<the Required Fix cell of every remaining row, copied verbatim, in file order —
-partitioning is by the Severity cell alone, never by the host's own reading of
-the finding>
-```
-
-The `**Codex Checklist**` field always means the PRD-only baseline; the new
-`**Global Codex Verify**` field is the Layer-2 verdict report. Never overload
-one to mean the other.
-
-### FAIL Conditions (all computed by Layer 1 or Layer 3 — never by the host)
-
-- `docs/prd/codex/checklist.md` is missing (Required Inputs stop).
-- `structural` verdict `FAIL` (index/ownership/DAG/heading/placeholder defects
-  — the script's `reasons[]` are the authoritative list).
-- Any agent report missing, empty, malformed (zero or multiple `Result` lines,
-  unknown value), or stale (recorded `Feature Map SHA256` differs from the
-  current map).
-- Any agent `Result: FAIL`.
-- Every agent report is a degrade placeholder (zero independent verifiers).
-
-## Report
-
-If `PASS`:
-
+Display in Korean, quoting the receipt's values verbatim:
 ```text
-✅ Global Feature Map verification passed.
+Codex 및 Antigravity Feature checklist 검증을 완료했습니다.
 
-📄 Audit: docs/prd/feature-map.checklist.md
-📄 Agent verdicts: docs/prd/feature-map.codex-verify.md, docs/prd/feature-map.antigravity-checklist.md
-🎯 Next step: /ms.constitution
-```
+📄 산출물:
+- docs/prd/checklists/feature-NNN.codex-verify.md (<receipt input result>)
+- docs/prd/checklists/feature-NNN.antigravity-verify.md (<receipt input result>)
+⚖️ 집계 verdict: <receipt verdict> (기계 판정 — specter-gate.sh aggregate)
+🎯 다음 단계: /ms.specify
 
-If `WARN`:
-
-```text
-⚠️ Global Feature Map verification passed with warnings.
-
-📄 Audit: docs/prd/feature-map.checklist.md
-권장 개선사항을 확인한 뒤 /ms.constitution으로 진행할 수 있습니다.
-```
-
-If `FAIL`:
-
-```text
-⛔ Global Feature Map verification failed.
-
-📄 Audit: docs/prd/feature-map.checklist.md
-Blocking Fixes를 반영한 뒤 /ms.featuremap 또는 docs/prd/feature-map.md를 수정하고 /ms.verify를 다시 실행하세요.
-/ms.constitution은 아직 진행하지 마세요.
+verdict가 PASS/WARN이면 /ms.specify로 진행할 수 있습니다.
+FAIL이면 체크리스트를 수정한 뒤 /ms.verify를 다시 실행하세요.
+(재실행 라운드도 항상 --fresh — 이전 지적은 리포트 파일 경로로 전달됩니다.)
 ```
 
 ## Run-State Ledger
 
-Emitted mechanically by Step 2's `aggregate verify --ledger`
-(`specter-agent-protocols` §7 Mechanical ledger) — `caught` rows are verbatim
-report findings and `cap` is the receipt's classification. The host never
-authors or edits this station's ledger line. If Step 0.2 stopped at the
-structural gate (agents never ran), append the structural result instead:
-
-```bash
-mkdir -p .specify
-printf '{"ts":"%s","cycle":"pre","feature":null,"step":"verify","verdict":"FAIL","artifacts":["docs/prd/feature-map.md"],"caught":%s}\n' \
-  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<the structural reasons[] array, copied verbatim>" >> .specify/specter-run.jsonl
-```
+Emitted mechanically by Step 3's `aggregate --ledger`
+(`specter-agent-protocols` §7 Mechanical ledger): `caught` rows are copied
+verbatim from the reports' Findings tables and `cap` is the receipt's
+classification. The host never authors or edits this station's ledger line —
+re-rounds overwrite report files, and the mechanical line is where the
+original catch survives for gate-value audits.
 
 ## Next Command
 
-After `/ms.verify` passes, run `/ms.constitution`.
+Run `/ms.specify` after both verification reports show PASS/WARN.

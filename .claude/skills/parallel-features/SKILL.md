@@ -92,7 +92,7 @@ Merge serially, in DAG/listed order. For each Feature, in its worktree:
    ordering). Keep unmerged worktrees alive — they are the debugging evidence.
 
 Gate note: per-Feature cycles never edit normative `feature-map.md`, so the global
-gate SHA stays valid throughout — no re-`/ms.verify` needed for a clean parallel run.
+gate SHA stays valid throughout — no re-`/ms.pre-verify` needed for a clean parallel run.
 
 ## Anti-rationalization
 

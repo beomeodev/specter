@@ -2,7 +2,7 @@
 
 Each test builds a throwaway git repo and drives the real staged-state checks:
 the hook must block a Feature Map edit whose SHA256 is not recorded in the
-checklist (i.e. the map changed without /ms.verify or /ms.expand), and stay
+checklist (i.e. the map changed without /ms.pre-verify or /ms.expand), and stay
 silent for everything else.
 """
 
@@ -88,7 +88,7 @@ def test_map_edit_with_stale_committed_checklist_fails(repo: Path) -> None:
     git(repo, "add", FEATURE_MAP, CHECKLIST)
     git(repo, "commit", "-qm", "map v1 + checklist")
 
-    write(repo, FEATURE_MAP, "# Map v2 (edited without /ms.verify)\n")
+    write(repo, FEATURE_MAP, "# Map v2 (edited without /ms.pre-verify)\n")
     git(repo, "add", FEATURE_MAP)
     assert gate.main() == 1
 

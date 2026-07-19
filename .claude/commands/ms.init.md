@@ -177,7 +177,7 @@ GATE=$(cat <<'GATE'
 > ⛔ **FEATURE MAP + CHECKLIST GATE.** Do NOT create or update a spec unless:
 > 1. The input is a Feature section produced by `/ms.featuremap` (a `## Feature NNN:`
 >    block containing `### In scope`, `### Explicitly out of scope`, `### Done criteria`).
-> 2. `docs/prd/feature-map.checklist.md` exists, is `**Mode**: global`, records `/ms.verify`, and its result is PASS or WARN.
+> 2. `docs/prd/feature-map.checklist.md` exists, is `**Mode**: global`, records `/ms.pre-verify`, and its result is PASS or WARN.
 > 3. docs/prd/checklists/feature-NNN.checklist.md exists for the selected Feature, is
 >    `**Mode**: per-feature`, and its result is PASS or WARN.
 > 4. Both docs/prd/checklists/feature-NNN.codex-verify.md and docs/prd/checklists/feature-NNN.antigravity-verify.md exist and their results are PASS or WARN.
@@ -188,8 +188,8 @@ GATE=$(cat <<'GATE'
 > is missing/failed/stale, OR Section IX is not established, OR the per-Feature checklist is for
 > a different Feature, OR the input is freeform / inline ad-hoc text / derived from an existing `spec.md`.
 > On refusal, tell the user to run `/ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]`,
-> then `/ms.codex-checklist`, then `/ms.verify`, then `/ms.constitution`, then `/ms.checklist`,
-> then `/ms.agent-verify`, then paste the checked Feature section. Prefer the `/ms.specify` wrapper over direct calls.
+> then `/ms.featuremap-checklist`, then `/ms.pre-verify`, then `/ms.constitution`, then `/ms.checklist`,
+> then `/ms.verify`, then paste the checked Feature section. Prefer the `/ms.specify` wrapper over direct calls.
 <!-- MS_FEATUREMAP_GATE_END -->
 GATE
 )
@@ -534,11 +534,11 @@ jq '.hooks.PreToolUse' .claude/settings.json 2>/dev/null
 
 0. (Write your PRD first, e.g. docs/prd/PRD.md)
 1. /ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md] - Decompose the PRD set into a Feature Map
-2. /ms.codex-checklist - Start the PRD-only Codex checklist in background
-3. /ms.verify - Validate Feature Map against PRDs and Codex checklist
+2. /ms.featuremap-checklist - Author the PRD-only baseline checklist (isolated subagent)
+3. /ms.pre-verify - Validate Feature Map against PRDs and the baseline checklist
 4. /ms.constitution - Establish project baseline once from the checked PRD Feature Map
 5. /ms.checklist - Validate the next Feature against its Source PRDs and PRD references
-6. /ms.agent-verify - Start concise Codex & Antigravity verification for the Feature checklist
+6. /ms.verify - Start concise Codex & Antigravity verification for the Feature checklist
 7. /ms.specify - Create feature specification (paste the checked Feature section from the Feature Map)
 8. /ms.clarify - Clarify requirements (if needed)
 9. /ms.plan - Create implementation plan
@@ -578,4 +578,4 @@ Then run /ms.init again.
 
 ## Next Command
 
-After `/ms.init`: Write your PRD set, run `/ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]`, then run `/ms.codex-checklist`, `/ms.verify`, and `/ms.constitution`. Each Feature cycle starts with `/ms.checklist` and `/ms.agent-verify`, and `/ms.specify` refuses to run when the global audit, per-Feature audit, or the dual-agent (Codex & Antigravity) verification is missing, failed, or stale.
+After `/ms.init`: Write your PRD set, run `/ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]`, then run `/ms.featuremap-checklist`, `/ms.pre-verify`, and `/ms.constitution`. Each Feature cycle starts with `/ms.checklist` and `/ms.verify`, and `/ms.specify` refuses to run when the global audit, per-Feature audit, or the dual-agent (Codex & Antigravity) verification is missing, failed, or stale.

@@ -4,6 +4,16 @@ All notable changes to this repository are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **검증 명령 개명 및 저술 station 에이전트화 (2026-07-19)**: `/ms.codex-checklist` →
+  `/ms.featuremap-checklist`(Codex 백그라운드 → `featuremap-checklist-author` 격리
+  서브에이전트, 산출물 `docs/prd/featuremap-checklist.md`; 레거시 `docs/prd/codex/checklist.md`
+  경로는 게이트/커맨드가 폴백으로 계속 읽음), `/ms.verify` → `/ms.pre-verify`(전역 게이트),
+  `/ms.agent-verify` → `/ms.verify`(per-Feature 이중 검증). `specter-gate.sh` aggregate
+  station도 동일 개명(`pre-verify`/`verify`, 레거시 `agent-verify` 별칭 유지), 원장 step
+  명칭 변경(컨덕터가 구명칭 별칭 인식). `.claude/agents/`에 저술 station 전용 서브에이전트
+  3종 신설(`featuremap-author`, `featuremap-checklist-author`, `feature-checklist-author`).
+
 ### Added
 - **Graphify 코드 그래프 도입 (`/ms.init` Step 2.9)**: 소비 프로젝트에 tree-sitter 로컬 코드
   그래프(`graphifyy`, `GRAPHIFY_VERSION` 핀, 도구 인터프리터는 3.12로 격리)를 필수 설치 —

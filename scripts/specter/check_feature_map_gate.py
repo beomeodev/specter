@@ -6,7 +6,7 @@ its SHA256 from the *staged* content and compare it against the
 ``**Feature Map SHA256**:`` value recorded in ``docs/prd/feature-map.checklist.md``
 (the staged version if that file is also staged in this commit, else the
 committed HEAD version). A mismatch means the map changed without a matching
-`/ms.verify` (or `/ms.expand`) run and blocks the commit.
+`/ms.pre-verify` (or `/ms.expand`) run and blocks the commit.
 
 Progress bookkeeping is unaffected: after the Progress Ledger split (WI-1) it
 lives in ``docs/prd/feature-map.progress.md``, which this check never reads.
@@ -84,7 +84,7 @@ def main() -> int:
             "Feature Map gate coherence check failed:\n"
             f"  {FEATURE_MAP} changed, but no {CHECKLIST} exists (staged or committed) "
             "to prove it was verified.\n\n"
-            "Feature Map changed without a matching gate. Run /ms.verify or /ms.expand first.\n"
+            "Feature Map changed without a matching gate. Run /ms.pre-verify or /ms.expand first.\n"
             "(Deliberate override: git commit --no-verify.)",
             file=sys.stderr,
         )
@@ -98,7 +98,7 @@ def main() -> int:
             "Feature Map gate coherence check failed:\n"
             f"  {FEATURE_MAP} staged SHA256:   {current_sha}\n"
             f"  {CHECKLIST} recorded SHA256: {recorded_sha or '(missing)'}\n\n"
-            "Feature Map changed without a matching gate. Run /ms.verify or /ms.expand first.\n"
+            "Feature Map changed without a matching gate. Run /ms.pre-verify or /ms.expand first.\n"
             "(Deliberate override: git commit --no-verify.)",
             file=sys.stderr,
         )

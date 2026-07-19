@@ -261,27 +261,41 @@ class TestStructural:
         assert data["feature"] == "002"
         assert not any("Feature 001" in r for r in data["reasons"])
 
-    def test_cited_cid_missing_from_codex_checklist_fails(self, repo: Path) -> None:
+    def test_cited_cid_missing_from_baseline_checklist_fails(self, repo: Path) -> None:
         checklists = repo / "docs" / "prd" / "checklists"
         (checklists / "feature-002.checklist.md").write_text(
             "# Feature 002 Checklist\n\n**Mode**: per-feature\n"
             "**Feature**: Feature 002: sample\n**Result**: PASS\n\n"
             "| C101 | §3.2 | owned | covered |\n"
         )
-        (repo / "docs" / "prd" / "codex" / "checklist.md").write_text(
-            "# Codex PRD Checklist\n\n**Mode**: prd-only\n\n| C100 | §3.1 | login |\n"
+        (repo / "docs" / "prd" / "featuremap-checklist.md").write_text(
+            "# PRD Checklist\n\n**Mode**: prd-only\n\n| C100 | §3.1 | login |\n"
         )
         data = run_gate(repo, "structural", "2")
         assert data["verdict"] == "FAIL"
         assert data["checks"]["checklist_refs_ok"] is False
         assert any("C101" in r for r in data["reasons"])
 
+    def test_cid_crossref_falls_back_to_legacy_codex_path(self, repo: Path) -> None:
+        # Established consumer projects still have docs/prd/codex/checklist.md.
+        checklists = repo / "docs" / "prd" / "checklists"
+        (checklists / "feature-002.checklist.md").write_text(
+            "# Feature 002 Checklist\n\n**Mode**: per-feature\n"
+            "**Feature**: Feature 002: sample\n**Result**: PASS\n\n"
+            "| C100 | §3.2 | owned | covered |\n"
+        )
+        (repo / "docs" / "prd" / "codex" / "checklist.md").write_text(
+            "# Codex PRD Checklist\n\n**Mode**: prd-only\n\n| C100 | §3.1 | login |\n"
+        )
+        data = run_gate(repo, "structural", "2")
+        assert data["checks"]["checklist_refs_ok"] is True
+
 
 class TestAggregate:
     def test_worse_of_two_with_verbatim_caught(self, repo: Path) -> None:
         row = "| MEDIUM | done criterion (d) lacks PRD evidence | L12 | add row |"
         write_agent_verify_pair(repo, anti_result="WARN", anti_findings=[row])
-        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        data = run_gate(repo, "aggregate", "verify", "6")
         assert data["verdict"] == "WARN"
         assert data["caught"] == [row]
         assert data["cap"] is None
@@ -289,7 +303,7 @@ class TestAggregate:
     def test_stale_checklist_sha_fails(self, repo: Path) -> None:
         checklist = write_agent_verify_pair(repo)
         checklist.write_text(checklist.read_text() + "\nedited after verify\n")
-        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        data = run_gate(repo, "aggregate", "verify", "6")
         assert data["verdict"] == "FAIL"
         assert any("stale" in r for r in data["reasons"])
 
@@ -297,7 +311,7 @@ class TestAggregate:
         write_agent_verify_pair(
             repo, codex_result="WARN", codex_availability="UNAVAILABLE (binary not on PATH)"
         )
-        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        data = run_gate(repo, "aggregate", "verify", "6")
         assert data["verdict"] == "WARN"
         assert data["cap"] == "single-agent-degrade"
 
@@ -305,7 +319,7 @@ class TestAggregate:
         write_agent_verify_pair(
             repo, codex_result="WARN", codex_availability="RECUSED (implemented this Feature)"
         )
-        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        data = run_gate(repo, "aggregate", "verify", "6")
         assert data["verdict"] == "WARN"
         assert data["cap"] == "single-agent-degrade"
 
@@ -317,7 +331,7 @@ class TestAggregate:
             anti_result="WARN",
             anti_availability="UNAVAILABLE (auth expired)",
         )
-        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        data = run_gate(repo, "aggregate", "verify", "6")
         assert data["verdict"] == "FAIL"
         assert any("no independent verifier" in r for r in data["reasons"])
 
@@ -326,7 +340,7 @@ class TestAggregate:
         write_agent_verify_pair(
             repo, codex_result="PASS", codex_availability="UNAVAILABLE (host said so)"
         )
-        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        data = run_gate(repo, "aggregate", "verify", "6")
         assert data["verdict"] == "FAIL"
 
     def test_duplicate_result_lines_fail(self, repo: Path) -> None:
@@ -340,14 +354,14 @@ class TestAggregate:
             sha_value=checklist_sha,
             extra_result_line=True,
         )
-        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        data = run_gate(repo, "aggregate", "verify", "6")
         assert data["verdict"] == "FAIL"
         assert any("exactly one Result" in r for r in data["reasons"])
 
     def test_missing_report_fails(self, repo: Path) -> None:
         write_agent_verify_pair(repo)
         (repo / "docs" / "prd" / "checklists" / "feature-006.codex-verify.md").unlink()
-        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        data = run_gate(repo, "aggregate", "verify", "6")
         assert data["verdict"] == "FAIL"
         assert any("missing or empty" in r for r in data["reasons"])
 
@@ -362,26 +376,26 @@ class TestAggregate:
             sha_field="Checklist SHA256",
             sha_value=checklist_sha,
         )
-        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        data = run_gate(repo, "aggregate", "verify", "6")
         assert data["verdict"] == "FAIL"
         assert any("does not match" in r for r in data["reasons"])
 
     def test_ledger_emission_is_mechanical(self, repo: Path) -> None:
         row = "| HIGH | invented behavior in scope | L4 | remove |"
         write_agent_verify_pair(repo, anti_result="FAIL", anti_findings=[row])
-        data = run_gate(repo, "aggregate", "agent-verify", "6", "--ledger")
+        data = run_gate(repo, "aggregate", "verify", "6", "--ledger")
         assert data["verdict"] == "FAIL"
         assert data["ledger_written"] is True
         ledger = (repo / ".specify" / "specter-run.jsonl").read_text().strip().splitlines()
         entry = json.loads(ledger[-1])
-        assert entry["step"] == "agent-verify"
+        assert entry["step"] == "verify"
         assert entry["feature"] == "006"
         assert entry["verdict"] == "FAIL"
         assert entry["caught"] == [row]
 
     def test_pass_ledger_line_stays_minimal(self, repo: Path) -> None:
         write_agent_verify_pair(repo)
-        data = run_gate(repo, "aggregate", "agent-verify", "6", "--ledger")
+        data = run_gate(repo, "aggregate", "verify", "6", "--ledger")
         assert data["verdict"] == "PASS"
         entry = json.loads(
             (repo / ".specify" / "specter-run.jsonl").read_text().strip().splitlines()[-1]
@@ -389,7 +403,7 @@ class TestAggregate:
         assert "caught" not in entry
         assert "cap" not in entry
 
-    def test_verify_station_binds_to_feature_map_sha(self, repo: Path) -> None:
+    def test_pre_verify_station_binds_to_feature_map_sha(self, repo: Path) -> None:
         prd = repo / "docs" / "prd"
         map_sha = sha256(prd / "feature-map.md")
         write_report(
@@ -406,12 +420,20 @@ class TestAggregate:
             sha_field="Feature Map SHA256",
             sha_value=map_sha,
         )
-        data = run_gate(repo, "aggregate", "verify")
+        data = run_gate(repo, "aggregate", "pre-verify")
         assert data["verdict"] == "PASS"
         # Editing the map invalidates both reports.
         (prd / "feature-map.md").write_text(GOOD_MAP + "\nedited\n")
-        data = run_gate(repo, "aggregate", "verify")
+        data = run_gate(repo, "aggregate", "pre-verify")
         assert data["verdict"] == "FAIL"
+
+    def test_legacy_agent_verify_station_alias(self, repo: Path) -> None:
+        # Pre-rename callers passing "agent-verify" must hit the per-Feature
+        # station (and fail loudly on bad args, never silently hit pre-verify).
+        write_agent_verify_pair(repo)
+        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        assert data["station"] == "verify"
+        assert data["verdict"] == "PASS"
 
     def test_expand_station_binds_to_extended_map(self, repo: Path) -> None:
         prd = repo / "docs" / "prd"
@@ -450,12 +472,12 @@ class TestAggregate:
             sha_field="Checklist SHA256",
             sha_value=checklist_sha,
         )
-        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        data = run_gate(repo, "aggregate", "verify", "6")
         assert data["verdict"] == "FAIL"
         assert any("does not match station mode" in r for r in data["reasons"])
 
     def test_non_numeric_agent_verify_arg_fails(self, repo: Path) -> None:
-        data = run_gate(repo, "aggregate", "agent-verify", "../../etc")
+        data = run_gate(repo, "aggregate", "verify", "../../etc")
         assert data["verdict"] == "FAIL"
         assert any("numeric Feature number" in r for r in data["reasons"])
 
@@ -482,7 +504,7 @@ class TestAggregate:
             sha_field="Checklist SHA256",
             sha_value=checklist_sha,
         )
-        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        data = run_gate(repo, "aggregate", "verify", "6")
         assert data["verdict"] == "FAIL"
         assert any("does not match Feature 006" in r for r in data["reasons"])
 
@@ -494,14 +516,14 @@ class TestAggregate:
         checklists = repo / "docs" / "prd" / "checklists"
         checklist = checklists / "feature-006.checklist.md"
         checklist.write_text(checklist.read_text() + "\nedited after the placeholder\n")
-        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        data = run_gate(repo, "aggregate", "verify", "6")
         assert data["verdict"] == "FAIL"
         assert any("stale" in r for r in data["reasons"])
 
     def test_report_shas_align_with_artifacts_when_missing(self, repo: Path) -> None:
         write_agent_verify_pair(repo)
         (repo / "docs" / "prd" / "checklists" / "feature-006.codex-verify.md").unlink()
-        data = run_gate(repo, "aggregate", "agent-verify", "6", "--ledger")
+        data = run_gate(repo, "aggregate", "verify", "6", "--ledger")
         entry = json.loads(
             (repo / ".specify" / "specter-run.jsonl").read_text().strip().splitlines()[-1]
         )
@@ -511,7 +533,7 @@ class TestAggregate:
 
     def test_ledger_receipt_carries_round_and_report_shas(self, repo: Path) -> None:
         write_agent_verify_pair(repo)
-        data = run_gate(repo, "aggregate", "agent-verify", "6", "--ledger", "--round", "2")
+        data = run_gate(repo, "aggregate", "verify", "6", "--ledger", "--round", "2")
         assert data["round"] == 2
         entry = json.loads(
             (repo / ".specify" / "specter-run.jsonl").read_text().strip().splitlines()[-1]
@@ -553,7 +575,7 @@ class TestAggregate:
         )
         data = run_gate(repo, "aggregate", "expand", "3")
         assert data["verdict"] == "WARN"
-        assert data["cap"] == "missing-codex-baseline"
+        assert data["cap"] == "missing-baseline"
         # with the baseline present, the same PASS report aggregates to PASS
         (prd / "codex" / "checklist-delta-3.md").write_text(
             "# Codex Delta Checklist\n\n**Mode**: prd-only\n\n| C200 | §A1 | new |\n"

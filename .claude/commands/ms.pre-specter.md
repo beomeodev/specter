@@ -1,5 +1,5 @@
 ---
-description: "Drive the one-time PRD setup (featuremap → codex-checklist → verify → constitution) as a single automated pre-Feature cycle"
+description: "Drive the one-time PRD setup (featuremap → featuremap-checklist → pre-verify → constitution) as a single automated pre-Feature cycle"
 argument-hint: "[@docs/prd/PRD.md] [@docs/prd/another.md]"
 ---
 
@@ -16,7 +16,7 @@ ready to begin.
 
 This is the **pre-Feature** counterpart to `/ms.specter`. Where `/ms.specter`
 drives one Feature through `checklist → review`, `/ms.pre-specter` drives the
-project through `featuremap → codex-checklist → verify → constitution`.
+project through `featuremap → featuremap-checklist → pre-verify → constitution`.
 
 `/ms.pre-specter` does **not** replace or weaken any gate. Every underlying
 command still runs in full and still writes its own audit artifact. The
@@ -25,7 +25,7 @@ warning, or stop.
 
 ## What This Command Is Not
 
-- It does not run the per-Feature cycle (`/ms.checklist`, `/ms.agent-verify`,
+- It does not run the per-Feature cycle (`/ms.checklist`, `/ms.verify`,
   `/ms.specify`, …). That is `/ms.specter`'s job. This conductor stops once the
   one-time setup is complete and hands the first Feature to `/ms.specter`.
 - It is not the track for adding a requirement to an **already-established** baseline.
@@ -66,17 +66,17 @@ context on every conductor restart. If several PRDs already live under
 ## The Cycle
 
 ```text
-/ms.featuremap        → docs/prd/feature-map.md (Feature DAG)        [generative]
-/ms.codex-checklist   → docs/prd/codex/checklist.md                  [background]
-/ms.verify            → docs/prd/feature-map.checklist.md (PASS/WARN/FAIL)
-                        (runs Antigravity inline, foreground)
-/ms.constitution      → Section IX + AGENTS.md + README              [once]
+/ms.featuremap             → docs/prd/feature-map.md (Feature DAG)   [featuremap-author subagent]
+/ms.featuremap-checklist   → docs/prd/featuremap-checklist.md       [featuremap-checklist-author subagent]
+/ms.pre-verify             → docs/prd/feature-map.checklist.md (PASS/WARN/FAIL)
+                             (Codex + Antigravity dual L2, foreground)
+/ms.constitution           → Section IX + AGENTS.md + README         [once]
 ```
 
-`/ms.featuremap` and `/ms.codex-checklist` both read **only the PRD set** and are
-independent of each other, so the background Codex run may be launched
-concurrently with the Feature Map decomposition. `/ms.verify` is the join point:
-it requires both `docs/prd/feature-map.md` and `docs/prd/codex/checklist.md`.
+`/ms.featuremap` and `/ms.featuremap-checklist` both read **only the PRD set**
+and are independent of each other, so their two authoring subagents may be
+dispatched concurrently. `/ms.pre-verify` is the join point: it requires both
+`docs/prd/feature-map.md` and `docs/prd/featuremap-checklist.md`.
 
 ## Conductor Policy (applies after every step)
 
@@ -135,13 +135,15 @@ does not interpret it.
 4. **Resume from the run-state ledger** (bookkeeping only — gates still come from the audit
    artifacts, never from this file). If `.specify/specter-run.jsonl` exists, read its lines
    filtered to `cycle: "pre"`. The step sequence is
-   `featuremap → codex-checklist → verify → constitution`. Take, per step name, the **last**
+   `featuremap → featuremap-checklist → pre-verify → constitution`. **Legacy step aliases**
+   (pre-2026-07-19 ledgers): treat `codex-checklist` as `featuremap-checklist` and a
+   `cycle: "pre"` entry named `verify` as `pre-verify`. Take, per step name, the **last**
    matching line (later entries supersede earlier ones) and find the first step in the sequence
-   that has no `PASS`/`WARN` entry yet (`codex-checklist` records only `PENDING` by design and
-   is never upgraded — treat a `PENDING` entry **with its artifact present**
-   (`docs/prd/codex/checklist.md` non-empty) as satisfied for resume purposes; a `PENDING`
-   entry without the artifact counts as "not yet done") — resume the cycle there instead of
-   restarting at Step 1, and announce the
+   that has no `PASS`/`WARN` entry yet (legacy `featuremap-checklist`/`codex-checklist` entries
+   may record `PENDING` — treat a `PENDING` entry **with its artifact present**
+   (`docs/prd/featuremap-checklist.md`, legacy `docs/prd/codex/checklist.md`, non-empty) as
+   satisfied for resume purposes; a `PENDING` entry without the artifact counts as "not yet
+   done") — resume the cycle there instead of restarting at Step 1, and announce the
    resume point:
    ```text
    ↩️ 이전 실행 이어서 진행: <step>부터 재개 (이전 단계는 이미 PASS/WARN 기록됨)
@@ -160,7 +162,7 @@ does not interpret it.
 
    **Step-order invariant (no silent skips).** The same per-step last-entry-wins data enforces
    order, not just the resume shortcut: before executing any step of the sequence, every earlier
-   step must already have a `PASS`/`WARN` entry (`codex-checklist`'s `PENDING` counts as
+   step must already have a `PASS`/`WARN` entry (`featuremap-checklist`'s `PENDING` counts as
    satisfied when its artifact exists — same artifact rule as the resume shortcut; without the
    artifact it counts as "not yet done"). If one is missing, do not execute the later step — go back to the **first**
    missing step and run the cycle from there, announcing it:
@@ -197,37 +199,39 @@ and the dependency DAG.
   it; do not proceed to verification with a malformed map.
 - On a written `docs/prd/feature-map.md` → continue.
 
-### Step 2: `/ms.codex-checklist` (background, PRD-only)
+### Step 2: `/ms.featuremap-checklist` (PRD-only, isolated subagent)
 
-Run `/ms.codex-checklist` with the same PRD set. Execution is **always
-background**; do not pass `--background` and do not wait inline if the
-decomposition in Step 1 is still finishing — this run reads only the PRDs.
+Run `/ms.featuremap-checklist` with the same PRD set. It dispatches the
+**featuremap-checklist-author** subagent (PRD-blind to the Feature Map); since
+Step 1's featuremap-author also reads only the PRDs, the conductor may
+dispatch both subagents concurrently and join here.
 
-The conductor must then ensure the artifact lands before Step 3:
+The conductor must ensure the artifact lands before Step 3:
 
-- Wait for `docs/prd/codex/checklist.md` to appear.
-- If the background Codex run fails to write it, the underlying command retries
-  once. If it still fails, stop and report the failure rather than running
-  `/ms.verify` against a missing independent baseline.
+- `docs/prd/featuremap-checklist.md` exists, non-empty, `**Mode**: prd-only`
+  (the command's own Step 2 deterministic check).
+- If the author fails after its one retry, stop and report the failure rather
+  than running `/ms.pre-verify` against a missing independent baseline.
 
-### Step 3: `/ms.verify` (global gate; Antigravity inline)
+### Step 3: `/ms.pre-verify` (global gate; three-layer)
 
-Run `/ms.verify`. It runs Google Antigravity in the foreground for an
-independent global audit, then compares the source PRDs, the Codex checklist, the
-Antigravity checklist, and `docs/prd/feature-map.md`, writing the canonical
-global gate `docs/prd/feature-map.checklist.md` with `**Result**: PASS | WARN |
-FAIL`.
+Run `/ms.pre-verify`. It runs the Layer-1 structural gate, then Codex and
+Antigravity in the foreground as independent Layer-2 global auditors (each
+writes its own SHA-bound verdict), then computes the canonical
+`docs/prd/feature-map.checklist.md` `**Result**` mechanically via
+`specter-gate.sh aggregate pre-verify`.
 
 Read the `Result`:
 
 - **PASS** → continue.
 - **WARN** → record the warning, continue.
-- **FAIL** → stop. Report the audit's blocking findings (uncovered PRD
-  commitment, ownership conflict, DAG cycle, or a missing/FAIL Antigravity
-  checklist). Fix `docs/prd/feature-map.md` and rerun `/ms.pre-specter` (or rerun
-  `/ms.verify` directly after the fix).
-- If `/ms.verify` stops because `docs/prd/codex/checklist.md` is missing, return
-  to Step 2 and ensure the Codex artifact is present, then retry.
+- **FAIL** → stop. Report the audit's blocking findings (structural defect,
+  uncovered PRD commitment, ownership conflict, stale/failed agent report).
+  Fix `docs/prd/feature-map.md` and rerun `/ms.pre-specter` (or rerun
+  `/ms.pre-verify` directly after the fix).
+- If `/ms.pre-verify` stops because `docs/prd/featuremap-checklist.md` is
+  missing, return to Step 2 and ensure the baseline artifact is present, then
+  retry.
 
 ### Step 4: `/ms.constitution` (establish the baseline; once)
 
@@ -253,7 +257,7 @@ When the run reaches the end (Step 4 complete) or stops early, report in Korean:
 ```text
 🛰️ /ms.pre-specter — PRD 셋업 결과
 
-진행: featuremap → codex-checklist → verify → constitution
+진행: featuremap → featuremap-checklist → pre-verify → constitution
 상태: ✅ 셋업 완료  |  ⛔ <단계>에서 정지
 
 전역 게이트: <PASS | WARN | 미도달>
@@ -277,8 +281,8 @@ exactly the silent-quality-loss failure mode this report exists to prevent.
 | Where | Trigger | Conductor action |
 | --- | --- | --- |
 | `/ms.featuremap` | PRD set not found/confirmed, or malformed map | stop, surface the question / structural problem |
-| `/ms.codex-checklist` | background artifact missing after retry | stop, report the Codex write failure |
-| `/ms.verify` | `Result: FAIL` (coverage / ownership / DAG / Antigravity) | stop, report audit + blocking fixes |
+| `/ms.featuremap-checklist` | baseline artifact missing/invalid after the author's retry | stop, report the authoring-subagent failure |
+| `/ms.pre-verify` | `Result: FAIL` (coverage / ownership / DAG / Antigravity) | stop, report audit + blocking fixes |
 | `/ms.constitution` | existing baseline, or unresolved durable-rule conflict | stop, surface the intent / choice question |
 | Step 0 | prior setup detected | confirm re-run intent before proceeding |
 

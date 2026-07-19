@@ -12,7 +12,7 @@ The old `/ms.checklist --global` flow is removed. Global Feature Map validation
 is handled by:
 
 ```text
-/ms.codex-checklist -> /ms.verify
+/ms.featuremap-checklist -> /ms.pre-verify
 ```
 
 ## Purpose
@@ -37,13 +37,13 @@ Workflow position:
 
 ```text
 /ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]
-/ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
-/ms.verify
+/ms.featuremap-checklist @docs/prd/PRD.md [@docs/prd/another.md]
+/ms.pre-verify
 /ms.constitution
 
 # Repeat in DAG order:
 /ms.checklist
-/ms.agent-verify
+/ms.verify
 /ms.specify
 /ms.clarify
 /ms.plan
@@ -61,7 +61,7 @@ Workflow position:
 - When a selected Feature references PRD sections, the command shall read those
   PRD sections and verify that the Feature scope, out-of-scope list, decisions,
   and done criteria preserve the referenced commitments without overreach.
-- When `docs/prd/codex/checklist.md` exists, the command shall use its C-IDs as
+- When a baseline checklist exists at either path (`{BASELINE}`), the command shall use its C-IDs as
   additional evidence for the selected Feature, but the PRD text remains
   authoritative.
 - When validation completes, the command shall write an audit file with PASS,
@@ -76,7 +76,7 @@ Read these files in full:
 - `docs/prd/feature-map.md`
 - `docs/prd/feature-map.progress.md`
 - `docs/prd/feature-map.checklist.md`
-- `docs/prd/codex/checklist.md` if it exists
+- the baseline checklist if one exists, resolved new-first with legacy fallback and reused as `{BASELINE}` below: `docs/prd/featuremap-checklist.md`, else `docs/prd/codex/checklist.md`
 - `.specify/memory/constitution.md`
 - `AGENTS.md` if it exists
 
@@ -88,8 +88,8 @@ If `--global` is supplied, refuse:
 ⛔ /ms.checklist --global has been removed.
 
 Use the new global flow:
-  /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
-  /ms.verify
+  /ms.featuremap-checklist @docs/prd/PRD.md [@docs/prd/another.md]
+  /ms.pre-verify
 
 Then run:
   /ms.constitution
@@ -133,8 +133,8 @@ checklist (its existence, Mode, Result, or SHA), stop:
 ⛔ Global Feature Map verification is missing, failed, stale, or from the removed legacy flow.
 
 Run this first:
-  /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
-  /ms.verify
+  /ms.featuremap-checklist @docs/prd/PRD.md [@docs/prd/another.md]
+  /ms.pre-verify
 
 Fix any Blocking Fixes in docs/prd/feature-map.checklist.md, then retry /ms.checklist.
 ```
@@ -175,19 +175,20 @@ the host may carry session memory of authoring the Feature Map, and an author
 that remembers its intent audits against the intent rather than against what
 the files actually say. The subagent reads only files.
 
-Dispatch one general-purpose subagent (same model tier as the session), passing
+Dispatch the **feature-checklist-author** subagent
+(`.claude/agents/feature-checklist-author.md` — its station discipline lives in
+the agent definition, so this prompt carries only run parameters), passing
 **file paths only** (AGENTS §2 dispatch discipline):
 
 ```text
-You are the isolated authoring subagent for /ms.checklist. You have no
-conversation context by design; work from files alone.
+Audit Feature <NNN> for spec readiness.
 
 Read your audit brief: .claude/commands/ms.checklist.md, sections "Step 3:
 Load The Feature's PRD Evidence" through "Step 5: Write The Per-Feature
 Audit" plus "FAIL Conditions" and "Result Model". Target: Feature <NNN>.
 
 Read: docs/prd/feature-map.md, docs/prd/feature-map.progress.md,
-docs/prd/feature-map.checklist.md, docs/prd/codex/checklist.md if it exists,
+docs/prd/feature-map.checklist.md, the resolved {BASELINE} path if one exists,
 .specify/memory/constitution.md, and the PRD sections the Feature's
 "### PRD references" name.
 
@@ -198,7 +199,7 @@ nothing else. Your final message: the file path and the Result.
 ```
 
 The subagent's Result is a **draft grade, never authoritative** — the
-authoritative verdict on this checklist comes from `/ms.agent-verify`'s
+authoritative verdict on this checklist comes from `/ms.verify`'s
 dual-agent station. Never present this Result as verification, and never let
 the host "adjust" it after the fact (§5 no-unilateral-host-downgrade applies
 to authored drafts too: a host that disagrees re-dispatches a fresh subagent
@@ -219,11 +220,11 @@ For the selected Feature:
   context needed to interpret each one) and the matching PRD Commitment Index rows. Full-PRD
   reading is a fallback, used only when a PRD reference cannot be resolved to a specific section
   in its Source PRD document.
-- If `docs/prd/codex/checklist.md` exists, extract any Codex C-IDs whose PRD
+- If a baseline checklist exists (`{BASELINE}`), extract any baseline C-IDs whose PRD
   references, labels, or expected Feature Map handling correspond to this
   Feature's owned PRD rows.
 
-Global PRD coverage is already audited by `/ms.verify`; this gate audits the selected Feature's
+Global PRD coverage is already audited by `/ms.pre-verify`; this gate audits the selected Feature's
 fidelity to its referenced sections, not the whole source PRD set.
 
 If the Feature has no Source PRDs, no PRD references, or no owned commitment
@@ -235,7 +236,7 @@ rows, mark FAIL.
 
 - Every owned commitment row is represented in `### In scope`, `### Explicitly
   out of scope`, `### Key decisions`, or `### Done criteria`.
-- Every matching Codex C-ID is represented or explicitly explained as a false
+- Every matching baseline C-ID is represented or explicitly explained as a false
   positive or handled by another owning Feature.
 - The Feature does not dilute PRD language into vague implementation labels.
 - The Feature does not invent behavior that is absent from the PRD, product
@@ -294,7 +295,7 @@ Use this structure:
 **Feature Map**: docs/prd/feature-map.md
 **Feature Map SHA256**: <sha256 of docs/prd/feature-map.md at audit time>
 **Global Audit**: docs/prd/feature-map.checklist.md
-**Codex Checklist**: docs/prd/codex/checklist.md | not available
+**Baseline Checklist**: <the resolved {BASELINE} path> | not available
 **Result**: PASS | WARN | FAIL
 **Generated**: YYYY-MM-DD
 
@@ -303,9 +304,9 @@ Use this structure:
 | Source PRD | PRD Ref | Commitment Type | Short Label | Handling In This Feature |
 | --- | --- | --- | --- | --- |
 
-## Codex Checklist Evidence
+## Baseline Checklist Evidence
 
-| Codex ID | PRD Ref | Expected Handling | Handling In This Feature |
+| Baseline ID | PRD Ref | Expected Handling | Handling In This Feature |
 | --- | --- | --- | --- |
 
 ## Checklist Results
@@ -350,7 +351,7 @@ no judgment, shape only:
   or done criteria.
 - Any referenced PRD acceptance criterion or NFR is absent from done criteria or
   tests.
-- Any matching Codex C-ID is missing without a justified false-positive or
+- Any matching baseline C-ID is missing without a justified false-positive or
   destination Feature explanation.
 - The Feature absorbs commitments owned by another Feature.
 - An out-of-scope item lacks a destination Feature.
@@ -375,7 +376,7 @@ If the result is `PASS`:
 ✅ Feature checklist passed.
 
 📄 Audit: docs/prd/checklists/feature-NNN.checklist.md
-🎯 Next step: /ms.agent-verify
+🎯 Next step: /ms.verify
 ```
 
 If the result is `WARN`:
@@ -384,7 +385,7 @@ If the result is `WARN`:
 ⚠️ Feature checklist passed with warnings.
 
 📄 Audit: docs/prd/checklists/feature-NNN.checklist.md
-권장 개선사항을 확인한 뒤 /ms.agent-verify로 진행할 수 있습니다.
+권장 개선사항을 확인한 뒤 /ms.verify로 진행할 수 있습니다.
 ```
 
 If the result is `FAIL`:
@@ -409,7 +410,7 @@ Bypass protection:
 - `/ms.checklist` must not delegate to `/speckit-checklist`.
 - `/speckit-checklist` may still exist after `/ms.init`, but it is not part of
   the SPECTER happy path.
-- `/ms.specify` must check the global `/ms.verify` audit, the selected Feature
+- `/ms.specify` must check the global `/ms.pre-verify` audit, the selected Feature
   audit, and the dual-agent per-Feature verification before proceeding.
 
 ## What This Command Does Not Do
@@ -418,7 +419,7 @@ Bypass protection:
 - It does not edit the Feature Map automatically unless the user explicitly asks
   for fixes. The audit identifies required corrections first.
 - It does not run external verification agents (Codex & Antigravity) — that is
-  `/ms.agent-verify`'s job. The Step 2.5 authoring subagent is an internal
+  `/ms.verify`'s job. The Step 2.5 authoring subagent is an internal
   isolated author, not a verifier.
 
 ## Run-State Ledger (bookkeeping, not a gate)
@@ -447,6 +448,6 @@ ledger line is where the original catch survives for gate-value audits. Example:
 
 ## Next Command
 
-After `/ms.checklist` passes for a Feature, run `/ms.agent-verify`. After dual-agent
+After `/ms.checklist` passes for a Feature, run `/ms.verify`. After dual-agent
 verification is available, run `/ms.specify` and paste the checked Feature
 section from `docs/prd/feature-map.md`.

@@ -3,7 +3,7 @@
 #
 # Owns only mechanical facts: verdict lines, SHA256 equality, file existence.
 # Content judgment (PRD fidelity, boundary discipline, severity) stays with
-# the model in /ms.checklist, /ms.verify, /ms.specify, /ms.constitution.
+# the model in /ms.checklist, /ms.pre-verify, /ms.specify, /ms.constitution.
 #
 # Usage:
 #   specter-gate.sh          # global gate only (legacy invocation, unchanged)
@@ -14,7 +14,7 @@
 #                            # global = commitment-index ownership, DAG cycle,
 #                            # required headings, CI-passes-green, placeholders;
 #                            # NNN adds checklist placeholder + C-ID cross-refs
-#   specter-gate.sh aggregate <verify|agent-verify|analyze|review|expand> [arg] [--ledger] [--round N]
+#   specter-gate.sh aggregate <pre-verify|verify|analyze|review|expand> [arg] [--ledger] [--round N]
 #                            # Layer-3 verdict aggregation over the STATION-FIXED
 #                            # report set (the caller never picks input files).
 #                            # --ledger also appends the .specify/specter-run.jsonl
@@ -127,7 +127,10 @@ fi
 if [ "$SUBCOMMAND" = "structural" ]; then
   MAP="docs/prd/feature-map.md"
   PROGRESS="docs/prd/feature-map.progress.md"
-  CODEX_PRD_CHECKLIST="docs/prd/codex/checklist.md"
+  # Baseline checklist: new path first, legacy Codex-era path as fallback so
+  # established consumer projects keep passing their C-ID cross-references.
+  CODEX_PRD_CHECKLIST="docs/prd/featuremap-checklist.md"
+  [ -f "$CODEX_PRD_CHECKLIST" ] || CODEX_PRD_CHECKLIST="docs/prd/codex/checklist.md"
 
   verdict="PASS"
   index_ok=true
@@ -358,23 +361,28 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
     if [[ "$1" =~ ^[0-9]+$ ]]; then printf '%03d' "$((10#$1))"; else printf '%s' "$1"; fi
   }
 
+  # Legacy alias (pre-2026-07-19 rename): "agent-verify" was the per-Feature
+  # station's old name; normalize it so half-synced callers fail loudly on
+  # arg validation instead of silently hitting the wrong station.
+  [ "$STATION" = "agent-verify" ] && STATION="verify"
+
   case "$STATION" in
-    verify)
+    pre-verify)
       INPUTS=("docs/prd/feature-map.codex-verify.md" "docs/prd/feature-map.antigravity-checklist.md")
       EXPECTED_MODES=("codex-global-verify" "antigravity-global-verify")
       sha_field="Feature Map SHA256"; sha_target="docs/prd/feature-map.md"
-      cycle="pre"; step="verify"
+      cycle="pre"; step="pre-verify"
       ;;
-    agent-verify)
+    verify)
       if ! [[ "$ARG" =~ ^[0-9]+$ ]]; then
-        add_reason "station agent-verify requires a numeric Feature number (got '${ARG:-<none>}')"; verdict="FAIL"
+        add_reason "station verify requires a numeric Feature number (got '${ARG:-<none>}')"; verdict="FAIL"
       else
         agg_feature=$(pad_feature "$ARG")
         INPUTS=("docs/prd/checklists/feature-${agg_feature}.codex-verify.md" "docs/prd/checklists/feature-${agg_feature}.antigravity-verify.md")
         EXPECTED_MODES=("codex-per-feature-verify" "antigravity-per-feature-verify")
         sha_field="Checklist SHA256"; sha_target="docs/prd/checklists/feature-${agg_feature}.checklist.md"
         feature_check=true
-        cycle="feature"; step="agent-verify"
+        cycle="feature"; step="verify"
       fi
       ;;
     analyze)
@@ -415,7 +423,7 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
       fi
       ;;
     *)
-      add_reason "unknown station '${STATION:-<none>}' (expected verify|agent-verify|analyze|review|expand)"
+      add_reason "unknown station '${STATION:-<none>}' (expected pre-verify|verify|analyze|review|expand)"
       verdict="FAIL"
       ;;
   esac
@@ -526,10 +534,12 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
   # host prose.
   baseline_cap=""
   if [ "$STATION" = "expand" ] && [[ "$ARG" =~ ^[0-9]+$ ]]; then
-    if [ ! -s "docs/prd/codex/checklist-delta-${ARG}.md" ]; then
+    delta_baseline="docs/prd/featuremap-checklist-delta-${ARG}.md"
+    [ -s "$delta_baseline" ] || delta_baseline="docs/prd/codex/checklist-delta-${ARG}.md"  # legacy path
+    if [ ! -s "$delta_baseline" ]; then
       verdict=$(worse "$verdict" "WARN")
-      baseline_cap="missing-codex-baseline"
-      add_reason "independent Codex delta baseline docs/prd/codex/checklist-delta-${ARG}.md missing or empty — WARN cap"
+      baseline_cap="missing-baseline"
+      add_reason "independent delta baseline docs/prd/featuremap-checklist-delta-${ARG}.md missing or empty — WARN cap"
     fi
   fi
 
@@ -773,7 +783,7 @@ if [ -n "$FEATURE" ]; then
     if [[ "$codex_verify_feature_field" == *"Feature ${FEATURE}"* ]] || [[ "$codex_verify_feature_field" == *"Feature ${FEATURE_RAW}"* ]]; then
       codex_verify_feature_match=true
     else
-      add_reason "codex-verify Feature field '${codex_verify_feature_field:-missing}' does not match requested Feature ${FEATURE} (stale or reused report — re-run /ms.agent-verify)"
+      add_reason "codex-verify Feature field '${codex_verify_feature_field:-missing}' does not match requested Feature ${FEATURE} (stale or reused report — re-run /ms.verify)"
       any_fail=true
     fi
     if $feature_checklist_exists; then
@@ -781,7 +791,7 @@ if [ -n "$FEATURE" ]; then
       if [ -n "$codex_recorded_checklist_sha" ] && [ "$codex_recorded_checklist_sha" = "$feature_checklist_current_sha" ]; then
         codex_verify_sha_ok=true
       else
-        add_reason "codex-verify Checklist SHA256 stale (recorded=${codex_recorded_checklist_sha:-none}, current=${feature_checklist_current_sha}) — re-run /ms.agent-verify"
+        add_reason "codex-verify Checklist SHA256 stale (recorded=${codex_recorded_checklist_sha:-none}, current=${feature_checklist_current_sha}) — re-run /ms.verify"
         any_fail=true
       fi
     fi
@@ -804,7 +814,7 @@ if [ -n "$FEATURE" ]; then
     if [[ "$antigravity_verify_feature_field" == *"Feature ${FEATURE}"* ]] || [[ "$antigravity_verify_feature_field" == *"Feature ${FEATURE_RAW}"* ]]; then
       antigravity_verify_feature_match=true
     else
-      add_reason "antigravity-verify Feature field '${antigravity_verify_feature_field:-missing}' does not match requested Feature ${FEATURE} (stale or reused report — re-run /ms.agent-verify)"
+      add_reason "antigravity-verify Feature field '${antigravity_verify_feature_field:-missing}' does not match requested Feature ${FEATURE} (stale or reused report — re-run /ms.verify)"
       any_fail=true
     fi
     if $feature_checklist_exists; then
@@ -812,7 +822,7 @@ if [ -n "$FEATURE" ]; then
       if [ -n "$antigravity_recorded_checklist_sha" ] && [ "$antigravity_recorded_checklist_sha" = "$feature_checklist_current_sha" ]; then
         antigravity_verify_sha_ok=true
       else
-        add_reason "antigravity-verify Checklist SHA256 stale (recorded=${antigravity_recorded_checklist_sha:-none}, current=${feature_checklist_current_sha}) — re-run /ms.agent-verify"
+        add_reason "antigravity-verify Checklist SHA256 stale (recorded=${antigravity_recorded_checklist_sha:-none}, current=${feature_checklist_current_sha}) — re-run /ms.verify"
         any_fail=true
       fi
     fi

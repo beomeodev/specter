@@ -35,9 +35,9 @@ recorded as an amendment or project-specific rule when durable.
 The `/ms.*` workflow is a layered process:
 
 ```text
-One-time setup   /ms.featuremap -> /ms.codex-checklist -> /ms.verify -> /ms.constitution
+One-time setup   /ms.featuremap -> /ms.featuremap-checklist -> /ms.pre-verify -> /ms.constitution
                  (bundled: /ms.pre-specter; PRD co-authoring beforehand: /ms.prd)
-Per-Feature      /ms.checklist -> /ms.agent-verify -> /ms.specify -> /ms.clarify
+Per-Feature      /ms.checklist -> /ms.verify -> /ms.specify -> /ms.clarify
                  -> /ms.plan -> /ms.tasks -> /ms.analyze -> /ms.implement -> /ms.review
                  (bundled: /ms.specter <NNN>)
 Publish/release  [/ms.up-docs] -> /ms.fin -> /ms.merglease

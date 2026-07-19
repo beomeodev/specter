@@ -770,17 +770,17 @@ review timestamp as a warning, then continues.
 
 | Command | Purpose | Checks | When to Run |
 |---------|---------|--------|-------------|
-| `/ms.verify` | Global Feature Map gate | PRD coverage, Feature ownership, DAG, stub-forward, template completeness | After `/ms.codex-checklist`, before `/ms.constitution` |
-| `/ms.checklist` | Per-Feature gate | Selected Feature PRD fidelity, ownership, scope, done criteria | After `/ms.constitution`, before `/ms.agent-verify` |
-| `/ms.agent-verify` | Per-Feature dual-agent gate | Concise Codex & Antigravity check of the Feature checklist | After `/ms.checklist`, before `/ms.specify` |
+| `/ms.pre-verify` | Global Feature Map gate | PRD coverage, Feature ownership, DAG, stub-forward, template completeness | After `/ms.featuremap-checklist`, before `/ms.constitution` |
+| `/ms.checklist` | Per-Feature gate | Selected Feature PRD fidelity, ownership, scope, done criteria | After `/ms.constitution`, before `/ms.verify` |
+| `/ms.verify` | Per-Feature dual-agent gate | Concise Codex & Antigravity check of the Feature checklist | After `/ms.checklist`, before `/ms.specify` |
 | `/ms.analyze` | Pre-implementation document gate | spec ↔ plan ↔ tasks consistency, Constitution alignment, drift detection | Before `/ms.implement` |
 | `/ms.review` | Post-implementation code gate | Design review, Done Criteria Execution (runs the real entrypoint), Codex and Antigravity reviews, lint/types/tests/build, coverage, security, TAG integrity | After `/ms.implement` |
 | `/ms.fin` | Final commit | Review-state acknowledgement, docs sync, commit, push, PR | After `/ms.review` passes |
 
 **Mental model**:
-- `/ms.verify` = "Did the PRD become the right Feature Map?"
+- `/ms.pre-verify` = "Did the PRD become the right Feature Map?"
 - `/ms.checklist` = "Is this Feature ready to become a spec?"
-- `/ms.agent-verify` = "Did the two independent reviewers find blocking checklist issues?"
+- `/ms.verify` = "Did the two independent reviewers find blocking checklist issues?"
 - `/ms.analyze` = "Are the implementation documents coherent enough to build?"
 - `/ms.review` = "Is the implemented branch ready to publish?"
 - `/ms.fin` = "Commit, push, and open/update the PR."

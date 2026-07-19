@@ -1,6 +1,6 @@
 ---
 name: specter-agent-protocols
-description: Canonical external-agent protocols shared by the dual-agent SPECTER commands (/ms.agent-verify, /ms.verify, /ms.analyze, /ms.review, /ms.codex-checklist, /ms.expand) — session-level preflight, single-agent degrade rule, report-write/salvage protocol, re-round convergence caps, the auditor bias-prevention doctrine (context isolation, evidence-cited verdicts, UNVERIFIED marking, grade-down-on-doubt, defect-claim symmetry), the verification-report structure (Claim/Evidence/Baseline/Gaps/Residual-risk), and the three-layer station contract (deterministic structural checks → independent dual-agent semantics → mechanical verdict aggregation via specter-gate.sh, with the typed degrade contract and mechanical ledger emission). Commands reference this file instead of restating the mechanics; each command keeps only its own report paths and station-specific invariants inline.
+description: Canonical external-agent protocols shared by the dual-agent SPECTER commands (/ms.verify, /ms.pre-verify, /ms.analyze, /ms.review, /ms.expand) — session-level preflight, single-agent degrade rule, report-write/salvage protocol, re-round convergence caps, the auditor bias-prevention doctrine (context isolation, evidence-cited verdicts, UNVERIFIED marking, grade-down-on-doubt, defect-claim symmetry), the verification-report structure (Claim/Evidence/Baseline/Gaps/Residual-risk), and the three-layer station contract (deterministic structural checks → independent dual-agent semantics → mechanical verdict aggregation via specter-gate.sh, with the typed degrade contract and mechanical ledger emission). Commands reference this file instead of restating the mechanics; each command keeps only its own report paths and station-specific invariants inline.
 ---
 
 # SPECTER External-Agent Protocols
@@ -49,8 +49,9 @@ of blocking the command.
 - **Never** present a single-agent run as if both agents ran.
 - **Never** block a cycle on an external-agent environment issue alone —
   degrade, record it, continue.
-- A single-agent station (e.g. `/ms.codex-checklist`) has nothing to degrade
-  to: stop and report the failure instead.
+- A single-agent station (e.g. `/ms.expand`'s delta verify, where Antigravity
+  is the only Layer-2 verifier) has nothing to degrade to: stop and report the
+  failure instead.
 
 ## 3. Report-Write / Salvage Protocol
 
@@ -219,8 +220,8 @@ sha256, result, availability}` (a missing/empty input records `""` at its
 position so the hash array always aligns with the input array), `verdict`,
 `cap` (present only when the verdict was capped mechanically —
 `single-agent-degrade` for an availability placeholder, or
-`missing-codex-baseline` at the expand station when the independent Codex
-delta checklist is absent), and `reasons[]`.
+`missing-baseline` at the expand station when the independent delta baseline
+checklist is absent), and `reasons[]`.
 The receipt — not host prose — is the station's outcome of record. Canonical
 artifacts the host assembles afterward (e.g. the global Feature Map checklist)
 copy the receipt's verdict verbatim; the host contributes paths and metadata,
@@ -264,7 +265,7 @@ survives regardless.
 authoring stations**: a fresh subagent writes the artifact so the session's
 authoring memory cannot leak into it. Their self-reported Result is a draft
 grade, never authoritative — the authoritative verdict comes from the
-L1+L2+L3 station that follows (`/ms.verify`, `/ms.agent-verify`). A single
+L1+L2+L3 station that follows (`/ms.pre-verify`, `/ms.verify`). A single
 subagent's PASS must never be presented as, or substituted for, dual
 verification. Fix rounds after a FAIL re-dispatch a fresh subagent scoped to
 the reported defects only (max 2 fix rounds before escalating to the user),

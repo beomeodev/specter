@@ -75,11 +75,11 @@ never from inline text, never from a pre-existing spec.md.
 
 Do this first:
   1. /ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]   → generates docs/prd/feature-map.md
-  2. /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
-  3. /ms.verify
+  2. /ms.featuremap-checklist @docs/prd/PRD.md [@docs/prd/another.md]
+  3. /ms.pre-verify
   4. /ms.constitution
   5. /ms.checklist
-  6. /ms.agent-verify
+  6. /ms.verify
   7. Open docs/prd/feature-map.md, copy the checked "Feature NNN" section you want to build
   8. /ms.specify  + paste that Feature section
 
@@ -90,7 +90,7 @@ Stopping now.
 
 ### 0.2 REQUIRE Global And Per-Feature Checklists (HARD GATE)
 
-Before creating a spec, verify that `/ms.verify` has validated the whole Feature Map, `/ms.checklist` has validated the selected Feature, and `/ms.agent-verify` has produced the per-Feature dual-agent (Codex & Antigravity) verification reports. This keeps Spec-Kit's native checklist from becoming the first real validation point,
+Before creating a spec, verify that `/ms.pre-verify` has validated the whole Feature Map, `/ms.checklist` has validated the selected Feature, and `/ms.verify` has produced the per-Feature dual-agent (Codex & Antigravity) verification reports. This keeps Spec-Kit's native checklist from becoming the first real validation point,
 which would be too late.
 
 **Checks:**
@@ -116,10 +116,10 @@ checklist** (`docs/prd/feature-map.checklist.md` existence, Mode, Result, or SHA
 ⛔ /ms.specify requires a passing global Feature Map checklist.
 
 Run this first:
-  /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
-  /ms.verify
+  /ms.featuremap-checklist @docs/prd/PRD.md [@docs/prd/another.md]
+  /ms.pre-verify
 
-Fix any Blocking Fixes in docs/prd/feature-map.checklist.md, re-run /ms.verify,
+Fix any Blocking Fixes in docs/prd/feature-map.checklist.md, re-run /ms.pre-verify,
 then retry the Feature checklist.
 Stopping now.
 ```
@@ -148,7 +148,7 @@ Stopping now.
 ⏳ /ms.specify requires both Codex and Antigravity verification for this Feature.
 
 Run this first:
-  /ms.agent-verify
+  /ms.verify
 
 If it is still running, wait briefly and retry /ms.specify after both result files appear.
 Stopping now.
@@ -302,11 +302,11 @@ If the user provides new source material here, stop and tell them to update the 
 
 ```text
 /ms.featuremap
-/ms.codex-checklist
-/ms.verify
+/ms.featuremap-checklist
+/ms.pre-verify
 /ms.constitution
 /ms.checklist
-/ms.agent-verify
+/ms.verify
 ```
 
 #### 3.2. Execute Speckit Specify
@@ -416,5 +416,5 @@ After `/ms.specify`:
 1. Run `/ms.clarify` to settle or explicitly confirm remaining decisions.
 2. Then proceed to `/ms.plan` for implementation planning.
 
-`/ms.verify`, `/ms.checklist`, and `/ms.agent-verify` are pre-spec gates
+`/ms.pre-verify`, `/ms.checklist`, and `/ms.verify` are pre-spec gates
 and should already have passed before this command ran.

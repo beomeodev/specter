@@ -68,11 +68,11 @@ The current release is `v2.3.1` — see [CHANGELOG.md](./CHANGELOG.md) for chang
 ```bash
 /ms.init
 /ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md]
-/ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
-/ms.verify
+/ms.featuremap-checklist @docs/prd/PRD.md [@docs/prd/another.md]
+/ms.pre-verify
 /ms.constitution
 /ms.checklist
-/ms.agent-verify
+/ms.verify
 /ms.specify   # Paste checked Feature section from docs/prd/feature-map.md
 ```
 
@@ -95,8 +95,8 @@ You don't need to run these commands one by one. The Pre-Feature cycle is handle
  🗺️  Pre-Feature Cycle    ·  Once  ·  Bulk run: /ms.pre-specter
 ════════════════════════════════════════════════════════════════════
      2. /ms.featuremap       Decompose PRD into Feature DAG
-     3. /ms.codex-checklist  Codex independent checklist (Background)
-     4. /ms.verify           PRD + Codex + Antigravity check → Global Gate
+     3. /ms.featuremap-checklist  PRD-only baseline checklist (isolated subagent)
+     4. /ms.pre-verify           L1 structural + Codex & Antigravity dual audit → Global Gate
      5. /ms.constitution     Finalize project standards (Constitution §IX)
                             │
                             ▼   Repeat for each Feature in DAG order
@@ -104,7 +104,7 @@ You don't need to run these commands one by one. The Pre-Feature cycle is handle
  🛰️  Per-Feature Cycle    ·  N times  ·  Bulk run: /ms.specter
 ════════════════════════════════════════════════════════════════════
   ┌─▶  6. /ms.checklist      Verify current Feature (PRD alignment)
-  │    7. /ms.agent-verify   Codex + Antigravity quick validation
+  │    7. /ms.verify   Codex + Antigravity quick validation
   │    8. /ms.specify        Write specification (Input Feature section)
   │    9. /ms.clarify        🔴 Clarify requirements — Human response required
   │   10. /ms.plan           Implementation plan + Reality check
@@ -150,8 +150,8 @@ Every verification station follows a **three-layer contract** (2026-07-19, `spec
 
 | Gate | When | Verification Details |
 | --- | --- | --- |
-| Global Feature Map (`/ms.verify`) | Pre-Feature, Once | Structural L1 + independent Codex & Antigravity global audits (each writes its own SHA-bound verdict) + mechanical aggregation. Codex's PRD-only checklist stays the independent input baseline. |
-| Per-Feature (`/ms.checklist` + `/ms.agent-verify`) | Every Feature start | Checks current Feature's commitment coverage, intrusion into other features, user-facing exposure, and unresolved placeholders. |
+| Global Feature Map (`/ms.pre-verify`) | Pre-Feature, Once | Structural L1 + independent Codex & Antigravity global audits (each writes its own SHA-bound verdict) + mechanical aggregation. The PRD-only baseline checklist (featuremap-checklist-author subagent) stays the independent comparison input; vendor diversity lives in the L2 dual audit. |
+| Per-Feature (`/ms.checklist` + `/ms.verify`) | Every Feature start | Checks current Feature's commitment coverage, intrusion into other features, user-facing exposure, and unresolved placeholders. |
 | Doc Consistency (`/ms.analyze`) | Just before implementation | Validates spec ↔ plan ↔ tasks drift, orphan tasks, and Constitution compliance. |
 | Code (`/ms.review`) | Right after implementation | Runs lint/type/test/build + TAG integrity + Done Criteria Execution. Validates runnable criteria (e.g., verifying web UIs using Playwright rendering). |
 
@@ -167,11 +167,11 @@ Below the prompt-based gates lies a mechanical enforcement layer: direct `/speck
 | `/ms.prd` | Co-author PRD via discovery interview (Out-of-cycle) |
 | `/ms.pre-specter` | Bulk run the Pre-Feature cycle (featuremap → constitution) |
 | `/ms.featuremap` | Decompose PRD into a Feature DAG and generate per-feature prompts |
-| `/ms.codex-checklist` | Generate Codex PRD-only independent checklist (Background) |
-| `/ms.verify` | Match PRD + checklists from both agents + Feature Map → Global Gate |
+| `/ms.featuremap-checklist` | Author PRD-only baseline checklist (featuremap-checklist-author subagent) |
+| `/ms.pre-verify` | Match PRD + checklists from both agents + Feature Map → Global Gate |
 | `/ms.constitution` | Establish Constitution Section IX project baseline (Usually once) |
 | `/ms.specter` | Bulk run the Per-Feature cycle (checklist → review), human input only at clarify |
-| `/ms.checklist` / `/ms.agent-verify` | Verify current Feature's PRD coverage (Host + Codex/Antigravity) |
+| `/ms.checklist` / `/ms.verify` | Verify current Feature's PRD coverage (Host + Codex/Antigravity) |
 | `/ms.specify` / `/ms.clarify` / `/ms.plan` / `/ms.tasks` | GEARS spec → Clarification → Plan → TAG tasks |
 | `/ms.analyze` | Validate document consistency + agent checks before build |
 | `/ms.implement` | TDD implementation + TAG injection (`--to-end`, `--mode tdd\|refactor`, `--task TNNN`, `--pbt` property-based tests from GEARS) |
@@ -186,12 +186,12 @@ Agent validation commands share common flags like `--model`, `--effort low|mediu
 
 ### Two Stages of Constitution
 
-The default Constitution (test-first, simplicity, GEARS, TRUST, TAG) created by `/ms.init` is active even before `/ms.specify`. `/ms.constitution` does not create a new one from scratch; it extracts and establishes the **project-wide baseline (Section IX)** from the verified Feature Map. Thus, it is run once immediately after `/ms.verify`, not during the feature cycles.
+The default Constitution (test-first, simplicity, GEARS, TRUST, TAG) created by `/ms.init` is active even before `/ms.specify`. `/ms.constitution` does not create a new one from scratch; it extracts and establishes the **project-wide baseline (Section IX)** from the verified Feature Map. Thus, it is run once immediately after `/ms.pre-verify`, not during the feature cycles.
 
 ```text
 /ms.init             → Activate default Constitution
-/ms.codex-checklist  → Run PRD-only independent checklist
-/ms.verify           → Run global gate
+/ms.featuremap-checklist  → Run PRD-only independent checklist
+/ms.pre-verify           → Run global gate
 /ms.constitution     → Establish Section IX baseline (Usually once)
 ```
 
@@ -253,7 +253,7 @@ Upstream renaming will break only these delegations. Before bumping the pin (`SP
 
 ### Identity Invariants (Non-negotiable)
 
-While conforming names, paths, versions, and flags to upstream, SPECTER will never compromise on: the Feature Map gate, direct-call bypass block (dual guard via prompt marker and PreToolUse hook), GEARS reaching new specs, TAG traceability, Constitution Section IX, Codex independent checks, gate ownership (retained by SPECTER, not delegated to Spec-Kit CLI flags), and maintaining gate integrity during agent unavailability.
+While conforming names, paths, versions, and flags to upstream, SPECTER will never compromise on: the Feature Map gate, direct-call bypass block (dual guard via prompt marker and PreToolUse hook), GEARS reaching new specs, TAG traceability, Constitution Section IX, independent dual-agent verification (Codex & Antigravity), gate ownership (retained by SPECTER, not delegated to Spec-Kit CLI flags), and maintaining gate integrity during agent unavailability.
 
 ### Divorce Tripwires
 

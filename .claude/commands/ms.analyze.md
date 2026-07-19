@@ -373,8 +373,8 @@ If `FAIL`:
 
 | Command | Responsibility | Timing |
 | --- | --- | --- |
-| `/ms.verify` | Global PRD → Feature Map gate | Before `/ms.constitution` |
-| `/ms.checklist` + `/ms.agent-verify` | Per-Feature PRD readiness gate | Before `/ms.specify` |
+| `/ms.pre-verify` | Global PRD → Feature Map gate | Before `/ms.constitution` |
+| `/ms.checklist` + `/ms.verify` | Per-Feature PRD readiness gate | Before `/ms.specify` |
 | `/ms.analyze` | spec ↔ plan ↔ tasks document gate plus Codex document review | Before `/ms.implement` |
 | `/ms.review` | code quality + executable gates | After `/ms.implement` |
 

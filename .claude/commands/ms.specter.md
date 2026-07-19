@@ -18,8 +18,8 @@ reads those verdicts and decides whether to continue, collect a warning, or stop
 
 ## What This Command Is Not
 
-- It does not run the one-time PRD setup (`/ms.featuremap`, `/ms.codex-checklist`,
-  `/ms.verify`, `/ms.constitution`). Those must already be complete. The conductor
+- It does not run the one-time PRD setup (`/ms.featuremap`, `/ms.featuremap-checklist`,
+  `/ms.pre-verify`, `/ms.constitution`). Those must already be complete. The conductor
   covers only the repeatable per-Feature cycle.
 - It does not commit, push, tag, or open a PR. The run stops at `/ms.review`.
   Publishing stays with `/ms.fin`, whose `git` actions are permission-gated.
@@ -41,7 +41,7 @@ so nothing needs to be attached:
 - The Feature number is **freeform** — `006`, `6`, `Feature 006`, `006 진행해`,
   `6번 피처 돌려줘` all resolve to Feature 006. Surrounding words are ignored.
 - The one hard requirement is that a resolvable Feature number is present. It
-  feeds `/ms.checklist`, `/ms.agent-verify`, and `/ms.specify`.
+  feeds `/ms.checklist`, `/ms.verify`, and `/ms.specify`.
 
 **`@`-attachments — only for non-conventional paths.** Attach a PRD or the
 Feature Map with `@` only when it does **not** live at the conventional location
@@ -62,7 +62,7 @@ adds anything the conventional-path form doesn't already resolve on its own.
 
 ```text
 /ms.checklist        → per-Feature readiness gate          [local]
-/ms.agent-verify     → Codex + Antigravity, foreground     [parallel]
+/ms.verify     → Codex + Antigravity, foreground     [parallel]
 /ms.specify          → spec.md from the Feature section     (section injected)
 /ms.clarify          → 🔴 human Q&A, then resume
 /ms.plan             → plan.md + reality verification
@@ -131,8 +131,8 @@ does not interpret it.
 
    먼저 1회 PRD 셋업을 완료하세요 (한 번에: /ms.pre-specter @docs/prd/PRD.md):
      /ms.featuremap @docs/prd/PRD.md [...]
-     /ms.codex-checklist @docs/prd/PRD.md [...]
-     /ms.verify
+     /ms.featuremap-checklist @docs/prd/PRD.md [...]
+     /ms.pre-verify
      /ms.constitution
 
    완료 후 다시 실행: /ms.specter <Feature NNN>
@@ -144,7 +144,9 @@ does not interpret it.
 5. **Resume from the run-state ledger** (bookkeeping only — gates still come from the audit
    artifacts, never from this file). If `.specify/specter-run.jsonl` exists, read its lines
    filtered to `cycle: "feature"` and this Feature's number. The step sequence is
-   `checklist → agent-verify → specify → clarify → plan → tasks → analyze → implement → review`.
+   `checklist → verify → specify → clarify → plan → tasks → analyze → implement → review`.
+   **Legacy step alias** (pre-2026-07-19 ledgers): treat a `cycle: "feature"` entry named
+   `agent-verify` as `verify`.
    Take, per step name, the **last** matching line (later entries supersede earlier ones) and
    find the first step in the sequence that has no `PASS`/`WARN` entry yet — resume the cycle
    there instead of restarting at Step 1, and announce the resume point:
@@ -159,7 +161,7 @@ does not interpret it.
    **Staleness guard on resume**: a prior `PASS`/`WARN` entry counts only while its artifact is
    still current. After computing the resume point, run the deterministic gate checker
    (`.specify/scripts/bash/specter-gate.sh <NNN>`); if it reports a stale SHA or failed artifact
-   for an already-"passed" step (e.g. the checklist was rewritten after its agent-verify entry),
+   for an already-"passed" step (e.g. the checklist was rewritten after its verify entry),
    resume from that earlier step instead — a ledger entry is a bookmark, never a substitute for
    the artifact check. For freshness bindings the legacy checker does not cover, re-run the
    station's aggregation read-only: when resuming past `analyze`, run
@@ -207,16 +209,16 @@ Run `/ms.checklist <NNN>`. Read `docs/prd/checklists/feature-NNN.checklist.md`.
 - FAIL → stop. Report the audit's Blocking Fixes and tell the user to fix the
   Feature section, then rerun `/ms.specter <NNN>`.
 
-### Step 2: `/ms.agent-verify` (foreground, parallel)
+### Step 2: `/ms.verify` (foreground, parallel)
 
-Run `/ms.agent-verify <NNN>`. Codex and Antigravity run in the foreground in
+Run `/ms.verify <NNN>`. Codex and Antigravity run in the foreground in
 parallel and complete before this step returns (no background polling). If
 either agent fails to write its `*-verify.md` report, the underlying command
 retries once and then stops; surface that failure to the user rather than
 proceeding.
 
 Read the station verdict from the Layer-3 aggregation receipt the command
-produced (`specter-gate.sh aggregate agent-verify NNN`) — not by weighing the
+produced (`specter-gate.sh aggregate verify NNN`) — not by weighing the
 two reports yourself:
 
 - Receipt verdict PASS/WARN → continue (record any WARN, including a
@@ -306,7 +308,7 @@ When the run reaches the end (Step 9 PASS/WARN) or stops early, report in Korean
 ```text
 🛰️ /ms.specter — Feature NNN 사이클 결과
 
-진행: checklist → agent-verify → specify → clarify → plan → tasks → analyze → implement → review
+진행: checklist → verify → specify → clarify → plan → tasks → analyze → implement → review
 상태: ✅ review까지 완료  |  ⛔ <단계>에서 정지
 
 ⚠️ 수집된 경고 (WARN):
@@ -330,7 +332,7 @@ exactly the silent-quality-loss failure mode this report exists to prevent.
 | `/ms.clarify` | always | human Q&A, then resume |
 | `/ms.review` | migration in diff (Step 6.6b) | stop, present rollback analysis, wait for explicit user ack |
 | `/ms.plan` | design-level reality FAIL | stop, surface the design question |
-| `/ms.agent-verify` | agent write failure after retry | stop, report the failing agent |
+| `/ms.verify` | agent write failure after retry | stop, report the failing agent |
 | `/ms.implement` | in-scope blocker | stop, surface the blocker |
 | end of `/ms.review` | PASS/WARN | finish, recommend `/ms.fin` |
 

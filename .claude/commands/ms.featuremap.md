@@ -11,9 +11,9 @@ graph of independently implementable, mergeable, and shippable vertical slices (
 This command is the **front of the Specter pipeline** and runs **BEFORE** `/ms.specify`.
 
 ```
-/ms.featuremap  →  /ms.codex-checklist  →  /ms.verify  →  /ms.constitution
+/ms.featuremap  →  /ms.featuremap-checklist  →  /ms.pre-verify  →  /ms.constitution
                  →  repeat per Feature in DAG order:
-                    /ms.checklist  →  /ms.agent-verify  →  /ms.specify  →  /ms.clarify  →  /ms.plan
+                    /ms.checklist  →  /ms.verify  →  /ms.specify  →  /ms.clarify  →  /ms.plan
                     →  /ms.tasks  →  /ms.analyze  →  /ms.implement  →  /ms.review
 ```
 
@@ -90,13 +90,13 @@ carries session memory of the PRD conversation, and an author that remembers
 its intent writes the map to match the intent rather than the documents. The
 subagent reads only files.
 
-Dispatch one general-purpose subagent (same model tier as the session —
-decomposition is architecture-level work), passing **file paths only** (AGENTS
-§2 dispatch discipline — never paste PRD or template content into the prompt):
+Dispatch the **featuremap-author** subagent (`.claude/agents/featuremap-author.md`
+— its station discipline lives in the agent definition, so this prompt carries
+only run parameters), passing **file paths only** (AGENTS §2 dispatch
+discipline — never paste PRD or template content into the prompt):
 
 ```text
-You are the isolated authoring subagent for /ms.featuremap. You have no
-conversation context by design; work from files alone.
+Author the Feature Map for this PRD set.
 
 Read your authoring brief: .claude/commands/ms.featuremap.md, sections
 "2. Run the Decomposition Algorithm" through "4. Assemble the full document"
@@ -229,7 +229,7 @@ last Feature.**
 ## PRD Commitment Index
 
 > Thin ownership map. Details stay in the PRD; this table only proves that every PRD commitment has
-> exactly one owning Feature. `/ms.verify` audits the whole table against the independent Codex checklist, and `/ms.checklist`
+> exactly one owning Feature. `/ms.pre-verify` audits the whole table against the independent Codex checklist, and `/ms.checklist`
 > audits the next Feature's rows before `/ms.specify`.
 
 | Source PRD | PRD Ref | Commitment Type | Short Label | Owning Feature | Handling |
@@ -303,7 +303,7 @@ install -D -m 0755 docs/templates/scripts/specter-gate.sh .specify/scripts/bash/
   that → stop and report to the user.
 
 The structural verdict is a shape check, not an authoritative content verdict —
-that comes from `/ms.verify`'s dual-agent station. Never present this PASS as
+that comes from `/ms.pre-verify`'s dual-agent station. Never present this PASS as
 verification.
 
 ### 5.5 Run-State Ledger (bookkeeping, not a gate)
@@ -333,15 +333,15 @@ entries, copied verbatim.
 🧩 Stub-and-Forward points: <list>
 
 🎯 Next step — start the independent Codex PRD checklist and verify the Feature Map:
-   /ms.codex-checklist @docs/prd/PRD.md [@docs/prd/another.md]
-   /ms.verify
+   /ms.featuremap-checklist @docs/prd/PRD.md [@docs/prd/another.md]
+   /ms.pre-verify
 
 After global verification passes, establish the project baseline once:
    /ms.constitution
 
 Then validate the FIRST Feature and specify it:
    /ms.checklist
-   /ms.agent-verify
+   /ms.verify
    /ms.specify  + paste the full "Feature 001" section from docs/prd/feature-map.md
 
 ⛔ Reminder: /ms.specify must be driven by a Feature section from THIS file, and
@@ -367,11 +367,11 @@ Then validate the FIRST Feature and specify it:
 ## Next Command
 
 After `/ms.featuremap`:
-1. Run `/ms.codex-checklist`, then `/ms.verify` to validate PRD coverage, Feature ownership, DAG, and template completeness.
-2. Fix any blocking issues in `docs/prd/feature-map.md` and re-run `/ms.verify`.
+1. Run `/ms.featuremap-checklist`, then `/ms.pre-verify` to validate PRD coverage, Feature ownership, DAG, and template completeness.
+2. Fix any blocking issues in `docs/prd/feature-map.md` and re-run `/ms.pre-verify`.
 3. Run `/ms.constitution` once to establish Section IX from the PRD set and checked Feature Map.
 4. Run `/ms.checklist` to validate the next eligible Feature against its Source PRDs, PRD references, and commitment rows.
-5. After the per-Feature checklist passes, run `/ms.agent-verify` for the same Feature.
+5. After the per-Feature checklist passes, run `/ms.verify` for the same Feature.
 6. After both verification reports (Codex & Antigravity) are available, open `docs/prd/feature-map.md`, read the selected Feature section in full.
 7. Run `/ms.specify` and paste that Feature section as the input.
 8. Proceed through the dependency graph one Feature at a time, in order.

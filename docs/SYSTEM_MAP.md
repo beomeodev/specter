@@ -42,10 +42,12 @@ AGENTS.md §9 for where structure is answered instead.
 SPECTER is a command-driven workflow wrapper over GitHub Spec-Kit for Claude
 Code projects. This repository is the **template/tooling repo itself** — it
 ships the `/ms.*` command definitions (24 files under `.claude/commands/`),
-skills (13 dirs under `.claude/skills/`), agents (2 files under
-`.claude/agents/`: `local-ci`, `web-research-specialist` — the 2026-07-11
-usage audit retired the eight never-dispatched ones), Constitution/spec
-templates, and deterministic gate scripts
+skills (13 dirs under `.claude/skills/`), agents (5 files under
+`.claude/agents/`: `local-ci`, `web-research-specialist`, plus the three
+isolated authoring-station agents `featuremap-author`,
+`featuremap-checklist-author`, `feature-checklist-author` added 2026-07-19 —
+the 2026-07-11 usage audit retired the eight never-dispatched ones),
+Constitution/spec templates, and deterministic gate scripts
 that a consuming project installs via `/ms.init` and receives updates to via
 `/ms.sync`. There is no application runtime here; `backend/` is an empty
 scaffolding placeholder.
@@ -57,10 +59,10 @@ scaffolding placeholder.
   Graphify code graph + rebuild hooks (Step 2.9, pinned via
   `GRAPHIFY_VERSION`).
 - **Pre-Feature (one-time)**: `/ms.pre-specter` conducts `/ms.featuremap` →
-  `/ms.codex-checklist` → `/ms.verify` → `/ms.constitution`. `/ms.prd` sits
+  `/ms.featuremap-checklist` → `/ms.pre-verify` → `/ms.constitution`. `/ms.prd` sits
   before it (co-authoring, no gates); `/ms.expand` is the incremental PRD
   Amendment track.
-- **Per-Feature**: `/ms.specter` conducts `/ms.checklist` → `/ms.agent-verify`
+- **Per-Feature**: `/ms.specter` conducts `/ms.checklist` → `/ms.verify`
   → `/ms.specify` → `/ms.clarify` (human stop) → `/ms.plan` → `/ms.tasks` →
   `/ms.analyze` → `/ms.implement` → `/ms.review`. Step 0 self-heals the gate
   checker copy and the Graphify graph (WARN-only) before the cycle starts.

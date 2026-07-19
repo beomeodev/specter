@@ -338,7 +338,7 @@ Continue anyway? (sync completed; TAG findings are warnings unless promoted by S
 
 **Workflow position**:
 ```
-/ms.featuremap → /ms.codex-checklist → /ms.verify → /ms.constitution → /ms.checklist → /ms.agent-verify → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.analyze → /ms.implement → /ms.review → [/ms.up-docs] → /ms.fin
+/ms.featuremap → /ms.featuremap-checklist → /ms.pre-verify → /ms.constitution → /ms.checklist → /ms.verify → /ms.specify → /ms.clarify → /ms.plan → /ms.tasks → /ms.analyze → /ms.implement → /ms.review → [/ms.up-docs] → /ms.fin
                                                               ↑
                                                       (optional, but recommended)
 ```

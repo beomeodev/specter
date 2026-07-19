@@ -18,7 +18,7 @@ checked baseline and the user is adding a requirement, not starting over.
 - It does not accept freeform or ad-hoc requirement text. The input is an **amendment appended
   to an existing PRD file**, following the heading convention below. This mirrors
   `/ms.featuremap`'s own refusal of freeform input — the PRD stays the single source of truth.
-- It does not re-run `/ms.featuremap`, `/ms.codex-checklist`, or `/ms.verify` over the whole PRD
+- It does not re-run `/ms.featuremap`, `/ms.featuremap-checklist`, or `/ms.pre-verify` over the whole PRD
   set. It reads and audits only the newly appended amendment text.
 - It does not edit or re-own any existing `## Feature NNN:` section or existing PRD Commitment
   Index row. If the amendment requires that, it stops and escalates to `/ms.pre-specter`.
@@ -72,14 +72,14 @@ Then run:
 ### Step 0: Delta Detection + Append-Only Guard
 
 1. Read `**Git Ref**` from `docs/prd/feature-map.checklist.md` (the commit SHA recorded at the
-   last `/ms.verify` or `/ms.expand` audit). If this field is missing (an audit predating this
-   field), stop and ask the user to run `/ms.verify` once to backfill it before `/ms.expand` can
+   last `/ms.pre-verify` or `/ms.expand` audit). If this field is missing (an audit predating this
+   field), stop and ask the user to run `/ms.pre-verify` once to backfill it before `/ms.expand` can
    compute a delta.
 2. Resolve the PRD file(s) to check: the `@`-attached path(s) if given, else every source PRD
    recorded in `docs/prd/feature-map.md`.
 3. Compute the delta against the recorded Git Ref, restricted to the PRD documents themselves:
    ```bash
-   git diff <recorded Git Ref> -- docs/prd/*.md ':!docs/prd/feature-map*.md' ':!docs/prd/codex/**' ':!docs/prd/checklists/**'
+   git diff <recorded Git Ref> -- docs/prd/*.md ':!docs/prd/feature-map*.md' ':!docs/prd/featuremap-checklist*.md' ':!docs/prd/codex/**' ':!docs/prd/checklists/**'
    ```
 4. **Append-only guard**: the diff must contain **no removed or modified lines** — only added
    lines that form complete new `## PRD Amendment N — YYYY-MM-DD` sections at the end of a file.
@@ -148,37 +148,53 @@ Then run the Layer-1 structural gate on the extended map (three-layer contract,
   bounded rules as `/ms.featuremap` §5.2 (max 2 fix rounds; never delete or reword
   commitments merely to make a check pass).
 
-### Step 2: Codex Delta Checklist (Background)
+### Step 2: Delta Baseline Checklist (isolated subagent)
 
-Same contract as `/ms.codex-checklist`, scoped to the amendment only:
+Same contract as `/ms.featuremap-checklist`, scoped to the amendment only —
+dispatch the **featuremap-checklist-author** subagent:
 
-- The prompt embeds **only the extracted amendment text** inline — do not have Codex read the
-  full PRD set or `docs/prd/feature-map.md`.
-- IDs continue the existing C-numbering (read the highest `C###` already used in
-  `docs/prd/codex/checklist.md` or any prior `checklist-delta-*.md`, and start from the next
-  integer).
-- Output: `docs/prd/codex/checklist-delta-N.md`, same table structure as
-  `docs/prd/codex/checklist.md`.
-- Execution is always background, same as `/ms.codex-checklist`.
+- The dispatch prompt names the amended PRD **file path** plus the exact
+  `## PRD Amendment N` heading (AGENTS §2 file-path handoff — no pasted
+  content); the author reads ONLY that section of that file and must not read
+  the rest of the PRD set or `docs/prd/feature-map.md`.
+- The HOST computes the ID continuation before dispatch (grep the highest
+  `C###` already used in `docs/prd/featuremap-checklist.md` — legacy
+  `docs/prd/codex/checklist.md` — and any prior `*checklist-delta-*.md`) and
+  passes the starting number in the prompt, so the author reads nothing beyond
+  the named amendment section.
+- Output: `docs/prd/featuremap-checklist-delta-N.md`, same table structure as
+  `docs/prd/featuremap-checklist.md`.
+- After the subagent returns, run the same deterministic artifact check as
+  `/ms.featuremap-checklist` Step 2 (exists, non-empty, `**Mode**: prd-only`,
+  ≥1 C-row); retry once on failure.
 - **This artifact is consumed at Step 3** — the delta verify joins on it; it is never
   fire-and-forget.
 
 ### Step 3: Delta Verify (Foreground)
 
-**Join point (2026-07-18 audit #5)**: before auditing, wait for Step 2's
-`docs/prd/codex/checklist-delta-N.md` to exist, non-empty, with the expected table structure —
-then treat its items as audit inputs: every delta C-item must be either covered by the new
-Features or explicitly dispositioned in the reconciliation section below. If the file has not
-appeared, apply the `specter-agent-protocols` §3 protocol (retry once, salvage from markers);
-if Codex still produced nothing, proceed with Antigravity's verification against the amendment
-text alone and record `Codex: UNAVAILABLE (<reason>)` in the reconciliation section — the WARN
-cap itself is applied **mechanically** by Step 3's aggregation (`missing-codex-baseline`),
-which checks for `docs/prd/codex/checklist-delta-N.md` and caps the receipt when it is absent;
-the host never decides that cap. (Without this join, the missing baseline would go unnoticed —
-and since Antigravity is this station's only Layer-2 verifier, losing the Codex baseline
-silently would leave the delta audit with no independent cross-check at all.)
+**Join point (2026-07-18 audit #5)**: before auditing, resolve the delta
+baseline **new-first with legacy fallback** and reuse it as `{DELTA_BASELINE}`
+below (the same resolution order the mechanical cap uses — the join and the
+cap must never disagree about which file counts):
 
-Antigravity is this station's Layer-2 verifier (the Codex delta checklist is its independent
+```bash
+DELTA_BASELINE="docs/prd/featuremap-checklist-delta-N.md"
+[ -s "$DELTA_BASELINE" ] || DELTA_BASELINE="docs/prd/codex/checklist-delta-N.md"  # legacy path
+```
+
+Confirm `{DELTA_BASELINE}` exists, non-empty, with the expected table structure —
+then treat its items as audit inputs: every delta C-item must be either covered by the new
+Features or explicitly dispositioned in the reconciliation section below. If the author failed
+after its retry, proceed with Antigravity's verification against the amendment text alone and
+record `Baseline: MISSING (<reason>)` in the reconciliation section — the WARN cap itself is
+applied **mechanically** by Step 3's aggregation (`missing-baseline`), which checks for
+`docs/prd/featuremap-checklist-delta-N.md` (legacy: `docs/prd/codex/checklist-delta-N.md`) and
+caps the receipt when it is absent; the host never decides that cap. (Without this join, the
+missing baseline would go unnoticed — and since Antigravity is this station's only Layer-2
+verifier, losing the baseline silently would leave the delta audit with no independent
+cross-check at all.)
+
+Antigravity is this station's Layer-2 verifier (the delta baseline checklist is its independent
 input baseline, not a verdict; the host contributes only the deterministic Layer-1 checks
 already run in Step 1). Its audit scope:
 
@@ -187,9 +203,12 @@ already run in Step 1). Its audit scope:
 (c) the extended DAG has no cycle;
 (d) every deferred/out-of-scope item in the amendment has a destination Feature.
 
-Invoke Antigravity in the foreground, same pattern as `/ms.verify` Step 1, with a prompt scoped
-to the amendment text, the new Feature sections, and the DAG extension only (not the whole
-product). It must write its own verdict report to the **station-fixed path**:
+Invoke Antigravity in the foreground, same pattern as `/ms.pre-verify` Step 1, with a prompt scoped
+to the amendment text, the new Feature sections, the DAG extension, **and the resolved
+`{DELTA_BASELINE}` file** (not the whole product). The prompt must require Antigravity to read
+`{DELTA_BASELINE}` and disposition **every** delta C-ID in its Findings — a receipt that passes
+without the semantic verifier having consumed the baseline defeats the join. It must write its
+own verdict report to the **station-fixed path**:
 
 ```text
 docs/prd/feature-map.delta-N.antigravity-verify.md
@@ -238,7 +257,7 @@ sha256sum docs/prd/feature-map.md   # -> Feature Map SHA256
 git rev-parse HEAD                  # -> Git Ref
 ```
 
-Write both into the checklist header fields, exactly like `/ms.verify` Step 5.
+Write both into the checklist header fields, exactly like `/ms.pre-verify` Step 5.
 
 ### Step 4: Constitution Diff Check
 
@@ -264,7 +283,7 @@ Section IX, exactly as `/ms.constitution` Step 3 already forbids.
 
 📄 확장된 Feature Map: docs/prd/feature-map.md (신규 Feature: NNN, ...)
 📄 Delta 감사: docs/prd/feature-map.checklist.md (## Delta Reconciliation N)
-📄 Codex delta checklist: docs/prd/codex/checklist-delta-N.md
+📄 Delta baseline checklist: docs/prd/featuremap-checklist-delta-N.md
 🏛️ Constitution: 변경 없음 | Section IX에 <항목> 추가됨
 
 상태: ✅ PASS | ⚠️ WARN | ⛔ FAIL
