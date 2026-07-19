@@ -63,14 +63,24 @@ the human can *own* what the product is allowed to destroy or expose — and bec
 `/ms.fin` sits on every track (feature AND fix), this net catches changes that never
 passed `/ms.review`.
 
-1. **Detect high-stakes hunks** in the full outgoing diff — everything that
+1. **Detect high-stakes hunks** in the full outgoing set — everything that
    would be published, not just what is uncommitted. Compute it as the unpushed
-   range **plus** the working tree:
+   range **plus** the working tree **plus untracked files** (2026-07-19 sol
+   finding: a newly created migration or credential-handling file appears in
+   neither diff, yet Step 3's explicit staging list can publish it):
    ```bash
-   BASE=$(git rev-parse --abbrev-ref --symbolic-full-name @{upstream} 2>/dev/null || echo origin/master)
+   # branch upstream first, remote default second — never a hardcoded origin/master.
+   BASE=$(git rev-parse --abbrev-ref --symbolic-full-name @{upstream} 2>/dev/null \
+     || git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+   # if BASE is still empty (no upstream, no origin/HEAD): STOP and ask the user
+   # which base branch the publish diff should be computed against.
    git diff "$BASE"...HEAD   # commits not yet pushed (this is what catches the /ms.fix track,
                              # which commits in its own Step 6 before reaching /ms.fin)
    git diff HEAD             # uncommitted + staged work
+   git ls-files --others --exclude-standard   # untracked files — read each one's CONTENT
+                                              # and scan it with the same criteria below;
+                                              # binary/oversized untracked files are reported
+                                              # as "수동 확인 필요", never silently skipped
    ```
    A hunk is high-stakes if it touches any of:
    - **auth/credentials**: session, token, password, OTP/2FA, crypto keys, permission checks
@@ -178,7 +188,9 @@ Tasks to execute:
    - Give every commit a meaningful conventional message (feat/fix/chore/docs/test)
      that describes that commit's concern specifically.
 3. Push:
-   - Push the committed branch to origin.
+   - Push the committed branch to its configured remote
+     ('git config branch.<current-branch>.remote', falling back to 'origin'
+     only when none is configured).
 4. PR Auto-create:
    - Compose the PR body from the latest review report in docs/review/ (if any)
      plus this run's commit messages: summary, key changes by concern, gate
@@ -206,21 +218,32 @@ Do not edit code files except staging and formatting. Write your results, the PR
 
 Antigravity's self-report is not completion evidence — delegated runs have stalled
 silently mid-pipeline (observed 2026-07: stopped before committing). Before
-reporting success, verify the end state directly with git/gh:
+reporting success, verify the end state with the deterministic helper (it
+resolves the branch's real upstream / the remote default — no hardcoded
+origin/master):
 
 ```bash
-git status --porcelain                      # ① no publish-intended changes left in the tree
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
-git log origin/"$BRANCH"..HEAD --oneline    # ② empty → branch fully pushed
-gh pr view --json state,url                 # ③ PR exists and is OPEN
+# self-heal: the runtime copy is project-local (never synced); refresh it from the synced template
+install -D -m 0755 docs/templates/scripts/specter-publish.sh .specify/scripts/bash/specter-publish.sh
+.specify/scripts/bash/specter-publish.sh version        # contract probe — must report publish-helpers-v1
+.specify/scripts/bash/specter-publish.sh verify-endstate
 ```
+
+If the template is missing **or the probe's `contract` is not `publish-helpers-v1`**,
+**STOP** and tell the user to run `/ms.sync` first —
+never substitute LLM-judged end-state checks (silent fallback recreates the
+failure class this helper removes). Read the JSON `checks`
+(`tree_clean` / `pushed` / `pr_open`): each is
+`true | false | not_applicable | unknown` with evidence. `unknown` means the
+fact could not be observed (gh/network) — never treat it as "absent"; re-check
+or verify manually. The host adds no judgment: the JSON *is* the verification.
 
 The self-review stamp (prompt task 5) is fail-open by design — report its status
 as delegated, never repair or block on it.
 
 Interpretation:
 
-- **All three hold** → report `위임 완주` in Step 4.
+- **Every applicable check is `true`** → report `위임 완주` in Step 4.
 - **Something is missing AND the delegation report gives no reason for stopping**
   (silent stall) → complete ONLY the missing items yourself, idempotently — never
   re-run the whole pipeline or redo completed steps. Follow the same rules the

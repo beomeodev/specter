@@ -1,11 +1,11 @@
 ---
-description: "Merge open PR → release: gh pr merge → master pull → tag + GitHub Release. (Delegated to Antigravity)"
+description: "Merge open PR → release: gh pr merge → base-branch pull → tag + GitHub Release. (Delegated to Antigravity)"
 argument-hint: "[version] [--no-release] [--confirm] [--cleanup]"
 ---
 
 # /ms.merglease - Merge & Release (Delegated)
 
-Delegate the PR merging, master pull, automatic semver computation, tagging, and GitHub Release
+Delegate the PR merging, base-branch pull, automatic semver computation, tagging, and GitHub Release
 creation to the **Google Antigravity CLI**.
 
 ## Automation Principles
@@ -30,7 +30,22 @@ creation to the **Google Antigravity CLI**.
 
 ### Step 0: WIP-Publish Preflight (host, blocking)
 
-Before delegating, check for merge-blocking WIP markers (2026-07-18 audit #13):
+First, self-heal the deterministic release helper and verify its contract
+(three-layer principle applied to the release track — semver and end-state
+facts are computed by script, never re-derived by an LLM):
+
+```bash
+# self-heal: the runtime copy is project-local (never synced); refresh it from the synced template
+install -D -m 0755 docs/templates/scripts/specter-release.sh .specify/scripts/bash/specter-release.sh
+.specify/scripts/bash/specter-release.sh version
+```
+
+If the template is missing or `contract` is not `publish-helpers-v1`, **STOP**
+and tell the user to run `/ms.sync` (or update this repo) first. Never fall
+back to LLM-computed semver or LLM-judged end-state — silent fallback
+recreates exactly the failure class these helpers remove.
+
+Then check for merge-blocking WIP markers (2026-07-18 audit #13):
 
 ```bash
 cat .specify/review-state.txt 2>/dev/null
@@ -63,6 +78,9 @@ Tasks to execute:
 1. Pre-flight checks:
    - Verify that 'gh' CLI is installed and authenticated.
    - Check that the current branch is a feature branch (not master/main) and has an open PR.
+   - Resolve the push remote once and reuse it everywhere below as <REMOTE>:
+     'git config branch.<current-branch>.remote', falling back to 'origin' only when the
+     branch has no configured remote. Never assume 'origin' when a configured remote exists.
    - Wait for GitHub CI checks on the PR to reach a final state ('gh pr checks --watch' or
      equivalent polling inside THIS run — do not return control to ask the caller to poll).
 
@@ -84,28 +102,29 @@ Tasks to execute:
    - Only ask for confirmation before merging if the caller passed '--confirm'; otherwise proceed
      without asking.
 
-4. Checkout master & Pull:
-   - Run 'git checkout master && git pull --ff-only origin master'.
+4. Checkout base branch & Pull:
+   - Resolve the base branch from the PR itself: 'gh pr view <PR_NUM> --json baseRefName'.
+     Never assume master — consumer repos differ (master/main/custom).
+   - Run 'git checkout <baseRefName> && git pull --ff-only <REMOTE> <baseRefName>'.
 
-5. Version Computation & Release Notes (fully automatic):
-   - Read the last git tag. List conventional commits since that tag.
-   - Compute the version bump with NO question asked, using this mapping (same mapping applies
-     pre-1.0 — do not special-case 0.x):
-     - Any commit has a 'BREAKING CHANGE' footer or a 'type!:' subject -> MAJOR.
-     - Else, any commit has a 'feat' type -> MINOR.
-     - Else -> PATCH.
-   - If the caller passed an explicit '[version]' argument, use that instead of the computed
-     bump, but still record the computed bump for comparison in the release notes.
-   - Generate release notes that state the computed bump AND its rationale (the list of
-     conventionally-typed commits that drove the decision), plus the billing/infra warning line
-     from step 2 if one was recorded.
+5. Version Computation & Release Notes (script-computed — do NOT compute the bump yourself):
+   - Run: .specify/scripts/bash/specter-release.sh semver [explicit-version-if-caller-gave-one]
+   - Use its JSON verbatim: 'chosen_version' is the release version; 'drivers' lists the
+     commits that drove the bump; 'unclassified' lists non-conventional commits the
+     computation could NOT use.
+   - If 'chosen_version' is empty (invalid explicit version, or non-semver last tag), STOP
+     and report the script's notes — do not invent a version.
+   - Generate release notes that quote the computed bump AND its rationale verbatim from the
+     JSON (driver commit list), include every 'unclassified' commit under a "미분류 커밋"
+     heading so the reader can audit what the bump did not consider, plus the billing/infra
+     warning line from step 2 if one was recorded.
    - Only display the version/notes for confirmation if the caller passed '--confirm'; otherwise
-     proceed directly to tagging with the computed (or explicit) version.
+     proceed directly to tagging with 'chosen_version'.
 
 6. Create and Push Tag — SKIP this step AND step 7 entirely if the caller passed
    '--no-release' (no tag, no GitHub Release; state "release skipped by --no-release"
    in the final report):
-   - Create an annotated git tag for the new version and push it to origin.
+   - Create an annotated git tag for the new version and push it to <REMOTE>.
 
 7. Create GitHub Release (skipped under '--no-release', see step 6):
    - Create a GitHub Release using the 'gh release create' command, with the notes from step 5.
@@ -114,8 +133,8 @@ Tasks to execute:
    - Mark the merged Feature's Status row as '✅ shipped'. Do NOT touch 'docs/prd/feature-map.md' —
      this bookkeeping lives only in the separate progress file so it never invalidates the
      Feature Map's gated SHA256.
-   - Commit that edit on master ('chore: mark Feature NNN shipped') and push it to origin.
-     Never end the run leaving master with uncommitted changes.
+   - Commit that edit on the base branch ('chore: mark Feature NNN shipped') and push it to
+     <REMOTE>. Never end the run leaving the base branch with uncommitted changes.
 
 9. Branch cleanup (if requested via '--cleanup').
 
@@ -130,27 +149,27 @@ rationale, the new tag, and the release URL.
 
 Antigravity's self-report is not completion evidence — a delegated run has merged
 the PR and then stalled silently without creating the tag/release (observed
-2026-07). Verify the end state directly with git/gh before reporting:
+2026-07). Verify the end state with the deterministic helper (it resolves the
+base branch from PR metadata / the remote default — no hardcoded master — and
+dereferences the tag to the actual merge commit, not just the tag name):
 
 ```bash
-gh pr view <PR_NUM> --json state,mergedAt          # ① PR is MERGED
-git fetch origin master >/dev/null 2>&1
-git merge-base --is-ancestor origin/master HEAD && git rev-parse HEAD  # ② local master pulled to the merge commit
-git tag -l "<tag>" && git ls-remote --tags origin "<tag>"              # ③ tag exists locally AND on origin
-gh release view "<tag>"                            # ④ GitHub Release exists
-git log origin/master --oneline -3                 # ⑤ progress-ledger commit reached master
-                                                   #    (only if docs/prd/feature-map.progress.md exists)
-# With --no-release, items ③–④ are expected to be absent — skip them.
+.specify/scripts/bash/specter-release.sh verify-endstate <PR_NUM> <tag> [--no-release] [--ledger-feature NNN]
 ```
+
+Read the JSON `checks`: each is `true | false | not_applicable | unknown` with
+evidence. `unknown` means the fact could not be observed (gh/network) — it is
+never treated as "absent"; re-check or verify manually before interpreting it.
+The host adds no judgment: the JSON *is* the verification.
 
 Interpretation:
 
-- **All applicable items hold** → report `위임 완주` in Step 2.
+- **Every applicable check is `true`** → report `위임 완주` in Step 2.
 - **Something is missing AND the delegation report gives no reason for stopping**
   (silent stall) → complete ONLY the missing items yourself, idempotently — never
   re-run completed steps. Follow the same rules the prompt gave Antigravity
   (automatic semver with its recorded rationale, annotated tag, release notes,
-  ledger commit on master). Report `부분 정지 → <항목> 직접 완결` in Step 2.
+  ledger commit on the base branch). Report `부분 정지 → <항목> 직접 완결` in Step 2.
 - **Something is missing AND the report states why it stopped** (e.g. merge halted
   on a real CI failure — an intentional stop): do NOT fill the gap. Report the
   failure per the existing rule below; the stop was correct. This verification
