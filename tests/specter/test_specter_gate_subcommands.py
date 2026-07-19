@@ -1,0 +1,563 @@
+"""Tests for the specter-gate.sh v2 subcommands (three-layer contract).
+
+Covers the 2026-07-19 three-layer adoption (Codex-reviewed): `version`
+capability probe, `structural` Layer-1 deterministic checks, and `aggregate`
+Layer-3 verdict aggregation with the typed degrade contract and mechanical
+ledger emission (specter-agent-protocols §7).
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+import pytest
+
+SCRIPT = (
+    Path(__file__).resolve().parent.parent.parent
+    / "docs"
+    / "templates"
+    / "scripts"
+    / "specter-gate.sh"
+)
+
+GOOD_MAP = """# Feature Map
+
+## PRD Commitment Index
+
+| Source PRD | PRD Ref | Commitment Type | Short Label | Owning Feature | Handling |
+|------------|---------|-----------------|-------------|----------------|----------|
+| Product PRD | §3.1 | Functional | User login | Feature 001 | Implemented |
+| Product PRD | §3.2 | Functional | Logout | Feature 002 | Implemented |
+
+> Progress Ledger: docs/prd/feature-map.progress.md
+
+---
+## Feature 001: Auth engine
+
+### One-line summary
+Auth.
+
+### Source PRDs
+- Product PRD: docs/prd/PRD.md
+
+### PRD references
+- Product PRD §3.1 login
+
+### In scope
+**Core**
+- login endpoint
+**Tests**
+- login test
+
+### Explicitly out of scope
+- logout UI → 002
+
+### Key decisions
+- JWT
+
+### Done criteria
+- login works
+- CI passes green
+---
+## Feature 002: Logout
+
+### One-line summary
+Logout.
+
+### Source PRDs
+- Product PRD: docs/prd/PRD.md
+
+### PRD references
+- Product PRD §3.2 logout
+
+### In scope
+**Core**
+- logout endpoint
+**Tests**
+- logout test
+
+### Explicitly out of scope
+- None
+
+### Key decisions
+- reuse JWT
+
+### Done criteria
+- logout works
+- CI passes green
+---
+"""
+
+GOOD_PROGRESS = """# Feature Map Progress Ledger
+
+| Feature | Depends on | Status |
+|---------|------------|--------|
+| 001 Auth engine | — | ⬜ planned |
+| 002 Logout | 001 | ⬜ planned |
+"""
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def run_gate(repo: Path, *args: str) -> dict:
+    result = subprocess.run(
+        ["bash", str(SCRIPT), *args],
+        cwd=repo,
+        env={"PATH": "/usr/bin:/bin"},
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout)
+
+
+@pytest.fixture
+def repo(tmp_path: Path) -> Path:
+    prd = tmp_path / "docs" / "prd"
+    (prd / "checklists").mkdir(parents=True)
+    (prd / "codex").mkdir(parents=True)
+    (prd / "feature-map.md").write_text(GOOD_MAP)
+    (prd / "feature-map.progress.md").write_text(GOOD_PROGRESS)
+    return tmp_path
+
+
+def write_report(
+    path: Path,
+    *,
+    mode: str,
+    feature: str | None = "006",
+    sha_field: str | None = None,
+    sha_value: str = "",
+    result: str = "PASS",
+    availability: str | None = None,
+    findings: list[str] | None = None,
+    extra_result_line: bool = False,
+) -> None:
+    lines = [f"# Report\n", f"**Mode**: {mode}"]
+    if feature is not None:
+        lines.append(f"**Feature**: Feature {feature}: sample")
+    if sha_field is not None:
+        lines.append(f"**{sha_field}**: {sha_value}")
+    lines.append(f"**Result**: {result}")
+    if extra_result_line:
+        lines.append(f"**Result**: {result}")
+    if availability is not None:
+        lines.append(f"**Availability**: {availability}")
+    if findings:
+        lines.append("\n## Findings\n")
+        lines.append("| Severity | Finding | Evidence | Required Fix |")
+        lines.append("| --- | --- | --- | --- |")
+        lines.extend(findings)
+    path.write_text("\n".join(lines) + "\n")
+
+
+def write_agent_verify_pair(
+    repo: Path,
+    *,
+    codex_result: str = "PASS",
+    anti_result: str = "PASS",
+    codex_availability: str | None = None,
+    anti_availability: str | None = None,
+    anti_findings: list[str] | None = None,
+) -> Path:
+    checklists = repo / "docs" / "prd" / "checklists"
+    checklist = checklists / "feature-006.checklist.md"
+    checklist.write_text(
+        "# Feature 006 Checklist\n\n"
+        "**Mode**: per-feature\n"
+        "**Feature**: Feature 006: sample\n"
+        "**Result**: PASS\n"
+    )
+    csha = sha256(checklist)
+    write_report(
+        checklists / "feature-006.codex-verify.md",
+        mode="codex-per-feature-verify",
+        sha_field="Checklist SHA256",
+        sha_value=csha,
+        result=codex_result,
+        availability=codex_availability,
+    )
+    write_report(
+        checklists / "feature-006.antigravity-verify.md",
+        mode="antigravity-per-feature-verify",
+        sha_field="Checklist SHA256",
+        sha_value=csha,
+        result=anti_result,
+        availability=anti_availability,
+        findings=anti_findings,
+    )
+    return checklist
+
+
+class TestVersion:
+    def test_version_probe(self, repo: Path) -> None:
+        data = run_gate(repo, "version")
+        assert data["contract"] == "three-layer-v1"
+        assert "aggregate" in data["subcommands"]
+        assert "structural" in data["subcommands"]
+
+
+class TestStructural:
+    def test_well_formed_map_passes(self, repo: Path) -> None:
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "PASS"
+        assert data["reasons"] == []
+
+    def test_dag_cycle_fails(self, repo: Path) -> None:
+        progress = repo / "docs" / "prd" / "feature-map.progress.md"
+        progress.write_text(GOOD_PROGRESS.replace("| 001 Auth engine | — |", "| 001 Auth engine | 002 |"))
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "FAIL"
+        assert data["checks"]["dag_acyclic"] is False
+        assert any("cycle" in r for r in data["reasons"])
+
+    def test_placeholder_in_done_criteria_fails(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(GOOD_MAP.replace("- login works", "- login works TODO"))
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "FAIL"
+        assert data["checks"]["placeholders_clean"] is False
+
+    def test_placeholder_outside_done_criteria_warns(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(GOOD_MAP.replace("- login endpoint", "- login endpoint TBD"))
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "WARN"
+        assert data["checks"]["placeholders_clean"] is False
+
+    def test_missing_ci_green_fails(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(GOOD_MAP.replace("- login works\n- CI passes green", "- login works"))
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "FAIL"
+        assert any("CI passes green" in r for r in data["reasons"])
+
+    def test_commitment_row_without_owner_fails(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(GOOD_MAP.replace("| Feature 002 | Implemented |", "|  | Implemented |"))
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "FAIL"
+        assert data["checks"]["commitment_index_ok"] is False
+
+    def test_out_of_scope_without_destination_fails(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(GOOD_MAP.replace("- logout UI → 002", "- logout UI"))
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "FAIL"
+        assert any("destination" in r for r in data["reasons"])
+
+    def test_feature_scope_ignores_other_sections(self, repo: Path) -> None:
+        # A placeholder in Feature 001 must not fail a Feature-002-scoped run.
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(GOOD_MAP.replace("- login endpoint", "- login endpoint TBD"))
+        data = run_gate(repo, "structural", "2")
+        assert data["scope"] == "feature"
+        assert data["feature"] == "002"
+        assert not any("Feature 001" in r for r in data["reasons"])
+
+    def test_cited_cid_missing_from_codex_checklist_fails(self, repo: Path) -> None:
+        checklists = repo / "docs" / "prd" / "checklists"
+        (checklists / "feature-002.checklist.md").write_text(
+            "# Feature 002 Checklist\n\n**Mode**: per-feature\n"
+            "**Feature**: Feature 002: sample\n**Result**: PASS\n\n"
+            "| C101 | §3.2 | owned | covered |\n"
+        )
+        (repo / "docs" / "prd" / "codex" / "checklist.md").write_text(
+            "# Codex PRD Checklist\n\n**Mode**: prd-only\n\n| C100 | §3.1 | login |\n"
+        )
+        data = run_gate(repo, "structural", "2")
+        assert data["verdict"] == "FAIL"
+        assert data["checks"]["checklist_refs_ok"] is False
+        assert any("C101" in r for r in data["reasons"])
+
+
+class TestAggregate:
+    def test_worse_of_two_with_verbatim_caught(self, repo: Path) -> None:
+        row = "| MEDIUM | done criterion (d) lacks PRD evidence | L12 | add row |"
+        write_agent_verify_pair(repo, anti_result="WARN", anti_findings=[row])
+        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        assert data["verdict"] == "WARN"
+        assert data["caught"] == [row]
+        assert data["cap"] is None
+
+    def test_stale_checklist_sha_fails(self, repo: Path) -> None:
+        checklist = write_agent_verify_pair(repo)
+        checklist.write_text(checklist.read_text() + "\nedited after verify\n")
+        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        assert data["verdict"] == "FAIL"
+        assert any("stale" in r for r in data["reasons"])
+
+    def test_single_degrade_placeholder_warns_with_cap(self, repo: Path) -> None:
+        write_agent_verify_pair(
+            repo, codex_result="WARN", codex_availability="UNAVAILABLE (binary not on PATH)"
+        )
+        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        assert data["verdict"] == "WARN"
+        assert data["cap"] == "single-agent-degrade"
+
+    def test_recused_placeholder_warns_with_cap(self, repo: Path) -> None:
+        write_agent_verify_pair(
+            repo, codex_result="WARN", codex_availability="RECUSED (implemented this Feature)"
+        )
+        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        assert data["verdict"] == "WARN"
+        assert data["cap"] == "single-agent-degrade"
+
+    def test_all_degraded_fails(self, repo: Path) -> None:
+        write_agent_verify_pair(
+            repo,
+            codex_result="WARN",
+            codex_availability="UNAVAILABLE (binary not on PATH)",
+            anti_result="WARN",
+            anti_availability="UNAVAILABLE (auth expired)",
+        )
+        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        assert data["verdict"] == "FAIL"
+        assert any("no independent verifier" in r for r in data["reasons"])
+
+    def test_availability_with_non_warn_result_fails(self, repo: Path) -> None:
+        # An agent-authored failure must not be relabeled environmental.
+        write_agent_verify_pair(
+            repo, codex_result="PASS", codex_availability="UNAVAILABLE (host said so)"
+        )
+        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        assert data["verdict"] == "FAIL"
+
+    def test_duplicate_result_lines_fail(self, repo: Path) -> None:
+        write_agent_verify_pair(repo)
+        checklists = repo / "docs" / "prd" / "checklists"
+        checklist_sha = sha256(checklists / "feature-006.checklist.md")
+        write_report(
+            checklists / "feature-006.codex-verify.md",
+            mode="codex-per-feature-verify",
+            sha_field="Checklist SHA256",
+            sha_value=checklist_sha,
+            extra_result_line=True,
+        )
+        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        assert data["verdict"] == "FAIL"
+        assert any("exactly one Result" in r for r in data["reasons"])
+
+    def test_missing_report_fails(self, repo: Path) -> None:
+        write_agent_verify_pair(repo)
+        (repo / "docs" / "prd" / "checklists" / "feature-006.codex-verify.md").unlink()
+        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        assert data["verdict"] == "FAIL"
+        assert any("missing or empty" in r for r in data["reasons"])
+
+    def test_feature_mismatch_fails(self, repo: Path) -> None:
+        write_agent_verify_pair(repo)
+        checklists = repo / "docs" / "prd" / "checklists"
+        checklist_sha = sha256(checklists / "feature-006.checklist.md")
+        write_report(
+            checklists / "feature-006.codex-verify.md",
+            mode="codex-per-feature-verify",
+            feature="005",
+            sha_field="Checklist SHA256",
+            sha_value=checklist_sha,
+        )
+        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        assert data["verdict"] == "FAIL"
+        assert any("does not match" in r for r in data["reasons"])
+
+    def test_ledger_emission_is_mechanical(self, repo: Path) -> None:
+        row = "| HIGH | invented behavior in scope | L4 | remove |"
+        write_agent_verify_pair(repo, anti_result="FAIL", anti_findings=[row])
+        data = run_gate(repo, "aggregate", "agent-verify", "6", "--ledger")
+        assert data["verdict"] == "FAIL"
+        assert data["ledger_written"] is True
+        ledger = (repo / ".specify" / "specter-run.jsonl").read_text().strip().splitlines()
+        entry = json.loads(ledger[-1])
+        assert entry["step"] == "agent-verify"
+        assert entry["feature"] == "006"
+        assert entry["verdict"] == "FAIL"
+        assert entry["caught"] == [row]
+
+    def test_pass_ledger_line_stays_minimal(self, repo: Path) -> None:
+        write_agent_verify_pair(repo)
+        data = run_gate(repo, "aggregate", "agent-verify", "6", "--ledger")
+        assert data["verdict"] == "PASS"
+        entry = json.loads(
+            (repo / ".specify" / "specter-run.jsonl").read_text().strip().splitlines()[-1]
+        )
+        assert "caught" not in entry
+        assert "cap" not in entry
+
+    def test_verify_station_binds_to_feature_map_sha(self, repo: Path) -> None:
+        prd = repo / "docs" / "prd"
+        map_sha = sha256(prd / "feature-map.md")
+        write_report(
+            prd / "feature-map.codex-verify.md",
+            mode="codex-global-verify",
+            feature=None,
+            sha_field="Feature Map SHA256",
+            sha_value=map_sha,
+        )
+        write_report(
+            prd / "feature-map.antigravity-checklist.md",
+            mode="antigravity-global-verify",
+            feature=None,
+            sha_field="Feature Map SHA256",
+            sha_value=map_sha,
+        )
+        data = run_gate(repo, "aggregate", "verify")
+        assert data["verdict"] == "PASS"
+        # Editing the map invalidates both reports.
+        (prd / "feature-map.md").write_text(GOOD_MAP + "\nedited\n")
+        data = run_gate(repo, "aggregate", "verify")
+        assert data["verdict"] == "FAIL"
+
+    def test_expand_station_binds_to_extended_map(self, repo: Path) -> None:
+        prd = repo / "docs" / "prd"
+        row = "| MEDIUM | new Feature 003 overlaps 001 scope | Amendment 2 | re-cut |"
+        write_report(
+            prd / "feature-map.delta-2.antigravity-verify.md",
+            mode="antigravity-delta-verify",
+            feature=None,
+            sha_field="Feature Map SHA256",
+            sha_value=sha256(prd / "feature-map.md"),
+            result="WARN",
+            findings=[row],
+        )
+        data = run_gate(repo, "aggregate", "expand", "2")
+        assert data["verdict"] == "WARN"
+        assert data["caught"] == [row]
+        # extending the map again invalidates the delta report
+        (prd / "feature-map.md").write_text(GOOD_MAP + "\n## PRD Amendment edit\n")
+        data = run_gate(repo, "aggregate", "expand", "2")
+        assert data["verdict"] == "FAIL"
+
+    def test_unknown_station_fails(self, repo: Path) -> None:
+        data = run_gate(repo, "aggregate", "nonsense")
+        assert data["verdict"] == "FAIL"
+        assert any("unknown station" in r for r in data["reasons"])
+
+    def test_wrong_station_mode_fails(self, repo: Path) -> None:
+        # A report from another station at the right path must not grade this
+        # station (2026-07-19 re-verification finding).
+        write_agent_verify_pair(repo)
+        checklists = repo / "docs" / "prd" / "checklists"
+        checklist_sha = sha256(checklists / "feature-006.checklist.md")
+        write_report(
+            checklists / "feature-006.codex-verify.md",
+            mode="codex-adversarial-code-review",
+            sha_field="Checklist SHA256",
+            sha_value=checklist_sha,
+        )
+        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        assert data["verdict"] == "FAIL"
+        assert any("does not match station mode" in r for r in data["reasons"])
+
+    def test_non_numeric_agent_verify_arg_fails(self, repo: Path) -> None:
+        data = run_gate(repo, "aggregate", "agent-verify", "../../etc")
+        assert data["verdict"] == "FAIL"
+        assert any("numeric Feature number" in r for r in data["reasons"])
+
+    def test_invalid_review_spec_id_fails(self, repo: Path) -> None:
+        data = run_gate(repo, "aggregate", "review", "006/../../evil")
+        assert data["verdict"] == "FAIL"
+        assert any("NNN-name" in r for r in data["reasons"])
+
+    def test_analyze_traversal_and_nonconventional_dirs_fail(self, repo: Path) -> None:
+        for bad in ("specs/..", "specs/foo", "specs/../..", "docs/prd"):
+            data = run_gate(repo, "aggregate", "analyze", bad)
+            assert data["verdict"] == "FAIL", bad
+            assert any("specs/NNN-name" in r for r in data["reasons"]), bad
+
+    def test_feature_match_is_boundary_not_substring(self, repo: Path) -> None:
+        # "Feature 0061" must not satisfy a Feature-006 station.
+        write_agent_verify_pair(repo)
+        checklists = repo / "docs" / "prd" / "checklists"
+        checklist_sha = sha256(checklists / "feature-006.checklist.md")
+        write_report(
+            checklists / "feature-006.codex-verify.md",
+            mode="codex-per-feature-verify",
+            feature="0061",
+            sha_field="Checklist SHA256",
+            sha_value=checklist_sha,
+        )
+        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        assert data["verdict"] == "FAIL"
+        assert any("does not match Feature 006" in r for r in data["reasons"])
+
+    def test_degrade_placeholder_with_stale_sha_fails(self, repo: Path) -> None:
+        # A stale or mis-scoped placeholder must not become an accepted cap.
+        write_agent_verify_pair(
+            repo, codex_result="WARN", codex_availability="UNAVAILABLE (binary not on PATH)"
+        )
+        checklists = repo / "docs" / "prd" / "checklists"
+        checklist = checklists / "feature-006.checklist.md"
+        checklist.write_text(checklist.read_text() + "\nedited after the placeholder\n")
+        data = run_gate(repo, "aggregate", "agent-verify", "6")
+        assert data["verdict"] == "FAIL"
+        assert any("stale" in r for r in data["reasons"])
+
+    def test_report_shas_align_with_artifacts_when_missing(self, repo: Path) -> None:
+        write_agent_verify_pair(repo)
+        (repo / "docs" / "prd" / "checklists" / "feature-006.codex-verify.md").unlink()
+        data = run_gate(repo, "aggregate", "agent-verify", "6", "--ledger")
+        entry = json.loads(
+            (repo / ".specify" / "specter-run.jsonl").read_text().strip().splitlines()[-1]
+        )
+        assert len(entry["report_shas"]) == len(entry["artifacts"]) == 2
+        assert entry["report_shas"][0] == ""
+        assert len(entry["report_shas"][1]) == 64
+
+    def test_ledger_receipt_carries_round_and_report_shas(self, repo: Path) -> None:
+        write_agent_verify_pair(repo)
+        data = run_gate(repo, "aggregate", "agent-verify", "6", "--ledger", "--round", "2")
+        assert data["round"] == 2
+        entry = json.loads(
+            (repo / ".specify" / "specter-run.jsonl").read_text().strip().splitlines()[-1]
+        )
+        assert entry["round"] == 2
+        assert len(entry["report_shas"]) == 2
+        assert all(len(s) == 64 for s in entry["report_shas"])
+
+    def test_analyze_station_binds_to_tasks_sha(self, repo: Path) -> None:
+        spec_dir = repo / "specs" / "006-sample"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "tasks.md").write_text("# Tasks\n\n- T001 @SPEC:X\n")
+        tasks_sha = sha256(spec_dir / "tasks.md")
+        for agent in ("codex", "antigravity"):
+            write_report(
+                spec_dir / f"analyze.{agent}.md",
+                mode="agent-document-consistency",
+                sha_field="Tasks SHA256",
+                sha_value=tasks_sha,
+            )
+        data = run_gate(repo, "aggregate", "analyze", "specs/006-sample")
+        assert data["verdict"] == "PASS"
+        assert data["feature"] == "006"
+        # editing tasks.md invalidates both reports
+        (spec_dir / "tasks.md").write_text("# Tasks\n\n- T001 @SPEC:X\n- T002 @SPEC:Y\n")
+        data = run_gate(repo, "aggregate", "analyze", "specs/006-sample")
+        assert data["verdict"] == "FAIL"
+        assert any("stale Tasks SHA256" in r for r in data["reasons"])
+
+    def test_expand_missing_codex_baseline_caps_warn(self, repo: Path) -> None:
+        prd = repo / "docs" / "prd"
+        write_report(
+            prd / "feature-map.delta-3.antigravity-verify.md",
+            mode="antigravity-delta-verify",
+            feature=None,
+            sha_field="Feature Map SHA256",
+            sha_value=sha256(prd / "feature-map.md"),
+            result="PASS",
+        )
+        data = run_gate(repo, "aggregate", "expand", "3")
+        assert data["verdict"] == "WARN"
+        assert data["cap"] == "missing-codex-baseline"
+        # with the baseline present, the same PASS report aggregates to PASS
+        (prd / "codex" / "checklist-delta-3.md").write_text(
+            "# Codex Delta Checklist\n\n**Mode**: prd-only\n\n| C200 | §A1 | new |\n"
+        )
+        data = run_gate(repo, "aggregate", "expand", "3")
+        assert data["verdict"] == "PASS"
+        assert data["cap"] is None

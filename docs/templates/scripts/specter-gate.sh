@@ -6,20 +6,46 @@
 # the model in /ms.checklist, /ms.verify, /ms.specify, /ms.constitution.
 #
 # Usage:
-#   specter-gate.sh          # global gate only
+#   specter-gate.sh          # global gate only (legacy invocation, unchanged)
 #   specter-gate.sh 006      # global gate + per-Feature gate for Feature 006
+#   specter-gate.sh version  # capability probe (partially-synced projects fail clearly)
+#   specter-gate.sh structural [NNN]
+#                            # Layer-1 deterministic structure checks:
+#                            # global = commitment-index ownership, DAG cycle,
+#                            # required headings, CI-passes-green, placeholders;
+#                            # NNN adds checklist placeholder + C-ID cross-refs
+#   specter-gate.sh aggregate <verify|agent-verify|analyze|review|expand> [arg] [--ledger] [--round N]
+#                            # Layer-3 verdict aggregation over the STATION-FIXED
+#                            # report set (the caller never picks input files).
+#                            # --ledger also appends the .specify/specter-run.jsonl
+#                            # line mechanically (verbatim caught quotes + cap);
+#                            # --round N records the §4 convergence round.
 #
-# Prints one JSON object to stdout: { checks, overall, reasons[] }.
-# overall is one of: PASS | WARN | FAIL | MISSING
+# Every mode prints one JSON object to stdout, even on malformed input.
+# Legacy overall is one of: PASS | WARN | FAIL | MISSING
 #   MISSING = a required artifact file does not exist yet (gate never ran)
 #   FAIL    = an artifact exists but its content fails the gate (Result FAIL,
 #             stale SHA256, wrong Mode/Feature, unestablished Section IX)
 #   WARN    = every check passes but at least one Result is WARN
 #   PASS    = every check passes and every Result is PASS
+# structural/aggregate emit "verdict": PASS | WARN | FAIL (no MISSING — a
+# missing input at those layers is a FAIL by the three-layer contract,
+# specter-agent-protocols §7).
 
 set -euo pipefail
 
-FEATURE_RAW="${1:-}"
+GATE_VERSION="2.0.0"
+GATE_CONTRACT="three-layer-v1"
+
+SUBCOMMAND="gate"
+case "${1:-}" in
+  version|structural|aggregate) SUBCOMMAND="$1"; shift ;;
+esac
+
+FEATURE_RAW=""
+if [ "$SUBCOMMAND" = "gate" ] || [ "$SUBCOMMAND" = "structural" ]; then
+  FEATURE_RAW="${1:-}"
+fi
 FEATURE=""
 if [ -n "$FEATURE_RAW" ]; then
   if [[ "$FEATURE_RAW" =~ ^[0-9]+$ ]]; then
@@ -53,6 +79,529 @@ extract_field() {
   local file="$1" field="$2"
   grep -m1 "^\*\*${field}\*\*:" "$file" 2>/dev/null | sed -E "s/^\*\*${field}\*\*:[[:space:]]*//" || true
 }
+
+reasons_to_json() {
+  # Serialize the REASONS array as a JSON string array.
+  local out="[]" i
+  if [ "${#REASONS[@]}" -gt 0 ]; then
+    out="["
+    for i in "${!REASONS[@]}"; do
+      [ "$i" -gt 0 ] && out+=","
+      out+="\"$(json_escape "${REASONS[$i]}")\""
+    done
+    out+="]"
+  fi
+  printf '%s' "$out"
+}
+
+rank_of() {
+  case "$1" in
+    PASS) printf 0 ;;
+    WARN) printf 1 ;;
+    *)    printf 2 ;;
+  esac
+}
+
+worse() {
+  # worse <a> <b> -> the more severe of two PASS/WARN/FAIL values
+  if [ "$(rank_of "$1")" -ge "$(rank_of "$2")" ]; then printf '%s' "$1"; else printf '%s' "$2"; fi
+}
+
+# ---- version subcommand ----
+
+if [ "$SUBCOMMAND" = "version" ]; then
+  cat <<JSON
+{
+  "version": "${GATE_VERSION}",
+  "contract": "${GATE_CONTRACT}",
+  "subcommands": ["gate", "version", "structural", "aggregate"]
+}
+JSON
+  exit 0
+fi
+
+# ---- structural subcommand (Layer 1: deterministic structure only) ----
+# Judges shape, never semantics: whether the PRD was actually understood is
+# Layer 2's job (specter-agent-protocols §7).
+
+if [ "$SUBCOMMAND" = "structural" ]; then
+  MAP="docs/prd/feature-map.md"
+  PROGRESS="docs/prd/feature-map.progress.md"
+  CODEX_PRD_CHECKLIST="docs/prd/codex/checklist.md"
+
+  verdict="PASS"
+  index_ok=true
+  features_ok=true
+  dag_ok=true
+  placeholders_ok=true
+  checklist_refs_ok=true
+
+  note() {
+    # note <F|W> <reason>
+    add_reason "$2"
+    if [ "$1" = "F" ]; then verdict=$(worse "$verdict" "FAIL"); else verdict=$(worse "$verdict" "WARN"); fi
+  }
+
+  if [ ! -f "$MAP" ]; then
+    note F "missing: $MAP"
+    index_ok=false; features_ok=false; dag_ok=false
+  else
+    # Commitment Index: every data row owned by exactly one Feature.
+    while IFS= read -r line; do
+      kind="${line%%|*}"; rest="${line#*|}"
+      case "$rest" in
+        index\|*) index_ok=false ;;
+      esac
+      note "$kind" "${rest#*|} [${rest%%|*}]"
+    done < <(awk '
+      BEGIN { found = 0; rows = 0 }
+      /^## PRD Commitment Index/ { found = 1; inidx = 1; next }
+      /^## / { inidx = 0 }
+      inidx && /^\|/ {
+        if ($0 ~ /^\|[-: |]+$/) next
+        split($0, c, "|")
+        if (c[2] ~ /Source PRD/) next
+        rows++
+        owner = c[6]
+        gsub(/^[ ]+|[ ]+$/, "", owner)
+        if (owner !~ /^Feature [0-9]+$/) {
+          if (owner !~ /Feature [0-9]+/)
+            print "F|index|commitment row has no owning Feature: " $0
+          else
+            print "F|index|commitment row owner is not exactly one Feature: " $0
+        }
+      }
+      END {
+        if (!found) print "F|index|PRD Commitment Index section missing"
+        else if (rows == 0) print "F|index|PRD Commitment Index has no commitment rows"
+      }' "$MAP")
+
+    # Feature sections: required headings, CI-passes-green, out-of-scope
+    # destinations, unresolved placeholders. When a Feature was requested,
+    # scope the verdict to that Feature's section only.
+    while IFS= read -r line; do
+      kind="${line%%|*}"; rest="${line#*|}"; sec="${rest%%|*}"; msg="${rest#*|}"
+      if [ -n "$FEATURE" ] && [ "$sec" != "Feature ${FEATURE}" ]; then
+        continue
+      fi
+      case "$msg" in
+        *placeholder*) placeholders_ok=false ;;
+        *) features_ok=false ;;
+      esac
+      note "$kind" "$msg [$sec]"
+    done < <(awk '
+      function flush() {
+        if (!insec) return
+        n = split("### Source PRDs,### PRD references,### In scope,### Explicitly out of scope,### Key decisions,### Done criteria", req, ",")
+        for (i = 1; i <= n; i++) if (!(req[i] in seen)) print "F|" sec "|missing heading: " req[i]
+        if ("### Done criteria" in seen) {
+          if (lastdc == "") print "F|" sec "|done criteria section has no criteria"
+          else if (lastdc !~ /CI passes green/) print "F|" sec "|last done criterion is not CI passes green: " lastdc
+        }
+        for (k in seen) delete seen[k]
+      }
+      /^## / {
+        flush()
+        if ($0 ~ /^## Feature [0-9]+:/) {
+          insec = 1; sec = $0
+          sub(/^## /, "", sec); sub(/:.*$/, "", sec)
+          lastdc = ""; subh = ""
+        } else insec = 0
+        next
+      }
+      !insec { next }
+      /^### / { subh = $0; seen[$0] = 1; next }
+      {
+        if ($0 ~ /TBD|TODO|\{\{/) {
+          if (subh == "### Done criteria") print "F|" sec "|unresolved placeholder in done criteria: " $0
+          else print "W|" sec "|unresolved placeholder: " $0
+        }
+        if (subh == "### Done criteria" && $0 ~ /^- /) lastdc = $0
+        if (subh == "### Explicitly out of scope" && $0 ~ /^- /) {
+          if ($0 !~ /(→|->)[ ]*(Feature[ ]*)?[0-9]+/ && $0 !~ /None/)
+            print "F|" sec "|out-of-scope item lacks destination Feature: " $0
+        }
+      }
+      END { flush() }' "$MAP")
+
+    if [ -n "$FEATURE" ] && ! grep -q "^## Feature ${FEATURE}:" "$MAP"; then
+      features_ok=false
+      note F "Feature ${FEATURE} section not found in $MAP"
+    fi
+
+    # DAG acyclicity from the Progress Ledger's Depends-on column.
+    if [ -f "$PROGRESS" ]; then
+      dag_out=$(awk '
+        /^\|/ {
+          if ($0 ~ /^\|[-: |]+$/) next
+          split($0, c, "|")
+          id = c[2]; deps = c[3]
+          gsub(/^[ ]+|[ ]+$/, "", id)
+          if (id !~ /^[0-9]+/) next
+          match(id, /^[0-9]+/)
+          node = substr(id, RSTART, RLENGTH) + 0
+          nodes[node] = 1
+          n = split(deps, dl, ",")
+          for (i = 1; i <= n; i++) {
+            d = dl[i]; gsub(/[^0-9]/, "", d)
+            if (d != "") edge[node] = edge[node] " " (d + 0)
+          }
+        }
+        END {
+          changed = 1
+          while (changed) {
+            changed = 0
+            for (v in nodes) {
+              if (done[v]) continue
+              ok = 1
+              split(edge[v], ds, " ")
+              for (j in ds) { d = ds[j]; if (d == "") continue; if ((d in nodes) && !done[d]) ok = 0 }
+              if (ok) { done[v] = 1; changed = 1 }
+            }
+          }
+          cyc = 0
+          for (v in nodes) if (!done[v]) { cyc = 1; printf "CYCLE %03d\n", v }
+          if (!cyc) print "OK"
+        }' "$PROGRESS")
+      if [ "$dag_out" != "OK" ]; then
+        dag_ok=false
+        while IFS= read -r cyc_line; do
+          note F "dependency cycle involves Feature ${cyc_line#CYCLE }"
+        done <<< "$dag_out"
+      fi
+    else
+      dag_ok=false
+      note W "missing: $PROGRESS — DAG acyclicity not checked"
+    fi
+  fi
+
+  # Per-Feature checklist cross-references (only with an explicit Feature).
+  if [ -n "$FEATURE" ]; then
+    FCHECK="docs/prd/checklists/feature-${FEATURE}.checklist.md"
+    if [ -f "$FCHECK" ]; then
+      if grep -qE 'TBD|TODO|\{\{' "$FCHECK"; then
+        placeholders_ok=false
+        note W "unresolved placeholder token(s) in $FCHECK"
+      fi
+      if [ -f "$CODEX_PRD_CHECKLIST" ]; then
+        while IFS= read -r cid; do
+          [ -n "$cid" ] || continue
+          if ! grep -q "$cid" "$CODEX_PRD_CHECKLIST"; then
+            checklist_refs_ok=false
+            note F "checklist cites $cid, which does not exist in $CODEX_PRD_CHECKLIST"
+          fi
+        done < <(grep -oE 'C[0-9]{3}' "$FCHECK" | sort -u)
+      else
+        note W "missing: $CODEX_PRD_CHECKLIST — C-ID cross-reference not checked"
+      fi
+    else
+      note W "missing: $FCHECK — checklist structure not checked"
+    fi
+  fi
+
+  feature_json="null"
+  [ -n "$FEATURE" ] && feature_json="\"$(json_escape "$FEATURE")\""
+  scope="global"
+  [ -n "$FEATURE" ] && scope="feature"
+
+  cat <<JSON
+{
+  "mode": "structural",
+  "scope": "${scope}",
+  "feature": ${feature_json},
+  "checks": {
+    "commitment_index_ok": ${index_ok},
+    "feature_sections_ok": ${features_ok},
+    "dag_acyclic": ${dag_ok},
+    "placeholders_clean": ${placeholders_ok},
+    "checklist_refs_ok": ${checklist_refs_ok}
+  },
+  "verdict": "${verdict}",
+  "reasons": $(reasons_to_json)
+}
+JSON
+  exit 0
+fi
+
+# ---- aggregate subcommand (Layer 3: mechanical verdict aggregation) ----
+# The station name fixes the report set; the caller can never add, omit, or
+# reorder inputs (specter-agent-protocols §7 — dynamic input choice would let
+# a failing report simply be left out).
+
+if [ "$SUBCOMMAND" = "aggregate" ]; then
+  STATION="${1:-}"
+  shift || true
+  ARG=""
+  LEDGER=false
+  ROUND="1"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --ledger) LEDGER=true ;;
+      --round) shift; ROUND="${1:-1}" ;;
+      *) [ -z "$ARG" ] && ARG="$1" ;;
+    esac
+    shift || true
+  done
+  [[ "$ROUND" =~ ^[0-9]+$ ]] || ROUND="1"
+
+  verdict="PASS"
+  INPUTS=()
+  EXPECTED_MODES=()
+  cycle=""
+  step=""
+  agg_feature=""
+  sha_field=""
+  sha_target=""
+  feature_check=false
+
+  pad_feature() {
+    if [[ "$1" =~ ^[0-9]+$ ]]; then printf '%03d' "$((10#$1))"; else printf '%s' "$1"; fi
+  }
+
+  case "$STATION" in
+    verify)
+      INPUTS=("docs/prd/feature-map.codex-verify.md" "docs/prd/feature-map.antigravity-checklist.md")
+      EXPECTED_MODES=("codex-global-verify" "antigravity-global-verify")
+      sha_field="Feature Map SHA256"; sha_target="docs/prd/feature-map.md"
+      cycle="pre"; step="verify"
+      ;;
+    agent-verify)
+      if ! [[ "$ARG" =~ ^[0-9]+$ ]]; then
+        add_reason "station agent-verify requires a numeric Feature number (got '${ARG:-<none>}')"; verdict="FAIL"
+      else
+        agg_feature=$(pad_feature "$ARG")
+        INPUTS=("docs/prd/checklists/feature-${agg_feature}.codex-verify.md" "docs/prd/checklists/feature-${agg_feature}.antigravity-verify.md")
+        EXPECTED_MODES=("codex-per-feature-verify" "antigravity-per-feature-verify")
+        sha_field="Checklist SHA256"; sha_target="docs/prd/checklists/feature-${agg_feature}.checklist.md"
+        feature_check=true
+        cycle="feature"; step="agent-verify"
+      fi
+      ;;
+    analyze)
+      # Spec dirs follow the NNN-name convention; requiring the numeric prefix
+      # both blocks traversal fragments ("specs/..") and guarantees the
+      # Feature-identity check is always enabled.
+      if ! [[ "$ARG" =~ ^specs/[0-9]{3}-[A-Za-z0-9._-]+/?$ ]]; then
+        add_reason "station analyze requires a spec directory of the form specs/NNN-name (got '${ARG:-<none>}')"; verdict="FAIL"
+      else
+        INPUTS=("${ARG%/}/analyze.codex.md" "${ARG%/}/analyze.antigravity.md")
+        EXPECTED_MODES=("agent-document-consistency" "agent-document-consistency")
+        sha_field="Tasks SHA256"; sha_target="${ARG%/}/tasks.md"
+        base=$(basename "${ARG%/}")
+        [[ "$base" =~ ^0*([0-9]+) ]] && agg_feature=$(pad_feature "${BASH_REMATCH[1]}") && feature_check=true
+        cycle="feature"; step="analyze"
+      fi
+      ;;
+    review)
+      if ! [[ "$ARG" =~ ^[0-9]{3}-[A-Za-z0-9._-]+$ ]]; then
+        add_reason "station review requires a spec id of the form NNN-name (got '${ARG:-<none>}')"; verdict="FAIL"
+      else
+        INPUTS=("docs/review/${ARG}.codex-review.md" "docs/review/${ARG}.antigravity-review.md")
+        EXPECTED_MODES=("codex-adversarial-code-review" "antigravity-adversarial-code-review")
+        # Review binds to Feature identity only — a working-tree diff has no
+        # stable hash (documented §7 exception).
+        [[ "$ARG" =~ ^0*([0-9]+) ]] && agg_feature=$(pad_feature "${BASH_REMATCH[1]}") && feature_check=true
+        cycle="feature"; step="review"
+      fi
+      ;;
+    expand)
+      if ! [[ "$ARG" =~ ^[0-9]+$ ]]; then
+        add_reason "station expand requires a numeric amendment number (got '${ARG:-<none>}')"; verdict="FAIL"
+      else
+        INPUTS=("docs/prd/feature-map.delta-${ARG}.antigravity-verify.md")
+        EXPECTED_MODES=("antigravity-delta-verify")
+        sha_field="Feature Map SHA256"; sha_target="docs/prd/feature-map.md"
+        cycle="pre"; step="expand"
+      fi
+      ;;
+    *)
+      add_reason "unknown station '${STATION:-<none>}' (expected verify|agent-verify|analyze|review|expand)"
+      verdict="FAIL"
+      ;;
+  esac
+
+  inputs_json="["
+  cap_agents=()
+  caught=()
+  REPORT_SHAS=()
+  first=true
+  idx=0
+
+  for f in ${INPUTS[@]+"${INPUTS[@]}"}; do
+    in_result=""
+    in_avail=""
+    in_sha=""
+    in_mode=""
+    in_verdict="FAIL"
+    expected_mode="${EXPECTED_MODES[$idx]:-}"
+    idx=$((idx + 1))
+
+    if [ ! -s "$f" ]; then
+      # Keep the hash array aligned with the artifacts array: an unhashable
+      # (missing/empty) input records "" at its position, never a silent skip.
+      REPORT_SHAS+=("")
+      add_reason "missing or empty report: $f"
+    else
+      in_sha=$(sha256sum "$f" | awk '{print $1}')
+      REPORT_SHAS+=("$in_sha")
+      in_mode=$(extract_field "$f" "Mode")
+      result_count=$(grep -c '^\*\*Result\*\*:' "$f" || true)
+      in_result=$(extract_field "$f" "Result")
+      in_avail=$(extract_field "$f" "Availability")
+      structural_ok=true
+      if [ -n "$expected_mode" ] && [ "$in_mode" != "$expected_mode" ]; then
+        # A report from the wrong station (or with no Mode) must never grade
+        # this station — degrade placeholders carry the normal Mode too (§2).
+        structural_ok=false
+        add_reason "report Mode '${in_mode:-missing}' does not match station mode '${expected_mode}': $f"
+      elif [ "$result_count" -ne 1 ]; then
+        structural_ok=false
+        add_reason "expected exactly one Result line in $f (found ${result_count})"
+      elif [ "$in_result" != "PASS" ] && [ "$in_result" != "WARN" ] && [ "$in_result" != "FAIL" ]; then
+        structural_ok=false
+        add_reason "invalid Result '${in_result}' in $f"
+      fi
+      # Identity and freshness bind EVERY report, degrade placeholders
+      # included (§2 placeholders carry Feature and the SHA field too) —
+      # a stale or mis-scoped placeholder must not become an accepted cap.
+      if [ "$structural_ok" = true ] && [ "$feature_check" = true ]; then
+        rep_feature=$(extract_field "$f" "Feature")
+        feature_num=$((10#$agg_feature))
+        if ! [[ "$rep_feature" =~ Feature\ 0*${feature_num}([^0-9]|$) ]]; then
+          structural_ok=false
+          add_reason "report Feature field '${rep_feature:-missing}' does not match Feature ${agg_feature}: $f"
+        fi
+      fi
+      if [ "$structural_ok" = true ] && [ -n "$sha_field" ]; then
+        if [ -f "$sha_target" ]; then
+          rec_sha=$(extract_field "$f" "$sha_field")
+          cur_sha=$(sha256sum "$sha_target" | awk '{print $1}')
+          if [ -z "$rec_sha" ] || [ "$rec_sha" != "$cur_sha" ]; then
+            structural_ok=false
+            add_reason "stale ${sha_field} in $f (recorded=${rec_sha:-none}, current=${cur_sha})"
+          fi
+        else
+          structural_ok=false
+          add_reason "missing SHA target: $sha_target"
+        fi
+      fi
+      if [ "$structural_ok" = true ]; then
+        if [ -n "$in_avail" ]; then
+          # §2/§7 typed degrade placeholder: only WARN + UNAVAILABLE/RECUSED
+          # is environmental; anything else is an agent-authored failure -> FAIL.
+          if [[ "$in_avail" =~ ^(UNAVAILABLE|RECUSED) ]] && [ "$in_result" = "WARN" ]; then
+            in_verdict="WARN"
+            cap_agents+=("$f")
+          else
+            add_reason "malformed Availability '${in_avail}' (Result '${in_result}') in $f"
+          fi
+        else
+          in_verdict="$in_result"
+          if [ "$in_verdict" != "PASS" ]; then
+            # Verbatim finding rows for the mechanical ledger (never paraphrased).
+            while IFS= read -r row; do
+              [ -n "$row" ] && caught+=("$row")
+            done < <(awk '/^## Findings/ { f = 1; next } /^## / { f = 0 } f && /^\|/ && $0 !~ /^\|[-: |]+$/ && $0 !~ /Severity[ ]*\|/ { print }' "$f")
+          fi
+        fi
+      fi
+    fi
+
+    verdict=$(worse "$verdict" "$in_verdict")
+    $first || inputs_json+=","
+    first=false
+    inputs_json+="{\"path\":\"$(json_escape "$f")\",\"sha256\":\"$(json_escape "$in_sha")\",\"result\":\"$(json_escape "$in_result")\",\"availability\":\"$(json_escape "$in_avail")\",\"graded\":\"${in_verdict}\"}"
+  done
+  inputs_json+="]"
+
+  # Zero independent verifiers left (every input is a degrade placeholder):
+  # the station cannot produce a verdict — FAIL, never a host-only opinion.
+  if [ "${#INPUTS[@]}" -gt 0 ] && [ "${#cap_agents[@]}" -eq "${#INPUTS[@]}" ]; then
+    verdict="FAIL"
+    add_reason "every agent report is a degrade placeholder — no independent verifier ran"
+  fi
+
+  # Expand-only: the Codex delta checklist is this station's independent input
+  # baseline; its absence is a mechanical WARN cap, never silently absorbed by
+  # host prose.
+  baseline_cap=""
+  if [ "$STATION" = "expand" ] && [[ "$ARG" =~ ^[0-9]+$ ]]; then
+    if [ ! -s "docs/prd/codex/checklist-delta-${ARG}.md" ]; then
+      verdict=$(worse "$verdict" "WARN")
+      baseline_cap="missing-codex-baseline"
+      add_reason "independent Codex delta baseline docs/prd/codex/checklist-delta-${ARG}.md missing or empty — WARN cap"
+    fi
+  fi
+
+  cap_json="null"
+  if [ "$verdict" != "FAIL" ]; then
+    if [ "${#cap_agents[@]}" -gt 0 ]; then
+      cap_json="\"single-agent-degrade\""
+    elif [ -n "$baseline_cap" ]; then
+      cap_json="\"${baseline_cap}\""
+    fi
+  fi
+
+  caught_json="[]"
+  if [ "${#caught[@]}" -gt 0 ]; then
+    caught_json="["
+    for i in "${!caught[@]}"; do
+      [ "$i" -gt 0 ] && caught_json+=","
+      caught_json+="\"$(json_escape "${caught[$i]}")\""
+    done
+    caught_json+="]"
+  fi
+
+  feature_json="null"
+  [ -n "$agg_feature" ] && feature_json="\"$(json_escape "$agg_feature")\""
+
+  ledger_written=false
+  if [ "$LEDGER" = true ] && [ -n "$step" ]; then
+    mkdir -p .specify
+    artifacts_json="["
+    afirst=true
+    for f in ${INPUTS[@]+"${INPUTS[@]}"}; do
+      $afirst || artifacts_json+=","
+      afirst=false
+      artifacts_json+="\"$(json_escape "$f")\""
+    done
+    artifacts_json+="]"
+    shas_json="["
+    sfirst=true
+    for s in ${REPORT_SHAS[@]+"${REPORT_SHAS[@]}"}; do
+      $sfirst || shas_json+=","
+      sfirst=false
+      shas_json+="\"$(json_escape "$s")\""
+    done
+    shas_json+="]"
+    # This ledger line IS the persisted receipt (§7): verdict, verbatim caught
+    # rows, cap, round, and the report files' content hashes — append-only.
+    ledger_line="{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"cycle\":\"${cycle}\",\"feature\":${feature_json},\"step\":\"${step}\",\"verdict\":\"${verdict}\",\"round\":${ROUND},\"artifacts\":${artifacts_json},\"report_shas\":${shas_json}"
+    if [ "$verdict" != "PASS" ]; then
+      ledger_line+=",\"caught\":${caught_json}"
+      [ "$cap_json" != "null" ] && ledger_line+=",\"cap\":${cap_json}"
+    fi
+    ledger_line+="}"
+    printf '%s\n' "$ledger_line" >> .specify/specter-run.jsonl
+    ledger_written=true
+  fi
+
+  cat <<JSON
+{
+  "mode": "aggregate",
+  "station": "$(json_escape "$STATION")",
+  "feature": ${feature_json},
+  "round": ${ROUND},
+  "inputs": ${inputs_json},
+  "verdict": "${verdict}",
+  "cap": ${cap_json},
+  "caught": ${caught_json},
+  "ledger_written": ${ledger_written},
+  "reasons": $(reasons_to_json)
+}
+JSON
+  exit 0
+fi
 
 any_missing=false
 any_fail=false
