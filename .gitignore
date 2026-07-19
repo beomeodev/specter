@@ -2,6 +2,9 @@
 doc/ref/awesome-skills
 doc/ref/OpenSpec
 
+# SPECTER project-local runtime state (self-healed helper copies, run ledger)
+.specify/
+
 # Python
 .venv
 venv/
