@@ -146,9 +146,11 @@ Tracks determined by the nature of changes outside the main cycle.
 
 Each step is validated by output artifacts and deterministic checkers, not just prompt instructions.
 
+Every verification station follows a **three-layer contract** (2026-07-19, `specter-agent-protocols` §7): Layer 1 runs deterministic structural checks (`specter-gate.sh structural` — ownership rows, DAG cycles, placeholders, CI-green suffixes) before any agent is spent; Layer 2 runs Codex + Antigravity as independent fresh-context auditors who each write their own verdict; Layer 3 computes the station verdict mechanically (`specter-gate.sh aggregate` — station-fixed inputs, SHA-freshness validation, mechanical run-ledger emission). The host authors and assembles but never grades: it cannot downgrade an external verdict (disputes go to fresh scoped re-rounds), and the generative artifacts of `/ms.featuremap`/`/ms.checklist` are written by isolated fresh subagents so the author's session memory cannot leak into the audit.
+
 | Gate | When | Verification Details |
 | --- | --- | --- |
-| Global Feature Map (`/ms.verify`) | Pre-Feature, Once | Checks if every PRD commitment has exactly one Feature owner and if the DAG is valid. Validates against Codex's PRD-only checklist. |
+| Global Feature Map (`/ms.verify`) | Pre-Feature, Once | Structural L1 + independent Codex & Antigravity global audits (each writes its own SHA-bound verdict) + mechanical aggregation. Codex's PRD-only checklist stays the independent input baseline. |
 | Per-Feature (`/ms.checklist` + `/ms.agent-verify`) | Every Feature start | Checks current Feature's commitment coverage, intrusion into other features, user-facing exposure, and unresolved placeholders. |
 | Doc Consistency (`/ms.analyze`) | Just before implementation | Validates spec ↔ plan ↔ tasks drift, orphan tasks, and Constitution compliance. |
 | Code (`/ms.review`) | Right after implementation | Runs lint/type/test/build + TAG integrity + Done Criteria Execution. Validates runnable criteria (e.g., verifying web UIs using Playwright rendering). |

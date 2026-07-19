@@ -1,9 +1,9 @@
 ---
-generated_at: 2026-07-11T05:31:00Z
-git_head: 2e6732a1c4238a0751a82b21357312af7acfdc4f
-git_head_short: 2e6732a
+generated_at: 2026-07-19T00:00:00Z
+git_head: b6a0b1f
+git_head_short: b6a0b1f
 git_branch: master
-working_tree: dirty (uncommitted graphify-adoption patch — this refresh is part of it)
+working_tree: dirty (uncommitted three-layer gate patch — this refresh is part of it)
 scope:
   - AGENTS.md
   - README.md
@@ -30,12 +30,13 @@ stale_when:
 # System Map
 
 ## Snapshot Status
-HEAD is `2e6732a` on `master`. The working tree carries the uncommitted
-2026-07-11 graphify-adoption patch (AGENTS.md §9/§11, `/ms.init` Step 2.9,
-`/ms.specter` Step 0.6, `codebase-snapshot` slim-down, this map). This map
-follows the slimmed schema: structural inventory (file lists, per-file hot-path
-notes) is intentionally absent — see `Refresh Procedure` and AGENTS.md §9 for
-where structure is answered instead.
+HEAD is `b6a0b1f` on `master`. The working tree carries the uncommitted
+2026-07-19 three-layer gate patch (specter-gate.sh v2 subcommands, station
+rewiring, `specter-agent-protocols` §7) plus the phase-1 publish/release
+helpers (`specter-publish.sh`, `specter-release.sh`); this refresh is part of
+it. This map follows the slimmed schema: structural inventory (file lists,
+per-file hot-path notes) is intentionally absent — see `Refresh Procedure` and
+AGENTS.md §9 for where structure is answered instead.
 
 ## System Purpose
 SPECTER is a command-driven workflow wrapper over GitHub Spec-Kit for Claude
@@ -99,11 +100,23 @@ Not applicable — this repository ships no deployed application or server; the
   is a symlink to it.
 - `scripts/specter/specter_sync_manifest.json` — the one list of what
   `/ms.sync` broadcasts.
-- `.claude/skills/specter-agent-protocols/SKILL.md` — dual-agent mechanics.
+- `.claude/skills/specter-agent-protocols/SKILL.md` — dual-agent mechanics,
+  including the §7 three-layer station contract (report validity, receipt,
+  typed degrade, mechanical ledger, authoring-station rules).
 - `.claude/skills/codebase-snapshot/SKILL.md` — SYSTEM_MAP schema and the
   graph/map division of labor.
 - `docs/templates/scripts/specter-gate.sh` — the one place gate
-  PASS/WARN/FAIL/MISSING is computed mechanically.
+  PASS/WARN/FAIL/MISSING is computed mechanically. v2 subcommands: `version`
+  (capability probe), `structural [NNN]` (Layer-1 shape checks),
+  `aggregate <station> [arg] [--ledger] [--round N]` (Layer-3 verdict +
+  mechanical run-ledger emission over station-fixed report sets; the round
+  number lands in the persisted receipt).
+- `docs/templates/scripts/specter-publish.sh` / `specter-release.sh` —
+  read-only operational-fact helpers for `/ms.fin` and `/ms.merglease`
+  (semver computation, publish/release end-state verification with
+  true/false/not_applicable/unknown states). They report facts, never gate
+  verdicts; commands STOP (no LLM fallback) when the helper is missing.
+  Phase plan and evidence-collection criteria: `docs/todo.md`.
 - `scripts/specter/check_tag_chain.py` — TAG rules incl. the `FIX-*` /
   presentational carve-out (`FIX_PREFIX`, `PRESENTATIONAL_RE`).
 - Version pins: `SPEC_KIT_REF` (Spec-Kit) and `GRAPHIFY_VERSION` (Graphify),
@@ -116,7 +129,17 @@ Not applicable — this repository ships no deployed application or server; the
   capabilities, not new entrypoints.
 - Dual verification (Codex + Antigravity) is never silently skipped — an
   unavailable agent forces an explicit `UNAVAILABLE` record and a `WARN`
-  degrade (`specter-agent-protocols` §2).
+  degrade (`specter-agent-protocols` §2). Both agents down at a dual station
+  stops the station; a host-only verdict is never substituted (§7).
+- Three-layer station contract (§7): station verdicts come from
+  `specter-gate.sh aggregate` over station-fixed report sets — the host never
+  selects aggregate inputs, never downgrades an external verdict (fresh scoped
+  re-rounds only), and never hand-writes an aggregated station's ledger line.
+  Gate re-round dispatches are always `--fresh`; `--resume` is reserved for
+  non-gate work continuation.
+- `/ms.featuremap` and `/ms.checklist` artifacts are authored by isolated
+  fresh subagents; their self-grade is a draft, never presented as
+  verification.
 - The Graphify graph is an exploration accelerator, never a correctness
   invariant: its absence or staleness may produce a WARN
   (`/ms.specter` Step 0.6), never a FAIL, and no blocking gate may depend on
@@ -144,7 +167,7 @@ Not applicable — this repository ships no deployed application or server; the
 ```bash
 git status --short
 git rev-parse HEAD
-uv run pytest --cov -q          # 53 tests, 90.47% coverage, 85% floor
+uv run pytest --cov -q          # 131 tests, 90.13% coverage, 85% floor
 bash -n docs/templates/scripts/specter-gate.sh docs/templates/scripts/speckit-specify-gate-hook.sh
 rg -n "GRAPHIFY_VERSION" .claude/commands/ms.init.md   # exactly one pin definition
 ```

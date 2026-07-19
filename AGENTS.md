@@ -237,6 +237,18 @@ intended hybrid structure; do not migrate it to a different shape on a whim.
 - `.claude/skills/` holds **reusable capabilities** — validators, rules, rubrics,
   and checklists. Put reusable logic here, not new top-level commands.
 - `.claude/agents/` holds **specialist subagents** (role-based reasoning/execution).
+- **Three-layer gates (2026-07-19)**: every verification station separates
+  (1) deterministic structural checks (`specter-gate.sh structural`),
+  (2) independent dual-agent semantics (external agents, always `--fresh`), and
+  (3) mechanical verdict aggregation (`specter-gate.sh aggregate` — station-fixed
+  inputs the host can never choose, mechanical ledger emission). The host authors
+  and assembles but never grades: no unilateral downgrade of an external verdict
+  (disputes go to fresh scoped re-rounds), no hand-written ledger line for an
+  aggregated station's agent verdict (a composite line — e.g. `/ms.review`'s
+  final result — embeds the receipt's verdict verbatim and may only worsen it),
+  and the generative artifacts of `/ms.featuremap` and `/ms.checklist` are
+  authored by fresh subagents whose self-grade is never authoritative.
+  Canonical contract: `.claude/skills/specter-agent-protocols/SKILL.md` §7.
 - Upstream Spec-Kit may emit its Claude integration as either
   `.claude/commands/speckit.*.md` (command layout) or
   `.claude/skills/speckit-*/SKILL.md` (native-skill layout), or both. `/ms.init`
