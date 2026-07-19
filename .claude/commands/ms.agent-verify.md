@@ -64,6 +64,18 @@ fix the Feature section and re-run `/ms.checklist` — dual-agent verification o
 stale checklist wastes both agents. Ignore this script's `codex_verify`/`antigravity_verify`
 fields here; producing those files is this command's own job.
 
+Then run the Layer-1 structural check as a second fail-fast (three-layer
+contract, `specter-agent-protocols` §7):
+
+```bash
+.specify/scripts/bash/specter-gate.sh structural NNN
+```
+
+If its `verdict` is `FAIL` (placeholder in done criteria, cited C-ID missing
+from the Codex checklist, malformed Feature section), stop and route back to
+`/ms.checklist` — structural defects are mechanical and do not need two agents
+to find.
+
 **Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 ### Step 0.5: External Agent Preflight (session-level, once)
@@ -71,11 +83,14 @@ fields here; producing those files is this command's own job.
 Apply the Preflight and Degrade Rule from
 `.claude/skills/specter-agent-protocols/SKILL.md` (§1–2). For this command: a
 **dual-agent station** — if one agent is unavailable after preflight + one retry,
-run the station single-agent, cap the station result at `WARN`, and write
-`<Agent>: UNAVAILABLE (<reason>)` into the missing agent's report path
-(`feature-NNN.codex-verify.md` / `feature-NNN.antigravity-verify.md`). Never
-present a single-agent run as dual; never block the cycle on an environment
-issue alone.
+run the station single-agent and write the §2 degrade placeholder (a VALID
+report — `**Mode**:` with this station's normal value, `**Feature**:`,
+`**Checklist SHA256**:`, `**Result**: WARN`, `**Availability**: UNAVAILABLE
+(<reason>)`) at the missing agent's report path
+(`feature-NNN.codex-verify.md` / `feature-NNN.antigravity-verify.md`); the
+Layer-3 aggregation then caps the station at `WARN` mechanically. A bare
+`<Agent>: UNAVAILABLE` line is not a valid placeholder. Never present a
+single-agent run as dual; never block the cycle on an environment issue alone.
 
 ### Step 1: Run Codex & Antigravity In Foreground (Parallel)
 
@@ -95,8 +110,10 @@ If the user provided `--model` or `--effort`, pass those values through instead 
 
 **Report-Write Protocol**: apply `specter-agent-protocols` §3 — deterministic file check
 (exists, non-empty, contains `**Result**:`), retry once, salvage from the
-`===REPORT BEGIN===`/`===REPORT END===` markers, and only then fall back to the Step 0.5
-Degrade Rule.
+`===REPORT BEGIN===`/`===REPORT END===` markers. If no markers exist either, that is an
+**agent-authored failure**: leave the report missing/invalid for the aggregation to grade
+`FAIL` (§3 step 3) — the Step 0.5 Degrade Rule applies only to preflight failures, never
+to an agent that ran.
 
 ### Step 2: Agent Prompts
 
@@ -204,44 +221,47 @@ Also echo the finished report between ===REPORT BEGIN=== and ===REPORT END=== ma
 final message, verbatim, so it can be salvaged if the file write fails.
 ```
 
-### Step 3: Report
+### Step 3: Layer-3 Aggregation And Report
 
-After both agents finish, read each report's **Result** and display in Korean:
+After both agents finish, compute the station verdict mechanically — never by
+reading and weighing the reports yourself (`specter-agent-protocols` §7):
+
+```bash
+.specify/scripts/bash/specter-gate.sh aggregate agent-verify NNN --ledger --round <R>
+```
+
+`<R>` is the current §4 convergence round (1 on the first run, 2/3 on
+re-rounds) — the receipt records which round produced this verdict.
+
+The receipt JSON is the station's outcome of record: per-report grading
+(including SHA staleness and degrade placeholders), the station `verdict`, any
+`cap`, and verbatim `caught` rows. `--ledger` appends the
+`.specify/specter-run.jsonl` line mechanically — do not hand-write one for
+this station.
+
+Display in Korean, quoting the receipt's values verbatim:
 ```text
 Codex 및 Antigravity Feature checklist 검증을 완료했습니다.
 
 📄 산출물:
-- docs/prd/checklists/feature-NNN.codex-verify.md (<PASS|WARN|FAIL>)
-- docs/prd/checklists/feature-NNN.antigravity-verify.md (<PASS|WARN|FAIL>)
+- docs/prd/checklists/feature-NNN.codex-verify.md (<receipt input result>)
+- docs/prd/checklists/feature-NNN.antigravity-verify.md (<receipt input result>)
+⚖️ 집계 verdict: <receipt verdict> (기계 판정 — specter-gate.sh aggregate)
 🎯 다음 단계: /ms.specify
 
-두 결과가 모두 PASS/WARN이면 /ms.specify로 진행할 수 있습니다.
-하나라도 FAIL이면 체크리스트를 수정한 뒤 /ms.agent-verify를 다시 실행하세요.
+verdict가 PASS/WARN이면 /ms.specify로 진행할 수 있습니다.
+FAIL이면 체크리스트를 수정한 뒤 /ms.agent-verify를 다시 실행하세요.
+(재실행 라운드도 항상 --fresh — 이전 지적은 리포트 파일 경로로 전달됩니다.)
 ```
 
-## Run-State Ledger (bookkeeping, not a gate)
+## Run-State Ledger
 
-Append one line to `.specify/specter-run.jsonl` (create it if needed; append-only, never
-rewritten — a missing/corrupt ledger never blocks this command, it only speeds up conductor
-resume). Set `verdict` to the worse of the two agents' Results (FAIL > WARN > PASS) and `feature`
-to the Feature number as a string:
-
-```bash
-mkdir -p .specify
-printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"agent-verify","verdict":"%s","artifacts":["docs/prd/checklists/feature-%s.codex-verify.md","docs/prd/checklists/feature-%s.antigravity-verify.md"]}\n' \
-  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "<PASS|WARN|FAIL>" "<NNN>" "<NNN>" >> .specify/specter-run.jsonl
-```
-
-On `WARN`/`FAIL`, extend the JSON with `caught` — an array of short **verbatim quotes** from
-the two verify reports, one per real finding (never paraphrase or re-grade; `[]` if the
-non-PASS verdict carried no content finding) — and, only when the verdict was capped by an
-environmental degrade rather than by findings, `cap` with the reason (e.g.
-`"single-agent-degrade"`). PASS lines stay minimal. Re-rounds overwrite report files; this
-ledger line is where the original catch survives for gate-value audits. Example:
-
-```json
-{"ts":"…","cycle":"feature","feature":"006","step":"agent-verify","verdict":"WARN","artifacts":["…"],"caught":["checklist cites fabricated C220; C144 missing"],"cap":"single-agent-degrade"}
-```
+Emitted mechanically by Step 3's `aggregate --ledger`
+(`specter-agent-protocols` §7 Mechanical ledger): `caught` rows are copied
+verbatim from the reports' Findings tables and `cap` is the receipt's
+classification. The host never authors or edits this station's ledger line —
+re-rounds overwrite report files, and the mechanical line is where the
+original catch survives for gate-value audits.
 
 ## Next Command
 

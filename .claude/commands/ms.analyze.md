@@ -93,9 +93,28 @@ Execute the underlying document analysis:
 
 Treat `/speckit-analyze` as the foundation for document consistency only.
 
-### Step 2: SPECTER Drift Detection
+### Step 2: SPECTER Drift Detection (Layer 1 — fail-fast, before agents)
 
-Run these additional checks:
+This step is the station's deterministic/host detection layer. Two rules bind
+it (`specter-agent-protocols` §7): a FAIL here **stops the command before any
+agent is dispatched** (mechanical drift does not need two agents to find), and
+host findings can only **worsen** the final station verdict — they never
+soften an agent's verdict.
+
+First the mechanical checks (run them, do not eyeball):
+
+```bash
+# every FR id in spec.md must appear in tasks.md
+comm -23 <(grep -oE 'FR-[0-9]+' specs/[spec-id]/spec.md | sort -u) \
+         <(grep -oE 'FR-[0-9]+' specs/[spec-id]/tasks.md | sort -u)
+# duplicate @SPEC TAG ids in tasks.md (output must be empty)
+grep -oE '@SPEC:[A-Za-z0-9_-]+' specs/[spec-id]/tasks.md | sort | uniq -d
+```
+
+Any output from the first command is a missing-FR-coverage FAIL (name the FR
+ids); any output from the second is a duplicate-TAG FAIL.
+
+Then run these additional checks:
 
 1. **Feature Map lineage**: the spec references a Feature section from
    `docs/prd/feature-map.md`.
@@ -114,16 +133,27 @@ Run these additional checks:
 
 ### Step 3: Dual-Agent Document Consistency Review
 
-Unless `--skip-codex` (or `--skip-agents`) is supplied, invoke both Codex and Antigravity to perform advisory document consistency reviews:
+Unless `--skip-codex` (or `--skip-agents`) is supplied, invoke both Codex and Antigravity to perform advisory document consistency reviews.
+
+Before dispatching, compute the tasks hash and substitute it (with the Feature
+number) into both prompts — the aggregation rejects a report bound to a stale
+`tasks.md` revision:
+
+```bash
+TASKS_SHA=$(sha256sum specs/[spec-id]/tasks.md | awk '{print $1}')
+```
 
 #### 0. External Agent Preflight (session-level, once)
 
 Apply the Preflight and Degrade Rule from
 `.claude/skills/specter-agent-protocols/SKILL.md` (§1–2). For this command: a **dual-agent
-station** — if one agent is unavailable after preflight + one retry, run it single-agent, cap
-the station result at `WARN`, and record `<Agent>: UNAVAILABLE (<reason>)` in the missing
-agent's report path (`specs/[spec-id]/analyze.codex.md` / `analyze.antigravity.md`). Never
-present a single-agent run as dual; never block `/ms.analyze` on an environment issue alone.
+station** — if one agent is unavailable after preflight + one retry, run it single-agent and
+write the §2 degrade placeholder (a VALID report — `**Mode**: agent-document-consistency`,
+`**Feature**:`, `**Tasks SHA256**:`, `**Result**: WARN`, `**Availability**: UNAVAILABLE
+(<reason>)`) at the missing agent's report path (`specs/[spec-id]/analyze.codex.md` /
+`analyze.antigravity.md`); the Layer-3 aggregation then caps the station at `WARN`
+mechanically. Never present a single-agent run as dual; never block `/ms.analyze` on an
+environment issue alone.
 
 #### A. Codex Review
 ```text
@@ -166,6 +196,8 @@ Write:
 # Codex Analyze Review
 
 **Mode**: agent-document-consistency
+**Feature**: Feature {NNN}
+**Tasks SHA256**: {TASKS_SHA}
 **Result**: PASS | WARN | FAIL
 
 ## Findings
@@ -221,6 +253,8 @@ Write:
 # Antigravity Analyze Review
 
 **Mode**: agent-document-consistency
+**Feature**: Feature {NNN}
+**Tasks SHA256**: {TASKS_SHA}
 **Result**: PASS | WARN | FAIL
 
 ## Findings
@@ -240,14 +274,32 @@ If the user supplied `--background`, add `--background` to both invocations and 
 
 **Report-Write Protocol**: apply `specter-agent-protocols` §3 — deterministic file check
 (exists, non-empty, contains `**Result**:`), retry once, salvage from the
-`===REPORT BEGIN===`/`===REPORT END===` markers, and only then fall back to the subsection-0
-Degrade Rule.
+`===REPORT BEGIN===`/`===REPORT END===` markers. If no markers exist either, that is an
+**agent-authored failure**: leave the report missing/invalid for the aggregation to grade
+`FAIL` (§3 step 3) — the subsection-0 Degrade Rule applies only to preflight failures,
+never to an agent that ran.
 
-#### C. Result handling for both agents:
-- `PASS`: keep the SPECTER result unchanged.
-- `WARN`: final `/ms.analyze` result is at least `WARN` unless Claude/SPECTER explicitly explains why every warning is a false positive.
-- `FAIL`: final `/ms.analyze` result is `FAIL` unless Claude/SPECTER explicitly downgrades the finding with source evidence.
-- `PENDING`: if `--background` was used and either report is missing, stop and tell the user to rerun `/ms.analyze` after both reports appear.
+#### C. Layer-3 Aggregation (mechanical — replaces host result-weighing)
+
+If `--background` was used and either report file has not appeared yet, report
+`PENDING` and stop — do **not** run the aggregation against a missing report
+(it would grade the absence as FAIL, which is the wrong signal for a
+still-running agent). Otherwise:
+
+```bash
+.specify/scripts/bash/specter-gate.sh aggregate analyze specs/[spec-id] --ledger --round <R>
+```
+
+`<R>` is the current §4 convergence round (1 on the first run, 2/3 on
+re-rounds).
+
+- The receipt `verdict` is the agent-station outcome; the final `/ms.analyze`
+  result is the **worse** of Step 2's host result and the receipt verdict.
+- The host never downgrades an agent `WARN`/`FAIL` by explaining it as a false
+  positive (`specter-agent-protocols` §5 no-unilateral-host-downgrade). A
+  disputed finding goes back as a scoped §4 re-round — dispatched `--fresh`,
+  prior findings passed as report file paths — where only the reviewing agent
+  may revise its own grade against changed evidence.
 
 #### D. Convergence Policy (re-round caps)
 
@@ -274,7 +326,8 @@ Use this result model:
 - Broken migration numbering across documents.
 - Missing Amendment block for superseded requirements.
 - Constitution violation in plan/tasks.
-- Either Codex or Antigravity `FAIL` finding that cannot be explained as a false positive.
+- Layer-3 aggregate verdict `FAIL` — an agent `FAIL` is final unless a §4
+  re-round with changed evidence revises it; the host cannot explain it away.
 
 ### Step 5: Report
 
@@ -327,26 +380,26 @@ If `FAIL`:
 
 ## Run-State Ledger (bookkeeping, not a gate)
 
-Append one line to `.specify/specter-run.jsonl` (create it if needed; append-only, never
-rewritten — a missing/corrupt ledger never blocks this command, it only speeds up conductor
-resume), with `verdict` set to the `document_consistency` Result from Step 5's summary:
+The agent-station line is emitted mechanically by Step 3-C's
+`aggregate --ledger` (`specter-agent-protocols` §7): verbatim `caught` rows,
+mechanical `cap`. The host never authors that line. Two host-side cases
+remain, both append-only:
 
-```bash
-mkdir -p .specify
-printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"analyze","verdict":"%s","artifacts":["%s"]}\n' \
-  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "<PASS|WARN|FAIL>" "specs/<spec-id>/analyze.codex.md\",\"specs/<spec-id>/analyze.antigravity.md" >> .specify/specter-run.jsonl
-```
+- **Step 2 FAIL (agents never ran)**: append the fail-fast evidence yourself —
+  `caught` is the mechanical check output / drift findings, verbatim:
 
-On `WARN`/`FAIL`, extend the JSON with `caught` — an array of short **verbatim quotes** from
-the two analyze reports, one per real finding (never paraphrase or re-grade; `[]` if the
-non-PASS verdict carried no content finding) — and, only when the verdict was capped by an
-environmental degrade rather than by findings, `cap` with the reason (e.g.
-`"single-agent-degrade"`). PASS lines stay minimal. Re-rounds overwrite report files; this
-ledger line is where the original catch survives for gate-value audits. Example:
+  ```bash
+  mkdir -p .specify
+  printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"analyze","verdict":"FAIL","artifacts":["specs/<spec-id>/spec.md"],"caught":%s}\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "<verbatim host findings array>" >> .specify/specter-run.jsonl
+  ```
 
-```json
-{"ts":"…","cycle":"feature","feature":"006","step":"analyze","verdict":"WARN","artifacts":["…"],"caught":["tasks omit RED test for FR-007 error path"],"cap":"single-agent-degrade"}
-```
+- **Host WARN after a PASS aggregate**: when Step 2 found WARN-level drift but
+  the aggregate line says PASS, append one supplementary WARN line with the
+  host findings verbatim in `caught` **and** the mechanical receipt's verdict
+  embedded verbatim as `"agents_verdict"`. Per §7's composite rule, this line
+  may only equal or worsen the mechanical verdict, never soften it; the
+  mechanical line stays in the append-only ledger regardless.
 
 ## Next Command
 

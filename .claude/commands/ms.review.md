@@ -443,7 +443,12 @@ before the dual-agent review so both agents can see the results in their prompt 
      hitting a health/endpoint check, running a script, or driving a reproducible user flow
      end-to-end.
    - **MANUAL**: requires human eyes or a physical device (visual polish, hardware, third-party
-     dashboard, anything not scriptable from this session).
+     dashboard, anything not scriptable from this session). **Every MANUAL classification
+     carries a one-line justification** (why it cannot be scripted from this session); a
+     criterion classified MANUAL without one is treated as an unexecuted RUNNABLE — a CRITICAL
+     trigger, same as a failing one. Classification is host-judged, so it is deliberately
+     exposed to challenge: both Step 6.7 reviewers receive this table and are prompted to flag
+     misclassified MANUAL rows.
 3. **Construct the check** (how, not just "execute it") — pick the lightest rung that gives a
    tight, red-capable signal for this criterion's class, roughly in this order: a failing test at
    the seam that reaches it → a curl/HTTP script against the running dev server → a CLI
@@ -462,11 +467,14 @@ before the dual-agent review so both agents can see the results in their prompt 
    tokens actually render, not just that the files exist on disk.
 5. **Phase E2E scenario**: if this Feature is a Phase's last Feature (per the Feature Map DAG),
    also execute that Phase's end-to-end scenario as one additional RUNNABLE criterion.
-6. **Record results** in a table, included in the Step 7 review report:
+6. **Record results** in a table, included in the Step 7 review report. Evidence for a
+   RUNNABLE row is machine-checkable: the **exact command executed and the observed
+   output/exit code**, never a prose summary ("worked fine" is not evidence). MANUAL rows
+   carry their classification justification instead:
 
    | Criterion | Class | Result | Evidence |
    | --- | --- | --- | --- |
-   | ... | RUNNABLE \| MANUAL | PASS \| FAIL \| MANUAL | command/output, or "n/a — manual" |
+   | ... | RUNNABLE \| MANUAL | PASS \| FAIL \| MANUAL | exact command + observed output/exit code, or the MANUAL justification |
 
 7. **Gate**: any RUNNABLE criterion with Result `FAIL` is a CRITICAL trigger in the Result Model
    (Step 6) — the same severity as a failing executable gate in Step 6.5. Do not let a green
@@ -575,6 +583,9 @@ Focus on:
 - data loss, race condition, rollback, idempotency, and migration risks
 - overcomplicated abstractions or non-surgical changes
 - architecture violations against plan.md
+- Done Criteria rows classified MANUAL that are actually scriptable from this
+  environment (a misclassified MANUAL hides an unexecuted runnable check —
+  challenge the classification, citing how you would script it)
 
 Always challenge whether the implementation approach is simpler, safer, or
 better scoped than available alternatives.
@@ -584,6 +595,7 @@ Write:
 # {AGENT} Code Review
 
 **Mode**: {MODE}
+**Feature**: Feature {NNN}
 **Result**: PASS | WARN | FAIL
 
 ## Findings
@@ -603,14 +615,33 @@ If the user supplied `--background`, add `--background` to both invocations and 
 
 **Report-Write Protocol**: apply `specter-agent-protocols` §3 — deterministic file check
 (exists, non-empty, contains `**Result**:`), retry once, salvage from the
-`===REPORT BEGIN===`/`===REPORT END===` markers, and only then fall back to the subsection-0
-Degrade Rule.
+`===REPORT BEGIN===`/`===REPORT END===` markers. If no markers exist either, that is an
+**agent-authored failure**: leave the report missing/invalid for the aggregation to grade
+`FAIL` (§3 step 3) — the subsection-0 Degrade Rule applies only to preflight failures,
+never to an agent that ran.
 
-#### B. Result handling for both reviews (feeds the Result Model, Step 6):
-- `PASS`: no trigger; SPECTER review result unchanged.
-- `WARN`: WARNING trigger, unless Claude/SPECTER explicitly explains why every warning is a false positive.
-- `FAIL`: CRITICAL trigger, unless Claude/SPECTER explicitly downgrades the finding with source evidence.
-- `PENDING`: if `--background` was used and either report is missing, stop and tell the user to rerun `/ms.review` after both reports appear.
+#### B. Layer-3 Aggregation (mechanical — feeds the Result Model, Step 6)
+
+If `--background` was used and either report file has not appeared yet, report
+`PENDING` and stop — do **not** run the aggregation against a missing report.
+Otherwise compute the agent-station verdict mechanically:
+
+```bash
+.specify/scripts/bash/specter-gate.sh aggregate review {spec-id} --ledger --round <R>
+```
+
+`<R>` is the current §4 convergence round (1 on the first run, 2/3 on
+re-rounds).
+
+The receipt verdict maps to the Result Model with no host re-weighing
+(`specter-agent-protocols` §5 no-unilateral-host-downgrade):
+
+- `PASS`: no trigger.
+- `WARN`: WARNING trigger. The host never explains a warning away as a false
+  positive — a disputed finding goes to a scoped §4 re-round (`--fresh`, prior
+  findings passed as report file paths), where only the reviewing agent may
+  revise its own grade against changed evidence.
+- `FAIL`: CRITICAL trigger, final under the same re-round-only rule.
 
 #### C. Convergence Policy (re-round caps)
 
@@ -669,15 +700,19 @@ inside `/ms.review` remain blocking for the review result itself.
   - Removed: `.specify/review/*.json`, `.specify/review-rg.ndjson`, transient hash files
   - Reports: `docs/review/review_{agent}_{timestamp}.md` kept for audit trail
 
-**Run-State Ledger** (bookkeeping, not a gate): append one line to `.specify/specter-run.jsonl`
-(create it if needed; append-only, never rewritten — a missing/corrupt ledger never blocks this
-command, it only speeds up conductor resume), with `verdict` set to `PASS` (READY), `WARN` (READY
-WITH WARNINGS), or `FAIL` (NOT READY):
+**Run-State Ledger** (bookkeeping, not a gate): the **agent-station** line was already emitted
+mechanically by Step 6.7-B's `aggregate --ledger` (verbatim `caught`, mechanical `cap` — the
+host never authors it). `/ms.review` is a composite station, so the host appends one **final**
+composite line on top (append-only; the later entry supersedes for conductor resume), with
+`verdict` set to `PASS` (READY), `WARN` (READY WITH WARNINGS), or `FAIL` (NOT READY) — this
+composite verdict folds in the executable gates and Done Criteria results, which the aggregate
+line cannot see. Per §7's composite rule, the line must embed the mechanical receipt's verdict
+verbatim as `"agents_verdict"` and may only equal or worsen it — never soften:
 
 ```bash
 mkdir -p .specify
-printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"review","verdict":"%s","artifacts":["%s"]}\n' \
-  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "<PASS|WARN|FAIL>" "$REPORT_FILE" >> .specify/specter-run.jsonl
+printf '{"ts":"%s","cycle":"feature","feature":"%s","step":"review","verdict":"%s","agents_verdict":"%s","artifacts":["%s"]}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<NNN>" "<PASS|WARN|FAIL>" "<the aggregate receipt verdict, verbatim>" "$REPORT_FILE" >> .specify/specter-run.jsonl
 ```
 
 On `WARN`/`FAIL`, extend the JSON with `caught` — an array of short **verbatim quotes** from
@@ -688,7 +723,7 @@ environmental degrade rather than by findings, `cap` with the reason (e.g.
 ledger line is where the original catch survives for gate-value audits. Example:
 
 ```json
-{"ts":"…","cycle":"feature","feature":"006","step":"review","verdict":"WARN","artifacts":["…"],"caught":["dispatch path lacks timeout (HIGH)"],"cap":"single-agent-degrade"}
+{"ts":"…","cycle":"feature","feature":"006","step":"review","verdict":"WARN","agents_verdict":"WARN","artifacts":["…"],"caught":["dispatch path lacks timeout (HIGH)"],"cap":"single-agent-degrade"}
 ```
 
 **Close the stop-gate phase** on a `PASS` or `WARN` verdict (a `FAIL` verdict keeps the phase

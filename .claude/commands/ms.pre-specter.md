@@ -93,6 +93,11 @@ This is the cycle-level expression of "autonomy only inside the control fence":
 the conductor moves on its own through PASS/WARN and stops on FAIL; the only human
 turns are the conditional questions the underlying commands raise.
 
+Verdicts are read **mechanically** — from `specter-gate.sh` JSON output and the
+Layer-3 aggregation receipts (`specter-agent-protocols` §7), never inferred or
+re-weighed from report prose. The conductor follows the script's verdict; it
+does not interpret it.
+
 ## Execution Steps
 
 ### Step 0: Resolve The PRD Set And Preconditions
@@ -145,6 +150,13 @@ turns are the conditional questions the underlying commands raise.
    normally at Step 1 — a missing/corrupt ledger never blocks the run, it only loses the resume
    shortcut. Fail-open here means "start from the beginning", never "enter a mid-sequence step
    unverified".
+
+   **Staleness guard on resume**: a prior `PASS`/`WARN` entry counts only while its artifact is
+   still current. After computing the resume point, run the deterministic gate checker
+   (`.specify/scripts/bash/specter-gate.sh`); if it reports a stale SHA or failed artifact for
+   an already-"passed" step (e.g. the Feature Map was rewritten after its verify entry), resume
+   from that earlier step instead — a ledger entry is a bookmark, never a substitute for the
+   artifact check.
 
    **Step-order invariant (no silent skips).** The same per-step last-entry-wins data enforces
    order, not just the resume shortcut: before executing any step of the sequence, every earlier

@@ -82,6 +82,41 @@ user before proceeding.
 
 **IF no PRD set can be found or confirmed** → ask the user for the PRD path and STOP. Do not guess content.
 
+### 1.5 Dispatch The Isolated Authoring Subagent
+
+The Feature Map is written by a **fresh Claude subagent**, not by the host
+(`specter-agent-protocols` §7 "Authoring stations are not verdicts"): the host
+carries session memory of the PRD conversation, and an author that remembers
+its intent writes the map to match the intent rather than the documents. The
+subagent reads only files.
+
+Dispatch one general-purpose subagent (same model tier as the session —
+decomposition is architecture-level work), passing **file paths only** (AGENTS
+§2 dispatch discipline — never paste PRD or template content into the prompt):
+
+```text
+You are the isolated authoring subagent for /ms.featuremap. You have no
+conversation context by design; work from files alone.
+
+Read your authoring brief: .claude/commands/ms.featuremap.md, sections
+"2. Run the Decomposition Algorithm" through "4. Assemble the full document"
+plus "Writing Discipline". Then read every PRD in this set IN FULL:
+<resolved PRD paths>
+plus, if they exist: docs/prd/product-principles.md,
+.specify/memory/constitution.md, AGENTS.md.
+
+Execute the brief exactly: extract commitments, cut Phases and Features, order
+the DAG, fill the PRD Commitment Index, and write
+docs/prd/feature-map.md and docs/prd/feature-map.progress.md per the brief's
+templates (ENGLISH, per the Language Policy). Write those two files and
+nothing else. Your final message: the two file paths plus a one-line summary
+(PRD count, Phase count, Feature count).
+```
+
+The host waits for the subagent, then proceeds to the structural gate (§5.2).
+Steps 2–4 below are the subagent's brief — in a normal run the host executes
+none of them.
+
 ### 2. Run the Decomposition Algorithm (think through ALL steps before writing)
 
 #### STEP 1 — Extract PRD commitments before slicing
@@ -246,17 +281,47 @@ inline `## Progress Ledger` section (from before this split), move that section'
 this only from `/ms.featuremap` (or `/ms.expand`) — never from a gate command, since that would
 change a gate's input file outside an audited write.
 
+### 5.2 Host Structural Gate + Bounded Fix Rounds (Layer 1)
+
+After the subagent returns, the host runs the deterministic structural check —
+this is the host's only role besides dispatch, and it involves no judgment:
+
+```bash
+# self-heal: the runtime copy is project-local (never synced); refresh it from the synced template
+install -D -m 0755 docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
+.specify/scripts/bash/specter-gate.sh structural
+```
+
+- `PASS` → continue to §5.5.
+- `WARN` → continue, but carry every `reasons[]` entry into the §6 report.
+- `FAIL` → record the FAIL ledger line first (§5.5 — a fix round must never
+  overwrite the evidence that a round failed), then re-dispatch a **fresh** fix
+  subagent with the same brief plus the script's `reasons[]` (as text — they
+  are short mechanical findings, not artifacts), scoped to fixing **only** the
+  reported defects. A fix subagent must never delete or reword commitments
+  merely to make a check pass (§7). **Maximum 2 fix rounds**; still FAIL after
+  that → stop and report to the user.
+
+The structural verdict is a shape check, not an authoritative content verdict —
+that comes from `/ms.verify`'s dual-agent station. Never present this PASS as
+verification.
+
 ### 5.5 Run-State Ledger (bookkeeping, not a gate)
 
 Append one line to `.specify/specter-run.jsonl` (create it if needed; append-only, never
 rewritten — a missing/corrupt ledger never blocks this command, it only speeds up conductor
-resume):
+resume), with `verdict` set to §5.2's structural verdict — never an
+unconditional PASS, and on a structural FAIL the line is appended **before**
+the fix round runs:
 
 ```bash
 mkdir -p .specify
-printf '{"ts":"%s","cycle":"pre","feature":null,"step":"featuremap","verdict":"PASS","artifacts":["docs/prd/feature-map.md","docs/prd/feature-map.progress.md"]}\n' \
-  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> .specify/specter-run.jsonl
+printf '{"ts":"%s","cycle":"pre","feature":null,"step":"featuremap","verdict":"%s","artifacts":["docs/prd/feature-map.md","docs/prd/feature-map.progress.md"]}\n' \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "<PASS|WARN|FAIL>" >> .specify/specter-run.jsonl
 ```
+
+On `WARN`/`FAIL`, extend the JSON with `caught` — the structural `reasons[]`
+entries, copied verbatim.
 
 ### 6. Report
 

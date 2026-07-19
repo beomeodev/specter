@@ -136,6 +136,18 @@ is not an expansion.
 Write the extended `docs/prd/feature-map.md` (existing content unchanged except for the new
 Commitment Index rows, new Feature sections, and DAG extension).
 
+Then run the Layer-1 structural gate on the extended map (three-layer contract,
+`specter-agent-protocols` §7):
+
+```bash
+.specify/scripts/bash/specter-gate.sh structural
+```
+
+- `PASS`/`WARN` → continue (carry any WARN into the Step 5 report).
+- `FAIL` → fix only the reported defects before dispatching verification, under the same
+  bounded rules as `/ms.featuremap` §5.2 (max 2 fix rounds; never delete or reword
+  commitments merely to make a check pass).
+
 ### Step 2: Codex Delta Checklist (Background)
 
 Same contract as `/ms.codex-checklist`, scoped to the amendment only:
@@ -158,42 +170,68 @@ Same contract as `/ms.codex-checklist`, scoped to the amendment only:
 then treat its items as audit inputs: every delta C-item must be either covered by the new
 Features or explicitly dispositioned in the reconciliation section below. If the file has not
 appeared, apply the `specter-agent-protocols` §3 protocol (retry once, salvage from markers);
-if Codex still produced nothing, apply the §2 Degrade Rule — proceed host+Antigravity only,
-cap the result at `WARN`, and record `Codex: UNAVAILABLE (<reason>)` in the reconciliation
-section. (Without this join, the dual-agent guarantee silently degrades to a single agent —
-and the Antigravity-unavailable degrade below would leave zero independent verifiers.)
+if Codex still produced nothing, proceed with Antigravity's verification against the amendment
+text alone and record `Codex: UNAVAILABLE (<reason>)` in the reconciliation section — the WARN
+cap itself is applied **mechanically** by Step 3's aggregation (`missing-codex-baseline`),
+which checks for `docs/prd/codex/checklist-delta-N.md` and caps the receipt when it is absent;
+the host never decides that cap. (Without this join, the missing baseline would go unnoticed —
+and since Antigravity is this station's only Layer-2 verifier, losing the Codex baseline
+silently would leave the delta audit with no independent cross-check at all.)
 
-Host + Antigravity audit, scoped to only:
+Antigravity is this station's Layer-2 verifier (the Codex delta checklist is its independent
+input baseline, not a verdict; the host contributes only the deterministic Layer-1 checks
+already run in Step 1). Its audit scope:
 
 (a) every amendment commitment has exactly one owning (new) Feature;
 (b) the new Features do not overlap any existing Feature's ownership;
 (c) the extended DAG has no cycle;
 (d) every deferred/out-of-scope item in the amendment has a destination Feature.
 
-Invoke Antigravity in the foreground, same pattern as `/ms.verify` Step 0.2, with a prompt scoped
+Invoke Antigravity in the foreground, same pattern as `/ms.verify` Step 1, with a prompt scoped
 to the amendment text, the new Feature sections, and the DAG extension only (not the whole
-product). Wait for it to finish before continuing.
+product). It must write its own verdict report to the **station-fixed path**:
 
-- **Antigravity unavailable** (after one retry): apply the Degrade Rule from
-  `specter-agent-protocols` §2 — run the audit Codex-only, force the result to at most `WARN`,
-  and record `Antigravity: UNAVAILABLE (<reason>)` in the reconciliation section below.
+```text
+docs/prd/feature-map.delta-N.antigravity-verify.md
+```
 
-Append to `docs/prd/feature-map.checklist.md` (do not touch prior sections):
+containing `**Mode**: antigravity-delta-verify`, `**Feature Map SHA256**: <sha of the extended
+docs/prd/feature-map.md>`, `**Result**: PASS | WARN | FAIL`, and a Findings table — same
+compact machine-parsed form as every station report.
+
+- **Antigravity unavailable** (after one retry): this is a single-verifier station — there is
+  no second agent to degrade to (`specter-agent-protocols` §2 single-agent rule, §7 typed
+  degrade). **Stop and report**; never substitute a host-only audit for the missing verifier.
+
+Then compute the reconciliation verdict mechanically:
+
+```bash
+.specify/scripts/bash/specter-gate.sh aggregate expand N --ledger --round <R>
+```
+
+`<R>` is the current §4 convergence round (1 on the first run, 2/3 on
+re-rounds).
+
+Append to `docs/prd/feature-map.checklist.md` (do not touch prior sections), copying the
+receipt's verdict and the report's findings verbatim — the host adds paths and metadata only:
 
 ```markdown
 ## Delta Reconciliation N — YYYY-MM-DD
 
 **Amendment**: PRD Amendment N (<source PRD path>)
 **New Features**: Feature NNN, ...
-**Antigravity**: PASS | WARN | FAIL | UNAVAILABLE (<reason>)
+**Antigravity Delta Verify**: docs/prd/feature-map.delta-N.antigravity-verify.md
+**Delta Result**: <receipt verdict, copied verbatim>
 
 | Category | Check | Result | Evidence | Required Fix |
 | --- | --- | --- | --- | --- |
+<the delta report's Findings rows, copied verbatim>
 ```
 
-Then update the top-level `**Result**` (do not downgrade an existing PASS/WARN/FAIL to something
-better than what this reconciliation found — the overall Result is the worse of the prior Result
-and this reconciliation's Result), and recompute:
+Then update the top-level `**Result**` mechanically: the overall Result is the worse of the
+prior Result and this reconciliation's receipt verdict (never downgrade an existing
+PASS/WARN/FAIL to something better). Record the computation itself in the reconciliation
+section so it is auditable — `Overall: worse(prior=<X>, delta=<Y>) = <Z>` — then recompute:
 
 ```bash
 sha256sum docs/prd/feature-map.md   # -> Feature Map SHA256

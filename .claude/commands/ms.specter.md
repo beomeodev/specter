@@ -90,6 +90,11 @@ This is the cycle-level expression of "autonomy only inside the control fence":
 the conductor moves on its own, but only through PASS/WARN, and only the human
 crosses the clarify boundary.
 
+Verdicts are read **mechanically** — from `specter-gate.sh` JSON output and the
+Layer-3 aggregation receipts (`specter-agent-protocols` §7), never inferred or
+re-weighed from report prose. The conductor follows the script's verdict; it
+does not interpret it.
+
 ## Execution Steps
 
 ### Step 0: Resolve The Feature And Preconditions
@@ -151,6 +156,17 @@ crosses the clarify boundary.
    shortcut. Fail-open here means "start from the beginning", never "enter a mid-sequence step
    unverified".
 
+   **Staleness guard on resume**: a prior `PASS`/`WARN` entry counts only while its artifact is
+   still current. After computing the resume point, run the deterministic gate checker
+   (`.specify/scripts/bash/specter-gate.sh <NNN>`); if it reports a stale SHA or failed artifact
+   for an already-"passed" step (e.g. the checklist was rewritten after its agent-verify entry),
+   resume from that earlier step instead — a ledger entry is a bookmark, never a substitute for
+   the artifact check. For freshness bindings the legacy checker does not cover, re-run the
+   station's aggregation read-only: when resuming past `analyze`, run
+   `.specify/scripts/bash/specter-gate.sh aggregate analyze specs/<id>` (no `--ledger`) — a
+   `FAIL` receipt means `tasks.md` changed after the analyze reports were written, so the
+   `analyze` entry is stale and the cycle resumes there.
+
    **Step-order invariant (no silent skips).** The same per-step last-entry-wins data enforces
    order, not just the resume shortcut: before executing any step of the sequence, every earlier
    step must already have a `PASS`/`WARN` ledger entry for this Feature. If one is missing, do
@@ -199,12 +215,14 @@ either agent fails to write its `*-verify.md` report, the underlying command
 retries once and then stops; surface that failure to the user rather than
 proceeding.
 
-Read both:
-- `docs/prd/checklists/feature-NNN.codex-verify.md`
-- `docs/prd/checklists/feature-NNN.antigravity-verify.md`
+Read the station verdict from the Layer-3 aggregation receipt the command
+produced (`specter-gate.sh aggregate agent-verify NNN`) — not by weighing the
+two reports yourself:
 
-- Both PASS/WARN → continue (record any WARN).
-- Either FAIL → stop. Report which agent failed and its findings.
+- Receipt verdict PASS/WARN → continue (record any WARN, including a
+  `single-agent-degrade` cap).
+- Receipt verdict FAIL → stop. Report the receipt's `reasons[]` and the
+  failing report's findings verbatim.
 
 ### Step 3: `/ms.specify` (inject the Feature section)
 

@@ -167,6 +167,46 @@ Otherwise, select the next eligible Feature:
 5. If no Feature is eligible, report that all planned Features are already
    specified or blocked by unmet dependencies.
 
+### Step 2.5: Dispatch The Isolated Authoring Subagent
+
+The audit itself (Steps 3–5) is executed by a **fresh Claude subagent**, not by
+the host (`specter-agent-protocols` §7 "Authoring stations are not verdicts"):
+the host may carry session memory of authoring the Feature Map, and an author
+that remembers its intent audits against the intent rather than against what
+the files actually say. The subagent reads only files.
+
+Dispatch one general-purpose subagent (same model tier as the session), passing
+**file paths only** (AGENTS §2 dispatch discipline):
+
+```text
+You are the isolated authoring subagent for /ms.checklist. You have no
+conversation context by design; work from files alone.
+
+Read your audit brief: .claude/commands/ms.checklist.md, sections "Step 3:
+Load The Feature's PRD Evidence" through "Step 5: Write The Per-Feature
+Audit" plus "FAIL Conditions" and "Result Model". Target: Feature <NNN>.
+
+Read: docs/prd/feature-map.md, docs/prd/feature-map.progress.md,
+docs/prd/feature-map.checklist.md, docs/prd/codex/checklist.md if it exists,
+.specify/memory/constitution.md, and the PRD sections the Feature's
+"### PRD references" name.
+
+Execute the brief exactly and write
+docs/prd/checklists/feature-<NNN>.checklist.md with an honest
+PASS | WARN | FAIL Result. Grade down on doubt. Write that one file and
+nothing else. Your final message: the file path and the Result.
+```
+
+The subagent's Result is a **draft grade, never authoritative** — the
+authoritative verdict on this checklist comes from `/ms.agent-verify`'s
+dual-agent station. Never present this Result as verification, and never let
+the host "adjust" it after the fact (§5 no-unilateral-host-downgrade applies
+to authored drafts too: a host that disagrees re-dispatches a fresh subagent
+with the disputed point named, it does not edit the grade).
+
+Steps 3–5 below are the subagent's brief — in a normal run the host executes
+none of them.
+
 ### Step 3: Load The Feature's PRD Evidence
 
 For the selected Feature:
@@ -282,6 +322,23 @@ Use this structure:
 - [ ] ...
 ```
 
+### Step 5.5: Host Structural Gate (Layer 1)
+
+After the subagent returns, the host runs the deterministic structural check —
+no judgment, shape only:
+
+```bash
+.specify/scripts/bash/specter-gate.sh structural <NNN>
+```
+
+- `PASS` → continue to the verdict report.
+- `WARN` → continue; carry every `reasons[]` entry into the verdict report.
+- `FAIL` (placeholder in done criteria, cited C-ID that does not exist in the
+  Codex checklist, malformed Feature section) → re-dispatch a **fresh** fix
+  subagent scoped to the reported defects only, same bounded rule as
+  `/ms.featuremap` §5.2 (max 2 fix rounds, never delete content merely to make
+  a check pass), appending the FAIL ledger line before each fix round.
+
 ### FAIL Conditions
 
 - The selected Feature is not the next eligible Feature and the user did not
@@ -360,7 +417,9 @@ Bypass protection:
 - It does not create or validate `spec.md`.
 - It does not edit the Feature Map automatically unless the user explicitly asks
   for fixes. The audit identifies required corrections first.
-- It does not run agents. Use `/ms.agent-verify` after this command.
+- It does not run external verification agents (Codex & Antigravity) — that is
+  `/ms.agent-verify`'s job. The Step 2.5 authoring subagent is an internal
+  isolated author, not a verifier.
 
 ## Run-State Ledger (bookkeeping, not a gate)
 
