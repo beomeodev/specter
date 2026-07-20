@@ -212,11 +212,14 @@ if [ "$SUBCOMMAND" = "structural" ]; then
         rows++
         owner = c[6]
         gsub(/^[ ]+|[ ]+$/, "", owner)
-        if (owner !~ /^Feature [0-9]+$/) {
-          if (owner !~ /Feature [0-9]+/)
-            print "F|index|commitment row has no owning Feature: " $0
-          else
-            print "F|index|commitment row owner is not exactly one Feature: " $0
+        # A commitment is "accounted for" if the owner column names a Feature
+        # (incl. shared "Features 003/016" and markdown-emphasised "**Feature 018**")
+        # OR an explicit, legitimate deferral marker (Post-MVP / out-of-scope /
+        # unowned / future amendment). Only a blank or unlabelled owner is a real
+        # gap. Do not reject legitimately-deferred rows or emphasised references.
+        if (owner !~ /[Ff]eature[s]?[ ]*[*_]*[0-9]/ &&
+            owner !~ /([Pp]ost-MVP|[Oo]ut of scope|[Nn]ot owned|[Dd]eferred|[Ff]uture[ ]+(PRD[ ]+)?amendment|[Nn]on-goal|[Nn]\/[Aa]|None)/) {
+          print "F|index|commitment row has no owning Feature: " $0
         }
       }
       END {
@@ -238,10 +241,29 @@ if [ "$SUBCOMMAND" = "structural" ]; then
       esac
       note "$kind" "$msg [$sec]"
     done < <(awk '
+      function check_oos(buf,   _dest) {
+        # A self-contained scope statement with no routing arrow is fine (the map
+        # uses arrow-less bullets to mean "nothing is deferred here").
+        if (buf !~ /(→|->)/) return
+        # With an arrow, the destination must be a Feature number (bare "→ 003",
+        # "→ Feature 003", "→ **Feature 17**", "→ owned by Features 003/016") or a
+        # sanctioned non-numeric destination keyword.
+        _dest = (buf ~ /(→|->)[^0-9]*[0-9]/) || (buf ~ /(→|->).*([Ff]uture[ ]+(PRD[ ]+)?amendment|non-goal|[Ff]orbidden|permanent boundary|unchanged|[Dd]eferred|out of scope|this Feature|resolve in|None)/)
+        if (!_dest)
+          print "F|" sec "|out-of-scope item lacks destination: " buf
+      }
       function flush() {
         if (!insec) return
+        if (oosbuf != "") { check_oos(oosbuf); oosbuf = "" }
         n = split("### Source PRDs,### PRD references,### In scope,### Explicitly out of scope,### Key decisions,### Done criteria", req, ",")
-        for (i = 1; i <= n; i++) if (!(req[i] in seen)) print "F|" sec "|missing heading: " req[i]
+        # Prefix match: a heading counts as present if any seen heading starts with
+        # the required text, so a trailing annotation like
+        # "### Key decisions (resolve in /ms.clarify)" is not a false "missing".
+        for (i = 1; i <= n; i++) {
+          hok = 0
+          for (h in seen) if (index(h, req[i]) == 1) { hok = 1; break }
+          if (!hok) print "F|" sec "|missing heading: " req[i]
+        }
         if ("### Done criteria" in seen) {
           if (lastdc == "") print "F|" sec "|done criteria section has no criteria"
           else if (lastdc !~ /CI passes green/) print "F|" sec "|last done criterion is not CI passes green: " lastdc
@@ -253,21 +275,27 @@ if [ "$SUBCOMMAND" = "structural" ]; then
         if ($0 ~ /^## Feature [0-9]+:/) {
           insec = 1; sec = $0
           sub(/^## /, "", sec); sub(/:.*$/, "", sec)
-          lastdc = ""; subh = ""
+          lastdc = ""; subh = ""; oosbuf = ""
         } else insec = 0
         next
       }
       !insec { next }
-      /^### / { subh = $0; seen[$0] = 1; next }
+      /^### / { if (oosbuf != "") { check_oos(oosbuf); oosbuf = "" } subh = $0; seen[$0] = 1; next }
       {
         if ($0 ~ /TBD|TODO|\{\{/) {
           if (subh == "### Done criteria") print "F|" sec "|unresolved placeholder in done criteria: " $0
           else print "W|" sec "|unresolved placeholder: " $0
         }
         if (subh == "### Done criteria" && $0 ~ /^- /) lastdc = $0
-        if (subh == "### Explicitly out of scope" && $0 ~ /^- /) {
-          if ($0 !~ /(→|->)[ ]*(Feature[ ]*)?[0-9]+/ && $0 !~ /None/)
-            print "F|" sec "|out-of-scope item lacks destination Feature: " $0
+        if (subh == "### Explicitly out of scope") {
+          # Buffer multi-line bullets so a destination on a wrapped continuation
+          # line (e.g. "→ owned by\n  Features 003/016") is still seen. A bullet
+          # is one logical item spanning its "- " line plus indented continuations.
+          # A destination may be a Feature (tolerating markdown emphasis/words) or
+          # a sanctioned non-Feature destination (future amendment, non-goal,
+          # forbidden, unchanged); check_oos() flags only a bullet with neither.
+          if ($0 ~ /^- /) { if (oosbuf != "") check_oos(oosbuf); oosbuf = $0 }
+          else if (oosbuf != "") oosbuf = oosbuf " " $0
         }
       }
       END { flush() }' "$MAP")
