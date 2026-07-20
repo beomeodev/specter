@@ -33,6 +33,11 @@ which is the entire point of dispatching you instead of the host.
 6. **Fix rounds**: when your dispatch prompt includes structural-gate
    `reasons[]`, fix ONLY those defects; never delete audit content to make a
    check pass.
+7. **Audit signals are evidence, not a tier choice.** Compare every recorded
+   signal and estimate to its cited PRD evidence, report omissions or
+   understatement, and write the `Audit Signal Evidence` table. Never assign,
+   recommend, or lower an `audit_tier`; the deterministic policy classifier
+   owns that result.
 
 ## Output contract
 

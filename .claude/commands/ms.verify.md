@@ -1,27 +1,26 @@
 ---
 description: "Run a foreground Codex & Antigravity verification of the current per-Feature checklist"
-argument-hint: "[Feature NNN] [--model MODEL] [--effort low|medium|high|xhigh|max]"
+argument-hint: "[Feature NNN] [--raise-audit-tier T2|T3]"
 ---
 
 # /ms.verify - Per-Feature Dual-Agent Verification
 
-Run Codex and Antigravity in the foreground (in parallel) to review the current per-Feature checklist. This command is advisory, but `/ms.specify` requires both result files unless the user explicitly skips verification.
+Run Codex and Antigravity in the foreground (in parallel) to review the current
+per-Feature checklist. This is a required dual-agent semantic verification
+station. There is no reviewer-skip path.
 
 Execution is foreground: Codex and Antigravity run in parallel and this command returns only after both have finished and written their reports. Running in the foreground makes write failures or crashes observable immediately instead of leaving a silently missing output file.
 
-Default Codex/Antigravity runtimes:
-```text
-Codex model: gpt-5.6-luna
-Antigravity model: gemini-3.5-flash
-effort: xhigh
-```
+Reviewer effort, semantic scope, re-round limit, and WARN handling come only
+from the validated audit-tier receipt and its bound canonical policy. The
+command never chooses or lowers them.
 
 ## Usage
 
 ```bash
 /ms.verify
 /ms.verify Feature 003
-/ms.verify --model gpt-5.6-luna --effort xhigh Feature 003
+/ms.verify Feature 003 --raise-audit-tier T3
 ```
 
 ## Output
@@ -76,6 +75,22 @@ from the Codex checklist, malformed Feature section), stop and route back to
 `/ms.checklist` — structural defects are mechanical and do not need two agents
 to find.
 
+Validate the Feature Map phase receipt and read its tier settings
+mechanically:
+
+```bash
+python3 .specify/scripts/python/classify_audit_tier.py \
+  --policy .specify/policies/audit-tier-policy.json gate-status \
+  --feature NNN --station verify
+```
+
+Stop on missing, stale, malformed, wrong-phase, or capability-mismatched
+receipts. A stale or missing receipt is never treated as T1. If the user
+supplied `--raise-audit-tier`, rerun the `feature-map` classification with
+`--raise-tier T2|T3`, then repeat `gate-status`. The classifier rejects every
+lowering attempt. Reject `--model`, `--effort`, `--skip-codex`,
+`--skip-agents`, and equivalent bypass or scope-lowering arguments.
+
 **Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 ### Step 0.5: External Agent Preflight (session-level, once)
@@ -88,9 +103,11 @@ report — `**Mode**:` with this station's normal value, `**Feature**:`,
 `**Checklist SHA256**:`, `**Result**: WARN`, `**Availability**: UNAVAILABLE
 (<reason>)`) at the missing agent's report path
 (`feature-NNN.codex-verify.md` / `feature-NNN.antigravity-verify.md`); the
-Layer-3 aggregation then caps the station at `WARN` mechanically. A bare
+Layer-3 aggregation then caps the station at `WARN` mechanically. Under T3,
+that cap requires explicit human acknowledgment before advancement. A bare
 `<Agent>: UNAVAILABLE` line is not a valid placeholder. Never present a
-single-agent run as dual; never block the cycle on an environment issue alone.
+single-agent run as dual. If both independent reviewers are unavailable, stop
+the station.
 
 ### Step 1: Run Codex & Antigravity In Foreground (Parallel)
 
@@ -98,15 +115,19 @@ Invoke the Codex and Antigravity plugin rescue commands in the foreground, in pa
 
 #### A. Run Codex
 ```text
-/codex:rescue --fresh --model gpt-5.6-luna --effort xhigh <Codex Prompt>
+/codex:rescue --fresh --model gpt-5.6-luna --effort <receipt.tier_settings.reviewer_effort.codex> <Codex Prompt>
 ```
 
 #### B. Run Antigravity
 ```text
-/antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <Antigravity Prompt>
+/antigravity:rescue --fresh --model gemini-3.5-flash --effort <receipt.tier_settings.reviewer_effort.antigravity> <Antigravity Prompt>
 ```
 
-If the user provided `--model` or `--effort`, pass those values through instead of the defaults.
+Both invocations are always `--fresh`. Supply the receipt's exact
+`review_scope` in both prompts: T1 limits review to this Feature's artifacts,
+changed files, and directly affected seams; T2 preserves the standard station
+scope; T3 includes adjacent trust boundaries and affected seams. Reviewers do
+not choose a different scope from prose.
 
 **Report-Write Protocol**: apply `specter-agent-protocols` §3 — deterministic file check
 (exists, non-empty, contains `**Result**:`), retry once, salvage from the
@@ -148,6 +169,8 @@ Check only for blocking or high-signal issues:
 - out-of-scope items without destination Features
 - done criteria that are not observable or do not end with "CI passes green"
 - invented behavior not supported by PRD evidence
+- Audit signal values that omit, contradict, or understate the cited PRD
+  evidence, especially any unrecorded hard-risk behavior
 
 Write this concise output:
 
@@ -196,6 +219,8 @@ Check only for blocking or high-signal issues:
 - out-of-scope items without destination Features
 - done criteria that are not observable or do not end with "CI passes green"
 - invented behavior not supported by PRD evidence
+- Audit signal values that omit, contradict, or understate the cited PRD
+  evidence, especially any unrecorded hard-risk behavior
 
 Write this concise output:
 
@@ -230,8 +255,11 @@ reading and weighing the reports yourself (`specter-agent-protocols` §7):
 .specify/scripts/bash/specter-gate.sh aggregate verify NNN --ledger --round <R>
 ```
 
-`<R>` is the current §4 convergence round (1 on the first run, 2/3 on
-re-rounds) — the receipt records which round produced this verdict.
+`<R>` is the current §4 convergence round. It must not exceed
+`tier_settings.max_automatic_rounds` (T1 currently 2; T2/T3 currently 3);
+the receipt records which round produced this verdict. Every round is a fresh
+reviewer run. Exhausting the budget returns unresolved FAIL to the user and
+never converts it to WARN or PASS.
 
 The receipt JSON is the station's outcome of record: per-report grading
 (including SHA staleness and degrade placeholders), the station `verdict`, any
@@ -249,10 +277,25 @@ Codex 및 Antigravity Feature checklist 검증을 완료했습니다.
 ⚖️ 집계 verdict: <receipt verdict> (기계 판정 — specter-gate.sh aggregate)
 🎯 다음 단계: /ms.specify
 
-verdict가 PASS/WARN이면 /ms.specify로 진행할 수 있습니다.
+verdict가 PASS이면 /ms.specify로 진행할 수 있습니다.
+WARN은 receipt의 WARN 정책을 만족한 뒤에만 진행할 수 있습니다.
 FAIL이면 체크리스트를 수정한 뒤 /ms.verify를 다시 실행하세요.
 (재실행 라운드도 항상 --fresh — 이전 지적은 리포트 파일 경로로 전달됩니다.)
 ```
+
+If the aggregate is WARN and `warn_ack_required` is true, stop and request an
+explicit human acknowledgment that cites the receipt's reasons and cap. Only
+after the user acknowledges, record it mechanically:
+
+```bash
+python3 .specify/scripts/python/classify_audit_tier.py \
+  --policy .specify/policies/audit-tier-policy.json acknowledge-warn \
+  --feature NNN --station verify --actor human
+.specify/scripts/bash/specter-gate.sh aggregate verify NNN
+```
+
+Advance only when the second aggregate reports `warn_ack_satisfied: true`.
+Reviewers, agents, and the host cannot acknowledge for the human.
 
 ## Run-State Ledger
 
@@ -265,4 +308,5 @@ original catch survives for gate-value audits.
 
 ## Next Command
 
-Run `/ms.specify` after both verification reports show PASS/WARN.
+Run `/ms.specify` after the mechanical aggregate is PASS, or WARN with every
+policy-required acknowledgment satisfied.

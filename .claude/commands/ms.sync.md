@@ -10,6 +10,11 @@ scripts, doc templates, `AGENTS.md`/`CLAUDE.md`) from **this SPECTER checkout** 
 every project repo registered in the machine-local registry. Run it from the
 SPECTER repo after committing workflow changes.
 
+The audit-tier policy and classifier are one versioned capability. The manifest
+must distribute both `docs/templates/audit-tier-policy.json` and
+`scripts/specter/classify_audit_tier.py`; receiving only one is a partial sync
+that tier-aware gates reject rather than degrading to T1.
+
 > **Recommended pre-step for discipline-skill edits**: an edit to a
 > discipline-enforcing skill (gates, TDD rules, surgical-scope, parallel/worktree
 > rules) propagates to every registered repo at once. Pressure-test it first with
@@ -98,6 +103,10 @@ conflict resurfaces every sync until resolved.
   cleanly and the baseline advances.
 - A file that should stay diverged forever → add it to that target's `exclude`
   list in the registry instead of resolving repeatedly.
+- If either audit-tier capability file is `CONFLICT`, excluded, or absent while
+  the other is present, report `PARTIAL-SYNC` prominently. Do not claim the
+  target is tier-capable until `/ms.init` installs both and the classifier
+  `version` probe succeeds.
 
 ### Step 3: Report to the user
 

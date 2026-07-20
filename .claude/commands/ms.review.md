@@ -1,6 +1,6 @@
 ---
 description: "Code quality review after implementation"
-argument-hint: "[--quick] [--fast] [--verbose] [--focus <category>] [--no-interactive] [--skip-codex] [--background] [--model MODEL] [--effort low|medium|high|xhigh|max] [--runtime-agent=agy]"
+argument-hint: "[--verbose] [--background] [--raise-audit-tier T2|T3] [--runtime-agent=agy]"
 ---
 
 # /ms.review - Code Quality Review
@@ -36,19 +36,15 @@ Performs deep code quality review and executable code-gate validation after `/ms
 ```bash
 /ms.review
 /ms.review --background
-/ms.review --skip-codex
-/ms.review --model gpt-5.6-luna --effort xhigh
+/ms.review --raise-audit-tier T3
 ```
 
 Codex runs in the foreground by default. Use `--background` only when the review
 is large and the user explicitly wants to resume later.
 
-Default Codex runtime:
-
-```text
-model: gpt-5.6-luna
-effort: xhigh
-```
+Reviewer effort, review adjacency, re-round cap, and WARN handling are bound by
+the deterministic audit-tier receipt. The host and reviewers do not choose
+them.
 
 **When to run**: After implementing all tasks, before final commit.
 
@@ -65,7 +61,8 @@ review findings and executable gates:
   repository's own workflow commands
 - TRUST code checks run inline with the repository's own tooling: coverage,
   file/function size, complexity, strict typing, security scan, TAG integrity reporting
-- advisory Codex code review persisted to `docs/review/{spec-id}.codex-review.md` unless `--skip-codex` is supplied
+- required independent Codex and Antigravity semantic reviews persisted under
+  `docs/review/`
 - unresolved HIGH/CRITICAL review issues persisted to `.specify/review-state.txt`
   so `/ms.fin` can surface them and force a CI re-run (advisory visibility —
   never a mandatory publish blocker; see Step 9's State policy)
@@ -106,6 +103,34 @@ skip silently if the script does not exist):
 [ -x .specify/scripts/bash/specter-stop-gate.sh ] && .specify/scripts/bash/specter-stop-gate.sh phase review
 ```
 
+### Step 1.25: Classify The Actual Implementation Diff
+
+Before choosing semantic scope, classify the actual working-tree diff:
+
+```bash
+python3 .specify/scripts/python/classify_audit_tier.py \
+  --policy .specify/policies/audit-tier-policy.json classify \
+  --feature <NNN> --phase diff \
+  --feature-map docs/prd/feature-map.md \
+  --diff-base HEAD --ledger
+python3 .specify/scripts/python/classify_audit_tier.py \
+  --policy .specify/policies/audit-tier-policy.json gate-status \
+  --feature <NNN> --station review
+```
+
+The classifier hashes tracked and untracked diff evidence. Any later diff
+change makes this receipt stale and requires reclassification before
+aggregation. An auth, migration, CI/hook/permission, policy/gate, state,
+concurrency, sensitive-data, or other hard-risk path/content match raises the
+Feature to T3; removing it later does not lower the same Feature lifecycle.
+
+If `--raise-audit-tier` was explicitly supplied, pass it only as the
+classifier's upward-only `--raise-tier T2|T3`. Reject `--skip-codex`,
+`--skip-agents`, `--model`, `--effort`, `--quick`, `--fast`,
+`--no-interactive`, and any equivalent reviewer, module, scope, or
+tier-lowering argument. Stop on missing, stale, malformed, or partially synced
+policy/classifier capability.
+
 ---
 
 ### Step 1.5: Tool Availability Check
@@ -136,11 +161,18 @@ review); a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 ### Step 2.5: Intent & Focus Charter
 
-Compile a succinct charter that anchors the review:
+Compile a succinct charter anchored to
+`receipt.tier_settings.review_scope`:
 
 1. **Derive primary risks** from `spec.md` constraints, plan.md architecture, and constitution guardrails.
 2. **List the review targets** (files, components, user paths) coming from prerequisites JSON and recent implementation tasks.
 3. **State up to three key questions** the review must answer (e.g., “Auth flow still follows token rotation rules?”).
+
+T1 examines Feature artifacts, changed files, and directly affected seams only
+and does not launch broad product-wide threat/performance/architecture modules
+unless a finding escalates the tier. T2 preserves the current standard scope.
+T3 includes adjacent trust boundaries and affected seams plus each applicable
+targeted module in the canonical policy.
 
 **Output**:
 
@@ -486,6 +518,11 @@ before the dual-agent review so both agents can see the results in their prompt 
    - <criterion>: <디바이스/환경> — <확인 절차> — 기대 결과: <expected>
    ```
 
+For T3, execute every applicable identifier in
+`receipt.tier_settings.targeted_checks`. In particular, the policy's
+real-entrypoint/E2E module is not satisfied by a narrower unit check. Produce
+executable evidence wherever the repository can exercise the selected module.
+
 **Optional knob** (document only, not the default): `--runtime-agent=agy` delegates this step's
 execution to Antigravity instead of the host, so an independent party (not the implementer) drives
 the product. The default stays host-run. Do not enable this by default until the Antigravity
@@ -523,7 +560,9 @@ runtime check. Record the analysis + ack in the Step 7 review report.
 
 ### Step 6.7: Dual-Agent Code Review
 
-Unless `--skip-codex` (or `--skip-agents`) is supplied, invoke both Codex and Antigravity after the local CI and TRUST gates have produced enough context. Both agents always run in adversarial mode. Both prompts also receive the Done Criteria Execution table from Step 6.6 so they can factor real runtime behavior into their review.
+Invoke both Codex and Antigravity after the local CI and TRUST gates have
+produced enough context. T1 retains both reviewers. Both agents always run
+`--fresh` in adversarial mode and receive the Done Criteria Execution table.
 
 #### 0. External Agent Preflight (session-level, once)
 
@@ -533,7 +572,9 @@ station** — if one agent is unavailable after preflight + one retry, run it si
 the station result at `WARN`, and write the §2 degrade placeholder report (`**Result**: WARN`
 + `**Availability**: UNAVAILABLE (<reason>)`) at the missing agent's report path
 (`docs/review/{spec-id}.codex-review.md` / `{spec-id}.antigravity-review.md`). Never present
-a single-agent run as dual; never block `/ms.review` on an environment issue alone.
+a single-agent run as dual. Zero independent reviewers stops the station. Under
+T3, any single-agent environmental degrade or recusal WARN requires explicit
+human acknowledgment before advancement.
 
 **Implementer recusal**: before dispatch, check `specs/{spec-id}/implementation-notes.md`
 for an `External implementation:` record (written by `/ms.implement` when the user approved
@@ -546,8 +587,8 @@ Self-review is never dual review.
 #### A. Codex & Antigravity Code Review (same prompt body, different agent)
 
 ```text
-/codex:rescue --fresh --model gpt-5.6-luna --effort xhigh <prompt>
-/antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <prompt>
+/codex:rescue --fresh --model gpt-5.6-luna --effort <receipt.tier_settings.reviewer_effort.codex> <prompt>
+/antigravity:rescue --fresh --model gemini-3.5-flash --effort <receipt.tier_settings.reviewer_effort.antigravity> <prompt>
 ```
 
 Both agents must read:
@@ -561,6 +602,7 @@ Both agents must read:
 - the Step 6.6 Done Criteria Execution table (RUNNABLE results and evidence)
 - the current git diff against the review base
 - changed production files and changed tests
+- `.specify/audit-tiers/feature-NNN.json`
 
 Each writes its own report: Codex → `docs/review/{spec-id}.codex-review.md`; Antigravity →
 `docs/review/{spec-id}.antigravity-review.md`.
@@ -586,6 +628,10 @@ Focus on:
 - Done Criteria rows classified MANUAL that are actually scriptable from this
   environment (a misclassified MANUAL hides an unexecuted runnable check —
   challenge the classification, citing how you would script it)
+- the exact receipt-bound scope: {receipt.tier_settings.review_scope}
+- every applicable identifier in
+  `{receipt.tier_settings.targeted_checks}`; reviewers do not add or remove
+  policy modules
 
 Always challenge whether the implementation approach is simpler, safer, or
 better scoped than available alternatives.
@@ -611,7 +657,8 @@ Also echo the finished report between ===REPORT BEGIN=== and ===REPORT END=== ma
 final message, verbatim, so it can be salvaged if the file write fails.
 ```
 
-If the user supplied `--background`, add `--background` to both invocations and report that `/ms.review` must be rerun after both files appear. If the user supplied `--model` or `--effort`, pass those values through instead of the defaults.
+If the user supplied `--background`, add `--background` to both invocations and
+report that `/ms.review` must be rerun after both files appear.
 
 **Report-Write Protocol**: apply `specter-agent-protocols` §3 — deterministic file check
 (exists, non-empty, contains `**Result**:`), retry once, salvage from the
@@ -630,8 +677,9 @@ Otherwise compute the agent-station verdict mechanically:
 .specify/scripts/bash/specter-gate.sh aggregate review {spec-id} --ledger --round <R>
 ```
 
-`<R>` is the current §4 convergence round (1 on the first run, 2/3 on
-re-rounds).
+`<R>` is the current §4 convergence round and must not exceed
+`receipt.tier_settings.max_automatic_rounds`. Every round is a fresh-context
+run.
 
 The receipt verdict maps to the Result Model with no host re-weighing
 (`specter-agent-protocols` §5 no-unilateral-host-downgrade):
@@ -645,10 +693,24 @@ The receipt verdict maps to the Result Model with no host re-weighing
 
 #### C. Convergence Policy (re-round caps)
 
-Apply the Convergence Policy from `specter-agent-protocols` §4 (max 3 automatic rounds; Round 2+
-scoped to failing findings only; stop when only `WARN`s remain). Record every residual `WARN` in
-`docs/review/` and `.specify/review-state.txt` — never silently drop one. (Basis: atlas F001 ran
-10 Codex rounds on one Feature; 47+ re-rounds project-wide.)
+Apply the receipt-bound Convergence Policy from `specter-agent-protocols` §4
+(T1 currently at most 2 rounds; T2/T3 currently at most 3; Round 2+ scoped to
+failing findings only; stop when only WARNs remain). A budget-exhausted FAIL
+remains FAIL. Record every residual WARN in `docs/review/` and
+`.specify/review-state.txt`.
+
+If aggregation reports `warn_ack_required: true`, stop and display the
+receipt-bound reasons and cap. Only after explicit human acknowledgment run:
+
+```bash
+python3 .specify/scripts/python/classify_audit_tier.py \
+  --policy .specify/policies/audit-tier-policy.json acknowledge-warn \
+  --feature <NNN> --station review --actor human
+.specify/scripts/bash/specter-gate.sh aggregate review {spec-id}
+```
+
+Advance only when `warn_ack_satisfied` is true. This acknowledgment is
+auditable and cannot be supplied by the host or either reviewer.
 
 ---
 
@@ -665,6 +727,7 @@ by Step 9's state file and the Run-State Ledger append below.
 Report structure (console + file):
 
 - Summary: CRITICAL/HIGH/MEDIUM/LOW counts, overall score, Codex review result
+- Audit tier, policy hash, receipt phase/hash, and every classification reason
 - Intent & Focus Charter (inline copy of Step 2.5 so report is self-contained)
 - Done Criteria Execution table (from Step 6.6) plus the "📋 수동 확인 필요" MANUAL checklist
 - Production Risks, Strategic Unlocks, Quick Wins
@@ -739,15 +802,10 @@ open — the feature is not done, and subsequent fix turns stay gated):
 
 | Flag | Effect |
 | --- | --- |
-| `--quick` | Skip Step 5.5's ultrathink pattern analysis; executable gates (Step 6.5) still run. |
 | `--verbose` | Show all LOW issues, including those the impact-score filter (<15) would normally hide. Useful for a complete code audit. |
-| `--no-interactive` | Skip Step 8's interactive action prompts — for CI/CD pipelines. |
-| `--skip-codex` (or `--skip-agents`) | Skip the advisory Codex (and Antigravity) code review. |
 | `--background` | Start Codex/Antigravity in the background; rerun `/ms.review` after both reports appear. |
-| `--model MODEL` / `--effort LEVEL` | Override the default `gpt-5.6-luna` / `xhigh` agent runtime. |
+| `--raise-audit-tier T2|T3` | Record a manual upward-only override through the deterministic classifier. |
 | `--runtime-agent=agy` | Delegate Step 6.6's Done Criteria Execution to Antigravity instead of the host. A documented knob, not a default — keep host-run until Antigravity has proven stable in this environment. |
-| `--fast` | Skip slow optional static-analysis tools (jscpd, extended complexity scans). Never skips lint, typecheck, tests, or build — those executable gates stay owned by `/ms.review`. TAG findings remain warning/report-only unless Section IX or CI promotes them to blocking. |
-| `--focus <category>` | Emphasize one qualitative aspect while still running executable gates. Categories: `security` (auth, logging, error exposure), `performance` (N+1 queries, recomputation), `naming` (domain-term consistency), `architecture` (layer violations), `tests` (quality, boundary cases, mocks), `maintainability` (comments, error handling, duplication). |
 
 > The dual-agent review always runs in adversarial mode — both Codex and
 > Antigravity challenge design choices, simpler/safer alternatives, and hidden

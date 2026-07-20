@@ -1,9 +1,9 @@
 ---
-generated_at: 2026-07-19T00:00:00Z
-git_head: b6a0b1f
-git_head_short: b6a0b1f
+generated_at: 2026-07-20T00:00:00Z
+git_head: 1c83ff3e4c25eb6b1ea20466bf666682523bc6d0
+git_head_short: 1c83ff3
 git_branch: master
-working_tree: dirty (uncommitted three-layer gate patch — this refresh is part of it)
+working_tree: dirty (uncommitted deterministic audit-tier implementation)
 scope:
   - AGENTS.md
   - README.md
@@ -30,11 +30,9 @@ stale_when:
 # System Map
 
 ## Snapshot Status
-HEAD is `b6a0b1f` on `master`. The working tree carries the uncommitted
-2026-07-19 three-layer gate patch (specter-gate.sh v2 subcommands, station
-rewiring, `specter-agent-protocols` §7) plus the phase-1 publish/release
-helpers (`specter-publish.sh`, `specter-release.sh`); this refresh is part of
-it. This map follows the slimmed schema: structural inventory (file lists,
+HEAD is `1c83ff3` on `master`. The working tree carries the deterministic
+Feature Audit Tier implementation on top of the unreleased three-layer station
+architecture. This map follows the slimmed schema: structural inventory (file lists,
 per-file hot-path notes) is intentionally absent — see `Refresh Procedure` and
 AGENTS.md §9 for where structure is answered instead.
 
@@ -55,8 +53,8 @@ scaffolding placeholder.
 ## Primary Workflows
 - `/ms.init` bootstraps the overlay into a consuming project: Spec-Kit install
   (pinned via `SPEC_KIT_REF`), Constitution/GEARS templates, Feature-Map gate
-  injection, gate/hook scripts, pre-commit backstops (Step 2.8), and the
-  Graphify code graph + rebuild hooks (Step 2.9, pinned via
+  injection, gate/hook scripts, the audit-tier policy/classifier runtime,
+  pre-commit backstops (Step 2.8), and the Graphify code graph + rebuild hooks (Step 2.9, pinned via
   `GRAPHIFY_VERSION`).
 - **Pre-Feature (one-time)**: `/ms.pre-specter` conducts `/ms.featuremap` →
   `/ms.featuremap-checklist` → `/ms.pre-verify` → `/ms.constitution`. `/ms.prd` sits
@@ -65,7 +63,9 @@ scaffolding placeholder.
 - **Per-Feature**: `/ms.specter` conducts `/ms.checklist` → `/ms.verify`
   → `/ms.specify` → `/ms.clarify` (human stop) → `/ms.plan` → `/ms.tasks` →
   `/ms.analyze` → `/ms.implement` → `/ms.review`. Step 0 self-heals the gate
-  checker copy and the Graphify graph (WARN-only) before the cycle starts.
+  checker, audit-tier runtime pair, and the Graphify graph (WARN-only) before
+  the cycle starts. Tier classification is recomputed at Feature Map, spec,
+  plan, pre-implementation, and actual-diff boundaries.
 - `/ms.fix` is the lightweight non-requirement track (TDD+TAG+gate, no spec
   ceremony); `/ms.audit` is advisory and gate-neutral. Post-implementation
   deviations live in `specs/<id>/implementation-notes.md` (Deviations log).
@@ -84,6 +84,11 @@ scaffolding placeholder.
   `*.antigravity-verify.md`, `.specify/memory/constitution.md`, the TTL-bounded
   `.specify/.ms-gate-pass-<NNN>` token, and the `.specify/specter-run.jsonl`
   run-state ledger (bookkeeping only, never a gate source).
+- `.specify/audit-tiers/feature-NNN.json` is the authoritative monotonic
+  Feature-tier receipt. It binds policy/version/hash, phase inputs and hashes,
+  observed signals, floors, prior/new/effective tiers, settings, reasons, and
+  any upward override. T3 WARN acknowledgments are separate receipt-hash-bound
+  artifacts; changing inputs invalidates them.
 - `docs/prd/feature-map.progress.md` is the Progress Ledger, kept out of the
   Feature Map's SHA256 so bookkeeping never triggers false staleness.
 - `graphify-out/` (consuming projects only) is regenerated state: gitignored,
@@ -104,11 +109,18 @@ Not applicable — this repository ships no deployed application or server; the
   `/ms.sync` broadcasts.
 - `.claude/skills/specter-agent-protocols/SKILL.md` — dual-agent mechanics,
   including the §7 three-layer station contract (report validity, receipt,
-  typed degrade, mechanical ledger, authoring-station rules).
+  typed degrade, mechanical ledger, authoring-station rules) and §8
+  deterministic audit-tier invariants.
+- `docs/templates/audit-tier-policy.json` — sole executable audit-tier policy:
+  closed Audit signals schema, T1 eligibility, T2 fallback/floors, T3 hard-risk
+  floors, tier settings, artifact scan rules, and explicit WARN promotions.
+- `scripts/specter/classify_audit_tier.py` — deterministic policy parser,
+  multi-phase classifier, monotonic SHA-bound receipt/freshness checker, and
+  T3 WARN-ack manager. It does not invoke a model or aggregate agent verdicts.
 - `.claude/skills/codebase-snapshot/SKILL.md` — SYSTEM_MAP schema and the
   graph/map division of labor.
-- `docs/templates/scripts/specter-gate.sh` — the one place gate
-  PASS/WARN/FAIL/MISSING is computed mechanically. v2 subcommands: `version`
+- `docs/templates/scripts/specter-gate.sh` — the one place station
+  PASS/WARN/FAIL/MISSING is computed mechanically. v3 subcommands: `version`
   (capability probe), `structural [NNN]` (Layer-1 shape checks),
   `aggregate <station> [arg] [--ledger] [--round N]` (Layer-3 verdict +
   mechanical run-ledger emission over station-fixed report sets; the round
@@ -142,6 +154,18 @@ Not applicable — this repository ships no deployed application or server; the
 - `/ms.featuremap` and `/ms.checklist` artifacts are authored by isolated
   fresh subagents; their self-grade is a draft, never presented as
   verification.
+- The global Feature Map gate is always full strength and never tiered.
+  Feature authors record evidence-bound Audit signals but never select a tier.
+  T1/T2/T3 all retain L1, two independent L2 reviewers at existing dual
+  stations, station-fixed L3 worst-result aggregation, fresh rounds, identity
+  and freshness bindings, executable gates, Done Criteria, Stop/pre-commit/CI
+  backstops, TAG wiring, migration/destructive-data checks, and high-stakes
+  acknowledgments.
+- Classification is deterministic and monotonic across Feature Map, spec, plan,
+  pre-implementation, and diff phases. Manual overrides raise only. Legacy
+  Features without signals are explicit T2; malformed present metadata,
+  policy parse failure, partial sync, stale receipts, and lowering attempts
+  fail safe.
 - The Graphify graph is an exploration accelerator, never a correctness
   invariant: its absence or staleness may produce a WARN
   (`/ms.specter` Step 0.6), never a FAIL, and no blocking gate may depend on
@@ -158,6 +182,10 @@ Not applicable — this repository ships no deployed application or server; the
   `MS_FEATUREMAP_GATE_START`).
 
 ## Risk Areas
+- Audit-tier orchestration is fixture- and contract-tested but has not yet run
+  through the complete newest `/ms.specter` lifecycle in a real consuming
+  project. In particular, real reviewer CLIs have not yet demonstrated
+  receipt-selected effort/scope or T3 WARN acknowledgment end to end.
 - Graphify adoption is design-verified only: installed-and-measured in zero
   consuming projects so far. Trial one real code repo, then measure read-path
   compliance via transcript mining (graph queries vs `rg`/`Read` fan-outs)
@@ -169,14 +197,14 @@ Not applicable — this repository ships no deployed application or server; the
 ```bash
 git status --short
 git rev-parse HEAD
-uv run pytest --cov -q          # 131 tests, 90.13% coverage, 85% floor
+uv run pytest --cov -q          # 206 tests, 90.13% coverage, 85% floor
 bash -n docs/templates/scripts/specter-gate.sh docs/templates/scripts/speckit-specify-gate-hook.sh
 rg -n "GRAPHIFY_VERSION" .claude/commands/ms.init.md   # exactly one pin definition
 ```
 
 ## Known Gaps
 - No live consuming project in this repo to exercise `/ms.specter` (including
-  the new Step 0.6 graph self-heal) end-to-end; verification is
+  audit-tier phase escalation and the Step 0.6 graph self-heal) end-to-end; verification is
   fixture/test-level and read-back-level.
 - Graphify was exercised against a scratchpad clone of this repo (build 1.85s,
   257 nodes; incremental 1.6s; query ≈1.6k tokens), not yet against a real

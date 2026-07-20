@@ -34,8 +34,9 @@
 
 set -euo pipefail
 
-GATE_VERSION="2.0.0"
-GATE_CONTRACT="three-layer-v1"
+GATE_VERSION="3.0.0"
+GATE_CONTRACT="three-layer-v2-audit-tier"
+AUDIT_TIER_CONTRACT="audit-tier-v1"
 
 SUBCOMMAND="gate"
 case "${1:-}" in
@@ -62,6 +63,47 @@ CONSTITUTION=".specify/memory/constitution.md"
 
 REASONS=()
 add_reason() { REASONS+=("$1"); }
+
+AUDIT_CLASSIFIER=""
+AUDIT_POLICY=""
+AUDIT_CAPABILITY="legacy-unavailable"
+PYTHON_BIN=""
+
+resolve_audit_runtime() {
+  local source_classifier="scripts/specter/classify_audit_tier.py"
+  local source_policy="docs/templates/audit-tier-policy.json"
+  local runtime_classifier=".specify/scripts/python/classify_audit_tier.py"
+  local runtime_policy=".specify/policies/audit-tier-policy.json"
+
+  if command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="python3"
+  elif command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="python"
+  fi
+
+  if [ -f "$source_classifier" ] && [ -f "$source_policy" ]; then
+    AUDIT_CLASSIFIER="$source_classifier"
+    AUDIT_POLICY="$source_policy"
+    AUDIT_CAPABILITY="available"
+  elif [ -f "$runtime_classifier" ] && [ -f "$runtime_policy" ]; then
+    AUDIT_CLASSIFIER="$runtime_classifier"
+    AUDIT_POLICY="$runtime_policy"
+    AUDIT_CAPABILITY="available"
+  elif [ -f "$source_classifier" ] || [ -f "$source_policy" ] ||
+       [ -f "$runtime_classifier" ] || [ -f "$runtime_policy" ]; then
+    AUDIT_CAPABILITY="partial-sync"
+  fi
+  if [ "$AUDIT_CAPABILITY" = "available" ] && [ -z "$PYTHON_BIN" ]; then
+    AUDIT_CAPABILITY="python-unavailable"
+  fi
+}
+
+json_value() {
+  local json="$1" key="$2"
+  "$PYTHON_BIN" -c 'import json,sys; value=json.load(sys.stdin).get(sys.argv[1]); print("" if value is None else str(value).lower() if isinstance(value,bool) else value)' "$key" <<<"$json"
+}
+
+resolve_audit_runtime
 
 json_escape() {
   local s="$1"
@@ -114,6 +156,8 @@ if [ "$SUBCOMMAND" = "version" ]; then
 {
   "version": "${GATE_VERSION}",
   "contract": "${GATE_CONTRACT}",
+  "audit_tier_contract": "${AUDIT_TIER_CONTRACT}",
+  "audit_tier_capability": "${AUDIT_CAPABILITY}",
   "subcommands": ["gate", "version", "structural", "aggregate"]
 }
 JSON
@@ -138,6 +182,7 @@ if [ "$SUBCOMMAND" = "structural" ]; then
   dag_ok=true
   placeholders_ok=true
   checklist_refs_ok=true
+  audit_signals_ok=true
 
   note() {
     # note <F|W> <reason>
@@ -232,6 +277,27 @@ if [ "$SUBCOMMAND" = "structural" ]; then
       note F "Feature ${FEATURE} section not found in $MAP"
     fi
 
+    # Audit Signals are classified by the canonical policy runtime, never by
+    # duplicated shell conditions. Legacy maps without the section remain
+    # valid and classify T2 later; a present section requires the complete
+    # capability and strict closed-schema validation.
+    if grep -q '^### Audit signals[[:space:]]*$' "$MAP"; then
+      if [ "$AUDIT_CAPABILITY" != "available" ]; then
+        audit_signals_ok=false
+        note F "Audit signals present but audit-tier capability is ${AUDIT_CAPABILITY}"
+      else
+        validate_args=(--policy "$AUDIT_POLICY" validate-map --feature-map "$MAP")
+        [ -n "$FEATURE" ] && validate_args+=(--feature "$FEATURE")
+        if ! audit_validation=$("$PYTHON_BIN" "$AUDIT_CLASSIFIER" "${validate_args[@]}" 2>&1); then
+          audit_signals_ok=false
+          note F "Audit signals schema validation failed: ${audit_validation//$'\n'/ }"
+        fi
+      fi
+    elif [ "$AUDIT_CAPABILITY" = "partial-sync" ]; then
+      audit_signals_ok=false
+      note F "audit-tier capability is partially synced"
+    fi
+
     # DAG acyclicity from the Progress Ledger's Depends-on column.
     if [ -f "$PROGRESS" ]; then
       dag_out=$(awk '
@@ -317,7 +383,8 @@ if [ "$SUBCOMMAND" = "structural" ]; then
     "feature_sections_ok": ${features_ok},
     "dag_acyclic": ${dag_ok},
     "placeholders_clean": ${placeholders_ok},
-    "checklist_refs_ok": ${checklist_refs_ok}
+    "checklist_refs_ok": ${checklist_refs_ok},
+    "audit_signals_ok": ${audit_signals_ok}
   },
   "verdict": "${verdict}",
   "reasons": $(reasons_to_json)
@@ -356,6 +423,12 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
   sha_field=""
   sha_target=""
   feature_check=false
+  audit_tier="T2"
+  tier_receipt_sha=""
+  tier_policy_hash=""
+  tier_settings_json="null"
+  warn_ack_required=false
+  warn_ack_satisfied=false
 
   pad_feature() {
     if [[ "$1" =~ ^[0-9]+$ ]]; then printf '%03d' "$((10#$1))"; else printf '%s' "$1"; fi
@@ -406,8 +479,8 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
       else
         INPUTS=("docs/review/${ARG}.codex-review.md" "docs/review/${ARG}.antigravity-review.md")
         EXPECTED_MODES=("codex-adversarial-code-review" "antigravity-adversarial-code-review")
-        # Review binds to Feature identity only — a working-tree diff has no
-        # stable hash (documented §7 exception).
+        # Agent reports bind to Feature identity; the mandatory audit-tier
+        # receipt separately binds the tracked + untracked diff hash.
         [[ "$ARG" =~ ^0*([0-9]+) ]] && agg_feature=$(pad_feature "${BASH_REMATCH[1]}") && feature_check=true
         cycle="feature"; step="review"
       fi
@@ -427,6 +500,34 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
       verdict="FAIL"
       ;;
   esac
+
+  # Tiered stations consume the one fixed per-Feature receipt path. The host
+  # cannot pass a receipt path or tier value. Global pre-verify and expand stay
+  # full-strength and untiered.
+  if [ "$STATION" = "verify" ] || [ "$STATION" = "analyze" ] || [ "$STATION" = "review" ]; then
+    if [ "$AUDIT_CAPABILITY" = "available" ] && [ -n "$agg_feature" ]; then
+      if tier_status=$("$PYTHON_BIN" "$AUDIT_CLASSIFIER" --policy "$AUDIT_POLICY" gate-status \
+          --feature "$agg_feature" --station "$STATION" 2>&1); then
+        audit_tier=$(json_value "$tier_status" "effective_tier")
+        tier_receipt_sha=$(json_value "$tier_status" "tier_receipt_sha256")
+        tier_policy_hash=$(json_value "$tier_status" "policy_hash")
+        warn_ack_required=$(json_value "$tier_status" "warn_ack_required")
+        warn_ack_satisfied=$(json_value "$tier_status" "warn_ack_satisfied")
+        tier_settings_json=$(printf '%s' "$tier_status" | "$PYTHON_BIN" -c 'import json,sys; print(json.dumps(json.load(sys.stdin).get("tier_settings"), separators=(",",":")))')
+      else
+        verdict="FAIL"
+        add_reason "invalid or stale audit-tier receipt for ${STATION} Feature ${agg_feature}: ${tier_status//$'\n'/ }"
+      fi
+    elif [ "$AUDIT_CAPABILITY" = "partial-sync" ] || [ "$AUDIT_CAPABILITY" = "python-unavailable" ]; then
+      verdict="FAIL"
+      add_reason "audit-tier capability is ${AUDIT_CAPABILITY}; run /ms.init or /ms.sync"
+    else
+      # Backward compatibility for a fully legacy consumer: current SPECTER
+      # behavior is T2. Updated commands require the capability probe before
+      # using tier-specific orchestration.
+      audit_tier="T2"
+    fi
+  fi
 
   inputs_json="["
   cap_agents=()
@@ -564,6 +665,10 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
 
   feature_json="null"
   [ -n "$agg_feature" ] && feature_json="\"$(json_escape "$agg_feature")\""
+  final_warn_ack_required=false
+  if [ "$verdict" = "WARN" ] && [ "$warn_ack_required" = true ]; then
+    final_warn_ack_required=true
+  fi
 
   ledger_written=false
   if [ "$LEDGER" = true ] && [ -n "$step" ]; then
@@ -587,6 +692,12 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
     # This ledger line IS the persisted receipt (§7): verdict, verbatim caught
     # rows, cap, round, and the report files' content hashes — append-only.
     ledger_line="{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"cycle\":\"${cycle}\",\"feature\":${feature_json},\"step\":\"${step}\",\"verdict\":\"${verdict}\",\"round\":${ROUND},\"artifacts\":${artifacts_json},\"report_shas\":${shas_json}"
+    if [ "$STATION" = "verify" ] || [ "$STATION" = "analyze" ] || [ "$STATION" = "review" ]; then
+      ledger_line+=",\"audit_tier\":\"$(json_escape "$audit_tier")\",\"tier_receipt_sha256\":\"$(json_escape "$tier_receipt_sha")\",\"policy_hash\":\"$(json_escape "$tier_policy_hash")\""
+      if [ "$final_warn_ack_required" = true ]; then
+        ledger_line+=",\"warn_ack_required\":true,\"warn_ack_satisfied\":${warn_ack_satisfied}"
+      fi
+    fi
     if [ "$verdict" != "PASS" ]; then
       ledger_line+=",\"caught\":${caught_json}"
       [ "$cap_json" != "null" ] && ledger_line+=",\"cap\":${cap_json}"
@@ -602,9 +713,15 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
   "station": "$(json_escape "$STATION")",
   "feature": ${feature_json},
   "round": ${ROUND},
+  "audit_tier": "$(json_escape "$audit_tier")",
+  "tier_receipt_sha256": "$(json_escape "$tier_receipt_sha")",
+  "policy_hash": "$(json_escape "$tier_policy_hash")",
+  "tier_settings": ${tier_settings_json},
   "inputs": ${inputs_json},
   "verdict": "${verdict}",
   "cap": ${cap_json},
+  "warn_ack_required": ${final_warn_ack_required},
+  "warn_ack_satisfied": ${warn_ack_satisfied},
   "caught": ${caught_json},
   "ledger_written": ${ledger_written},
   "reasons": $(reasons_to_json)

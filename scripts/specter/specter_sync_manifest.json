@@ -5,6 +5,7 @@
     ".claude/agents/*.md",
     ".claude/skills/*",
     "docs/templates/*",
+    "scripts/specter/classify_audit_tier.py",
     "scripts/specter/check_feature_map_gate.py",
     "scripts/specter/check_tag_chain.py",
     "AGENTS.md",

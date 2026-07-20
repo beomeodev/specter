@@ -1,4 +1,4 @@
-"""Tests for the specter-gate.sh v2 subcommands (three-layer contract).
+"""Tests for the specter-gate.sh v3 subcommands (three-layer + audit tiers).
 
 Covers the 2026-07-19 three-layer adoption (Codex-reviewed): `version`
 capability probe, `structural` Layer-1 deterministic checks, and `aggregate`
@@ -139,7 +139,7 @@ def write_report(
     findings: list[str] | None = None,
     extra_result_line: bool = False,
 ) -> None:
-    lines = [f"# Report\n", f"**Mode**: {mode}"]
+    lines = ["# Report\n", f"**Mode**: {mode}"]
     if feature is not None:
         lines.append(f"**Feature**: Feature {feature}: sample")
     if sha_field is not None:
@@ -198,7 +198,8 @@ def write_agent_verify_pair(
 class TestVersion:
     def test_version_probe(self, repo: Path) -> None:
         data = run_gate(repo, "version")
-        assert data["contract"] == "three-layer-v1"
+        assert data["contract"] == "three-layer-v2-audit-tier"
+        assert data["audit_tier_contract"] == "audit-tier-v1"
         assert "aggregate" in data["subcommands"]
         assert "structural" in data["subcommands"]
 
@@ -523,7 +524,7 @@ class TestAggregate:
     def test_report_shas_align_with_artifacts_when_missing(self, repo: Path) -> None:
         write_agent_verify_pair(repo)
         (repo / "docs" / "prd" / "checklists" / "feature-006.codex-verify.md").unlink()
-        data = run_gate(repo, "aggregate", "verify", "6", "--ledger")
+        run_gate(repo, "aggregate", "verify", "6", "--ledger")
         entry = json.loads(
             (repo / ".specify" / "specter-run.jsonl").read_text().strip().splitlines()[-1]
         )

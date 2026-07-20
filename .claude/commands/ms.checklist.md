@@ -167,6 +167,29 @@ Otherwise, select the next eligible Feature:
 5. If no Feature is eligible, report that all planned Features are already
    specified or blocked by unmet dependencies.
 
+### Step 2.25: Classify The Feature Mechanically
+
+Install the synced classifier and policy into their project-local runtime
+locations, probe the contract, and classify from the Feature Map:
+
+```bash
+install -D -m 0755 scripts/specter/classify_audit_tier.py .specify/scripts/python/classify_audit_tier.py
+install -D -m 0644 docs/templates/audit-tier-policy.json .specify/policies/audit-tier-policy.json
+python3 .specify/scripts/python/classify_audit_tier.py \
+  --policy .specify/policies/audit-tier-policy.json version
+python3 .specify/scripts/python/classify_audit_tier.py \
+  --policy .specify/policies/audit-tier-policy.json classify \
+  --feature <NNN> --phase feature-map \
+  --feature-map docs/prd/feature-map.md --ledger
+```
+
+The resulting `.specify/audit-tiers/feature-<NNN>.json` receipt, not prose or
+an author-supplied field, is the audit-tier source of truth. Stop on a policy
+parse error, capability mismatch, malformed present `### Audit signals`
+section, or rejected override. A legacy Feature without this section resolves
+to T2 with `legacy-unclassified`; do not rewrite it merely to make this command
+pass. No author, reviewer, or host may write `audit_tier: T1` directly.
+
 ### Step 2.5: Dispatch The Isolated Authoring Subagent
 
 The audit itself (Steps 3–5) is executed by a **fresh Claude subagent**, not by
@@ -215,6 +238,7 @@ For the selected Feature:
 - Extract the full `## Feature NNN:` section.
 - Extract its `### Source PRDs` list.
 - Extract its `### PRD references` list.
+- Extract the complete fixed-schema `### Audit signals` table when present.
 - Extract every PRD Commitment Index row where `Owning Feature = Feature NNN`.
 - Read only the PRD sections named under `### PRD references` (plus the immediate surrounding
   context needed to interpret each one) and the matching PRD Commitment Index rows. Full-PRD
@@ -270,6 +294,18 @@ rows, mark FAIL.
   anywhere, FAIL if it's inside a done criterion. These cause clarify-time
   churn if left for `/ms.specify`/`/ms.clarify` to catch instead.
 
+#### 4. Audit-Signal Fidelity
+
+- Every Audit signal value is supported by its cited PRD reference or other
+  named evidence; compare the evidence to the actual source text.
+- A hard-risk behavior is not represented as `no`, omitted, or hidden behind a
+  low file/domain estimate.
+- `unknown` is honest when evidence is insufficient, but it cannot support T1.
+- Numeric estimates are plausible for the described scope and use the closed
+  integer-or-`unknown` form.
+- The Feature author records evidence only. Any direct `audit_tier:` assignment
+  is a FAIL because deterministic classification owns the tier.
+
 ### Step 5: Write The Per-Feature Audit
 
 Create the directory if needed:
@@ -294,6 +330,7 @@ Use this structure:
 **PRDs**: <source label -> path list>
 **Feature Map**: docs/prd/feature-map.md
 **Feature Map SHA256**: <sha256 of docs/prd/feature-map.md at audit time>
+**Audit Tier Receipt**: .specify/audit-tiers/feature-NNN.json
 **Global Audit**: docs/prd/feature-map.checklist.md
 **Baseline Checklist**: <the resolved {BASELINE} path> | not available
 **Result**: PASS | WARN | FAIL
@@ -307,6 +344,11 @@ Use this structure:
 ## Baseline Checklist Evidence
 
 | Baseline ID | PRD Ref | Expected Handling | Handling In This Feature |
+| --- | --- | --- | --- |
+
+## Audit Signal Evidence
+
+| Signal | Recorded Value | Source Evidence | Audit Result |
 | --- | --- | --- | --- |
 
 ## Checklist Results
@@ -361,6 +403,9 @@ no judgment, shape only:
   and no out-of-scope row naming its owning Feature.
 - A done criterion contains an unresolved placeholder (`TBD`, `TODO`, `{{...}}`,
   an `_or_equivalent`-style token).
+- A required Audit signal is malformed, omitted from a new or meaningfully
+  edited Feature, contradicted by its evidence, or understates a hard risk.
+- The Feature section directly assigns `audit_tier`.
 
 ## Result Model
 

@@ -19,6 +19,9 @@ previously a background Codex run; the isolated-subagent form is faster,
 non-flaky, and keeps memory isolation, while vendor diversity moved to the
 verification layer where it matters).
 
+The baseline author also remains blind to Audit signals, audit-tier policy, and
+tier receipts. Tier metadata must not contaminate PRD-only extraction.
+
 ## Usage
 
 ```bash

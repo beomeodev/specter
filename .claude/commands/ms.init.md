@@ -184,6 +184,9 @@ GATE=$(cat <<'GATE'
 > 5. The global and per-Feature checklist audits' Feature Map SHA256 values match the current `docs/prd/feature-map.md`.
 > 6. `.specify/memory/constitution.md` has an established Section IX baseline from `/ms.constitution`
 >    or explicitly records that no durable project-specific constraints were found.
+> 7. The deterministic audit-tier capability is complete and the selected
+>    Feature has a valid, current receipt. Missing/malformed/partial capability
+>    is not permission to assume T1.
 > REFUSE if: no Feature Map file exists (`docs/prd/feature-map*.md`), OR either checklist
 > is missing/failed/stale, OR Section IX is not established, OR the per-Feature checklist is for
 > a different Feature, OR the input is freeform / inline ad-hoc text / derived from an existing `spec.md`.
@@ -265,6 +268,30 @@ fidelity, boundary discipline, severity) stays with the model.
 -   Display error: "Gate checker script missing. Expected: docs/templates/scripts/specter-gate.sh"
 -   This indicates a repository structure issue
 -   Exit with error
+
+#### 2.5a Install The Audit-Tier Policy And Classifier
+
+Install the synced, machine-readable policy and deterministic classifier as one
+capability. Never install only one half:
+
+```bash
+mkdir -p .specify/policies .specify/scripts/python
+cp docs/templates/audit-tier-policy.json .specify/policies/audit-tier-policy.json
+cp scripts/specter/classify_audit_tier.py .specify/scripts/python/classify_audit_tier.py
+chmod +x .specify/scripts/python/classify_audit_tier.py
+python3 .specify/scripts/python/classify_audit_tier.py \
+  --policy .specify/policies/audit-tier-policy.json version
+```
+
+The version probe must report `compatible: true`, contract
+`audit-tier-v1`, and the policy version/hash. If either source is
+missing, JSON parsing fails, or the probe is incompatible, stop initialization
+with an incomplete-install error. A partially synced project must fail clearly;
+it must never fall back to the lightest tier.
+
+The runtime files are project-local copies. `/ms.checklist` self-heals both from
+their synced sources before classification, just as commands self-heal
+`specter-gate.sh`.
 
 #### 2.6 Install The Direct-Call Bypass Hook (speckit-specify)
 
@@ -509,6 +536,7 @@ jq '.hooks.PreToolUse' .claude/settings.json 2>/dev/null
 - ✅ Spec-Kit (latest version from upstream)
 - ✅ SPECTER Constitution: .specify/memory/constitution.md
 - ✅ Deterministic gate checker: .specify/scripts/bash/specter-gate.sh
+- ✅ Audit-tier classifier + policy: .specify/scripts/python/classify_audit_tier.py + .specify/policies/audit-tier-policy.json
 - ✅ Direct-call bypass hook: .specify/scripts/bash/speckit-specify-gate-hook.sh (+ .claude/settings.json PreToolUse entry)
 - ✅ SessionStart status hook: .specify/scripts/bash/specter-session-status.sh (+ .claude/settings.json SessionStart entry)
 - ✅ Graphify code graph: graphify-out/graph.json (+ post-commit/post-checkout rebuild hooks, graphify-out/ gitignored)

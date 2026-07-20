@@ -249,6 +249,20 @@ intended hybrid structure; do not migrate it to a different shape on a whim.
   and the generative artifacts of `/ms.featuremap` and `/ms.checklist` are
   authored by fresh subagents whose self-grade is never authoritative.
   Canonical contract: `.claude/skills/specter-agent-protocols/SKILL.md` §7.
+- **Feature Audit Tiers (2026-07-20)**: the only executable classification
+  policy is `docs/templates/audit-tier-policy.json`; the deterministic runtime
+  is `scripts/specter/classify_audit_tier.py`, and shared receipt/reviewer rules
+  live in `specter-agent-protocols` §8. Feature Map authors record
+  evidence-bound Audit signals but never select `audit_tier`. Classification
+  reruns at Feature Map, spec, plan, pre-implementation, and diff boundaries;
+  the effective tier is monotonic and a manual override may raise only. The
+  global Feature Map gate is not tiered. T1/T2/T3 all retain L1, two independent
+  reviewers at current dual stations, station-fixed L3 worst aggregation,
+  fresh rounds, identity/freshness bindings, executable gates, Done Criteria,
+  direct-call and Stop hooks, pre-commit/CI, TAG wiring, migration/destructive
+  checks, and high-stakes acknowledgments. Legacy Features without signals are
+  T2; malformed policy/metadata, stale receipts, partial sync, or lowering
+  attempts fail safe.
 - Upstream Spec-Kit may emit its Claude integration as either
   `.claude/commands/speckit.*.md` (command layout) or
   `.claude/skills/speckit-*/SKILL.md` (native-skill layout), or both. `/ms.init`

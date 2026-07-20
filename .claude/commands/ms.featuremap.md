@@ -6,7 +6,10 @@ argument-hint: "@docs/prd/PRD.md [@docs/prd/another.md]"
 # /ms.featuremap - Decompose PRDs into a Feature Map
 
 Transform one or more PRDs (Product Requirements Documents) into a **Feature Map**: a dependency-ordered
-graph of independently implementable, mergeable, and shippable vertical slices (Features).
+graph of independently specifiable, implementable, verifiable, reviewable, and mergeable slices
+(Features). Prefer vertical slices where practical; foundations and cross-layer boundaries may
+require dependency-aware architectural slices. End-to-end user value is guaranteed at the Phase
+boundary, whose final Feature owns the Phase E2E scenario.
 
 This command is the **front of the Specter pipeline** and runs **BEFORE** `/ms.specify`.
 
@@ -49,13 +52,16 @@ user before proceeding.
 
 ## Core Philosophy (NEVER violate)
 
-1. **The PRD set is the Single Source of Truth.** The Feature Map does NOT duplicate the spec.
-   Each Feature *references* the relevant source PRD documents and section numbers; detailed requirements stay in the PRD.
-   The Feature Map's only job is to define **"where one Feature begins and ends"** (the boundary).
+1. **Artifacts have distinct authority.** PRDs own product intent and durable commitments;
+   the Feature Map owns commitment ownership, Feature boundaries, dependency order, and
+   evidence-bound audit signals. It does NOT duplicate the spec. Each Feature *references*
+   the relevant source PRD documents and section numbers; detailed requirements stay in the PRD.
+   Its primary job is to define **"where one Feature begins and ends"** (the boundary).
    To keep the PRD from becoming blurry, the Feature Map MUST include a thin **PRD Commitment Index**
    that maps each PRD commitment from each source document to exactly one owning Feature.
-2. **1 Feature = the smallest vertical slice that can be implemented, merged, and verified
-   independently.** A Feature becomes eligible to start once its dependencies are **specified**
+2. **1 Feature = the smallest dependency-aware slice that can be specified, implemented,
+   verified, reviewed, and merged independently.** A Feature may be architectural rather
+   than independently user-shippable. It becomes eligible to start once its dependencies are **specified**
    (their `specs/` directories exist) — the single eligibility standard shared with
    `/ms.checklist` and `/ms.specify` (decided 2026-07-18, audit #7). Merge-back to main still
    follows the DAG order; each Feature is its own branch. Size sense: smaller than a Phase,
@@ -169,6 +175,15 @@ behavior owner must be explicit.
 #### STEP 8 — Put the Phase's E2E integration scenario into the **completion criteria of that Phase's
 last Feature.**
 
+#### STEP 9 — Record evidence-bound Audit signals
+For every Feature, fill the fixed `### Audit signals` table from the Feature's
+PRD references, scope, dependency boundaries, and concrete implementation
+estimate. Use only `yes`, `no`, or `unknown` for boolean rows and a
+non-negative integer or `unknown` for numeric rows. Every row needs a specific
+PRD reference or Feature-scope rationale. The author records evidence only and
+MUST NOT write or select `audit_tier`; the deterministic classifier applies
+`docs/templates/audit-tier-policy.json`.
+
 ### 3. Feature Section — FIXED template (identical for every Feature, ENGLISH)
 
 ```markdown
@@ -185,6 +200,30 @@ last Feature.**
 ### PRD references
 - <source label §x.y title> (the PRD location this Feature implements; details live in the PRD)
 - ...
+
+### Audit signals
+
+| Signal | Value | Evidence |
+| --- | --- | --- |
+| auth_or_authorization | yes \| no \| unknown | <PRD ref or scope evidence> |
+| tenant_or_resource_ownership | yes \| no \| unknown | <PRD ref or scope evidence> |
+| money_billing_or_financial | yes \| no \| unknown | <PRD ref or scope evidence> |
+| secrets_crypto_or_credentials | yes \| no \| unknown | <PRD ref or scope evidence> |
+| personal_sensitive_or_destructive_data | yes \| no \| unknown | <PRD ref or scope evidence> |
+| schema_or_data_migration | yes \| no \| unknown | <PRD ref or scope evidence> |
+| public_api_or_external_integration | yes \| no \| unknown | <PRD ref or scope evidence> |
+| state_machine_or_multi_store_state | yes \| no \| unknown | <PRD ref or scope evidence> |
+| concurrency_background_jobs_or_distributed_work | yes \| no \| unknown | <PRD ref or scope evidence> |
+| build_release_ci_hooks_permissions_or_sandbox | yes \| no \| unknown | <PRD ref or scope evidence> |
+| cross_layer_or_cross_feature_contract | yes \| no \| unknown | <PRD ref or scope evidence> |
+| new_runtime_dependency | yes \| no \| unknown | <PRD ref or scope evidence> |
+| persistence_change | yes \| no \| unknown | <PRD ref or scope evidence> |
+| irreversible_operations | yes \| no \| unknown | <PRD ref or scope evidence> |
+| policy_or_gate_change | yes \| no \| unknown | <PRD ref or scope evidence> |
+| unresolved_clarification | yes \| no \| unknown | <PRD ref or scope evidence> |
+| behavioral_fr_count | <integer \| unknown> | <count basis> |
+| estimated_domains | <integer \| unknown> | <domain list> |
+| estimated_touched_files | <integer \| unknown> | <file estimate basis> |
 
 ### In scope
 **<sub-group title>**
@@ -360,7 +399,10 @@ Then validate the FIRST Feature and specify it:
 - ❌ FAIL if any out-of-scope item lacks an owning Feature.
 - ❌ FAIL if the dependency graph has a cycle.
 - ❌ FAIL if a Phase's last Feature has no E2E integration scenario.
-- ✅ Read the entire PRD set and finish STEP 1–8 mentally BEFORE writing. Verify against the PRDs; do not guess.
+- ❌ FAIL if a new or meaningfully edited Feature lacks the fixed Audit signals
+  schema, uses an out-of-schema value, lacks evidence, or assigns `audit_tier`
+  directly.
+- ✅ Read the entire PRD set and finish STEP 1–9 mentally BEFORE writing. Verify against the PRDs; do not guess.
 
 ---
 

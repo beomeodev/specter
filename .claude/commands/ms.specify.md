@@ -166,7 +166,20 @@ This establishes Section IX from the checked PRD Feature Map before individual s
 Stopping now.
 ```
 
-Only if all gates pass, continue to Step 0.3.
+Finally, validate the authoritative Layer-3 verify receipt, including its
+audit-tier binding and any T3 WARN acknowledgment:
+
+```bash
+.specify/scripts/bash/specter-gate.sh aggregate verify NNN
+```
+
+Refuse if its verdict is FAIL, if the tier receipt is missing/stale/wrong-phase,
+or if it reports `warn_ack_required: true` with
+`warn_ack_satisfied: false`. This read-only aggregation uses the station-fixed
+two-report set; no host-selected report path or tier value is accepted.
+
+Only if all gates and receipt-required acknowledgments pass, continue to Step
+0.3.
 
 ### 0.3 Write The Gate-Pass Token
 
@@ -347,11 +360,30 @@ _Auto-added by `/ms.specify`_
 
 ### 5. Report Success
 
+Before reporting success, recompute the deterministic audit tier from the new
+specification:
+
+```bash
+python3 .specify/scripts/python/classify_audit_tier.py \
+  --policy .specify/policies/audit-tier-policy.json classify \
+  --feature <NNN> --phase spec \
+  --feature-map docs/prd/feature-map.md \
+  --spec specs/<spec-id>/spec.md --ledger
+python3 .specify/scripts/python/classify_audit_tier.py \
+  --policy .specify/policies/audit-tier-policy.json validate-receipt \
+  --feature <NNN>
+```
+
+Stop on classifier or freshness failure. Adopt any escalation immediately;
+the receipt preserves the prior effective tier and can never decrease it. The
+host must not reinterpret the spec and write a tier itself.
+
 Display summary:
 
 ```json
 {
     "spec_created": "specs/001-user-authentication/spec.md",
+    "audit_tier_receipt": ".specify/audit-tiers/feature-001.json",
     "constitution_referenced": true,
     "constitution_exists": true,
     "next_step": "/ms.clarify"

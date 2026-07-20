@@ -96,6 +96,32 @@ explicit confirmation to continue without it.
 
 **These documents MUST guide implementation to ensure code quality and consistency.**
 
+### Step 0.5: Reclassify Immediately Before Implementation
+
+Before selecting or changing code, recompute from all authoritative
+pre-implementation artifacts:
+
+```bash
+python3 .specify/scripts/python/classify_audit_tier.py \
+  --policy .specify/policies/audit-tier-policy.json classify \
+  --feature <NNN> --phase pre-implement \
+  --feature-map docs/prd/feature-map.md \
+  --spec specs/<spec-id>/spec.md \
+  --plan specs/<spec-id>/plan.md \
+  --tasks specs/<spec-id>/tasks.md --ledger
+python3 .specify/scripts/python/classify_audit_tier.py \
+  --policy .specify/policies/audit-tier-policy.json gate-status \
+  --feature <NNN> --station analyze
+.specify/scripts/bash/specter-gate.sh aggregate analyze specs/<spec-id>
+```
+
+Stop on a missing, stale, malformed, or incompatible receipt. This check is
+mandatory for direct invocation as well as conducted runs. It accepts no
+tier-lowering argument; a manual override can only have been recorded through
+the classifier's upward-only `--raise-tier` contract. The read-only aggregate
+must be PASS, or WARN with every receipt-required acknowledgment satisfied;
+the run ledger alone is never sufficient.
+
 ### Step 1: Scope and TAG Selection
 
 Read `tasks.md` and select an implementation boundary before coding.
@@ -270,6 +296,11 @@ Implementation contract:
 - If `plan.md` contains a `## State Ownership & Invariants` section, every declared invariant
   gets at least one test that can actually go red on violation, written during the RED step.
   A missing invariant test is a `/ms.review` Step 5-J HIGH finding.
+- When the effective receipt is T3, execute every applicable identifier in
+  `receipt.tier_settings.targeted_checks`; do not restate or select a different
+  module list in this command. These obligations supplement,
+  and never replace, the normal test-first, executable-gate, migration,
+  destructive-data, Stop-hook, pre-commit, CI, and Done Criteria checks.
 - Insert TAG anchors yourself in Step 3; do not rely on an automatic skill invocation.
 - Keep the implementation within the selected phase/task/TAG boundary unless a blocker requires user-visible scope adjustment.
 - **Deviations log**: no plan survives contact with the territory intact. When an edge case in

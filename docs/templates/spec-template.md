@@ -106,6 +106,22 @@ Write each requirement in **GEARS** canonical form: `[Where <static>] [While <ru
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
 
+### Audit-Relevant Behavior *(mandatory when applicable)*
+
+<!--
+  Record concrete behavior discovered while specifying that may affect the
+  Feature Map's Audit signals: trust/ownership boundaries, money, secrets,
+  sensitive or destructive data, migration, public contracts, state ownership,
+  concurrency/background work, CI/release/hooks/permissions/sandbox, runtime
+  dependencies, persistence, or cross-layer/cross-Feature contracts.
+
+  Cite the originating FR or PRD reference. Do NOT assign an audit_tier here;
+  the deterministic classifier recomputes the tier from authoritative
+  artifacts and preserves monotonic escalation.
+-->
+
+- **[FR/PRD reference]**: [audit-relevant behavior and affected boundary]
+
 ## Success Criteria *(mandatory)*
 
 <!--

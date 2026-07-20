@@ -15,6 +15,21 @@ All notable changes to this repository are documented in this file.
   3종 신설(`featuremap-author`, `featuremap-checklist-author`, `feature-checklist-author`).
 
 ### Added
+- **결정론적 Feature Audit Tier (T1 Routine / T2 Standard / T3 High-Risk,
+  2026-07-20)**: 단일 machine-readable 정책
+  (`docs/templates/audit-tier-policy.json`)과 stdlib classifier
+  (`scripts/specter/classify_audit_tier.py`)를 추가. Feature Map의 고정
+  `### Audit signals` schema를 구조 검사하고 Feature Map→spec→plan→구현 직전→실제 diff
+  경계에서 재분류하며, policy/artifact hash·관찰 signal·triggered floor·이전/신규/유효
+  tier·상승 override·근거를 담은 단조 증가 receipt를
+  `.specify/audit-tiers/feature-NNN.json`에 기록. legacy Feature는 명시적 T2,
+  malformed metadata/policy/partial sync/stale receipt는 fail-safe.
+- **Tier별 감사 강도와 T3 승인 계약**: 모든 tier가 L1, dual independent L2,
+  station-fixed worst-result L3, fresh round, 실행형 gate, Done Criteria, hook,
+  pre-commit/CI, TAG, migration/high-stakes 확인을 유지. T1은 직접 seam 범위·승인된
+  최저 effort·자동 2 round, T2는 기존 표준·3 round, T3는 인접 trust boundary와
+  targeted risk checks·최강 effort·residual WARN/one-agent degrade의 receipt-bound
+  명시적 사람 확인을 적용. 전역 Feature Map gate는 tier 미적용.
 - **Graphify 코드 그래프 도입 (`/ms.init` Step 2.9)**: 소비 프로젝트에 tree-sitter 로컬 코드
   그래프(`graphifyy`, `GRAPHIFY_VERSION` 핀, 도구 인터프리터는 3.12로 격리)를 필수 설치 —
   초기 `--code-only` 빌드, post-commit/post-checkout 자동 재빌드 훅, `graphify-out/` gitignore.
@@ -53,6 +68,14 @@ All notable changes to this repository are documented in this file.
   `.serena` 스캔 제외 항목은 소비 프로젝트 잔존 디렉토리 방어용으로 존치.
 
 ### Changed
+- **README/권위·Feature·gate 설명 정합화 (2026-07-20)**: README가 `master`
+  문서임을 명시하고 clarify를 유일한 무조건 사람 stop으로 한정. Feature를
+  dependency-aware mergeable slice로 정의하고 Authority Model, GEARS↔GWT,
+  conductor-first Quick Start, station 3종, TAG navigation 한계, Graphify fallback,
+  도구 degrade, validation status와 간결한 Audit Tier 개요를 영문/국문에 반영.
+- **Tier runtime 전파**: `/ms.init`이 policy/classifier를 한 쌍으로 설치·capability
+  probe하고 `/ms.sync` manifest가 둘을 함께 배포. tier-aware runtime 한쪽만 있는
+  소비 프로젝트는 부분 sync로 명확히 실패하며 3-way/local customization 보호는 유지.
 - **스킬 리네이밍 — `ms-` 접두 제거**: MoAI/ms 유래 표식은 무의미 판정. `ms-design-baseline`→
   `design-baseline`, `ms-foundation-prd`→`prd-authoring`, `ms-foundation-trust`→
   `trust-validation`, `ms-ops-debugging`→`ops-debugging`. 프론트매터 `name:`, asset 헤더,

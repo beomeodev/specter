@@ -1,0 +1,240 @@
+{
+  "version": "1.0.0",
+  "contract": "audit-tier-v1",
+  "default_tier": "T2",
+  "tiers": {
+    "T1": {
+      "label": "Routine",
+      "reviewer_effort": {
+        "codex": "medium",
+        "antigravity": "low"
+      },
+      "review_scope": "feature-artifacts-changed-files-direct-seams",
+      "targeted_checks": [],
+      "max_automatic_rounds": 2,
+      "warn_handling": "record",
+      "single_agent_degrade_requires_ack": false,
+      "independent_reviewers": 2,
+      "layer1_required": true,
+      "layer3_required": true,
+      "executable_gates_required": true,
+      "done_criteria_execution_required": true
+    },
+    "T2": {
+      "label": "Standard",
+      "reviewer_effort": {
+        "codex": "xhigh",
+        "antigravity": "medium"
+      },
+      "review_scope": "current-specter-standard",
+      "targeted_checks": [],
+      "max_automatic_rounds": 3,
+      "warn_handling": "record",
+      "single_agent_degrade_requires_ack": false,
+      "independent_reviewers": 2,
+      "layer1_required": true,
+      "layer3_required": true,
+      "executable_gates_required": true,
+      "done_criteria_execution_required": true
+    },
+    "T3": {
+      "label": "High-Risk",
+      "reviewer_effort": {
+        "codex": "xhigh",
+        "antigravity": "high"
+      },
+      "review_scope": "feature-plus-adjacent-trust-boundaries-and-affected-seams",
+      "targeted_checks": [
+        "security-and-trust-boundaries",
+        "data-integrity",
+        "state-ownership-and-invariants",
+        "rollback",
+        "failure-modes",
+        "public-contract-compatibility",
+        "relevant-real-entrypoint-or-e2e"
+      ],
+      "max_automatic_rounds": 3,
+      "warn_handling": "human-ack",
+      "single_agent_degrade_requires_ack": true,
+      "independent_reviewers": 2,
+      "layer1_required": true,
+      "layer3_required": true,
+      "executable_gates_required": true,
+      "done_criteria_execution_required": true
+    }
+  },
+  "signal_schema": {
+    "boolean_values": ["yes", "no", "unknown"],
+    "boolean_signals": [
+      "auth_or_authorization",
+      "tenant_or_resource_ownership",
+      "money_billing_or_financial",
+      "secrets_crypto_or_credentials",
+      "personal_sensitive_or_destructive_data",
+      "schema_or_data_migration",
+      "public_api_or_external_integration",
+      "state_machine_or_multi_store_state",
+      "concurrency_background_jobs_or_distributed_work",
+      "build_release_ci_hooks_permissions_or_sandbox",
+      "cross_layer_or_cross_feature_contract",
+      "new_runtime_dependency",
+      "persistence_change",
+      "irreversible_operations",
+      "policy_or_gate_change",
+      "unresolved_clarification"
+    ],
+    "numeric_signals": [
+      "behavioral_fr_count",
+      "estimated_domains",
+      "estimated_touched_files"
+    ],
+    "numeric_unknown_value": "unknown",
+    "evidence_required_for_all_values": true
+  },
+  "t3_hard_risk_signals": [
+    "auth_or_authorization",
+    "tenant_or_resource_ownership",
+    "money_billing_or_financial",
+    "secrets_crypto_or_credentials",
+    "personal_sensitive_or_destructive_data",
+    "schema_or_data_migration",
+    "public_api_or_external_integration",
+    "state_machine_or_multi_store_state",
+    "concurrency_background_jobs_or_distributed_work",
+    "build_release_ci_hooks_permissions_or_sandbox",
+    "irreversible_operations",
+    "policy_or_gate_change"
+  ],
+  "t2_floor_signals": [
+    "cross_layer_or_cross_feature_contract",
+    "new_runtime_dependency",
+    "persistence_change",
+    "unresolved_clarification"
+  ],
+  "t1_eligibility": {
+    "required_boolean_values": {
+      "auth_or_authorization": "no",
+      "tenant_or_resource_ownership": "no",
+      "money_billing_or_financial": "no",
+      "secrets_crypto_or_credentials": "no",
+      "personal_sensitive_or_destructive_data": "no",
+      "schema_or_data_migration": "no",
+      "public_api_or_external_integration": "no",
+      "state_machine_or_multi_store_state": "no",
+      "concurrency_background_jobs_or_distributed_work": "no",
+      "build_release_ci_hooks_permissions_or_sandbox": "no",
+      "cross_layer_or_cross_feature_contract": "no",
+      "new_runtime_dependency": "no",
+      "persistence_change": "no",
+      "irreversible_operations": "no",
+      "policy_or_gate_change": "no",
+      "unresolved_clarification": "no"
+    },
+    "estimated_domains_exact": 1,
+    "behavioral_fr_count_max": 3,
+    "estimated_touched_files_max": 8
+  },
+  "artifact_scan_rules": [
+    {
+      "id": "auth-or-ownership",
+      "tier": "T3",
+      "signal": "auth_or_authorization",
+      "phases": ["spec", "plan", "pre-implement", "diff"],
+      "path_patterns": ["(^|/)(auth|authorization|permissions?|rbac|acl|oauth|sessions?)(/|[._-])"],
+      "content_patterns": ["\\b(auth|authenticate|authentication|authorization|authorize|tenant boundary|resource owner|resource ownership|ownership enforcement|rbac|oauth|credential)\\b"]
+    },
+    {
+      "id": "money-financial",
+      "tier": "T3",
+      "signal": "money_billing_or_financial",
+      "phases": ["spec", "plan", "pre-implement", "diff"],
+      "path_patterns": ["(^|/)(billing|payments?|balances?|ledger)(/|[._-])"],
+      "content_patterns": ["\\b(billing|payment|balance|financial decision|refund|charge|invoice)\\b"]
+    },
+    {
+      "id": "secrets-crypto",
+      "tier": "T3",
+      "signal": "secrets_crypto_or_credentials",
+      "phases": ["spec", "plan", "pre-implement", "diff"],
+      "path_patterns": ["(^|/)(secrets?|crypto|keys?|credentials?)(/|[._-])"],
+      "content_patterns": ["\\b(secret|cryptograph|encrypt|decrypt|signing|key rotation|re-key|credential)\\b"]
+    },
+    {
+      "id": "sensitive-destructive-data",
+      "tier": "T3",
+      "signal": "personal_sensitive_or_destructive_data",
+      "phases": ["spec", "plan", "pre-implement", "diff"],
+      "path_patterns": ["(^|/)(privacy|retention|deletions?|exports?|restores?)(/|[._-])"],
+      "content_patterns": ["\\b(personal data|sensitive data|pii|retention|irreversible|destructive deletion|restore|data export)\\b"]
+    },
+    {
+      "id": "schema-migration",
+      "tier": "T3",
+      "signal": "schema_or_data_migration",
+      "phases": ["spec", "plan", "pre-implement", "diff"],
+      "path_patterns": ["(^|/)(migrations?|alembic/versions|prisma/migrations)(/|[._-])"],
+      "content_patterns": ["\\b(CREATE|ALTER|DROP)\\s+(TABLE|COLUMN|INDEX)\\b|\\bschema migration\\b|\\bdata migration\\b"]
+    },
+    {
+      "id": "public-external-contract",
+      "tier": "T3",
+      "signal": "public_api_or_external_integration",
+      "phases": ["spec", "plan", "pre-implement", "diff"],
+      "path_patterns": ["(^|/)(public-api|integrations?|webhooks?)(/|[._-])"],
+      "content_patterns": ["\\b(public API|external (system|service|integration)|webhook|compatibility contract)\\b"]
+    },
+    {
+      "id": "state-machine-multistore",
+      "tier": "T3",
+      "signal": "state_machine_or_multi_store_state",
+      "phases": ["spec", "plan", "pre-implement", "diff"],
+      "path_patterns": ["(^|/)(state-machines?|workflows?)(/|[._-])"],
+      "content_patterns": ["\\b(state machine|state transition|multi-store|source of truth|reconciliation|same stateful fact)\\b"]
+    },
+    {
+      "id": "concurrency-distributed",
+      "tier": "T3",
+      "signal": "concurrency_background_jobs_or_distributed_work",
+      "phases": ["spec", "plan", "pre-implement", "diff"],
+      "path_patterns": ["(^|/)(workers?|queues?|jobs?|leases?|schedulers?)(/|[._-])"],
+      "content_patterns": ["\\b(concurrency|distributed|lease|queue|background job|retry|idempotenc|coordination)\\b"]
+    },
+    {
+      "id": "build-release-policy",
+      "tier": "T3",
+      "signal": "build_release_ci_hooks_permissions_or_sandbox",
+      "phases": ["spec", "plan", "pre-implement", "diff"],
+      "path_patterns": ["(^|/)(\\.github/workflows|\\.claude|docs/templates/scripts|scripts/specter|hooks?|ci|release|publish)(/|[._-])"],
+      "content_patterns": ["\\b(CI|release|publish|pre-commit|hook|permission|sandbox|dependency trust|security policy|gate implementation)\\b"]
+    },
+    {
+      "id": "audit-policy-change",
+      "tier": "T3",
+      "signal": "policy_or_gate_change",
+      "phases": ["spec", "plan", "pre-implement", "diff"],
+      "path_patterns": ["audit-tier-policy\\.json$|classify_audit_tier\\.py$|specter-gate\\.sh$|speckit-specify-gate-hook\\.sh$|specter-stop-gate\\.sh$"],
+      "content_patterns": ["\\baudit[_ -]?tier\\b|\\bthree-layer (gate|station)\\b"]
+    },
+    {
+      "id": "new-runtime-dependency",
+      "tier": "T2",
+      "signal": "new_runtime_dependency",
+      "phases": ["plan", "pre-implement", "diff"],
+      "path_patterns": ["(^|/)(pyproject\\.toml|package\\.json|requirements[^/]*\\.txt|Cargo\\.toml|go\\.mod)$"],
+      "content_patterns": ["\\bnew runtime dependency\\b|\\badd(s|ing)? dependency\\b"]
+    },
+    {
+      "id": "cross-layer-contract",
+      "tier": "T2",
+      "signal": "cross_layer_or_cross_feature_contract",
+      "phases": ["spec", "plan", "pre-implement", "diff"],
+      "path_patterns": [],
+      "content_patterns": ["\\bcross-layer\\b|\\bcross-Feature\\b|\\badjacent seam\\b"]
+    }
+  ],
+  "warn_promotions": {
+    "T1": [],
+    "T2": [],
+    "T3": []
+  }
+}

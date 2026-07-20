@@ -134,6 +134,24 @@ This runs clarification workflow with AI following GEARS principles and using Ko
 
 ### 4. Report Success
 
+Clarification may introduce a concrete risk that was not present in the first
+draft. Before reporting success, recompute the spec phase receipt:
+
+```bash
+python3 .specify/scripts/python/classify_audit_tier.py \
+  --policy .specify/policies/audit-tier-policy.json classify \
+  --feature <NNN> --phase spec \
+  --feature-map docs/prd/feature-map.md \
+  --spec specs/<spec-id>/spec.md --ledger
+python3 .specify/scripts/python/classify_audit_tier.py \
+  --policy .specify/policies/audit-tier-policy.json validate-receipt \
+  --feature <NNN>
+```
+
+Stop on classification/freshness failure and adopt any escalation immediately.
+The clarify agent records behavioral decisions in `spec.md`; it does not assign
+or lower `audit_tier`.
+
 Display summary:
 
 ```json

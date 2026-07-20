@@ -8,6 +8,10 @@ argument-hint: ""
 Verify `docs/prd/feature-map.md` against the source PRDs and the independent
 baseline checklist created by `/ms.featuremap-checklist`.
 
+This product-wide gate is always full strength and is never Feature-tiered.
+Audit-tier settings cannot narrow its PRD scope, reviewer effort, two-reviewer
+Layer 2, convergence behavior, or Layer-3 aggregation.
+
 This command replaces the old `/ms.checklist --global` flow. It owns the global
 gate artifact consumed by `/ms.constitution`, `/ms.checklist`, and
 `/ms.specify`.

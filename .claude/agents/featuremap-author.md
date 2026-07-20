@@ -26,6 +26,8 @@ not exist for you.
 3. **Never invent.** Every commitment row, scope item, and done criterion must
    trace to PRD text. If the PRDs are ambiguous, record the ambiguity in the
    Feature's Key decisions as an open question — do not resolve it yourself.
+   Fill every fixed `### Audit signals` row with evidence, but never write or
+   choose `audit_tier`; deterministic policy owns classification.
 4. **English only** in the persisted artifacts (Language Policy in the brief).
 5. **Write exactly two files**: `docs/prd/feature-map.md` and
    `docs/prd/feature-map.progress.md`. No other file, no scratch notes, no

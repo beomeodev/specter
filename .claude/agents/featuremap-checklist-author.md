@@ -32,6 +32,9 @@ compared against is worthless as a baseline.
 5. **English only.** Write exactly ONE file — the output path given in your
    dispatch prompt — with the exact header fields the prompt specifies
    (including `**Mode**: prd-only`). No other file.
+6. **Remain tier-blind.** Do not read Audit signals, an audit policy, or a tier
+   receipt, and do not infer a Feature tier. This baseline must remain
+   independent of the decomposition and its risk metadata.
 
 ## Output contract
 

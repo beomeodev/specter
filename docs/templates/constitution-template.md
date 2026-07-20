@@ -48,6 +48,12 @@ Side tracks      /ms.fix (no new requirement) · /ms.expand (PRD Amendment)
 `/ms.constitution` is not a per-Feature ceremony. It establishes or amends the
 project-wide baseline in Section IX from the checked PRD Feature Map.
 
+A SPECTER Feature is the smallest dependency-aware slice that can be specified,
+implemented, verified, reviewed, and merged independently. It may be
+architectural rather than independently user-shippable; end-to-end user value
+is guaranteed at the Phase boundary, whose final Feature owns the Phase E2E
+scenario.
+
 ### Gate Ownership
 
 - `/ms.checklist` owns PRD and Feature Map coverage checks.
@@ -68,6 +74,32 @@ project-wide baseline in Section IX from the checked PRD Feature Map.
   are fail-open unless the active project explicitly promotes them to blockers.
 - `/ms.fin` handles commit/push/PR workflows according to its command
   definitions and user approval requirements.
+
+### Feature Audit-Tier Governance
+
+Feature audit intensity is governed by the machine-readable policy installed
+from `docs/templates/audit-tier-policy.json` and the deterministic classifier
+installed from `scripts/specter/classify_audit_tier.py`.
+
+- Feature Map authors record evidence-bound Audit signals and never assign
+  `audit_tier`.
+- Classification is recomputed at Feature Map, spec, plan,
+  pre-implementation, and implementation-diff boundaries.
+- The effective tier is monotonic for the Feature lifecycle. Manual overrides
+  may raise it only.
+- T1, T2, and T3 all retain deterministic structure, two independent semantic
+  reviewers at existing dual stations, station-fixed worst-result
+  aggregation, fresh-context rounds, artifact freshness, executable gates,
+  Done Criteria Execution, hooks, CI, TAG wiring, migration/destructive-data
+  analysis, and required human acknowledgments.
+- Missing/malformed policy or new metadata fails safe. Legacy Features without
+  Audit signals resolve explicitly to T2 and are not silently rewritten.
+- The tier receipt is authoritative for orchestration; the append-only run
+  ledger is audit history, not a replacement for artifact freshness checks.
+
+No command flag, authoring agent, conductor, host, or reviewer may select a
+weaker path. The global Feature Map gate is always full strength and is not
+tiered.
 
 ---
 

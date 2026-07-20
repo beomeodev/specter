@@ -73,15 +73,18 @@ the PRD checklist, `**Mode**: prd-only`). If the file is missing or partial:
    report as-is and let Layer-3 aggregation grade that input `FAIL`. Only a §1
    preflight failure (the agent never ran) creates the environmental WARN cap.
 
-## 4. Convergence Policy (re-round caps)
+## 4. Convergence Policy (receipt-bound re-round caps)
 
 Unbounded re-review loops burn tokens without improving outcomes:
 
 - **Round 1**: full run over the whole scope.
 - **Round 2** (only if Round 1 produced a `FAIL` finding): scoped to the failing
   findings plus the fix diffs — not a re-review of everything.
-- **Round 3**: last automatic round; re-checks only findings still `FAIL`.
-- **Stop**: after Round 3, or as soon as only `WARN`-level findings remain.
+- **Later rounds**: re-check only findings still `FAIL`, up to the validated
+  audit-tier receipt's `tier_settings.max_automatic_rounds` (currently T1: 2,
+  T2/T3: 3). No command, conductor, reviewer, or host may supply a larger or
+  smaller policy value.
+- **Stop**: after that receipt-bound cap, or as soon as only `WARN`-level findings remain.
   Record every residual `WARN` in the command's artifacts; hand the
   proceed-or-fix decision to the user. Further rounds require an explicit user
   instruction. After the cap, an unresolved `FAIL` stays `FAIL` — it is never
@@ -203,10 +206,9 @@ A station report is valid iff it: is non-empty; contains exactly one
 station); names the audited scope (`**Feature**:` on per-Feature stations);
 and carries the freshness binding the station defines (`**Checklist SHA256**:`
 / `**Feature Map SHA256**:` / `**Tasks SHA256**:` for `/ms.analyze`) matching
-the current artifact. **Stated exception**: `/ms.review` reports bind to
-Feature identity only — a working-tree diff has no stable hash to bind to;
-the exposure is mitigated by the executable gates running on the same tree in
-the same command. An optional
+the current artifact. `/ms.review` agent reports bind to Feature identity while
+the required audit-tier receipt independently binds the actual tracked and
+untracked diff hash; aggregation rejects a stale receipt. An optional
 `**Availability**:` line (`UNAVAILABLE (<reason>)` | `RECUSED (<reason>)`)
 marks a §2 degrade placeholder. Anything else — missing file, empty file, zero
 or multiple Result lines, unknown value, stale SHA — is graded `FAIL` by L3
@@ -271,3 +273,37 @@ verification. Fix rounds after a FAIL re-dispatch a fresh subagent scoped to
 the reported defects only (max 2 fix rounds before escalating to the user),
 and a fix subagent must never delete or reword commitments merely to make a
 structural check pass.
+
+## 8. Deterministic Feature Audit Tiers
+
+The canonical executable policy is
+`docs/templates/audit-tier-policy.json`; the deterministic classifier is
+`scripts/specter/classify_audit_tier.py`. Commands reference the validated
+receipt at `.specify/audit-tiers/feature-NNN.json` and do not reproduce
+classification conditions in prompts.
+
+- The Feature Map author records the closed-schema, evidence-bound
+  `### Audit signals` table but never assigns a tier.
+- Classification runs at Feature Map, spec, plan, pre-implementation, and
+  implementation-diff boundaries. The effective tier is the mechanical maximum
+  of every observed floor and any manual upward-only override.
+- A policy parse/capability error, malformed present signals section, stale
+  receipt, invalid override, or partial sync fails safe. A legacy Feature with
+  no signals is explicitly T2 (`legacy-unclassified`), never T1.
+- All tiers preserve L1, two independent L2 reviewers at dual stations, fixed
+  L3 inputs/worst-result aggregation, fresh rounds, Report Mode/identity/hash
+  binding, executable gates, Done Criteria, hooks, CI, TAG wiring, migration
+  analysis, and high-stakes acknowledgments.
+- T1 narrows semantic adjacency, uses the lowest approved policy effort, and
+  caps automatic convergence at two rounds. T2 is the standard behavior. T3
+  uses strongest approved effort, expands to affected trust boundaries, runs
+  applicable targeted modules, and requires receipt-bound human acknowledgment
+  for residual WARN or one-reviewer environmental degrade.
+- The policy's `warn_promotions` arrays are the only place a warning category
+  may be mechanically promoted. Empty arrays mean no category promotion.
+  Exhausted retries never promote or soften a verdict.
+
+The receipt records policy/artifact hashes, observed signals, floors, prior and
+new tiers, monotonic effective tier, reasons, override, settings, phase, and
+timestamp. The append-only ledger records receipt metadata for audit history,
+but never replaces freshness checks against the authoritative artifacts.
