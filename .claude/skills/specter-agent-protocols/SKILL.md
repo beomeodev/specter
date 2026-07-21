@@ -1,6 +1,6 @@
 ---
 name: specter-agent-protocols
-description: Canonical external-agent protocols shared by the dual-agent SPECTER commands (/ms.verify, /ms.pre-verify, /ms.analyze, /ms.review, /ms.expand) — session-level preflight, single-agent degrade rule, report-write/salvage protocol, re-round convergence caps, the auditor bias-prevention doctrine (context isolation, evidence-cited verdicts, UNVERIFIED marking, grade-down-on-doubt, defect-claim symmetry), the verification-report structure (Claim/Evidence/Baseline/Gaps/Residual-risk), and the three-layer station contract (deterministic structural checks → independent dual-agent semantics → mechanical verdict aggregation via specter-gate.sh, with the typed degrade contract and mechanical ledger emission). Commands reference this file instead of restating the mechanics; each command keeps only its own report paths and station-specific invariants inline.
+description: Canonical external-agent protocols shared by the dual-agent SPECTER commands (/ms.verify, /ms.pre-verify, /ms.analyze, /ms.review, /ms.expand) — session-level preflight, single-agent degrade rule, report-write/salvage protocol, re-round convergence caps, the auditor bias-prevention doctrine (context isolation, evidence-cited verdicts, UNVERIFIED marking, grade-down-on-doubt, defect-claim symmetry), the verification-report structure (Claim/Evidence/Baseline/Gaps/Residual-risk), and the three-layer station contract (deterministic structural checks → independent dual-agent semantics → mechanical verdict aggregation via specter-gate.sh, with the typed degrade contract and mechanical ledger emission), and the background-completion-collection rule (detached external-agent daemons never self-notify — route completion through a harness-tracked waiter or Agent subagent, never an idle turn). Commands reference this file instead of restating the mechanics; each command keeps only its own report paths and station-specific invariants inline.
 ---
 
 # SPECTER External-Agent Protocols
@@ -317,3 +317,51 @@ The receipt records policy/artifact hashes, observed signals, floors, prior and
 new tiers, monotonic effective tier, reasons, override, settings, phase, and
 timestamp. The append-only ledger records receipt metadata for audit history,
 but never replaces freshness checks against the authoritative artifacts.
+
+## 9. Background Completion Collection (no daemon self-notifies)
+
+An external-agent background job — `codex`/`agy` run with `--background`, or any
+codex-companion / Antigravity worker — runs as a **detached daemon** (`spawn`
+with `detached: true` + `unref()`). A detached daemon **never pushes a completion
+or death signal to the host**; the host learns the outcome only by pulling
+(`status` / `result`). The plugin commands even instruct the host to hand the job
+id to the *user* to poll — which is exactly how the host ends its turn idle while
+the job has long since finished or died. The only automatic wake the host ever
+receives is (a) a harness-tracked `Bash(run_in_background: true)` finishing, or
+(b) a Claude Agent subagent finishing. Every rule below routes external-agent
+completion through one of those two channels. (2026-07-21 transcript audit: one
+real workspace showed background dispatches where the result was never collected
+in 5 of 7 launches, and the job had already finished or died 10–60 min before the
+user's "아직?" nudge in 3 of them; the control session, whose calls all returned
+in-foreground, had zero incidents.)
+
+- **Prefer the Agent-tool path (default).** Dispatch external agents via the
+  Claude Agent tool (`codex:codex-rescue`, `antigravity:rescue` subagents)
+  whenever the station allows it. The harness tracks the subagent and wakes the
+  host automatically on completion, removing the idle-collection failure entirely.
+  (Audit: the workspace that consistently used this path self-collected every
+  launch with zero user nudges; the one that called the daemon directly stalled.)
+- **Foreground when it fits the Bash ceiling.** There is no hard 120-second
+  auto-background in the CLI. The practical two-minute cutoff is the harness Bash
+  tool's *default* timeout — not a Codex behavior. A direct daemon call expected
+  to finish within the Bash ceiling (max `600000` ms = 10 min) runs foreground
+  with `--wait` and an explicit `timeout: 600000`. Raise the timeout; do not
+  background prematurely.
+- **Long jobs: wrap the wait in a harness background Bash.** When a direct daemon
+  job can exceed 10 min, immediately after dispatch launch a thin waiter as
+  `Bash(run_in_background: true)` — `codex status <job> --wait` /
+  `agy status <id> --wait`, or a poll loop on the expected report file. The
+  waiter's completion **is** the job's completion, so the harness wakes the host.
+  This is what makes "I'll report back when it finishes" a true statement instead
+  of a false promise.
+- **Detect death; never wait forever.** When the waiter returns on timeout, check
+  health (Antigravity `status` exposes heartbeat / Health / last-progress; codex
+  job status exposes active vs terminal state). A dead job — non-zero exit, 0% CPU,
+  vanished output file, stale heartbeat — is failed immediately and degraded
+  (single-agent WARN per §2 for a dual station; stop-and-report for a single-agent
+  station). A live-but-slow job may be re-waited; a corpse is never re-waited.
+- **Never promise auto-notification without a waiter.** "I'll tell you when it
+  finishes" is true only when a harness-tracked waiter (Agent subagent or
+  background Bash) is actually in place. Without one, the host either
+  foreground-waits or stays actively polling — it must not end the turn idle and
+  offload the "is it done?" check onto the user.

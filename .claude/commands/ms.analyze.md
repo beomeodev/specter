@@ -301,8 +301,13 @@ Also echo the finished report between ===REPORT BEGIN=== and ===REPORT END=== ma
 final message, verbatim, so it can be salvaged if the file write fails.
 ```
 
-If the user supplied `--background`, add `--background` to both invocations and
-report that `/ms.analyze` must be rerun after both files appear.
+If the user supplied `--background`, add `--background` to both invocations. Do
+**not** offload a "rerun `/ms.analyze` later" onto the user: per
+`specter-agent-protocols` §9 a detached agent never self-notifies, so launch a
+harness-tracked waiter — a `Bash(run_in_background: true)` poll loop on the two
+report paths (`analyze.codex.md` / `analyze.antigravity.md`), or `status --wait`
+— that wakes the host when both reports appear, then continue to aggregation in
+the same session.
 
 **Report-Write Protocol**: apply `specter-agent-protocols` §3 — deterministic file check
 (exists, non-empty, contains `**Result**:`), retry once, salvage from the
@@ -313,10 +318,13 @@ never to an agent that ran.
 
 #### C. Layer-3 Aggregation (mechanical — replaces host result-weighing)
 
-If `--background` was used and either report file has not appeared yet, report
-`PENDING` and stop — do **not** run the aggregation against a missing report
-(it would grade the absence as FAIL, which is the wrong signal for a
-still-running agent). Otherwise:
+If `--background` was used and either report file has not appeared yet, do
+**not** run the aggregation against a missing report (it would grade the absence
+as FAIL, the wrong signal for a still-running agent). Hold for the
+`specter-agent-protocols` §9 waiter instead: `PENDING` is interim status only —
+keep the harness-tracked waiter in place and resume aggregation when woken on
+both reports' appearance; never end the turn to hand the recheck back to the
+user. Once both reports exist:
 
 ```bash
 .specify/scripts/bash/specter-gate.sh aggregate analyze specs/[spec-id] --ledger --round <R>

@@ -13,7 +13,9 @@ from pathlib import Path
 
 import pytest
 
-SCRIPTS = Path(__file__).resolve().parent.parent.parent / "docs" / "templates" / "scripts"
+SCRIPTS = (
+    Path(__file__).resolve().parent.parent.parent / "docs" / "templates" / "scripts"
+)
 RELEASE = SCRIPTS / "specter-release.sh"
 PUBLISH = SCRIPTS / "specter-publish.sh"
 
@@ -80,8 +82,14 @@ class TestSemver:
     def test_breaking_change_footer_is_major(self, repo: Path) -> None:
         git(repo, "tag", "-a", "v0.2.0", "-m", "r")
         git(
-            repo, "commit", "--allow-empty", "-q",
-            "-m", "fix: tighten parser", "-m", "BREAKING CHANGE: drops legacy input",
+            repo,
+            "commit",
+            "--allow-empty",
+            "-q",
+            "-m",
+            "fix: tighten parser",
+            "-m",
+            "BREAKING CHANGE: drops legacy input",
         )
         data = run_script(RELEASE, repo, "semver")
         assert data["computed_bump"] == "major"
@@ -192,8 +200,10 @@ class TestSemver:
         data = run_script(RELEASE, repo, "semver")
         assert any("merge commit" in n for n in data["notes"])
         merged_subjects = " ".join(
-            data["drivers"]["major"] + data["drivers"]["minor"]
-            + data["drivers"]["patch"] + data["unclassified"]
+            data["drivers"]["major"]
+            + data["drivers"]["minor"]
+            + data["drivers"]["patch"]
+            + data["unclassified"]
         )
         assert "merge side" not in merged_subjects
 
@@ -300,7 +310,13 @@ class TestReleaseEndstate:
     def test_ledger_status_column_shipped_is_true(self, repo: Path) -> None:
         self._push_ledger(repo, "✅ shipped")
         data = run_script(
-            RELEASE, repo, "verify-endstate", "1", "--no-release", "--ledger-feature", "6"
+            RELEASE,
+            repo,
+            "verify-endstate",
+            "1",
+            "--no-release",
+            "--ledger-feature",
+            "6",
         )
         assert data["checks"]["ledger_shipped"]["status"] == "true"
 
@@ -308,12 +324,20 @@ class TestReleaseEndstate:
         # The Feature name contains "shipped" but the Status column is planned.
         self._push_ledger(repo, "⬜ planned")
         data = run_script(
-            RELEASE, repo, "verify-endstate", "1", "--no-release", "--ledger-feature", "6"
+            RELEASE,
+            repo,
+            "verify-endstate",
+            "1",
+            "--no-release",
+            "--ledger-feature",
+            "6",
         )
         assert data["checks"]["ledger_shipped"]["status"] == "false"
 
     def test_repository_url_credentials_are_stripped(self, repo: Path) -> None:
-        git(repo, "remote", "set-url", "origin", "https://user:secret@example.com/x.git")
+        git(
+            repo, "remote", "set-url", "origin", "https://user:secret@example.com/x.git"
+        )
         data = run_script(RELEASE, repo, "verify-endstate", "1", "--no-release")
         assert data["repository"] == "https://example.com/x.git"
         assert "secret" not in json.dumps(data)

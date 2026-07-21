@@ -212,7 +212,11 @@ class TestStructural:
 
     def test_dag_cycle_fails(self, repo: Path) -> None:
         progress = repo / "docs" / "prd" / "feature-map.progress.md"
-        progress.write_text(GOOD_PROGRESS.replace("| 001 Auth engine | — |", "| 001 Auth engine | 002 |"))
+        progress.write_text(
+            GOOD_PROGRESS.replace(
+                "| 001 Auth engine | — |", "| 001 Auth engine | 002 |"
+            )
+        )
         data = run_gate(repo, "structural")
         assert data["verdict"] == "FAIL"
         assert data["checks"]["dag_acyclic"] is False
@@ -234,14 +238,18 @@ class TestStructural:
 
     def test_missing_ci_green_fails(self, repo: Path) -> None:
         fmap = repo / "docs" / "prd" / "feature-map.md"
-        fmap.write_text(GOOD_MAP.replace("- login works\n- CI passes green", "- login works"))
+        fmap.write_text(
+            GOOD_MAP.replace("- login works\n- CI passes green", "- login works")
+        )
         data = run_gate(repo, "structural")
         assert data["verdict"] == "FAIL"
         assert any("CI passes green" in r for r in data["reasons"])
 
     def test_commitment_row_without_owner_fails(self, repo: Path) -> None:
         fmap = repo / "docs" / "prd" / "feature-map.md"
-        fmap.write_text(GOOD_MAP.replace("| Feature 002 | Implemented |", "|  | Implemented |"))
+        fmap.write_text(
+            GOOD_MAP.replace("| Feature 002 | Implemented |", "|  | Implemented |")
+        )
         data = run_gate(repo, "structural")
         assert data["verdict"] == "FAIL"
         assert data["checks"]["commitment_index_ok"] is False
@@ -310,7 +318,9 @@ class TestAggregate:
 
     def test_single_degrade_placeholder_warns_with_cap(self, repo: Path) -> None:
         write_agent_verify_pair(
-            repo, codex_result="WARN", codex_availability="UNAVAILABLE (binary not on PATH)"
+            repo,
+            codex_result="WARN",
+            codex_availability="UNAVAILABLE (binary not on PATH)",
         )
         data = run_gate(repo, "aggregate", "verify", "6")
         assert data["verdict"] == "WARN"
@@ -318,7 +328,9 @@ class TestAggregate:
 
     def test_recused_placeholder_warns_with_cap(self, repo: Path) -> None:
         write_agent_verify_pair(
-            repo, codex_result="WARN", codex_availability="RECUSED (implemented this Feature)"
+            repo,
+            codex_result="WARN",
+            codex_availability="RECUSED (implemented this Feature)",
         )
         data = run_gate(repo, "aggregate", "verify", "6")
         assert data["verdict"] == "WARN"
@@ -387,7 +399,9 @@ class TestAggregate:
         data = run_gate(repo, "aggregate", "verify", "6", "--ledger")
         assert data["verdict"] == "FAIL"
         assert data["ledger_written"] is True
-        ledger = (repo / ".specify" / "specter-run.jsonl").read_text().strip().splitlines()
+        ledger = (
+            (repo / ".specify" / "specter-run.jsonl").read_text().strip().splitlines()
+        )
         entry = json.loads(ledger[-1])
         assert entry["step"] == "verify"
         assert entry["feature"] == "006"
@@ -399,7 +413,10 @@ class TestAggregate:
         data = run_gate(repo, "aggregate", "verify", "6", "--ledger")
         assert data["verdict"] == "PASS"
         entry = json.loads(
-            (repo / ".specify" / "specter-run.jsonl").read_text().strip().splitlines()[-1]
+            (repo / ".specify" / "specter-run.jsonl")
+            .read_text()
+            .strip()
+            .splitlines()[-1]
         )
         assert "caught" not in entry
         assert "cap" not in entry
@@ -512,7 +529,9 @@ class TestAggregate:
     def test_degrade_placeholder_with_stale_sha_fails(self, repo: Path) -> None:
         # A stale or mis-scoped placeholder must not become an accepted cap.
         write_agent_verify_pair(
-            repo, codex_result="WARN", codex_availability="UNAVAILABLE (binary not on PATH)"
+            repo,
+            codex_result="WARN",
+            codex_availability="UNAVAILABLE (binary not on PATH)",
         )
         checklists = repo / "docs" / "prd" / "checklists"
         checklist = checklists / "feature-006.checklist.md"
@@ -526,7 +545,10 @@ class TestAggregate:
         (repo / "docs" / "prd" / "checklists" / "feature-006.codex-verify.md").unlink()
         run_gate(repo, "aggregate", "verify", "6", "--ledger")
         entry = json.loads(
-            (repo / ".specify" / "specter-run.jsonl").read_text().strip().splitlines()[-1]
+            (repo / ".specify" / "specter-run.jsonl")
+            .read_text()
+            .strip()
+            .splitlines()[-1]
         )
         assert len(entry["report_shas"]) == len(entry["artifacts"]) == 2
         assert entry["report_shas"][0] == ""
@@ -537,7 +559,10 @@ class TestAggregate:
         data = run_gate(repo, "aggregate", "verify", "6", "--ledger", "--round", "2")
         assert data["round"] == 2
         entry = json.loads(
-            (repo / ".specify" / "specter-run.jsonl").read_text().strip().splitlines()[-1]
+            (repo / ".specify" / "specter-run.jsonl")
+            .read_text()
+            .strip()
+            .splitlines()[-1]
         )
         assert entry["round"] == 2
         assert len(entry["report_shas"]) == 2
@@ -559,7 +584,9 @@ class TestAggregate:
         assert data["verdict"] == "PASS"
         assert data["feature"] == "006"
         # editing tasks.md invalidates both reports
-        (spec_dir / "tasks.md").write_text("# Tasks\n\n- T001 @SPEC:X\n- T002 @SPEC:Y\n")
+        (spec_dir / "tasks.md").write_text(
+            "# Tasks\n\n- T001 @SPEC:X\n- T002 @SPEC:Y\n"
+        )
         data = run_gate(repo, "aggregate", "analyze", "specs/006-sample")
         assert data["verdict"] == "FAIL"
         assert any("stale Tasks SHA256" in r for r in data["reasons"])
