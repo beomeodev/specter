@@ -21,3 +21,24 @@
 - 검증: Codex(gpt-5.6-sol) 외부 재검증 각 3라운드 수렴(FAIL→FAIL→PASS-WITH-NOTES),
   전체 테스트 131개 통과, 커버리지 90.13%. xhigh 행(hang) 2건은 취소 후 high로
   재발주하여 해결.
+
+---
+
+## 2026-07-21 — 외부 에이전트 백그라운드 완료 수거 규칙(§9)
+
+- **feat(protocols)**: `specter-agent-protocols` §9 "Background Completion
+  Collection" 신설. detached 외부에이전트 데몬(`codex`/`agy --background`)은
+  완료/사망을 host에 self-notify 하지 않으므로, 완료 수거를 harness-tracked
+  waiter(Agent 서브에이전트 또는 `Bash(run_in_background:true)`)로만 라우팅한다.
+  규칙: Agent 경유 1순위 / 데몬 직접호출은 포그라운드 `--wait`+Bash `timeout:600000`
+  (10분) / 초과 시 `status --wait` 대기꾼을 harness 백그라운드로 / 죽음 감지 후
+  degrade / 대기꾼 없이 "완료 시 알림" 약속 금지.
+- **docs(commands)**: `/ms.analyze`·`/ms.review`의 `--background` 처리를 §9로
+  연결. 기존 "유저에게 재실행을 떠넘기고 PENDING stop" → harness-tracked 대기꾼으로
+  같은 세션에서 자동 이어감으로 교정.
+- 근거: 5개 워크스페이스 최근 세션 트랜스크립트 감사(cork 백그라운드 dispatch 7건 중
+  결과 미수거 5, idle-while-done 3; 대조 세션은 사고 0). Codex "120초 자동 백그라운드"의
+  실제 원인은 Claude Code Bash 도구 기본 타임아웃 2분으로 규명. 서브에이전트 4개 ×
+  5+압박 압박테스트 전부 준수(새 rationalization 0)로 sync-safe 판정.
+- **chore(test)**: 기존 테스트 3파일 ruff format 정리(pre-existing 포맷 미준수,
+  이번 변경과 무관).
