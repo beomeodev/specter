@@ -440,6 +440,22 @@ Run the code-level TRUST checks inline with the repository's own tooling
 - security scan results where tooling exists
 - TAG integrity report: `@SPEC -> @TEST -> @CODE`; warning by default unless Section IX or CI promotes it
 
+#### B2. Hygiene WARN Checks (advisory — WARNING trigger only, never CRITICAL)
+
+Two cheap checks added from the 2026-07-21 three-project test-suite audits.
+Each fires a WARNING trigger only; promotion to CRITICAL requires a documented
+recurrence, not reviewer judgment:
+
+- **Pre-commit backstop actually installed**: `[ -f .git/hooks/pre-commit ]`.
+  Config-without-installed-hook was found in 2 of 3 audited projects (the
+  `/ms.init` Step 2.8 fail-open hole) — the TAG-chain and Feature-Map backstops
+  were silently dead. On failure, WARN with the fix (`pre-commit install`).
+- **RED scaffolding reclaimed**: tests written as RED scaffolding for THIS
+  Feature must by now be GREEN or deleted. Check the Feature's test files for
+  permanent-fail stubs (e.g. bodies that unconditionally raise/fail with a
+  "RED" note) and skip markers referencing this Feature. Leftovers become
+  permanent dead tests — one audited project had accumulated 20.
+
 #### C. Gate Result Handling
 
 Per the Result Model (Step 6): a CRITICAL trigger fires if executable gates fail CRITICAL.
