@@ -1,0 +1,59 @@
+# @CODE:FIX-CI-TEMPLATE-001
+# @TEST: (presentational — no test)
+#
+# SPECTER Standard CI Block — trigger/concurrency hygiene for consuming projects.
+#
+# WHY (2026-07-21 three-project audit, docs/test-speed-audit-{slm,cln,sab}.md):
+# every audited repo shipped the same scaffold defects — `push: ['**']` +
+# `pull_request` double-running each PR push (~27-50% of runs), full suites on
+# docs-only commits (SPECTER workflows commit docs constantly), and no
+# concurrency cancellation. Those defects, not test volume, consumed the bulk
+# of the month's free 2,000 Actions minutes.
+#
+# OWNERSHIP: SPECTER owns ONLY the marker block below (triggers + concurrency).
+# Everything else in a project's ci.yml — `name:`, `jobs:`, steps, matrices —
+# stays project-owned. This file is deliberately NOT a full workflow and is
+# NOT distributed as `.github/workflows/ci.yml` (that would permanently
+# conflict with per-project job layouts in /ms.sync's 3-way merge).
+#
+# HOW TO APPLY (one-time per existing project; /ms.init Step 2.10 automates the
+# planting for repos it initializes):
+#   1. In `.github/workflows/ci.yml`, delete the existing top-level `on:` block
+#      (and the top-level `concurrency:` block if one exists).
+#   2. Paste the marker block below in their place (directly under `name:`).
+#   3. Keep `jobs:` and everything under it untouched. Review the diff.
+#   Re-application/upgrade: replace everything between the START/END markers.
+#
+# CAVEATS:
+#   - `paths-ignore` means a docs-only PR produces NO check runs. If branch
+#     protection ever marks CI as a required check, docs-only PRs would block —
+#     revisit the filter before enabling required checks.
+#   - `push` is limited to master/main: feature-branch pushes are covered by
+#     the `pull_request` event alone, which removes the double-run.
+#   - `cancel-in-progress` also applies to master/main pushes: a superseded
+#     run is cancelled in favor of the newest commit (latest-wins is intended).
+#   - Job-level cost hygiene (uv/npm/mypy caches, per-job minute-ceiling
+#     billing) cannot live in this top-level block — the `quality-loop` skill
+#     audits those per project (item 9).
+
+# MS_CI_STANDARD_BLOCK_START v1 — managed by SPECTER; do not hand-edit inside
+on:
+  push:
+    branches: [master, main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.specify/**'
+      - '.claude/**'
+  pull_request:
+    branches: [master, main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.specify/**'
+      - '.claude/**'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+# MS_CI_STANDARD_BLOCK_END

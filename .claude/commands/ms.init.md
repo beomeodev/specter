@@ -466,6 +466,13 @@ HOOKS
   else
     echo "⚠️ pre-commit binary not found — install it (e.g. 'uv tool install pre-commit' or 'pipx install pre-commit') and run 'pre-commit install' once. Until then the backstops do not run."
   fi
+  # Fail-open guard (2026-07-21 audit: 2 of 3 consuming projects had the config
+  # but no installed hook — the warning above scrolled away and nothing ever
+  # re-checked). Verify the hook actually landed; /ms.review Step 6.5 B2
+  # re-checks this and raises a WARNING until it is fixed.
+  if [ ! -f .git/hooks/pre-commit ]; then
+    echo "⛔ .git/hooks/pre-commit is NOT installed — the backstops above are dead files until 'pre-commit install' succeeds. This is a known fail-open hole; do not treat this init as complete."
+  fi
 fi
 ```
 
@@ -514,6 +521,78 @@ fi
 - Do not wire graph freshness into a blocking gate: the graph is an exploration
   accelerator, not a correctness invariant. `/ms.specter` Step 0 self-heals it
   and records a WARN when it cannot — never a FAIL.
+
+#### 2.10 Plant The Standard CI Block (trigger hygiene)
+
+A 2026-07-21 three-project audit (`docs/test-speed-audit-{slm,cln,sab}.md` in
+the SPECTER repo) found every consuming repo shipping the same CI trigger
+defects — `push: ['**']` + `pull_request` double-running each PR push, full
+suites on docs-only commits, no concurrency cancellation — and those defects,
+not test volume, consumed most of the month's free Actions minutes. The shared
+part of `ci.yml` (triggers + concurrency) is standardized as a marker block
+owned by SPECTER (`docs/templates/ci-standard-block.yml`, arrives via
+`/ms.sync`); everything under `jobs:` stays project-owned. Deliberately NOT
+distributed as a whole `ci.yml` — that would permanently conflict with
+per-project job layouts in `/ms.sync`'s 3-way merge.
+
+```bash
+CI_FILE=".github/workflows/ci.yml"
+TEMPLATE="docs/templates/ci-standard-block.yml"
+if [ ! -f "$CI_FILE" ]; then
+  echo "ℹ️ no $CI_FILE — skipped (SPECTER does not invent a CI pipeline)"
+elif [ ! -f "$TEMPLATE" ]; then
+  echo "⚠️ $TEMPLATE missing — it arrives via /ms.sync; re-run this step after the first sync"
+else
+  python3 - "$CI_FILE" "$TEMPLATE" <<'PYEOF'
+import re, sys
+ci_path, tpl_path = sys.argv[1], sys.argv[2]
+tpl = open(tpl_path).read()
+m = re.search(r'^# MS_CI_STANDARD_BLOCK_START.*?^# MS_CI_STANDARD_BLOCK_END\n', tpl, re.S | re.M)
+if not m:
+    sys.exit("template has no marker block — template corrupt, aborting")
+block = m.group(0)
+src = open(ci_path).read()
+if 'MS_CI_STANDARD_BLOCK_START' in src:
+    new = re.sub(r'^# MS_CI_STANDARD_BLOCK_START.*?^# MS_CI_STANDARD_BLOCK_END\n',
+                 block, src, flags=re.S | re.M)
+    action = 'refreshed to template version' if new != src else 'already current'
+else:
+    lines = src.splitlines(keepends=True)
+    out, i, inserted, removed = [], 0, False, 0
+    while i < len(lines):
+        # drop existing top-level on:/concurrency: sections (incl. quoted "on":)
+        if re.match(r'^(on|concurrency)\s*:', lines[i]) or re.match(r'^([\'"])on\1\s*:', lines[i]):
+            i += 1
+            while i < len(lines) and not re.match(r'^\S', lines[i]):
+                i += 1
+            removed += 1
+            if not inserted:
+                out.append(block + '\n')
+                inserted = True
+            continue
+        out.append(lines[i]); i += 1
+    if not inserted:
+        for j, l in enumerate(out):
+            if re.match(r'^name\s*:', l):
+                out.insert(j + 1, '\n' + block + '\n'); inserted = True; break
+        if not inserted:
+            out.insert(0, block + '\n')
+    new = ''.join(out)
+    action = f'planted (replaced {removed} top-level trigger/concurrency section(s))'
+if new != src:
+    open(ci_path, 'w').write(new)
+print(f'✓ standard CI block {action} in {ci_path} — review the diff before committing')
+PYEOF
+fi
+```
+
+- Idempotent: with markers present, re-running only refreshes the block to the
+  template version; a `v2` template upgrade is applied by re-running this step.
+- The block's `paths-ignore` means docs-only PRs produce no check runs — if
+  branch protection ever promotes CI to a required check, revisit the filter
+  first (caveat documented in the template).
+- Job-level cost hygiene (dependency/type-checker caches, per-job minute-ceiling
+  billing) is out of scope here — the `quality-loop` skill audits it per project.
 
 ### Step 3: Report Success
 

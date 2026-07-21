@@ -42,3 +42,14 @@
   5+압박 압박테스트 전부 준수(새 rationalization 0)로 sync-safe 판정.
 - **chore(test)**: 기존 테스트 3파일 ruff format 정리(pre-existing 포맷 미준수,
   이번 변경과 무관).
+
+## 2026-07-21 — 테스트 속도·CI 계통 교정 (FIX-CI-TEMPLATE-001)
+
+- **fix(ci/workflow)**: 3개 프로젝트 테스트 감사(`docs/test-speed-audit-*.md`)로
+  실증된 계통 결함 4건 교정 — ① 표준 CI 블록 템플릿 신설
+  (`docs/templates/ci-standard-block.yml`, 마커 블록만 SPECTER 소유·jobs는
+  프로젝트 소유, PR 이중 실행/문서-전용 풀 CI/취소 부재 제거), ② `/ms.init`
+  2.10 신설(멱등 식재) + 2.8 pre-commit fail-open 가드, ③ `/ms.review` 6.5 B2
+  WARN 체크 2종(훅 실설치, RED 스캐폴딩 회수), ④ `quality-loop` 스킬 신설
+  (판정-우선 9항목 감사 + 패턴 라이브러리 14종 시딩). ci.yml 전문은 sync
+  비대상(영구 CONFLICT 방지) — 기존 프로젝트는 템플릿 절차로 1회 수동 이식.
