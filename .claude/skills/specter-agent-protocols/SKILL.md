@@ -274,6 +274,16 @@ the reported defects only (max 2 fix rounds before escalating to the user),
 and a fix subagent must never delete or reword commitments merely to make a
 structural check pass.
 
+**Persistent subagent memory is forbidden for gate roles.** Claude Code's
+`memory` frontmatter field (`user` / `project` / `local`; absent by default,
+and absent means fully fresh) gives a subagent a cross-invocation memory
+directory whose `MEMORY.md` is injected into every later run. No authoring
+station, and no subagent whose output feeds a gate verdict, may declare a
+`memory` field: a station that remembers prior rounds is no longer fresh, and
+the PRD-blind checklist author's baseline value depends on never having seen a
+Feature Map — in any session. Freshness here means omitting the field, and
+sync targets must not add one to synced agent definitions.
+
 ## 8. Deterministic Feature Audit Tiers
 
 The canonical executable policy is
