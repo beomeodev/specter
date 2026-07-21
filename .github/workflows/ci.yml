@@ -1,10 +1,26 @@
 name: CI
 
+# MS_CI_STANDARD_BLOCK_START v1 — managed by SPECTER; do not hand-edit inside
 on:
   push:
-    branches: ['**']
+    branches: [master, main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.specify/**'
+      - '.claude/**'
   pull_request:
     branches: [master, main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.specify/**'
+      - '.claude/**'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+# MS_CI_STANDARD_BLOCK_END
 
 jobs:
   ci:
