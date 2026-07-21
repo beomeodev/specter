@@ -98,7 +98,7 @@ def test_global_gate_passes(repo: Path) -> None:
 
 
 def test_feature_number_with_leading_zero_and_high_digit(repo: Path) -> None:
-    """"069" must be treated as decimal 69, not an invalid octal literal."""
+    """ "069" must be treated as decimal 69, not an invalid octal literal."""
     write_feature_files(
         repo, "069", map_field=None, sha=sha256(repo / "docs/prd/feature-map.md")
     )
