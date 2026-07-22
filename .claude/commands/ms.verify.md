@@ -168,7 +168,13 @@ Check only for blocking or high-signal issues:
 - overreach into another Feature's owned commitments
 - out-of-scope items without destination Features
 - done criteria that are not observable or do not end with "CI passes green"
-- invented behavior not supported by PRD evidence
+- untagged invention per the .claude/skills/specter-agent-protocols/SKILL.md §10
+  authority lattice: behavior supported by neither PRD evidence, a PRD
+  Amendment, an owned Implementation Obligations (D-ID) row in
+  docs/prd/feature-map.md, nor a recorded clarify interpretation citing its
+  C-/D-ID. A D-ID or clarify record used to justify NEW observable scope
+  (rather than an entailed obligation or an in-envelope selection) is itself
+  a finding
 - Audit signal values that omit, contradict, or understate the cited PRD
   evidence, especially any unrecorded hard-risk behavior
 
@@ -218,7 +224,13 @@ Check only for blocking or high-signal issues:
 - overreach into another Feature's owned commitments
 - out-of-scope items without destination Features
 - done criteria that are not observable or do not end with "CI passes green"
-- invented behavior not supported by PRD evidence
+- untagged invention per the .claude/skills/specter-agent-protocols/SKILL.md §10
+  authority lattice: behavior supported by neither PRD evidence, a PRD
+  Amendment, an owned Implementation Obligations (D-ID) row in
+  docs/prd/feature-map.md, nor a recorded clarify interpretation citing its
+  C-/D-ID. A D-ID or clarify record used to justify NEW observable scope
+  (rather than an entailed obligation or an in-envelope selection) is itself
+  a finding
 - Audit signal values that omit, contradict, or understate the cited PRD
   evidence, especially any unrecorded hard-risk behavior
 

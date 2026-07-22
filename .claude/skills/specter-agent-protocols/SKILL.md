@@ -1,6 +1,6 @@
 ---
 name: specter-agent-protocols
-description: Canonical external-agent protocols shared by the dual-agent SPECTER commands (/ms.verify, /ms.pre-verify, /ms.analyze, /ms.review, /ms.expand) — session-level preflight, single-agent degrade rule, report-write/salvage protocol, re-round convergence caps, the auditor bias-prevention doctrine (context isolation, evidence-cited verdicts, UNVERIFIED marking, grade-down-on-doubt, defect-claim symmetry), the verification-report structure (Claim/Evidence/Baseline/Gaps/Residual-risk), and the three-layer station contract (deterministic structural checks → independent dual-agent semantics → mechanical verdict aggregation via specter-gate.sh, with the typed degrade contract and mechanical ledger emission), and the background-completion-collection rule (detached external-agent daemons never self-notify — route completion through a harness-tracked waiter or Agent subagent, never an idle turn). Commands reference this file instead of restating the mechanics; each command keeps only its own report paths and station-specific invariants inline.
+description: Canonical external-agent protocols shared by the dual-agent SPECTER commands (/ms.verify, /ms.pre-verify, /ms.analyze, /ms.review, /ms.expand) — session-level preflight, single-agent degrade rule, report-write/salvage protocol, re-round convergence caps, the auditor bias-prevention doctrine (context isolation, evidence-cited verdicts, UNVERIFIED marking, grade-down-on-doubt, defect-claim symmetry), the verification-report structure (Claim/Evidence/Baseline/Gaps/Residual-risk), and the three-layer station contract (deterministic structural checks → independent dual-agent semantics → mechanical verdict aggregation via specter-gate.sh, with the typed degrade contract and mechanical ledger emission), the background-completion-collection rule (detached external-agent daemons never self-notify — route completion through a harness-tracked waiter or Agent subagent, never an idle turn), and the provenance & authority lattice (§10 — which artifacts may add product behavior vs oblige, select, constrain, or merely reference; the D-ID Implementation-Obligations contract with its two-part entailment/denylist audit test; journey ownership; typed clarify decisions). Commands reference this file instead of restating the mechanics; each command keeps only its own report paths and station-specific invariants inline.
 ---
 
 # SPECTER External-Agent Protocols
@@ -100,6 +100,12 @@ Unbounded re-review loops burn tokens without improving outcomes:
   the evidence changed — the fix diff or corrected artifact exists and is cited
   in the revised report. Reconsidering identical evidence never upgrades a
   grade (`FAIL`→`WARN`/`PASS`); it can still downgrade one (§5).
+- **Stations may tighten, never loosen, this policy.** A station whose repairs
+  can have artifact-wide effects (e.g. `/ms.pre-verify`, where an ownership
+  move or DAG edit ripples beyond the fixed rows) may declare scoped repair
+  rounds *advisory* and require a final full-scope round for the accepted
+  verdict — see that command's certification contract. No station may widen
+  the caps or accept a scoped report as full-scope certification.
 
 ## 5. Auditor Bias-Prevention Doctrine
 
@@ -365,3 +371,108 @@ in-foreground, had zero incidents.)
   background Bash) is actually in place. Without one, the host either
   foreground-waits or stays actively polling — it must not end the turn idle and
   offload the "is it done?" check onto the user.
+
+## 10. Provenance & Authority Lattice (adopted 2026-07-22)
+
+The refinement pipeline (PRD → Feature Map → spec → plan → tasks) legitimately
+*adds information* at every stage. What it must never do is add *product scope*
+without an authorized source. This section is the single definition of which
+artifact may authorize what; every station cites this lattice instead of
+restating its own source rule. (Origin: the 2026-07-22 doit-n-live audit — a
+binary "literal PRD text or invented" rule produced 5 non-converging
+pre-verify rounds; externally reviewed by Codex the same day.)
+
+### The lattice
+
+| Authority | Artifacts | What it can do |
+| --- | --- | --- |
+| **Add product behavior** | source PRD text (C-IDs); appended `## PRD Amendment N` sections | The only two sources of new product scope. Nothing else adds scope — not the map, not clarify, not a subagent's judgment. |
+| **Oblige implementation** | valid D-ID rows (`## Implementation Obligations`, contract below) | Require a deliverable that an existing commitment entails, without adding observable product scope. |
+| **Select within an envelope** | clarify **interpretation** records in `spec.md` (typed contract below) | Choose among behaviors already inside a cited commitment's observable envelope. Never widen the envelope. |
+| **Constrain implementation** | Constitution, product principles, `AGENTS.md` | Forbid or shape *how*; when a governing rule forces a concrete deliverable, that deliverable enters the map as a `governing-constraint` D-ID citing the rule — the rule itself never silently becomes scope. |
+| **Reference only** | dependency Feature specs | Context for boundaries; never authority for behavior. |
+| **No authority** | `docs/prd/opportunities.md` (unpromised-ideas backlog) | Preserved ideas the PRD never asked for. Promotion happens ONLY via a PRD Amendment (`/ms.expand`); a note is never provenance, and no gate, checklist, spec prompt, or reviewer prompt loads this file. |
+
+An addition carrying none of these origins is **untagged invention** — the same
+blocking finding as before this section existed. The lattice narrows what
+"invented" means; it never softens the verdict for actual scope smuggling.
+
+### D-ID contract (Implementation Obligations)
+
+`docs/prd/feature-map.md` MAY carry one `## Implementation Obligations` table
+(legacy maps without it stay valid). Fixed columns:
+
+```
+| D-ID | Supports | Kind | Obligation | Why necessary | Impact | Owning Feature |
+```
+
+- `D-ID`: `D-NNN`, unique. `Supports`: one or more baseline C-IDs — C-IDs
+  only, ≥1. **No D→D chains**: a derived row never authorizes another derived
+  row; every D-ID traces directly to PRD commitments.
+- `Kind` (closed): `logical-enablement` (the commitment cannot be implemented
+  without it) · `verification-only` (needed to *prove* the commitment — a test
+  harness, never shipped behavior) · `governing-constraint` (forced by
+  Constitution/principles; cite the rule in `Why necessary`) ·
+  `existing-system-constraint` (forced by the verified existing codebase —
+  adapter, migration; cite the repo evidence).
+- `Obligation` states the **smallest abstract obligation**, not the chosen
+  realization: "a reachable capture affordance for C-014", not "a standalone
+  input screen". The realization is a design decision and lives in the
+  Feature's `### Key decisions` or the plan.
+- `Impact` (closed): `none` · `user-visible` · `operational`. Any non-`none`
+  row requires the explicit user acknowledgment `/ms.pre-verify` defines
+  before the station result stands — visibility alone is never approval.
+- D-IDs are responsibilities, never promises: a D-ID cannot own, satisfy, or
+  substitute for a baseline C-ID, and the PRD-blind baseline checklist never
+  contains D items.
+
+**Two-part audit test** (L2 reviewers apply both; either failure kills the row):
+
+1. **Entailment across designs** — "Across reasonable implementations that
+   satisfy the cited C-IDs, must this obligation exist?" The reviewer actively
+   looks for a plausible alternative implementation that avoids the item; if
+   one exists, the item is a design choice, not a derived necessity. Removal
+   breaking *the author's chosen design* proves nothing — that reasoning is
+   circular. "Reasonable" is bounded by the cited C-ID's own text, never by
+   the author's unstated premises: a rationale that first strengthens the
+   commitment ("reminders must reach a closed app") and then derives from the
+   strengthened version has smuggled a requirement, not found an entailment.
+2. **Scope-expansion denylist** — an item that introduces a new
+   user journey or capability, stored data category or retention period,
+   permission or role, third-party integration, notification channel,
+   irreversible/destructive effect, billing behavior, public API, or
+   quantitative service promise is product scope. "Introduces" means
+   observable to a user or operator beyond the cited C-ID's existing
+   envelope — being *motivated by* a C-ID does not exempt an item from the
+   denylist. It can never ride the
+   derived lane regardless of rationale; it routes to a PRD Amendment (or the
+   opportunities backlog if not adopted).
+
+### Journey ownership doctrine
+
+A commitment describing an end-to-end user journey is owned by the Feature
+where the **whole observable journey first becomes verifiable** — never split
+"half" across an engine Feature and a screen Feature. Earlier slices carry
+D-ID enablement obligations toward that journey; the owning Feature's done
+criteria prove the journey end-to-end and name the enabling Features. (This
+resolves the engine-vs-screen ownership oscillation that consumed 4 of the
+doit-n-live rounds.)
+
+### Typed clarify decisions
+
+Every `/ms.clarify` resolution is one of exactly two types:
+
+- **interpretation** — selects among behaviors already inside a cited C-ID's
+  (or D-ID's) observable envelope. Recorded in `spec.md` with provenance: the
+  cited ID, the exact question and answer, and whether the user answered or
+  evidence auto-resolved it. Downstream stations treat a recorded
+  interpretation as legitimate refinement of its cited commitment.
+- **scope-addition** — would widen an envelope or add anything on the denylist
+  above. Clarify REFUSES to record it as a decision: it routes to a PRD
+  Amendment (`/ms.expand`) or, if not adopted now, to the opportunities
+  backlog. There is no clarify shortcut around the Amendment path; an
+  agent-side evidence auto-resolution can only ever produce an
+  `interpretation`, never a scope-addition.
+
+A `Source: clarify` label without the cited ID and recorded question/answer is
+not provenance — downstream auditors treat it as untagged.

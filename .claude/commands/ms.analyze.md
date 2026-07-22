@@ -211,6 +211,12 @@ Focus on:
 - stale or incomplete Amendment handling
 - migration number, file path, or contract drift
 - Feature Map commitments that no longer survive into spec/plan/tasks
+- provenance survival (.claude/skills/specter-agent-protocols/SKILL.md §10):
+  the Feature's owned Implementation Obligations (D-IDs) still discharged in
+  spec/plan/tasks; clarify interpretation records still citing their C-/D-ID;
+  and any spec/plan/tasks behavior with no C-ID, Amendment, D-ID, or recorded
+  interpretation behind it (untagged addition — flag it, whatever document it
+  first appeared in)
 - inconsistencies between Audit signals and the now-concrete spec, plan, or tasks
 - the receipt-bound review scope: <receipt.tier_settings.review_scope>
 - every applicable identifier in
@@ -273,6 +279,12 @@ Focus on:
 - stale or incomplete Amendment handling
 - migration number, file path, or contract drift
 - Feature Map commitments that no longer survive into spec/plan/tasks
+- provenance survival (.claude/skills/specter-agent-protocols/SKILL.md §10):
+  the Feature's owned Implementation Obligations (D-IDs) still discharged in
+  spec/plan/tasks; clarify interpretation records still citing their C-/D-ID;
+  and any spec/plan/tasks behavior with no C-ID, Amendment, D-ID, or recorded
+  interpretation behind it (untagged addition — flag it, whatever document it
+  first appeared in)
 - inconsistencies between Audit signals and the now-concrete spec, plan, or tasks
 - the receipt-bound review scope: <receipt.tier_settings.review_scope>
 - every applicable identifier in

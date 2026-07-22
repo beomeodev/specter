@@ -28,7 +28,11 @@ compared against is worthless as a baseline.
    source PRD label, a stable PRD reference (§), the commitment type, and a
    short label. Summarize; never copy PRD prose wholesale, never editorialize.
 4. **Never invent or interpret.** Ambiguity in the PRD is recorded as its own
-   row flagged `ambiguous`, not resolved by you.
+   row flagged `ambiguous`, not resolved by you. The baseline is PRD-only by
+   definition (`specter-agent-protocols` §10): derived obligations (D-IDs)
+   belong to the Feature Map's Implementation Obligations table and must never
+   appear here — a baseline row exists because PRD text says so, never
+   because an implementation would need it.
 5. **English only.** Write exactly ONE file — the output path given in your
    dispatch prompt — with the exact header fields the prompt specifies
    (including `**Mode**: prd-only`). No other file.

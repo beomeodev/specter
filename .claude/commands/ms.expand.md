@@ -67,6 +67,13 @@ Then run:
 /ms.expand @docs/prd/PRD.md         # pin the amended PRD explicitly
 ```
 
+**Promoting an unpromised idea**: entries in `docs/prd/opportunities.md` (the §10 no-authority
+backlog fed by `/ms.featuremap`, `/ms.clarify` scope-addition refusals, and `/ms.pre-verify`
+vetoes) are promoted to product scope ONLY through this path — write the idea as normal PRD
+prose inside the `## PRD Amendment N` section, then delete its backlog entry in the same change.
+Relabeling a backlog note, or recording it as a clarify decision, never makes it scope
+(`specter-agent-protocols` §10).
+
 ## Execution Steps
 
 ### Step 0: Delta Detection + Append-Only Guard

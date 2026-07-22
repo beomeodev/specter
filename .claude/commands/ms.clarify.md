@@ -120,7 +120,39 @@ the user's patience runs out mid-stream, the answers that matter most are alread
   (say so instead: "근거상 우열 없음").
 
 **In the final report**, list separately: (a) 자체 해소된 항목 — each with the evidence
-that resolved it, so the user can veto any; (b) 사용자가 결정한 항목.
+that resolved it, so the user can veto any; (b) 사용자가 결정한 항목; (c) scope-addition으로
+분류되어 Amendment로 회송된 항목.
+
+### 2.7. Typed Decisions (provenance — `specter-agent-protocols` §10)
+
+Every resolution this command records is exactly one of two types:
+
+- **interpretation** — selects among behaviors already inside a cited
+  commitment's observable envelope (which C-ID or D-ID, from the Feature's
+  owned rows, does this question refine?). This is the only type an
+  evidence-based auto-resolution (Step 2.5 rule 1) may ever produce. Record
+  it in `spec.md` next to the affected requirement as a provenance line:
+
+  ```markdown
+  > Clarified (C-014, 2026-07-22, decided by: user): <exact question> → <exact answer>
+  ```
+
+  (`decided by: evidence — <the evidence>` when auto-resolved.) A clarify
+  record without the cited ID and the exact question/answer is not provenance
+  — downstream auditors treat it as untagged invention.
+
+- **scope-addition** — the answer would add anything on §10's denylist or
+  otherwise widen a commitment's observable envelope (a capability, data
+  category, permission, integration, notification channel, destructive
+  effect, billing behavior, public API, or quantitative promise the cited
+  commitment does not bound). **Refuse to record it as a spec decision.**
+  Tell the user it is new product scope and route it: adopt now → append a
+  `## PRD Amendment N` and run `/ms.expand`; not now → append it to
+  `docs/prd/opportunities.md`. There is no clarify shortcut around the
+  Amendment path.
+
+When unsure which type a resolution is, it is a scope-addition (§10 grades
+down on doubt).
 
 ### 3. Run Base Clarify Command
 

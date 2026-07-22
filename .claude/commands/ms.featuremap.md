@@ -68,6 +68,12 @@ user before proceeding.
    larger than a trivial one-PR chore (roughly a few days to ~1 week).
 3. **Every deferred item has an owner.** Anything pushed out of scope MUST name its owning Feature
    as `→ Feature NNN`. No responsibility gaps allowed.
+4. **Provenance lanes** (`specter-agent-protocols` §10). C-IDs are PRD-only. What the PRD *entails*
+   but never utters (the input surface a promised flow needs, the harness a promised NFR needs)
+   is not smuggled into commitments and not silently invented — it is recorded as a D-ID in the
+   `## Implementation Obligations` table, citing its C-IDs and passing §10's denylist. Ideas the
+   PRD never asked for go to `docs/prd/opportunities.md` (no gate reads it; promotion is a PRD
+   Amendment via `/ms.expand`). An untagged addition anywhere in the map is invention and FAILs.
 
 ---
 
@@ -112,11 +118,12 @@ plus, if they exist: docs/prd/product-principles.md,
 .specify/memory/constitution.md, AGENTS.md.
 
 Execute the brief exactly: extract commitments, cut Phases and Features, order
-the DAG, fill the PRD Commitment Index, and write
-docs/prd/feature-map.md and docs/prd/feature-map.progress.md per the brief's
-templates (ENGLISH, per the Language Policy). Write those two files and
-nothing else. Your final message: the two file paths plus a one-line summary
-(PRD count, Phase count, Feature count).
+the DAG, fill the PRD Commitment Index and Implementation Obligations, and
+write docs/prd/feature-map.md and docs/prd/feature-map.progress.md per the
+brief's templates (ENGLISH, per the Language Policy) — plus
+docs/prd/opportunities.md (append-only) if unpromised ideas came up. Write
+those files and nothing else. Your final message: the file paths plus a
+one-line summary (PRD count, Phase count, Feature count, D-ID count).
 ```
 
 The host waits for the subagent, then proceeds to the structural gate (§5.2).
@@ -145,8 +152,13 @@ auditable.
 Scan the PRD's functional-spec section(s) and cut capability-sized candidates using these rules:
 - **(a) Infrastructure/foundation first**: repo, DB schema skeleton, auth, environment → consolidate
   into the first Feature(s).
-- **(b) Split engine from screen**: ship a backend capability (API/pipeline) as one Feature, and its UI
-  as a *later* Feature (e.g. chat engine → chat UI; generation pipeline → solving screen).
+- **(b) Split engine from screen — but never split a journey's ownership**: ship a backend
+  capability (API/pipeline) as one Feature, and its UI as a *later* Feature (e.g. chat engine →
+  chat UI). The §10 journey rule governs who owns the commitment: a journey-shaped commitment is
+  owned by the Feature where the whole observable journey first becomes verifiable (usually the
+  screen Feature); the engine Feature carries D-ID enablement obligations toward it, never "half"
+  of the C-ID. The owner's done criteria prove the journey end to end and name the enabling
+  Features.
 - **(c) Consolidate cross-cutting concerns into a late, dedicated Feature**: rules that span many
   features (authz/group differentiation, i18n, audit log, observability) must NOT be scattered — gather
   them into one Feature.
@@ -169,6 +181,24 @@ Scan the PRD's functional-spec section(s) and cut capability-sized candidates us
 After the Features are ordered, fill the index. Every row MUST have an owning Feature. Cross-cutting
 commitments still get exactly one owning Feature; earlier Features may include stubs, but the real
 behavior owner must be explicit.
+
+#### STEP 6.5 — Record Implementation Obligations and route unpromised ideas
+Sweep everything you placed in a Feature's scope, done criteria, or **Key decisions** that has no
+literal PRD text behind it — a Key decision may record the chosen *realization* of a C-ID or
+D-ID, but it is not a side door for scope that has neither. Each such item takes exactly one of three routes (`specter-agent-protocols` §10):
+
+1. **It is entailed by cited commitments** (every reasonable compliant design needs it, and it
+   adds nothing on the §10 denylist) → add a row to the `## Implementation Obligations` table
+   (template below): D-ID, the C-IDs it supports, a closed Kind, the **smallest abstract
+   obligation** (never your chosen realization — that goes in the Feature's Key decisions), why
+   every compliant design needs it, its Impact, and its owning Feature.
+2. **It is product scope the PRD never promised** (a user could see it as a new capability, or
+   it hits the denylist) → remove it from the map and append it to `docs/prd/opportunities.md`
+   with a one-line rationale. Do not delete the idea; do not keep it in scope.
+3. **Neither defensible as entailed nor worth preserving** → drop it.
+
+Zero untagged additions may remain: if it is in scope and not PRD-traced, it has a D-ID or it
+is gone.
 
 #### STEP 7 — Write each Feature using the fixed template (below).
 
@@ -252,6 +282,8 @@ MUST NOT write or select `audit_tier`; the deterministic classifier applies
 2. **Usage** — per-Feature workflow + the copy-paste pattern into `/ms.specify`; state that each Feature section is the `/ms.specify` prompt.
 3. **PRD Commitment Index** — the thin ownership map that prevents PRD requirements from being
    blurred or lost (template below).
+3.5. **Implementation Obligations** — the D-ID table (template below). Omit the section entirely
+   when STEP 6.5 produced no rows; never emit an empty table.
 4. **Full Feature dependency graph** — an ASCII DAG grouped by Phase.
 5. **Progress Ledger pointer** — a one-line pointer to the ledger file (template below). The
    ledger table itself is written to the separate file `docs/prd/feature-map.progress.md`, not
@@ -275,6 +307,23 @@ MUST NOT write or select `audit_tier`; the deterministic classifier applies
 |------------|---------|-----------------|-------------|----------------|----------|
 | Product PRD | §3.1 | Functional | User login | Feature 002 | Implemented |
 | Admin PRD | §5.2 | Cross-cutting | Audit log | Feature 009 | Deferred from earlier Features |
+```
+
+### Implementation Obligations — template (emit right after the Commitment Index; omit when empty)
+
+```markdown
+## Implementation Obligations
+
+> Derived necessities (`specter-agent-protocols` §10): obligations the cited PRD commitments
+> entail but never utter. D-IDs are responsibilities, never promises — they cannot own or satisfy
+> a C-ID, and the PRD-only baseline never contains them. `/ms.pre-verify` audits every row with
+> the §10 two-part test (entailment across designs + scope-expansion denylist); rows with
+> non-`none` Impact additionally require the user acknowledgment `/ms.pre-verify` defines.
+
+| D-ID | Supports | Kind | Obligation | Why necessary | Impact | Owning Feature |
+|------|----------|------|------------|---------------|--------|----------------|
+| D-001 | C-014 | logical-enablement | A reachable capture affordance for ad-hoc tasks | C-014 promises capture into the Inbox; no compliant design works without some reachable capture surface | user-visible | Feature 007 |
+| D-002 | C-052 | verification-only | A latency measurement harness for the p95 target | C-052's p95 promise is unverifiable without measurement; test-only, ships no behavior | none | Feature 011 |
 ```
 
 ### Progress Ledger pointer — template (emit in `feature-map.md`, right after the dependency graph)
@@ -396,6 +445,13 @@ Then validate the FIRST Feature and specify it:
 - ❌ No vague words ("good enough", "fast", "robust", "secure", "user-friendly"). Criteria must be measurable.
 - ❌ Do NOT duplicate the spec — reference PRD sections. The Feature Map is an index + boundary.
 - ❌ FAIL if the PRD Commitment Index is missing, any row lacks a source PRD, or any row lacks exactly one owning Feature.
+- ❌ FAIL if any in-scope deliverable, done criterion, or Key decision is neither PRD-traced nor
+  covered by a D-ID row (untagged invention, `specter-agent-protocols` §10; a Key decision may
+  realize a cited C-/D-ID, never introduce scope of its own).
+- ❌ FAIL if an Implementation Obligations row is malformed: unknown Kind or Impact value,
+  empty/duplicate D-ID, `Supports` citing anything but existing C-IDs (D→D chains included), or
+  an obligation stating a chosen realization instead of the smallest abstract obligation.
+- ❌ FAIL if an unpromised idea sits anywhere in the map instead of `docs/prd/opportunities.md`.
 - ❌ FAIL if any out-of-scope item lacks an owning Feature.
 - ❌ FAIL if the dependency graph has a cycle.
 - ❌ FAIL if a Phase's last Feature has no E2E integration scenario.

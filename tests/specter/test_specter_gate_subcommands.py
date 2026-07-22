@@ -299,6 +299,141 @@ class TestStructural:
         data = run_gate(repo, "structural", "2")
         assert data["checks"]["checklist_refs_ok"] is True
 
+    def test_product_word_todo_is_not_a_placeholder(self, repo: Path) -> None:
+        # 2026-07-22 doit-n-live false positive: a product named "Todo" (and
+        # identifiers like TODOS_TABLE) must not trip the TODO placeholder scan.
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(
+            GOOD_MAP.replace(
+                "- login endpoint", "- Todo list endpoint (TODOS_TABLE)"
+            )
+        )
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "PASS"
+        assert data["checks"]["placeholders_clean"] is True
+
+    def test_standalone_todo_token_still_flagged(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(GOOD_MAP.replace("- login endpoint", "- login endpoint (TODO)"))
+        data = run_gate(repo, "structural")
+        assert data["checks"]["placeholders_clean"] is False
+
+    def test_index_owner_column_located_by_header(self, repo: Path) -> None:
+        # 2026-07-22 doit-n-live false positive: an extra leading column moved
+        # the owner out of position 6; the header names the column instead.
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(
+            GOOD_MAP.replace(
+                "| Source PRD | PRD Ref | Commitment Type | Short Label | Owning Feature | Handling |",
+                "| C-ID | Source PRD | PRD Ref | Commitment Type | Short Label | Owning Feature | Handling |",
+            )
+            .replace(
+                "|------------|---------|-----------------|-------------|----------------|----------|",
+                "|------|------------|---------|-----------------|-------------|----------------|----------|",
+            )
+            .replace(
+                "| Product PRD | §3.1 | Functional | User login | Feature 001 | Implemented |",
+                "| C001 | Product PRD | §3.1 | Functional | User login | Feature 001 | Implemented |",
+            )
+            .replace(
+                "| Product PRD | §3.2 | Functional | Logout | Feature 002 | Implemented |",
+                "| C002 | Product PRD | §3.2 | Functional | Logout | Feature 002 | Implemented |",
+            )
+        )
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "PASS"
+        assert data["checks"]["commitment_index_ok"] is True
+
+
+OBLIGATIONS_HEADER = (
+    "\n## Implementation Obligations\n\n"
+    "| D-ID | Supports | Kind | Obligation | Why necessary | Impact | Owning Feature |\n"
+    "|------|----------|------|------------|---------------|--------|----------------|\n"
+)
+OBLIGATIONS_ROW = (
+    "| D-001 | C100 | logical-enablement | Reachable login surface "
+    "| No compliant design works without one | user-visible | Feature 001 |\n"
+)
+OBLIGATIONS_ANCHOR = "\n> Progress Ledger:"
+
+
+def map_with_obligations(rows: str) -> str:
+    return GOOD_MAP.replace(
+        OBLIGATIONS_ANCHOR, OBLIGATIONS_HEADER + rows + OBLIGATIONS_ANCHOR
+    )
+
+
+class TestStructuralObligations:
+    def test_legacy_map_without_section_is_valid(self, repo: Path) -> None:
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "PASS"
+        assert data["checks"]["implementation_obligations_ok"] is True
+
+    def test_valid_table_passes(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(map_with_obligations(OBLIGATIONS_ROW))
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "PASS"
+        assert data["checks"]["implementation_obligations_ok"] is True
+
+    def test_unknown_kind_fails(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(
+            map_with_obligations(
+                OBLIGATIONS_ROW.replace("logical-enablement", "nice-to-have")
+            )
+        )
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "FAIL"
+        assert data["checks"]["implementation_obligations_ok"] is False
+        assert any("unknown Kind" in r for r in data["reasons"])
+
+    def test_unknown_impact_fails(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(
+            map_with_obligations(OBLIGATIONS_ROW.replace("user-visible", "huge"))
+        )
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "FAIL"
+        assert any("unknown Impact" in r for r in data["reasons"])
+
+    def test_d_to_d_chain_fails(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(
+            map_with_obligations(OBLIGATIONS_ROW.replace("| C100 |", "| C100, D-002 |"))
+        )
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "FAIL"
+        assert any("D-to-D" in r for r in data["reasons"])
+
+    def test_duplicate_did_fails(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(map_with_obligations(OBLIGATIONS_ROW + OBLIGATIONS_ROW))
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "FAIL"
+        assert any("duplicate D-ID" in r for r in data["reasons"])
+
+    def test_supports_cid_missing_from_baseline_fails(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(map_with_obligations(OBLIGATIONS_ROW))
+        (repo / "docs" / "prd" / "featuremap-checklist.md").write_text(
+            "# PRD Checklist\n\n**Mode**: prd-only\n\n| C099 | §3.1 | login |\n"
+        )
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "FAIL"
+        assert data["checks"]["implementation_obligations_ok"] is False
+        assert any("C100" in r for r in data["reasons"])
+
+    def test_supports_cid_present_in_baseline_passes(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(map_with_obligations(OBLIGATIONS_ROW))
+        (repo / "docs" / "prd" / "featuremap-checklist.md").write_text(
+            "# PRD Checklist\n\n**Mode**: prd-only\n\n| C100 | §3.1 | login |\n"
+        )
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "PASS"
+        assert data["checks"]["implementation_obligations_ok"] is True
+
 
 class TestAggregate:
     def test_worse_of_two_with_verbatim_caught(self, repo: Path) -> None:

@@ -240,6 +240,10 @@ For the selected Feature:
 - Extract its `### PRD references` list.
 - Extract the complete fixed-schema `### Audit signals` table when present.
 - Extract every PRD Commitment Index row where `Owning Feature = Feature NNN`.
+- Extract every `## Implementation Obligations` row where `Owning Feature = Feature NNN`
+  (when the table exists) — these D-IDs are audited obligations of this Feature, distinct from
+  its owned commitments. Never read `docs/prd/opportunities.md`; it has no authority and is not
+  gate input (`specter-agent-protocols` §10).
 - Read only the PRD sections named under `### PRD references` (plus the immediate surrounding
   context needed to interpret each one) and the matching PRD Commitment Index rows. Full-PRD
   reading is a fallback, used only when a PRD reference cannot be resolved to a specific section
@@ -263,8 +267,16 @@ rows, mark FAIL.
 - Every matching baseline C-ID is represented or explicitly explained as a false
   positive or handled by another owning Feature.
 - The Feature does not dilute PRD language into vague implementation labels.
-- The Feature does not invent behavior that is absent from the PRD, product
-  principles, Constitution, or dependency Feature specs.
+- Every behavior in the Feature carries a legitimate origin per the
+  `specter-agent-protocols` §10 authority lattice: PRD text / a PRD Amendment
+  (adds behavior), an owned D-ID row (obliges implementation — verify the row
+  actually covers the deliverable), or a governing Constitution/principles
+  rule surfaced as a `governing-constraint` D-ID. Dependency Feature specs
+  are reference only and authorize nothing. Behavior with none of these
+  origins is untagged invention — FAIL.
+- Every owned D-ID's obligation is actually discharged somewhere in `### In
+  scope`, `### Key decisions`, or `### Done criteria`; an owned obligation
+  with no deliverable is a gap, exactly like an unrepresented commitment.
 - The Feature does not omit acceptance criteria or NFRs attached to its PRD
   references.
 - **User-facing exposure**: every owned commitment that implies a user-visible surface (UI, CLI,

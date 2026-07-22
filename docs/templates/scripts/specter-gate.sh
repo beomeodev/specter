@@ -183,6 +183,7 @@ if [ "$SUBCOMMAND" = "structural" ]; then
   placeholders_ok=true
   checklist_refs_ok=true
   audit_signals_ok=true
+  obligations_ok=true
 
   note() {
     # note <F|W> <reason>
@@ -207,10 +208,17 @@ if [ "$SUBCOMMAND" = "structural" ]; then
       /^## / { inidx = 0 }
       inidx && /^\|/ {
         if ($0 ~ /^\|[-: |]+$/) next
-        split($0, c, "|")
-        if (c[2] ~ /Source PRD/) next
+        n = split($0, c, "|")
+        if (c[2] ~ /Source PRD/ || $0 ~ /Owning Feature/) {
+          # Header row: locate the owner column by name instead of assuming
+          # position 6 (2026-07-22 doit-n-live false positive on a map with a
+          # legitimate extra leading column).
+          for (i = 1; i <= n; i++) if (c[i] ~ /Owning Feature/) ocol = i
+          next
+        }
         rows++
-        owner = c[6]
+        if (!ocol) ocol = 6
+        owner = c[ocol]
         gsub(/^[ ]+|[ ]+$/, "", owner)
         if (owner !~ /^Feature [0-9]+$/) {
           if (owner !~ /Feature [0-9]+/)
@@ -260,7 +268,10 @@ if [ "$SUBCOMMAND" = "structural" ]; then
       !insec { next }
       /^### / { subh = $0; seen[$0] = 1; next }
       {
-        if ($0 ~ /TBD|TODO|\{\{/) {
+        # Standalone uppercase tokens only: a product/domain word like "Todo"
+        # or an identifier like "TODOS_TABLE" is not a placeholder (2026-07-22
+        # doit-n-live false positive).
+        if ($0 ~ /(^|[^A-Za-z_])(TBD|TODO)([^A-Za-z_]|$)|\{\{/) {
           if (subh == "### Done criteria") print "F|" sec "|unresolved placeholder in done criteria: " $0
           else print "W|" sec "|unresolved placeholder: " $0
         }
@@ -296,6 +307,78 @@ if [ "$SUBCOMMAND" = "structural" ]; then
     elif [ "$AUDIT_CAPABILITY" = "partial-sync" ]; then
       audit_signals_ok=false
       note F "audit-tier capability is partially synced"
+    fi
+
+    # Implementation Obligations (D-IDs, specter-agent-protocols §10): the
+    # section is optional — legacy maps without it stay valid — but a present
+    # section must satisfy the closed schema. Semantic tenability (the two-part
+    # entailment/denylist test) is Layer 2's job; this checks shape and
+    # referential integrity only.
+    if grep -q '^## Implementation Obligations' "$MAP"; then
+      while IFS= read -r line; do
+        [ -n "$line" ] || continue
+        obligations_ok=false
+        note "${line%%|*}" "${line#*|}"
+      done < <(awk '
+        BEGIN { rows = 0; hdr = 0 }
+        /^## Implementation Obligations/ { inobl = 1; next }
+        /^## / { inobl = 0 }
+        inobl && /^\|/ {
+          if ($0 ~ /^\|[-: |]+$/) next
+          n = split($0, c, "|")
+          for (i = 1; i <= n; i++) gsub(/^[ ]+|[ ]+$/, "", c[i])
+          if ($0 ~ /D-ID/) {
+            for (i = 1; i <= n; i++) {
+              if (c[i] == "D-ID") dcol = i
+              if (c[i] == "Supports") scol = i
+              if (c[i] == "Kind") kcol = i
+              if (c[i] == "Impact") icol = i
+              if (c[i] == "Owning Feature") fcol = i
+            }
+            if (!dcol || !scol || !kcol || !icol || !fcol)
+              print "F|Implementation Obligations header lacks a required column (need D-ID, Supports, Kind, Impact, Owning Feature)"
+            else hdr = 1
+            next
+          }
+          if (!hdr) next
+          rows++
+          did = c[dcol]
+          if (did !~ /^D-[0-9]+$/) print "F|invalid D-ID: " did
+          else if (did in seen) print "F|duplicate D-ID: " did
+          seen[did] = 1
+          if (c[scol] == "") print "F|" did " has an empty Supports cell"
+          else {
+            m = split(c[scol], sup, /[,;]/)
+            for (j = 1; j <= m; j++) {
+              s = sup[j]; gsub(/^[ ]+|[ ]+$/, "", s)
+              if (s ~ /^D-?[0-9]+$/) print "F|" did " Supports cites a D-ID (" s ") — D-to-D chains are forbidden"
+              else if (s !~ /^C-?[0-9]+$/) print "F|" did " Supports token is not a C-ID: " s
+            }
+          }
+          if (c[kcol] !~ /^(logical-enablement|verification-only|governing-constraint|existing-system-constraint)$/)
+            print "F|" did " has an unknown Kind: " c[kcol]
+          if (c[icol] !~ /^(none|user-visible|operational)$/)
+            print "F|" did " has an unknown Impact: " c[icol]
+          if (c[fcol] !~ /^Feature [0-9]+$/)
+            print "F|" did " Owning Feature is not exactly one Feature: " c[fcol]
+        }
+        END {
+          if (hdr && rows == 0) print "F|Implementation Obligations section has no rows"
+        }' "$MAP")
+
+      # Referential integrity: every C-ID cited in the section must exist in
+      # the baseline checklist (dash-insensitive). Skipped when no baseline
+      # exists yet — /ms.featuremap's structural run precedes the checklist.
+      if [ -f "$CODEX_PRD_CHECKLIST" ]; then
+        while IFS= read -r cid; do
+          [ -n "$cid" ] || continue
+          obligations_ok=false
+          note F "Implementation Obligations cites ${cid}, which does not exist in $CODEX_PRD_CHECKLIST"
+        done < <(comm -23 \
+          <(awk '/^## Implementation Obligations/{f=1;next} /^## /{f=0} f' "$MAP" \
+            | grep -oE 'C-?[0-9]+' | tr -d '-' | sort -u) \
+          <(grep -oE 'C-?[0-9]+' "$CODEX_PRD_CHECKLIST" | tr -d '-' | sort -u))
+      fi
     fi
 
     # DAG acyclicity from the Progress Ledger's Depends-on column.
@@ -348,7 +431,7 @@ if [ "$SUBCOMMAND" = "structural" ]; then
   if [ -n "$FEATURE" ]; then
     FCHECK="docs/prd/checklists/feature-${FEATURE}.checklist.md"
     if [ -f "$FCHECK" ]; then
-      if grep -qE 'TBD|TODO|\{\{' "$FCHECK"; then
+      if grep -qE '(^|[^A-Za-z_])(TBD|TODO)([^A-Za-z_]|$)|\{\{' "$FCHECK"; then
         placeholders_ok=false
         note W "unresolved placeholder token(s) in $FCHECK"
       fi
@@ -384,7 +467,8 @@ if [ "$SUBCOMMAND" = "structural" ]; then
     "dag_acyclic": ${dag_ok},
     "placeholders_clean": ${placeholders_ok},
     "checklist_refs_ok": ${checklist_refs_ok},
-    "audit_signals_ok": ${audit_signals_ok}
+    "audit_signals_ok": ${audit_signals_ok},
+    "implementation_obligations_ok": ${obligations_ok}
   },
   "verdict": "${verdict}",
   "reasons": $(reasons_to_json)

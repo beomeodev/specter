@@ -171,11 +171,36 @@ already machine-checked — focus on semantics:
    explicit exclusion in the source PRD set? Name any PRD commitment with no
    index row.
 2. Is every commitment owned by the RIGHT Feature (not just exactly one)?
-   Flag ownership that contradicts the PRD's own grouping.
+   Flag ownership that contradicts the PRD's own grouping, and apply the
+   journey rule (.claude/skills/specter-agent-protocols/SKILL.md §10): a
+   journey-shaped commitment belongs to the Feature where the whole
+   observable journey first becomes verifiable — an owner that can only
+   prove part of the journey is wrongly assigned, and enabling slices must
+   appear as D-ID obligations, never as partial owners.
 3. Does every independent-checklist item (C-IDs) survive into the Feature Map,
    or carry a justified false-positive explanation?
-4. Does the Feature Map invent product behavior absent from the PRD set?
-5. Are stubs forwarded correctly (each stub names the Feature that activates
+4. Untagged invention: does any in-scope deliverable, done criterion, Key
+   decision, or other behavior in the map lack BOTH a PRD trace and a
+   covering `## Implementation Obligations` row? Key decisions are a known
+   smuggling surface — a decision may record the chosen realization of a
+   cited C-/D-ID, but a "decision" introducing scope with neither behind it
+   is untagged. Untagged additions are FAIL findings.
+   (An idea parked in docs/prd/opportunities.md is out of audit scope — do
+   not read that file.)
+5. For every `## Implementation Obligations` row, apply §10's two-part test:
+   (a) entailment across designs — actively look for a plausible alternative
+   implementation of the cited C-IDs that avoids the item; if one exists, the
+   row is a design choice masquerading as necessity (FAIL the row); removal
+   breaking the author's chosen design proves nothing. (b) scope-expansion
+   denylist — a row introducing a new capability, data category/retention,
+   permission, third-party integration, notification channel,
+   irreversible/destructive effect, billing, public API, or quantitative
+   promise is product scope and can never be a D-ID (FAIL the row; it needs
+   a PRD Amendment). Also FAIL a row whose Obligation states a chosen
+   realization instead of the smallest abstract obligation, whose Supports
+   cites a non-existent C-ID or another D-ID, or that is used anywhere to
+   own or satisfy a baseline C-ID.
+6. Are stubs forwarded correctly (each stub names the Feature that activates
    real behavior), and does each Phase's last Feature carry that Phase's E2E
    scenario?
 
@@ -218,12 +243,44 @@ the per-report grading, the station `verdict`, any `cap`
 `--ledger` flag appends the `.specify/specter-run.jsonl` line mechanically —
 do not hand-write a ledger line for this station.
 
-- `verdict: PASS`/`WARN` → continue to Step 3.
+- `verdict: PASS`/`WARN` → continue to Step 2.5.
 - `verdict: FAIL` → the map (or a report) failed. Report the receipt's
-  `reasons[]` and both reports' Findings verbatim as Blocking Fixes. Fix the
-  map, then rerun from Step 0.2 — the SHA binding makes the old reports stale
-  automatically, so both agents run again (`--fresh`, §4: every round fresh,
-  prior findings travel as file paths).
+  `reasons[]` and both reports' Findings verbatim as Blocking Fixes, fix the
+  map (in a conducted run, `/ms.featuremap`'s fix-round rules apply — targeted
+  edits, not full rewrites), then apply the **certification contract** below.
+
+**Certification contract (this station tightens §4 — repairs here can ripple
+map-wide).** Because an ownership move, Feature split, or DAG edit can
+introduce regressions far outside the rows a fix touched, a scoped re-round
+can never certify the whole map:
+
+- **Repair rounds** (§4 rounds 2+) are scoped to the failing findings plus the
+  fix diffs and are **advisory**: they exist to confirm the specific fixes
+  landed cheaply, and their reports never become the station's accepted
+  verdict.
+- **The accepted PASS/WARN always comes from a fresh full-scope dual audit**
+  (both agents, full prompt above, current map SHA) run after the repair
+  rounds converge. One final full round replaces the old
+  full-audit-every-round loop — diagnosis gets cheap scoped rounds, the
+  certificate stays full-strength.
+- The §4 receipt-bound round caps count repair rounds as usual; the final
+  full audit is the certification run, not an extra repair round.
+
+### Step 2.5: Derived-Impact Acknowledgment (only when non-`none` Impact rows exist)
+
+If the map has an `## Implementation Obligations` table, list every row whose
+`Impact` is not `none`. If there are any, present them to the user verbatim
+(D-ID, Obligation, Impact, owning Feature) and ask for explicit
+acknowledgment — a summary the user never reacted to is visibility, not
+approval (silence is never consent). The user may **veto** rows (each veto is
+a map fix: the row moves to a PRD Amendment proposal or
+`docs/prd/opportunities.md`, and the certification contract above applies) or
+**acknowledge** them. Record the outcome in the canonical gate file
+(Step 3's `## Derived Obligations Acknowledgment` section) bound to the
+current `FEATURE_MAP_SHA`. The station result does not stand while a
+non-`none` row is neither acknowledged nor vetoed. Rows with `Impact: none`
+never require acknowledgment — mechanically bounded obligations stay
+non-interactive by design.
 
 ### Step 3: Assemble The Canonical Global Gate (host: paths and metadata only)
 
@@ -271,6 +328,14 @@ when no such row exists>
 <the Required Fix cell of every remaining row, copied verbatim, in file order —
 partitioning is by the Severity cell alone, never by the host's own reading of
 the finding>
+
+## Derived Obligations Acknowledgment
+
+<omit this section when the map has no Implementation Obligations rows with
+non-`none` Impact. Otherwise: the Feature Map SHA the acknowledgment binds to,
+then one row per non-`none` D-ID — D-ID, Obligation, Impact, and the user's
+verbatim decision (`acknowledged` / `vetoed → <destination>`), per Step 2.5.
+The user's decision text is recorded, never summarized.>
 ```
 
 The `**Baseline Checklist**` field always means the PRD-only baseline; the new

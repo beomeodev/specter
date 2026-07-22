@@ -263,6 +263,22 @@ intended hybrid structure; do not migrate it to a different shape on a whim.
   checks, and high-stakes acknowledgments. Legacy Features without signals are
   T2; malformed policy/metadata, stale receipts, partial sync, or lowering
   attempts fail safe.
+- **Provenance & Authority Lattice (2026-07-22)**: the canonical definition of
+  which artifact may authorize what lives in `specter-agent-protocols` §10.
+  Product behavior is added ONLY by PRD text (C-IDs) and appended PRD
+  Amendments. Entailed-but-unstated deliverables live in the Feature Map's
+  `## Implementation Obligations` table (D-IDs: closed Kind/Impact schema,
+  Layer-1 validated, audited by the §10 two-part entailment/denylist test;
+  non-`none` Impact requires explicit user acknowledgment at `/ms.pre-verify`).
+  Clarify decisions are typed `interpretation` (in-envelope, recorded with
+  cited C-/D-ID) or `scope-addition` (refused; routes to a PRD Amendment).
+  Unpromised ideas live in `docs/prd/opportunities.md`, which no gate, spec
+  prompt, or reviewer ever loads; promotion is Amendment-only via `/ms.expand`.
+  Journey-shaped commitments are owned by the Feature where the whole journey
+  first becomes verifiable — enabling slices carry D-IDs, never half a C-ID.
+  Untagged additions remain blocking invention findings at every station.
+  `/ms.pre-verify` tightens §4: scoped repair rounds are advisory; its
+  accepted verdict always comes from a final full-scope dual audit.
 - Upstream Spec-Kit may emit its Claude integration as either
   `.claude/commands/speckit.*.md` (command layout) or
   `.claude/skills/speckit-*/SKILL.md` (native-skill layout), or both. `/ms.init`

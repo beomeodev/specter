@@ -207,10 +207,14 @@ Before invoking `/speckit-specify`, load the PRD context referenced by the check
 1. Read every document listed under the Feature section's `### Source PRDs` heading.
 2. Read every PRD section named under `### PRD references`.
 3. Read the matching PRD Commitment Index rows for this Feature.
-4. Build the `/speckit-specify` prompt from:
+4. Read the `## Implementation Obligations` rows owned by this Feature, when the table exists.
+   Never read or include `docs/prd/opportunities.md` — it has no authority and must not become
+   spec-generation context (`specter-agent-protocols` §10).
+5. Build the `/speckit-specify` prompt from:
    - the full checked Feature section,
    - the relevant PRD excerpts from every Source PRD,
    - the matching Commitment Index rows,
+   - the Feature's owned Implementation Obligations rows (if any),
    - and the global reference priority from the Feature Map.
 
 If any Source PRD is missing or a PRD reference cannot be resolved, stop and ask the user to fix
