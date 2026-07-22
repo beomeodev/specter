@@ -70,3 +70,6 @@ temp/
 
 # Claude Code local (personal) settings
 .claude/settings.local.json
+
+# Graphify code graph (generated)
+graphify-out/
