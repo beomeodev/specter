@@ -213,14 +213,26 @@ if [ "$SUBCOMMAND" = "structural" ]; then
           # Header row: locate the owner column by name instead of assuming
           # position 6 (2026-07-22 doit-n-live false positive on a map with a
           # legitimate extra leading column).
-          for (i = 1; i <= n; i++) if (c[i] ~ /Owning Feature/) ocol = i
+          for (i = 1; i <= n; i++) {
+            if (c[i] ~ /Owning Feature/) ocol = i
+            if (c[i] ~ /Commitment Type/) tcol = i
+          }
           next
         }
         rows++
         if (!ocol) ocol = 6
+        if (!tcol) tcol = 4
         owner = c[ocol]
         gsub(/^[ ]+|[ ]+$/, "", owner)
-        if (owner !~ /^Feature [0-9]+$/) {
+        ctype = c[tcol]
+        gsub(/^[ ]+|[ ]+$/, "", ctype)
+        if (ctype ~ /Exclusion/) {
+          # Exclusion rows legitimately have no owning Feature (2026-07-23
+          # spade-ace false positive); they must carry an explicit em-dash
+          # marker instead of an empty owner cell.
+          if (owner !~ /^—/)
+            print "F|index|exclusion row owner must be an explicit em-dash marker: " $0
+        } else if (owner !~ /^Feature [0-9]+$/) {
           if (owner !~ /Feature [0-9]+/)
             print "F|index|commitment row has no owning Feature: " $0
           else
@@ -277,7 +289,11 @@ if [ "$SUBCOMMAND" = "structural" ]; then
         }
         if (subh == "### Done criteria" && $0 ~ /^- /) lastdc = $0
         if (subh == "### Explicitly out of scope" && $0 ~ /^- /) {
-          if ($0 !~ /(→|->)[ ]*(Feature[ ]*)?[0-9]+/ && $0 !~ /None/)
+          # A destination may be a Feature number or non-Feature prose (a
+          # successor PRD, backlog, frozen branch). The deterministic layer
+          # checks only the arrow-and-named-destination form; destination
+          # validity is Layer-2 semantics (2026-07-23 spade-ace false positive).
+          if ($0 !~ /(→|->)[ ]*[^ ]/ && $0 !~ /None/)
             print "F|" sec "|out-of-scope item lacks destination Feature: " $0
         }
       }
