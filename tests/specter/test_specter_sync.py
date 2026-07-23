@@ -12,6 +12,8 @@ import json
 import subprocess
 from pathlib import Path
 
+import pytest
+
 MODULE_PATH = (
     Path(__file__).resolve().parent.parent.parent
     / "scripts"
@@ -162,6 +164,37 @@ def test_fresh_sync_copies_manifest_files_and_state(tmp_path: Path) -> None:
     state = json.loads(bare_file(bare, sync.STATE_FILENAME) or "{}")
     head = git(src, "rev-parse", "HEAD")
     assert state["files"][CMD_RELPATH] == head
+
+
+def test_temp_work_dir_is_removed_after_sync(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    src = make_source(tmp_path)
+    bare = make_target(tmp_path, "proj")
+    registry = write_registry(tmp_path, src, bare)
+    tmp_root = tmp_path / "tmpdir"
+    tmp_root.mkdir()
+    # tempfile caches gettempdir(), so TMPDIR alone would not redirect mkdtemp.
+    monkeypatch.setattr(sync.tempfile, "tempdir", str(tmp_root))
+
+    code = sync.main(["--registry", str(registry), "--root", str(src)])
+
+    assert code == 0
+    assert list(tmp_root.iterdir()) == []
+
+
+def test_explicit_work_dir_is_kept_after_sync(tmp_path: Path) -> None:
+    src = make_source(tmp_path)
+    bare = make_target(tmp_path, "proj")
+    registry = write_registry(tmp_path, src, bare)
+    work = tmp_path / "explicit-work"
+
+    code = sync.main(
+        ["--registry", str(registry), "--root", str(src), "--work-dir", str(work)]
+    )
+
+    assert code == 0
+    assert (work / "proj").is_dir()
 
 
 def test_source_update_overwrites_untouched_target(tmp_path: Path) -> None:

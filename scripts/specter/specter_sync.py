@@ -42,6 +42,7 @@ import fnmatch
 import json
 import os
 import posixpath
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -450,33 +451,42 @@ def cmd_sync(args: argparse.Namespace) -> int:
         return 1
 
     source_head = git_out(["rev-parse", "HEAD"], root)
+    # A temp work dir is ours to clean up; an explicit --work-dir belongs to the
+    # caller and is left in place (that is how a run is kept for inspection).
+    temp_work_dir = args.work_dir is None
     work_dir = args.work_dir or Path(tempfile.mkdtemp(prefix="specter-sync-"))
     work_dir.mkdir(parents=True, exist_ok=True)
-    selected = [t for t in targets if args.target in (None, t.get("name"))]
-    if args.target and not selected:
-        print(f"❌ No registered target named '{args.target}'.")
-        return 1
+    try:
+        selected = [t for t in targets if args.target in (None, t.get("name"))]
+        if args.target and not selected:
+            print(f"❌ No registered target named '{args.target}'.")
+            return 1
 
-    print(
-        f"Broadcasting {len(files)} files @ {source_head[:10]} to {len(selected)} target(s)"
-        + (" [dry-run]" if args.dry_run else "")
-    )
-    conflicts = 0
-    errors = 0
-    for target in selected:
-        report = sync_target(root, source_head, files, target, work_dir, args.dry_run)
-        print_report(report, args.dry_run)
-        conflicts += sum(1 for _, status in report["results"] if status == CONFLICT)
-        errors += 1 if report["error"] else 0
-    if conflicts:
         print(
-            f"\n⚠️  {conflicts} CONFLICT file(s): resolve in each target project"
-            f" (compare with the pushed *{CONFLICT_SUFFIX} file, merge, delete the marker)."
+            f"Broadcasting {len(files)} files @ {source_head[:10]} to {len(selected)} target(s)"
+            + (" [dry-run]" if args.dry_run else "")
         )
-    if errors:
-        print(f"\n❌ {errors} target(s) had errors.")
-        return 1
-    return 0
+        conflicts = 0
+        errors = 0
+        for target in selected:
+            report = sync_target(
+                root, source_head, files, target, work_dir, args.dry_run
+            )
+            print_report(report, args.dry_run)
+            conflicts += sum(1 for _, status in report["results"] if status == CONFLICT)
+            errors += 1 if report["error"] else 0
+        if conflicts:
+            print(
+                f"\n⚠️  {conflicts} CONFLICT file(s): resolve in each target project"
+                f" (compare with the pushed *{CONFLICT_SUFFIX} file, merge, delete the marker)."
+            )
+        if errors:
+            print(f"\n❌ {errors} target(s) had errors.")
+            return 1
+        return 0
+    finally:
+        if temp_work_dir:
+            shutil.rmtree(work_dir, ignore_errors=True)
 
 
 def cmd_register(args: argparse.Namespace) -> int:
