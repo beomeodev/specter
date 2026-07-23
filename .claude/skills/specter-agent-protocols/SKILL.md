@@ -437,6 +437,14 @@ blocking finding as before this section existed. The lattice narrows what
    the author's unstated premises: a rationale that first strengthens the
    commitment ("reminders must reach a closed app") and then derives from the
    strengthened version has smuggled a requirement, not found an entailment.
+   The alternative search varies how the obligation could be *realized*,
+   never the Feature decomposition: the map's Feature split is a **fixed
+   input** to this test, so "another Feature could do this work" is not a
+   refutation — ask whether the work must exist at all in some compliant
+   design, never who performs it. (Otherwise every engine-side enablement
+   obligation is refutable by "the screen Feature could do it", and this test
+   destroys the journey-ownership doctrine that requires those D-IDs to
+   exist — the 2026-07-23 doit-n-live 14-round deadlock.)
 2. **Scope-expansion denylist** — an item that introduces a new
    user journey or capability, stored data category or retention period,
    permission or role, third-party integration, notification channel,

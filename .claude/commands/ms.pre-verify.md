@@ -191,12 +191,17 @@ already machine-checked — focus on semantics:
    (a) entailment across designs — actively look for a plausible alternative
    implementation of the cited C-IDs that avoids the item; if one exists, the
    row is a design choice masquerading as necessity (FAIL the row); removal
-   breaking the author's chosen design proves nothing. (b) scope-expansion
-   denylist — a row introducing a new capability, data category/retention,
-   permission, third-party integration, notification channel,
-   irreversible/destructive effect, billing, public API, or quantitative
-   promise is product scope and can never be a D-ID (FAIL the row; it needs
-   a PRD Amendment). Also FAIL a row whose Obligation states a chosen
+   breaking the author's chosen design proves nothing. The Feature
+   decomposition is a FIXED INPUT to this test: an alternative must vary how
+   the obligation is realized, not which Feature performs the work —
+   "another Feature could do it" never refutes a row. (b) scope-expansion
+   denylist — a row introducing, observably beyond the cited C-IDs' existing
+   envelope (§10's definition of "introduces"), a new capability, data
+   category/retention, permission, third-party integration, notification
+   channel, irreversible/destructive effect, billing, public API, or
+   quantitative promise is product scope and can never be a D-ID (FAIL the
+   row; it needs a PRD Amendment). A mechanism the cited C-ID's own text
+   already promises is in-envelope and is not "introduced" by the row. Also FAIL a row whose Obligation states a chosen
    realization instead of the smallest abstract obligation, whose Supports
    cites a non-existent C-ID or another D-ID, or that is used anywhere to
    own or satisfy a baseline C-ID.
