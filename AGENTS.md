@@ -70,6 +70,13 @@ regardless of agent judgment.
   unless the user explicitly says its content changed. Exception: the harness
   requires a fresh `Read` of a file immediately before `Edit`/`Write`; always
   satisfy that requirement even when the content is already in context.
+- This applies to workflow artifacts too (`feature-map.md`, checklists,
+  constitution, spec/plan/tasks): when a command step tells the host to read
+  one, reuse the in-context copy unless something actually changed it since —
+  an edit this session, a fix round that touched it, or a gate receipt
+  reporting a new hash. A station boundary alone is not a reason to re-read.
+  This governs only the host's main thread; fresh subagents at isolated
+  stations still read their inputs from disk by design.
 
 ---
 
