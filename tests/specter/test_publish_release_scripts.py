@@ -475,3 +475,78 @@ class TestCiMode:
         data = run_script(PUBLISH, lone, "ci-mode")
         assert data["ci"] == "RUN"
         assert "unresolvable" in data["reason"]
+
+
+GH_SHIM_OK = """#!/bin/bash
+d="$(dirname "$0")"
+if [ "$1" = "auth" ]; then exit 0; fi
+if [ "$1" = "pr" ] && [ "$2" = "view" ]; then echo "OPEN"; exit 0; fi
+if [ "$1" = "pr" ] && [ "$2" = "review" ]; then
+  while [ $# -gt 0 ]; do
+    if [ "$1" = "--body-file" ]; then cat "$2" >> "$d/reviews.log"; fi
+    shift
+  done
+  exit 0
+fi
+if [ "$1" = "api" ]; then cat "$d/reviews.log" 2>/dev/null; exit 0; fi
+exit 0
+"""
+
+GH_SHIM_NO_PR = """#!/bin/bash
+if [ "$1" = "auth" ]; then exit 0; fi
+if [ "$1" = "pr" ] && [ "$2" = "view" ]; then exit 1; fi
+exit 0
+"""
+
+
+class TestSelfReviewStamp:
+    def _env_with_gh(self, tmp_path: Path, shim: str) -> dict:
+        bindir = tmp_path / "bin"
+        bindir.mkdir(exist_ok=True)
+        gh = bindir / "gh"
+        gh.write_text(shim)
+        gh.chmod(0o755)
+        return {**ENV, "PATH": f"{bindir}:/usr/bin:/bin"}
+
+    def _stamp(self, repo: Path, env: dict, body: str) -> dict:
+        result = subprocess.run(
+            ["bash", str(PUBLISH), "self-review-stamp", "7"],
+            cwd=repo,
+            env=env,
+            input=body,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert result.returncode == 0, result.stderr
+        return json.loads(result.stdout)
+
+    def test_submitted_and_duplicate_skipped(
+        self, repo: Path, tmp_path: Path
+    ) -> None:
+        env = self._env_with_gh(tmp_path, GH_SHIM_OK)
+        data = self._stamp(repo, env, "READY: gates green")
+        assert data["status"] == "submitted"
+        log = (tmp_path / "bin" / "reviews.log").read_text()
+        assert "READY: gates green" in log
+        assert "specter-self-review-stamp" in log
+
+        again = self._stamp(repo, env, "READY: gates green")
+        assert again["status"] == "duplicate_skipped"
+
+        other = self._stamp(repo, env, "READY: different content")
+        assert other["status"] == "submitted"
+
+    def test_gh_unavailable_is_fail_open(self, repo: Path) -> None:
+        data = self._stamp(repo, ENV, "READY")
+        assert data["status"] == "skipped_gh_unavailable"
+
+    def test_empty_body_fails_open(self, repo: Path, tmp_path: Path) -> None:
+        env = self._env_with_gh(tmp_path, GH_SHIM_OK)
+        data = self._stamp(repo, env, "")
+        assert data["status"] == "failed"
+
+    def test_pr_not_found_is_skipped(self, repo: Path, tmp_path: Path) -> None:
+        env = self._env_with_gh(tmp_path, GH_SHIM_NO_PR)
+        data = self._stamp(repo, env, "READY")
+        assert data["status"] == "skipped_pr_not_found"

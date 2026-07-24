@@ -394,11 +394,67 @@ JSON
   exit 0
 fi
 
+# ---- self-review-stamp ----
+
+if [ "$SUBCOMMAND" = "self-review-stamp" ]; then
+  # Fail-open by contract: every outcome is a JSON status with exit 0 —
+  # this step must never be able to block a publish.
+  PR="${1:-}"
+
+  stamp_json() {
+    cat <<JSON
+{
+  "tool": "specter-publish",
+  "mode": "self-review-stamp",
+  "pr": $( [ -n "$PR" ] && printf '"%s"' "$(json_escape "$PR")" || printf 'null' ),
+  "status": "$1",
+  "evidence": "$(json_escape "$2")",
+  "notes": $(notes_json)
+}
+JSON
+    exit 0
+  }
+
+  [ -n "$PR" ] || stamp_json "failed" "missing <pr-number> argument"
+  body=$(cat)   # stdin only — the body is never shell-interpolated
+  [ -n "$body" ] || stamp_json "failed" "empty stamp body on stdin"
+  command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1 \
+    || stamp_json "skipped_gh_unavailable" "gh missing or unauthenticated"
+
+  pr_state=$(gh pr view "$PR" --json state -q .state 2>/dev/null || true)
+  case "$pr_state" in
+    OPEN|MERGED) : ;;
+    "") stamp_json "skipped_pr_not_found" "gh pr view ${PR} returned nothing" ;;
+    *) stamp_json "skipped_pr_state" "PR state=${pr_state} (stamp only on OPEN|MERGED)" ;;
+  esac
+
+  # Content-bound dedupe marker: one identical stamp per PR, ever.
+  marker_sha=$(printf '%s' "$body" | git hash-object --stdin 2>/dev/null | cut -c1-12)
+  [ -n "$marker_sha" ] || marker_sha="nohash"
+  marker="<!-- specter-self-review-stamp ${marker_sha} -->"
+
+  existing=$(gh api "repos/{owner}/{repo}/pulls/${PR}/reviews" --paginate -q '.[].body' 2>/dev/null || true)
+  if printf '%s' "$existing" | grep -qF "$marker"; then
+    stamp_json "duplicate_skipped" "identical stamp ${marker_sha} already posted on PR ${PR}"
+  fi
+
+  tmp=$(mktemp "${TMPDIR:-/tmp}/specter-stamp.XXXXXX") || stamp_json "failed" "mktemp failed"
+  trap 'rm -f "$tmp"' EXIT
+  printf '%s\n\n%s\n' "$body" "$marker" > "$tmp"
+  # COMMENT is mandatory — GitHub forbids approving your own PR.
+  err=$(gh pr review "$PR" --comment --body-file "$tmp" 2>&1) && rc=0 || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    stamp_json "submitted" "COMMENT review posted (marker ${marker_sha})"
+  else
+    stamp_json "failed" "gh pr review: $(printf '%s' "$err" | head -c 160)"
+  fi
+fi
+
 cat <<JSON
 {
   "tool": "specter-publish",
   "mode": "error",
-  "notes": ["unknown subcommand '$(json_escape "${SUBCOMMAND:-<none>}")' (expected version|verify-endstate)"]
+  "notes": ["unknown subcommand '$(json_escape "${SUBCOMMAND:-<none>}")' (expected version|verify-endstate|review-cache|ci-mode|self-review-stamp)"]
 }
 JSON
 exit 0

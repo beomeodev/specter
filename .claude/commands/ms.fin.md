@@ -202,10 +202,15 @@ Tasks to execute:
    - Compose a short stamp (verdict + gate results, a few lines, not the full
      report) from the latest review report in docs/review/; if none exists,
      summarize this run's CI gate outcome instead.
-   - Submit it as a COMMENT review: 'gh pr review <PR-number> --comment --body
-     "<stamp>"'. COMMENT is mandatory — GitHub forbids approving your own PR.
-   - Submit at most one stamp per /ms.fin run. If submission fails, report the
-     error and continue; never block publish on this step.
+   - Submit it via the deterministic helper — pipe the stamp body on stdin,
+     never interpolate it into a command line:
+     '.specify/scripts/bash/specter-publish.sh self-review-stamp <PR-number>'
+     (the helper enforces COMMENT-only — GitHub forbids approving your own
+     PR — dedupes by content marker, and is fail-open: every outcome is a
+     JSON status, exit 0).
+   - Report the helper's JSON 'status' verbatim (submitted | duplicate_skipped
+     | skipped_* | failed). If it is not 'submitted', report and continue;
+     never block publish on this step.
 
 Do not edit code files except staging and formatting. Write your results, the PR URL, and the self-review stamp status clearly in your final report.
 ```
