@@ -203,9 +203,19 @@ Step 4's language-specific static analysis.
 
 ### Step 3.5: Hash-Based Cache
 
-Hash each candidate file (sha1) and diff against `.specify/review-hash.cache` from the prior run
-to isolate the files that truly changed since the last review; update the cache afterward. With no
-prior cache, every candidate counts as changed.
+The review-hash cache is a shared contract with `/ms.fin`'s `ci-mode` (v2 format, git blob
+sha) — never hand-roll sha1 here; a format fork between producer and consumer is exactly the
+2026-07-24 bug this replaced. Self-heal the helper, then diff the candidates:
+
+```bash
+install -D -m 0755 docs/templates/scripts/specter-publish.sh .specify/scripts/bash/specter-publish.sh
+printf '%s\n' "$CANDIDATES" | .specify/scripts/bash/specter-publish.sh review-cache changed
+```
+
+`changed` lists the candidates that differ from the prior review baseline (a missing or legacy
+cache counts every candidate as changed). After the review completes, rebuild the cache from the
+full candidate list so `/ms.fin` can verify against it:
+`printf '%s\n' "$CANDIDATES" | .specify/scripts/bash/specter-publish.sh review-cache write`.
 
 ---
 

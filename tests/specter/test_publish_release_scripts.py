@@ -341,3 +341,137 @@ class TestReleaseEndstate:
         data = run_script(RELEASE, repo, "verify-endstate", "1", "--no-release")
         assert data["repository"] == "https://example.com/x.git"
         assert "secret" not in json.dumps(data)
+
+
+def run_script_stdin(script: Path, cwd: Path, stdin: str, *args: str) -> dict:
+    result = subprocess.run(
+        ["bash", str(script), *args],
+        cwd=cwd,
+        env=ENV,
+        input=stdin,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout)
+
+
+class TestReviewCache:
+    def test_write_then_changed_roundtrip(self, repo: Path) -> None:
+        (repo / "a.py").write_text("x = 1\n")
+        data = run_script_stdin(PUBLISH, repo, "a.py\n", "review-cache", "write")
+        assert data["mode"] == "review-cache-write"
+        assert data["count"] == 1
+        cache = (repo / ".specify" / "review-hash.cache").read_text()
+        assert cache.startswith("# specter-review-hash v2 git-blob-sha1\n")
+
+        data = run_script_stdin(PUBLISH, repo, "a.py\n", "review-cache", "changed")
+        assert data["cache_state"] == "v2"
+        assert data["changed"] == []
+
+        (repo / "a.py").write_text("x = 2\n")
+        data = run_script_stdin(PUBLISH, repo, "a.py\n", "review-cache", "changed")
+        assert data["changed"] == ["a.py"]
+
+    def test_missing_path_is_skipped_not_cached(self, repo: Path) -> None:
+        data = run_script_stdin(PUBLISH, repo, "ghost.py\n", "review-cache", "write")
+        assert data["count"] == 0
+        assert data["skipped"] == ["ghost.py"]
+
+    def test_missing_cache_counts_everything_changed(self, repo: Path) -> None:
+        (repo / "a.py").write_text("x = 1\n")
+        data = run_script_stdin(PUBLISH, repo, "a.py\n", "review-cache", "changed")
+        assert data["cache_state"] == "missing"
+        assert data["changed"] == ["a.py"]
+
+
+class TestCiMode:
+    """ci-mode: SKIP needs positive byte-identical evidence; all else RUN."""
+
+    def _reviewed_repo(self, repo: Path) -> Path:
+        """Committed+pushed source file, cached as the review baseline."""
+        (repo / "f.py").write_text("v = 1\n")
+        git(repo, "add", "f.py")
+        git(repo, "commit", "-q", "-m", "feat: f")
+        git(repo, "push", "-q", "origin", "master")
+        run_script_stdin(PUBLISH, repo, "f.py\n", "review-cache", "write")
+        return repo
+
+    def test_no_cache_is_run(self, repo: Path) -> None:
+        data = run_script(PUBLISH, repo, "ci-mode")
+        assert data["ci"] == "RUN"
+        assert data["cache_state"] == "missing"
+
+    def test_clean_baseline_is_skip(self, repo: Path) -> None:
+        self._reviewed_repo(repo)
+        data = run_script(PUBLISH, repo, "ci-mode")
+        assert data["ci"] == "SKIP", data
+        assert data["mismatches"] == []
+
+    def test_source_edit_is_run_with_mismatch(self, repo: Path) -> None:
+        self._reviewed_repo(repo)
+        (repo / "f.py").write_text("v = 2\n")
+        data = run_script(PUBLISH, repo, "ci-mode")
+        assert data["ci"] == "RUN"
+        assert any("f.py" in m and "content changed" in m for m in data["mismatches"])
+
+    def test_docs_only_changes_stay_skip(self, repo: Path) -> None:
+        self._reviewed_repo(repo)
+        (repo / "README.md").write_text("# hi\n")
+        (repo / "docs").mkdir(exist_ok=True)
+        (repo / "docs" / "dev_daily.md").write_text("log\n")
+        data = run_script(PUBLISH, repo, "ci-mode")
+        assert data["ci"] == "SKIP", data
+        assert {"README.md", "docs/dev_daily.md"} <= set(
+            data["ignored_noninvalidating"]
+        )
+
+    def test_new_untracked_source_is_run(self, repo: Path) -> None:
+        self._reviewed_repo(repo)
+        (repo / "g.py").write_text("w = 1\n")
+        data = run_script(PUBLISH, repo, "ci-mode")
+        assert data["ci"] == "RUN"
+        assert any("g.py" in m and "not in review cache" in m for m in data["mismatches"])
+
+    def test_committed_unpushed_source_is_run(self, repo: Path) -> None:
+        self._reviewed_repo(repo)
+        (repo / "g.py").write_text("w = 1\n")
+        git(repo, "add", "g.py")
+        git(repo, "commit", "-q", "-m", "feat: g")
+        data = run_script(PUBLISH, repo, "ci-mode")
+        assert data["ci"] == "RUN"
+        assert any("g.py" in m for m in data["mismatches"])
+
+    def test_review_state_forces_run(self, repo: Path) -> None:
+        self._reviewed_repo(repo)
+        (repo / ".specify" / "review-state.txt").write_text("CRITICAL: 1\n")
+        data = run_script(PUBLISH, repo, "ci-mode")
+        assert data["ci"] == "RUN"
+        assert "review-state" in data["reason"]
+
+    def test_legacy_cache_forces_run(self, repo: Path) -> None:
+        (repo / ".specify").mkdir(exist_ok=True)
+        (repo / ".specify" / "review-hash.cache").write_text("deadbeef  f.py\n")
+        data = run_script(PUBLISH, repo, "ci-mode")
+        assert data["ci"] == "RUN"
+        assert data["cache_state"] == "legacy"
+
+    def test_deleted_cached_file_is_run(self, repo: Path) -> None:
+        self._reviewed_repo(repo)
+        (repo / "f.py").unlink()
+        data = run_script(PUBLISH, repo, "ci-mode")
+        assert data["ci"] == "RUN"
+        assert any("deleted since review" in m for m in data["mismatches"])
+
+    def test_unresolvable_base_is_run(self, tmp_path: Path) -> None:
+        lone = tmp_path / "lone"
+        lone.mkdir()
+        git(lone, "init", "-q", "-b", "master")
+        (lone / "f.py").write_text("v = 1\n")
+        git(lone, "add", "f.py")
+        git(lone, "commit", "-q", "-m", "feat: f")
+        run_script_stdin(PUBLISH, lone, "f.py\n", "review-cache", "write")
+        data = run_script(PUBLISH, lone, "ci-mode")
+        assert data["ci"] == "RUN"
+        assert "unresolvable" in data["reason"]

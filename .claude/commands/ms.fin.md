@@ -19,9 +19,10 @@ The local CI gate is `lint → types → tests → build` — the same gate `/ms
 runs. `/ms.fin` decides whether to re-run it:
 
 - **SKIP** when the last `/ms.review` finished clean (no `.specify/review-state.txt`)
-  **and** the working tree is unchanged since that review (current file hashes
-  match `.specify/review-hash.cache`). Re-running CI on byte-identical code adds
-  nothing.
+  **and** the CI-relevant file set is unchanged since that review (hashes match
+  `.specify/review-hash.cache`; pure documentation — `*.md`, `docs/`,
+  `.specify/` — never invalidates the baseline). Re-running CI on
+  byte-identical code adds nothing.
 - **RUN** when anything changed since the last review, the review left unresolved
   CRITICAL/HIGH findings (`.specify/review-state.txt` present), or no review hash
   cache exists. This is exactly where review's CI is stale — fixes applied after
@@ -114,39 +115,36 @@ passed `/ms.review`.
 
 ### Step 2: 🧭 Decide CI Mode
 
-Decide whether the CI gate must re-run before publishing. Mismatches and missing
-artifacts deliberately fall through to `RUN`:
+The decision is script-owned (2026-07-24 phase-2 extraction — the old inline
+recipe used a different hash and file set than `/ms.review`'s cache, so it
+re-ran CI on byte-identical code). Self-heal the helper FIRST; if the template
+is missing or the probe's `contract` is not `publish-helpers-v1`, **STOP** and
+tell the user to run `/ms.sync` — never fall back to an LLM-judged CI decision:
 
 ```bash
-CI_MODE="RUN"; CI_REASON="changed since review, or no clean review baseline"
+install -D -m 0755 docs/templates/scripts/specter-publish.sh .specify/scripts/bash/specter-publish.sh
+.specify/scripts/bash/specter-publish.sh version   # contract probe
+
 if [ "$1" = "--no-ci" ]; then
-  CI_MODE="SKIP"; CI_REASON="--no-ci (explicit WIP publish)"
   # Merge-blocking WIP marker (2026-07-18 audit #13): a --no-ci publish must
   # not reach /ms.merglease looking as if gates had passed — merglease's
   # Step 0 preflight surfaces this marker and requires explicit user ack.
   mkdir -p .specify
   printf 'reason=--no-ci publish\nts=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .specify/.ms-wip-publish
-elif [ ! -f .specify/review-state.txt ] && [ -f .specify/review-hash.cache ]; then
-  # Recompute hashes of currently changed files and compare to the review cache.
-  # Untracked files included (2026-07-18 audit #14): a file added after review
-  # is invisible to `git diff HEAD` and must not slip through the hash match.
-  CHANGED=$( { git diff --name-only --diff-filter=ACMRTUXB HEAD 2>/dev/null; \
-               git diff --cached --name-only --diff-filter=ACMRTUXB 2>/dev/null; \
-               git ls-files --others --exclude-standard 2>/dev/null; } \
-             | sort -u | sed '/^$/d' )
-  printf '%s\n' "$CHANGED" \
-    | xargs -P "$(nproc)" -I{} sh -c 'echo "$(sha1sum "{}" 2>/dev/null | cut -d" " -f1)  {}"' \
-    | sort -k2 > .specify/fin-hash.now 2>/dev/null || true
-  if diff -q <(sort -k2 .specify/review-hash.cache) <(sort -k2 .specify/fin-hash.now) >/dev/null 2>&1; then
-    CI_MODE="SKIP"; CI_REASON="unchanged since clean /ms.review (hash match)"
-  fi
-  rm -f .specify/fin-hash.now
+  # CI_MODE=SKIP, CI_REASON="--no-ci (explicit WIP publish)" — reported loudly.
+else
+  .specify/scripts/bash/specter-publish.sh ci-mode
 fi
-echo "CI_MODE=$CI_MODE ($CI_REASON)"
 ```
 
-Carry the resolved `CI_MODE` and `CI_REASON` into the Antigravity delegation in
-Step 3.
+Use the `ci-mode` JSON **verbatim**: `ci` → `CI_MODE`, `reason` → `CI_REASON`.
+The script already encodes the policy — every cached file must still
+hash-match, every outgoing CI-relevant file must have been in the reviewed
+set, and pure documentation (`*.md`, `docs/`, `.specify/`) never invalidates
+the baseline (so `/ms.up-docs`'s Step-1 edits no longer force a spurious
+RUN). Missing cache, legacy cache, unresolved outgoing range, or
+`review-state.txt` all fall through to `RUN`. Carry the resolved `CI_MODE`
+and `CI_REASON` into the Antigravity delegation in Step 3.
 
 ---
 
