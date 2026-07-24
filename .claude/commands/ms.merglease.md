@@ -162,7 +162,10 @@ evidence. `unknown` means the fact could not be observed (gh/network) — it is
 never treated as "absent"; re-check or verify manually before interpreting it.
 The host adds no judgment: the JSON *is* the verification.
 
-Interpretation:
+Interpretation (**hard rule: while any applicable check is still `false`, the
+run may NOT be reported as success — cueline v0.22.x's tag misplacement was
+detected as `false` yet the run still declared completion. Fix it or report
+the failure; never "완료" over a standing `false`**):
 
 - **Every applicable check is `true`** → report `위임 완주` in Step 2.
 - **Something is missing AND the delegation report gives no reason for stopping**
@@ -200,7 +203,12 @@ checks and tell the user the merge did not happen.
 ## Fallback: Antigravity Unavailable
 
 If the Antigravity delegation cannot start, run the merge/tag/release steps directly (same rules:
-automatic semver, billing/infra CI classification, merge commit only, no strategy question) — but
+automatic semver, billing/infra CI classification, merge commit only, no strategy question).
+The deterministic helpers are NOT optional in this path: semver still comes from
+`.specify/scripts/bash/specter-release.sh semver`, CI classification from its `classify-ci`,
+and Step 1.5's `verify-endstate` still runs — a direct run that skips the helpers recreates
+the exact bypass failure mode measured on 2026-07-21 (half of observed publishes skipped the
+scripts). If the helper is missing, STOP per Step 0; never substitute manual git/gh judgment —
 still do not poll the host session in a loop. If CI has not reached a final state yet, start a
 single background Bash task that waits for it (`gh pr checks --watch`, backgrounded), and report
 once when it completes rather than re-checking `gh pr checks` turn after turn.

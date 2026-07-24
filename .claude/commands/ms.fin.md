@@ -241,7 +241,10 @@ or verify manually. The host adds no judgment: the JSON *is* the verification.
 The self-review stamp (prompt task 5) is fail-open by design — report its status
 as delegated, never repair or block on it.
 
-Interpretation:
+Interpretation (**hard rule: while any applicable check is still `false`, the
+run may NOT be reported as success — 2026-07-21 evidence showed a detected
+`false` sailing into a completion claim. Fix it or report the failure; never
+"완료" over a standing `false`**):
 
 - **Every applicable check is `true`** → report `위임 완주` in Step 4.
 - **Something is missing AND the delegation report gives no reason for stopping**
