@@ -84,17 +84,25 @@ Tasks to execute:
    - Wait for GitHub CI checks on the PR to reach a final state ('gh pr checks --watch' or
      equivalent polling inside THIS run — do not return control to ask the caller to poll).
 
-2. CI-failure classification (before merging):
-   - Inspect every failed/errored check's name and log/conclusion.
-   - Billing/infra pattern (case-insensitive): matches any of 'billing', 'spending limit',
-     'usage limit', 'quota'; OR conclusion is 'startup_failure'; OR the job never started.
-   - IF every failure matches the billing/infra pattern: proceed to merge, but print a loud
-     warning ("⚠️ GitHub CI skipped: billing/infra — <failed check names>") and record the same
-     line verbatim in the release notes (Step 4).
-   - IF any failure is a real test/lint/typecheck/build failure (does not match the billing/infra
-     pattern): STOP. Do not merge. Report the failing check names and logs, and end the run
-     without creating a tag or release.
-   - IF all checks passed: proceed silently, no note needed.
+2. CI-failure classification (before merging — script-owned, never re-derive it yourself):
+   - Once checks reach a final state, run:
+     .specify/scripts/bash/specter-release.sh classify-ci <PR_NUM>
+     and use its JSON verbatim. It claims 'billing_infra' only on narrow structural
+     signatures (startup_failure conclusion / zero jobs / jobs whose steps never
+     executed with no failed-run logs) — never on a 'billing' substring in a log,
+     so a real test that exercises billing code cannot be classified away.
+   - overall == "clean": proceed silently, no note needed.
+   - overall == "billing_infra_only": proceed to merge WITHOUT asking (2026-07-21
+     user policy: local CI is authoritative; a billing/quota-dead GitHub CI must
+     not stall a release). Print a loud warning
+     ("⚠️ GitHub CI skipped: billing/infra — <failed check names>") and record the
+     same line verbatim in the release notes (Step 5).
+   - overall == "pending": CI has not reached a final state — keep waiting inside
+     this run, then re-run classify-ci.
+   - overall == "needs_human" or "unknown": STOP. Do not merge. Report each
+     failure's name/classification/evidence from the JSON and end the run without
+     creating a tag or release. Ambiguity is a stop, not a guess (fail-closed) —
+     never widen the billing detection yourself.
 
 3. PR Merge:
    - Always use a merge commit: 'gh pr merge <PR_NUM> --merge --delete-branch=false'.

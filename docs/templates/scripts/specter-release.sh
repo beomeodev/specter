@@ -11,6 +11,7 @@
 #   specter-release.sh version
 #   specter-release.sh semver [explicit-version]
 #   specter-release.sh verify-endstate <pr-number> <tag> [--no-release] [--ledger-feature NNN] [--remote NAME]
+#   specter-release.sh classify-ci <pr-number>
 #
 # Every mode prints one JSON object to stdout, even on malformed input, and
 # exits 0. Check states are true | false | not_applicable | unknown — a
@@ -19,7 +20,7 @@
 
 set -euo pipefail
 
-TOOL_VERSION="1.1.0"
+TOOL_VERSION="1.2.0"
 TOOL_CONTRACT="publish-helpers-v1"
 
 json_escape() {
@@ -65,7 +66,7 @@ if [ "$SUBCOMMAND" = "version" ]; then
   "tool": "specter-release",
   "version": "${TOOL_VERSION}",
   "contract": "${TOOL_CONTRACT}",
-  "subcommands": ["version", "semver", "verify-endstate"]
+  "subcommands": ["version", "semver", "verify-endstate", "classify-ci"]
 }
 JSON
   exit 0
@@ -449,13 +450,121 @@ JSON
   exit 0
 fi
 
+# ---- classify-ci ----
+
+if [ "$SUBCOMMAND" = "classify-ci" ]; then
+  # Deterministic, fail-closed CI-failure classification (phase 4).
+  # billing_infra is claimed ONLY on narrow structural signatures of a
+  # billing/quota-dead runner (2026-07-21 observations: startup_failure
+  # conclusion, zero jobs, or jobs whose steps never executed with no
+  # failed-run logs). Everything else — mixed failures, unreadable logs,
+  # external checks, parse gaps — is needs_human. Never widened by a
+  # substring match on 'billing' somewhere in a log: a real test that
+  # exercises billing code must not be classified away as infra.
+  PR="${1:-}"
+  overall="clean"
+  FAILURES_JSON=""
+
+  add_failure() {
+    local name="$1" cls="$2" evidence="$3"
+    [ -n "$FAILURES_JSON" ] && FAILURES_JSON+=","
+    FAILURES_JSON+="{\"name\":\"$(json_escape "$name")\",\"classification\":\"${cls}\",\"evidence\":\"$(json_escape "$evidence")\"}"
+  }
+
+  finish_classify() {
+    cat <<JSON
+{
+  "tool": "specter-release",
+  "mode": "classify-ci",
+  "pr": $( [ -n "$PR" ] && printf '"%s"' "$(json_escape "$PR")" || printf 'null' ),
+  "overall": "${overall}",
+  "failures": [${FAILURES_JSON}],
+  "notes": $(notes_json)
+}
+JSON
+    exit 0
+  }
+
+  if [ -z "$PR" ]; then
+    overall="unknown"; note "missing required <pr-number> argument"; finish_classify
+  fi
+  if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
+    overall="unknown"; note "gh unavailable or unauthenticated — classification impossible"; finish_classify
+  fi
+
+  checks_out=$(gh pr checks "$PR" --json name,state,link \
+    --jq '.[] | [.state, .name, (.link // "")] | join("\u001f")' 2>&1) && checks_rc=0 || checks_rc=$?
+  if [ "$checks_rc" -ne 0 ] && [ -z "$checks_out" ]; then
+    overall="unknown"; note "gh pr checks ${PR} failed with no output"; finish_classify
+  fi
+  if [ -z "$checks_out" ]; then
+    note "no checks reported on PR ${PR}"; finish_classify
+  fi
+
+  pending=false
+  billing=0
+  human=0
+  while IFS=$'\x1f' read -r state name link; do
+    [ -n "$state" ] || continue
+    case "$state" in
+      SUCCESS|SKIPPED|NEUTRAL) continue ;;
+      PENDING|QUEUED|IN_PROGRESS|EXPECTED|WAITING|REQUESTED) pending=true; continue ;;
+    esac
+    # Everything else is a failure candidate to classify.
+    rid=""
+    if [[ "$link" =~ /actions/runs/([0-9]+) ]]; then rid="${BASH_REMATCH[1]}"; fi
+    if [ -z "$rid" ]; then
+      human=$((human + 1))
+      add_failure "$name" "needs_human" "state=${state}; no workflow-run link — external or unparseable check"
+      continue
+    fi
+    conclusion=$(gh api "repos/{owner}/{repo}/actions/runs/${rid}" -q '.conclusion // ""' 2>/dev/null) || conclusion="__api_error__"
+    if [ "$conclusion" = "__api_error__" ]; then
+      human=$((human + 1))
+      add_failure "$name" "needs_human" "state=${state}; run ${rid} metadata unavailable"
+      continue
+    fi
+    if [ "$conclusion" = "startup_failure" ]; then
+      billing=$((billing + 1))
+      add_failure "$name" "billing_infra" "run ${rid} conclusion=startup_failure — workflow never started (billing/quota signature)"
+      continue
+    fi
+    jobs_total=$(gh api "repos/{owner}/{repo}/actions/runs/${rid}/jobs" -q '.total_count // 0' 2>/dev/null) || jobs_total="?"
+    max_steps=$(gh api "repos/{owner}/{repo}/actions/runs/${rid}/jobs" -q '[.jobs[].steps | length] | max // 0' 2>/dev/null) || max_steps="?"
+    if [ "$jobs_total" = "0" ]; then
+      billing=$((billing + 1))
+      add_failure "$name" "billing_infra" "run ${rid} conclusion=${conclusion} with zero jobs — nothing was ever scheduled"
+      continue
+    fi
+    if [ "$max_steps" = "0" ]; then
+      failed_logs=$(gh run view "$rid" --log-failed 2>/dev/null | head -c 64 || true)
+      if [ -z "$failed_logs" ]; then
+        billing=$((billing + 1))
+        add_failure "$name" "billing_infra" "run ${rid}: jobs created but no step ever executed and no failed-run logs exist"
+        continue
+      fi
+    fi
+    human=$((human + 1))
+    add_failure "$name" "needs_human" "state=${state}, run ${rid} conclusion=${conclusion} — steps ran or logs exist; not the narrow billing signature"
+  done <<< "$checks_out"
+
+  if [ "$pending" = true ]; then
+    overall="pending"
+  elif [ "$human" -gt 0 ]; then
+    overall="needs_human"
+  elif [ "$billing" -gt 0 ]; then
+    overall="billing_infra_only"
+  fi
+  finish_classify
+fi
+
 # ---- unknown subcommand ----
 
 cat <<JSON
 {
   "tool": "specter-release",
   "mode": "error",
-  "notes": ["unknown subcommand '$(json_escape "${SUBCOMMAND:-<none>}")' (expected version|semver|verify-endstate)"]
+  "notes": ["unknown subcommand '$(json_escape "${SUBCOMMAND:-<none>}")' (expected version|semver|verify-endstate|classify-ci)"]
 }
 JSON
 exit 0

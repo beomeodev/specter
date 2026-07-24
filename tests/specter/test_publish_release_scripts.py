@@ -550,3 +550,115 @@ class TestSelfReviewStamp:
         env = self._env_with_gh(tmp_path, GH_SHIM_NO_PR)
         data = self._stamp(repo, env, "READY")
         assert data["status"] == "skipped_pr_not_found"
+
+
+def make_gh_classify_shim(tmp_path: Path, checks: str, api_script: str) -> dict:
+    """gh shim for classify-ci: `checks` is the \\x1f-joined lines for pr checks,
+    `api_script` is a bash case body answering `gh api <path> -q <expr>`."""
+    bindir = tmp_path / "bin"
+    bindir.mkdir(exist_ok=True)
+    gh = bindir / "gh"
+    gh.write_text(
+        "#!/bin/bash\n"
+        'if [ "$1" = "auth" ]; then exit 0; fi\n'
+        'if [ "$1" = "pr" ] && [ "$2" = "checks" ]; then\n'
+        f"  printf '%b' '{checks}'\n"
+        "  exit 0\n"
+        "fi\n"
+        'if [ "$1" = "api" ]; then\n'
+        '  path="$2"\n'
+        f"{api_script}\n"
+        "  exit 0\n"
+        "fi\n"
+        'if [ "$1" = "run" ]; then exit 0; fi\n'  # `gh run view --log-failed` → empty
+        "exit 0\n"
+    )
+    gh.chmod(0o755)
+    return {**ENV, "PATH": f"{bindir}:/usr/bin:/bin"}
+
+
+class TestClassifyCi:
+    def _classify(self, repo: Path, env: dict) -> dict:
+        result = subprocess.run(
+            ["bash", str(RELEASE), "classify-ci", "12"],
+            cwd=repo,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        assert result.returncode == 0, result.stderr
+        return json.loads(result.stdout)
+
+    def test_all_success_is_clean(self, repo: Path, tmp_path: Path) -> None:
+        env = make_gh_classify_shim(
+            tmp_path, r"SUCCESS\x1fbackend\x1fhttps://x/actions/runs/1/job/2\n", ""
+        )
+        data = self._classify(repo, env)
+        assert data["overall"] == "clean"
+        assert data["failures"] == []
+
+    def test_startup_failure_is_billing_only(self, repo: Path, tmp_path: Path) -> None:
+        env = make_gh_classify_shim(
+            tmp_path,
+            r"FAILURE\x1fci\x1fhttps://x/actions/runs/9/job/1\n",
+            '  case "$path" in\n'
+            '    */runs/9) echo "startup_failure";;\n'
+            "  esac\n",
+        )
+        data = self._classify(repo, env)
+        assert data["overall"] == "billing_infra_only"
+        assert data["failures"][0]["classification"] == "billing_infra"
+
+    def test_zero_jobs_is_billing_only(self, repo: Path, tmp_path: Path) -> None:
+        env = make_gh_classify_shim(
+            tmp_path,
+            r"FAILURE\x1fci\x1fhttps://x/actions/runs/9/job/1\n",
+            '  case "$path" in\n'
+            '    */runs/9/jobs) echo "0";;\n'
+            '    */runs/9) echo "failure";;\n'
+            "  esac\n",
+        )
+        data = self._classify(repo, env)
+        assert data["overall"] == "billing_infra_only"
+        assert "zero jobs" in data["failures"][0]["evidence"]
+
+    def test_real_failure_with_steps_needs_human(
+        self, repo: Path, tmp_path: Path
+    ) -> None:
+        env = make_gh_classify_shim(
+            tmp_path,
+            r"FAILURE\x1fpytest\x1fhttps://x/actions/runs/9/job/1\n",
+            '  case "$path" in\n'
+            '    */runs/9/jobs) if [ "$4" = "\'.total_count // 0\'" ]; then echo 3; else echo 12; fi;;\n'
+            '    */runs/9) echo "failure";;\n'
+            "  esac\n",
+        )
+        data = self._classify(repo, env)
+        assert data["overall"] == "needs_human"
+
+    def test_external_check_without_run_link_needs_human(
+        self, repo: Path, tmp_path: Path
+    ) -> None:
+        env = make_gh_classify_shim(
+            tmp_path, r"FAILURE\x1fexternal-scan\x1f\n", ""
+        )
+        data = self._classify(repo, env)
+        assert data["overall"] == "needs_human"
+        assert "external" in data["failures"][0]["evidence"]
+
+    def test_pending_wins_over_failures(self, repo: Path, tmp_path: Path) -> None:
+        env = make_gh_classify_shim(
+            tmp_path,
+            r"PENDING\x1fbuild\x1fhttps://x/actions/runs/3/job/1\n"
+            r"FAILURE\x1fci\x1fhttps://x/actions/runs/9/job/1\n",
+            '  case "$path" in\n'
+            '    */runs/9) echo "startup_failure";;\n'
+            "  esac\n",
+        )
+        data = self._classify(repo, env)
+        assert data["overall"] == "pending"
+
+    def test_gh_unavailable_is_unknown(self, repo: Path) -> None:
+        data = self._classify(repo, ENV)
+        assert data["overall"] == "unknown"
