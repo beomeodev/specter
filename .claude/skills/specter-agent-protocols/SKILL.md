@@ -84,6 +84,15 @@ Unbounded re-review loops burn tokens without improving outcomes:
   audit-tier receipt's `tier_settings.max_automatic_rounds` (currently T1: 2,
   T2/T3: 3). No command, conductor, reviewer, or host may supply a larger or
   smaller policy value.
+- **Receipt-less global stations are capped too**: stations with no audit-tier
+  receipt (the product-wide gates — `/ms.pre-verify` and the Feature-Map
+  stations) use a fixed cap of **3 automatic rounds**. This number is part of
+  this policy, not a tier setting; no host or conductor may exceed it. If the
+  two reviewers are still oscillating at the cap (one agent flipping grades
+  while the other holds across rounds), that is a rule-conflict symptom to
+  escalate to the user as a doctrine question — never something another
+  repair round can settle (2026-07-23 doit-n-live ran 17 rounds before this
+  was recognized).
 - **Stop**: after that receipt-bound cap, or as soon as only `WARN`-level findings remain.
   Record every residual `WARN` in the command's artifacts; hand the
   proceed-or-fix decision to the user. Further rounds require an explicit user

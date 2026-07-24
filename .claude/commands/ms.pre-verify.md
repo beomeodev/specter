@@ -268,7 +268,8 @@ can never certify the whole map:
   rounds converge. One final full round replaces the old
   full-audit-every-round loop — diagnosis gets cheap scoped rounds, the
   certificate stays full-strength.
-- The §4 receipt-bound round caps count repair rounds as usual; the final
+- The §4 round caps count repair rounds as usual — for this receipt-less
+  global station the cap is §4's fixed 3 automatic rounds; the final
   full audit is the certification run, not an extra repair round.
 
 ### Step 2.5: Derived-Impact Acknowledgment (only when non-`none` Impact rows exist)
