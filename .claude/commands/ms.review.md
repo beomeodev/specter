@@ -612,6 +612,31 @@ Self-review is never dual review.
 
 #### A. Codex & Antigravity Code Review (same prompt body, different agent)
 
+Before dispatching, self-heal the gate and confirm the continuity capability;
+if the grep fails, stop and tell the user to run `/ms.sync`:
+
+```bash
+install -D -m 0755 docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
+.specify/scripts/bash/specter-gate.sh version | grep -q '"continuity_contract": "continuity-v1"'
+```
+
+**On a §4 re-round (round R ≥ 2)**, additionally build the mechanical
+continuity packet and pass its PATH into both prompts (the host never authors
+or pastes packet content):
+
+```bash
+.specify/scripts/bash/specter-gate.sh continuity review {spec-id} --round <R>
+# packet: .specify/continuity/review-NNN.packet.md
+```
+
+Append to both prompts: `Re-round continuity: read
+.specify/continuity/review-NNN.packet.md FIRST. It contains prior blocking
+findings and Required Fixes only — it is NOT a PASS whitelist and does not
+suppress discovery outside those findings. If this reviewer lane previously
+prescribed the state you now reject, retain the predecessor ID, classify the
+finding REVERSAL, quote the prior Required Fix verbatim, and identify the
+failed premise.`
+
 ```text
 /codex:rescue --fresh --model gpt-5.6-luna --effort <receipt.tier_settings.reviewer_effort.codex> <prompt>
 /antigravity:rescue --fresh --model gemini-3.5-flash --effort <receipt.tier_settings.reviewer_effort.antigravity> <prompt>
@@ -662,18 +687,37 @@ Focus on:
 Always challenge whether the implementation approach is simpler, safer, or
 better scoped than available alternatives.
 
+Continuity contract (continuity-v1 — this station has no coverage manifest;
+its per-criterion inventory is the Done Criteria Execution table you were
+given):
+- Report violations by RULE CLASS: when a rule is violated, list every
+  violator of that rule you can find, never just the first instance.
+- Findings lineage: use the 8-column Findings table below. Every finding has a
+  stable unique ID. On the first round use Predecessor `none`, Status `NEW`,
+  and Class NEW_EVIDENCE or PREVIOUSLY_UNAUDITED. On re-rounds carry prior
+  blocking findings forward by ID with Status
+  (PERSISTING | RESOLVED | REOPENED | NEW) and classify every new blocking
+  finding (NEW_EVIDENCE | PREVIOUSLY_UNAUDITED | REGRESSION_FROM_DIFF |
+  REVERSAL | COVERAGE_BREACH).
+- Every blocking finding's Required Fix follows the remedy contract
+  (specter-agent-protocols §5): the restored invariant, the minimum compliant
+  outcome, what must NOT be added or changed, exact replacement text only when
+  doctrine determines one answer, alternatives or escalation otherwise, and a
+  §10 self-check.
+
 Write:
 
 # {AGENT} Code Review
 
 **Mode**: {MODE}
 **Feature**: Feature {NNN}
+**Protocol**: continuity-v1
 **Result**: PASS | WARN | FAIL
 
 ## Findings
 
-| Severity | Finding | Evidence | Required Fix |
-| --- | --- | --- | --- |
+| ID | Predecessor | Status | Class | Severity | Finding | Evidence | Required Fix |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Verdict
 
@@ -708,12 +752,18 @@ both reports' appearance; never end the turn to hand the recheck back to the
 user. Once both reports exist, compute the agent-station verdict mechanically:
 
 ```bash
-.specify/scripts/bash/specter-gate.sh aggregate review {spec-id} --ledger --round <R>
+.specify/scripts/bash/specter-gate.sh aggregate review {spec-id} --ledger --round <R> --expect-protocol continuity-v1
 ```
 
 `<R>` is the current §4 convergence round and must not exceed
 `receipt.tier_settings.max_automatic_rounds`. Every round is a fresh-context
 run.
+
+If the receipt reports `reversal: true`, do NOT start another automatic repair
+round: per §4 the next round is a fresh dual doctrine-dispute round, and
+reviewer disagreement escalates to the user. At the round cap, ask the §4
+post-cap question (resolve doctrine / amend authority / accept WARN / stop) —
+never "run one more round?".
 
 The receipt verdict maps to the Result Model with no host re-weighing
 (`specter-agent-protocols` §5 no-unilateral-host-downgrade):

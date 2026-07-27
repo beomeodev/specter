@@ -1,6 +1,6 @@
 ---
 name: specter-agent-protocols
-description: Canonical external-agent protocols shared by the dual-agent SPECTER commands (/ms.verify, /ms.pre-verify, /ms.analyze, /ms.review, /ms.expand) — session-level preflight, single-agent degrade rule, report-write/salvage protocol, re-round convergence caps, the auditor bias-prevention doctrine (context isolation, evidence-cited verdicts, UNVERIFIED marking, grade-down-on-doubt, defect-claim symmetry), the verification-report structure (Claim/Evidence/Baseline/Gaps/Residual-risk), and the three-layer station contract (deterministic structural checks → independent dual-agent semantics → mechanical verdict aggregation via specter-gate.sh, with the typed degrade contract and mechanical ledger emission), the background-completion-collection rule (detached external-agent daemons never self-notify — route completion through a harness-tracked waiter or Agent subagent, never an idle turn), and the provenance & authority lattice (§10 — which artifacts may add product behavior vs oblige, select, constrain, or merely reference; the D-ID Implementation-Obligations contract with its two-part entailment/denylist audit test; journey ownership; typed clarify decisions). Commands reference this file instead of restating the mechanics; each command keeps only its own report paths and station-specific invariants inline.
+description: Canonical external-agent protocols shared by the dual-agent SPECTER commands (/ms.verify, /ms.pre-verify, /ms.analyze, /ms.review, /ms.expand) — session-level preflight, single-agent degrade rule, report-write/salvage protocol, re-round convergence caps, the finding-continuity contract (continuity-v1: immutable round archives, mechanically built continuity packets, stable finding IDs with Predecessor/Status/Classification lineage, the REVERSAL stop rule, declared-coverage-closure manifests, COVERAGE_BREACH, termination signals and the post-cap question), the auditor bias-prevention doctrine (context isolation, evidence-cited verdicts, UNVERIFIED marking, grade-down-on-doubt, defect-claim symmetry, the remedy contract), the verification-report structure (Claim/Evidence/Baseline/Gaps/Residual-risk), and the three-layer station contract (deterministic structural checks → independent dual-agent semantics → mechanical verdict aggregation via specter-gate.sh, with the typed degrade contract and mechanical ledger emission), the background-completion-collection rule (detached external-agent daemons never self-notify — route completion through a harness-tracked waiter or Agent subagent, never an idle turn), and the provenance & authority lattice (§10 — which artifacts may add product behavior vs oblige, select, constrain, or merely reference; the D-ID Implementation-Obligations contract with its two-part entailment/denylist audit test; journey ownership; typed clarify decisions). Commands reference this file instead of restating the mechanics; each command keeps only its own report paths and station-specific invariants inline.
 ---
 
 # SPECTER External-Agent Protocols
@@ -60,6 +60,16 @@ requires echoing the finished report verbatim between `===REPORT BEGIN===` /
 `===REPORT END===` markers in the agent's final message — near-zero marginal
 cost, since a final message is emitted regardless.
 
+**Immutable round archives (continuity-v1).** Re-rounds overwrite the
+canonical report path, so the canonical path is always *the latest copy*, never
+the record. The record is the round archive `<report>.round-NN.md`, written
+mechanically by `specter-gate.sh aggregate --ledger` for every input it graded
+(placeholders and malformed reports included — the archive preserves what was
+observed, not what was valid). Archives are immutable: re-emitting a verdict
+for an already-archived round with different report content is a FAIL, never a
+silent overwrite. Continuity packets (§4) and predecessor-ID validation read
+only these archives; nobody — host or agent — edits or deletes them.
+
 After the run, check the written file **deterministically**: it exists, is
 non-empty, and contains the expected marker line (usually `**Result**:`; for
 the PRD checklist, `**Mode**: prd-only`). If the file is missing or partial:
@@ -116,6 +126,50 @@ Unbounded re-review loops burn tokens without improving outcomes:
   verdict — see that command's certification contract. No station may widen
   the caps or accept a scoped report as full-scope certification.
 
+### Continuity, termination, and the post-cap question (continuity-v1)
+
+Re-rounds carry **finding continuity**, built mechanically — never from
+conversational memory and never from a frozen PASS list:
+
+- Before every re-round dispatch, the driver runs
+  `specter-gate.sh continuity <station> [arg] --round <R>` and passes the
+  generated **packet path** (prior blocking findings + Required Fix verbatim,
+  per lane, from the §3 round archives) into the reviewer prompt. The packet
+  is explicitly NOT a PASS whitelist: it confers no immunity and never
+  suppresses full-scope discovery. The host passes the path only; it never
+  authors or edits packet content.
+- **`REVERSAL` stops automatic repair mechanically.** When any finding is
+  classified `REVERSAL` (§5), the aggregation receipt records `reversal: true`
+  and the station may not enter another automatic repair round: the next round
+  is a fresh dual **doctrine-dispute round** scoped to the disputed doctrine
+  question; reviewer disagreement escalates to the human. The host still
+  grades nothing.
+- **`COVERAGE_BREACH` invalidates closure, never the finding.** A blocking
+  finding in a class an earlier Coverage section declared exhausted is
+  classified `COVERAGE_BREACH`: the new defect is preserved and repaired
+  normally (late real findings are never suppressed), while the prior closure
+  claim for that class is void and the class must be re-exhausted.
+
+**Termination signals** (any of these means another identical repair round
+cannot help — stop and escalate instead of re-rolling):
+
+1. the same stable finding ID survives a correctly targeted fix;
+2. a reviewer lane reverses its own remedy (`REVERSAL`);
+3. a class declared exhausted produces another pre-existing violator
+   (`COVERAGE_BREACH`);
+4. reviewers oscillate on identical evidence (§4 receipt-less-station rule);
+5. the automatic round cap is reached.
+
+A raw "finding count did not decrease" rule is NOT a termination signal —
+legitimate class-exhaustive sweeps increase the count.
+
+**The post-cap question.** When the cap is reached, the human choice is never
+"run one more identical round?". Present exactly these options: **resolve the
+doctrine** (fix the rule the reviewers disagree about), **amend the authority**
+(the PRD/Amendment path), **accept as WARN** (recorded residual), or **stop**.
+Authorizing more rounds without choosing one of these re-runs the same
+open-ended search that produced the 2026-07-27 28-round global gate.
+
 ## 5. Auditor Bias-Prevention Doctrine
 
 The value of a verification station is exactly the independence of its verdict.
@@ -162,6 +216,39 @@ bias-prevention protocol.)
   changed evidence. The station verdict is whatever §7's aggregation computes
   from the report files as written.
 
+### Finding continuity & REVERSAL (continuity-v1)
+
+"Self" is the **station lane** — e.g. `pre-verify/codex`,
+`verify/antigravity` — never a remembered agent instance: a `--fresh` reviewer
+has no memory, so its own prior guidance reaches it only through the §4
+continuity packet built from the same lane's round archives.
+
+> A reviewer lane MUST NOT issue an ordinary new blocking finding against a
+> state its own prior Required Fix produced. It MUST retain the predecessor
+> ID, classify the finding `REVERSAL`, quote the prior Required Fix verbatim,
+> state which prior premise was unsound, and provide one reconciled
+> replacement. `REVERSAL` stops automatic repair (§4); it is a doctrine
+> dispute, not another authoring guess. Contradicting the *other* lane's
+> finding is an ordinary cross-reviewer dispute, never a `REVERSAL`.
+
+**Remedy contract.** Every blocking finding carries a Required Fix in this
+form — never an unconditional paste-ready product decision (an auditor who
+always writes replacement text becomes an unauthorized author; the 2026-07-27
+Feature-089 rejected-record episode is the direct counterexample):
+
+1. the invariant that must be restored;
+2. the minimum compliant outcome;
+3. what must NOT be added or changed;
+4. exact replacement text only when doctrine determines a single answer;
+5. alternatives or an escalation when several product interpretations remain
+   valid;
+6. a self-check explaining why the proposed repair does not violate §10.
+
+**Honesty limit.** Mechanical enforcement (stable IDs, lineage fields, packet
+input, Layer-3 validation) makes *omission* impossible — it cannot make a
+dishonest classification true. Classification truthfulness remains the job of
+the independent second reviewer and the doctrine-dispute round.
+
 ## 6. Verification-Report Structure
 
 Every verification-style report the **host composes** — verify/audit summaries,
@@ -186,6 +273,42 @@ a one-word verdict.
   a bare "none" is the empty-section cliché this structure exists to prevent.
 - **Residual-risk** — what can still go wrong even though everything above was
   observed (timing, environment differences, untested scale).
+
+### Continuity report schema (continuity-v1) — dual-agent station files
+
+Station report files gain three machine-validated elements. The gate enforces
+them only when the driving command passes `--expect-protocol continuity-v1`
+(fresh dispatches always do); already-finished legacy reports stay readable.
+
+- **`**Protocol**: continuity-v1`** — header field marking the report as
+  written under this schema.
+- **Findings lineage columns** — the Findings table is
+  `| ID | Predecessor | Status | Class | Severity | Finding | Evidence | Required Fix |`.
+  `ID` is stable and unique within the lane; `Predecessor` cites a prior-round
+  ID from the same lane or `none`; `Status` is
+  `PERSISTING | RESOLVED | REOPENED | NEW`; `Class` is
+  `NEW_EVIDENCE | PREVIOUSLY_UNAUDITED | REGRESSION_FROM_DIFF | REVERSAL |
+  COVERAGE_BREACH`. Layer 3 rejects malformed lineage: duplicate IDs, unknown
+  predecessors, missing classification on re-rounds.
+- **`## Coverage` — declared coverage closure (manifest stations:
+  pre-verify, verify, analyze).** The driver generates the expected inventory
+  with `specter-gate.sh manifest <station>`; the reviewer returns exactly one
+  `| Key | Result | Evidence |` row per key (`PASS | FAIL | UNVERIFIED`,
+  non-empty evidence). Layer 3 checks exact set equality — not counts — plus
+  no duplicates/unknown keys and lead file:line citations existing. Findings
+  are additionally reported **by rule class** (the complete violator list per
+  rule, not one instance per round): the 2026-07-27 run showed per-class
+  sweeps surfacing 3 extra unreported violations every time they were
+  demanded.
+
+  **Name it honestly.** This is *declared* coverage closure: it proves every
+  key in a gate-declared finite universe received a disposition with evidence,
+  and it makes silent omission a detectable protocol violation. It does NOT
+  prove semantic exhaustiveness, and it cannot prove the reviewer cognitively
+  performed each check — residual gaps stay explicit in the host summary's
+  Gaps section, and a later defect in a closed class is a `COVERAGE_BREACH`
+  (§4), never a suppressed finding. `/ms.review` has no manifest: its
+  per-criterion inventory is the Done Criteria Execution table.
 
 ## 7. Three-Layer Station Contract
 

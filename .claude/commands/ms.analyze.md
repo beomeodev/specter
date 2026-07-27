@@ -156,11 +156,35 @@ reduce reviewer count.
 
 Before dispatching, compute the tasks hash and substitute it (with the Feature
 number) into both prompts — the aggregation rejects a report bound to a stale
-`tasks.md` revision:
+`tasks.md` revision — and generate the declared-coverage inventory
+(continuity-v1, `specter-agent-protocols` §6). Self-heal the gate first and
+confirm the continuity capability; if the grep fails, stop and tell the user
+to run `/ms.sync`:
 
 ```bash
+install -D -m 0755 docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
+.specify/scripts/bash/specter-gate.sh version | grep -q '"continuity_contract": "continuity-v1"'
 TASKS_SHA=$(sha256sum specs/[spec-id]/tasks.md | awk '{print $1}')
+mkdir -p .specify/continuity
+.specify/scripts/bash/specter-gate.sh manifest analyze specs/[spec-id] > .specify/continuity/analyze-NNN.manifest.json
 ```
+
+**On a §4 re-round (round R ≥ 2)**, additionally build the mechanical
+continuity packet and pass its PATH into both prompts (the host never authors
+or pastes packet content):
+
+```bash
+.specify/scripts/bash/specter-gate.sh continuity analyze specs/[spec-id] --round <R>
+# packet: .specify/continuity/analyze-NNN.packet.md
+```
+
+Append to both prompts: `Re-round continuity: read
+.specify/continuity/analyze-NNN.packet.md FIRST. It contains prior blocking
+findings and Required Fixes only — it is NOT a PASS whitelist and does not
+suppress discovery outside those findings. If this reviewer lane previously
+prescribed the state you now reject, retain the predecessor ID, classify the
+finding REVERSAL, quote the prior Required Fix verbatim, and identify the
+failed premise.`
 
 #### 0. External Agent Preflight (session-level, once)
 
@@ -223,6 +247,29 @@ Focus on:
   `<receipt.tier_settings.targeted_checks>`; reviewers do not add or remove
   policy modules
 
+Continuity & coverage contract (continuity-v1):
+- Declared coverage closure: read
+  .specify/continuity/analyze-NNN.manifest.json (the gate-generated expected
+  inventory — spec FR ids plus this Feature's owned map C-IDs and obligation
+  D-IDs). Your report MUST contain a ## Coverage section with exactly one
+  | Key | Result | Evidence | row per inventory key (PASS | FAIL |
+  UNVERIFIED; evidence non-empty, file:line where possible). The aggregation
+  rejects any coverage set not exactly equal to the inventory.
+- Report violations by RULE CLASS: when a rule is violated, list every
+  violator of that rule you can find, never just the first instance.
+- Findings lineage: use the 8-column Findings table below. Every finding has a
+  stable unique ID. On the first round use Predecessor `none`, Status `NEW`,
+  and Class NEW_EVIDENCE or PREVIOUSLY_UNAUDITED. On re-rounds carry prior
+  blocking findings forward by ID with Status
+  (PERSISTING | RESOLVED | REOPENED | NEW) and classify every new blocking
+  finding (NEW_EVIDENCE | PREVIOUSLY_UNAUDITED | REGRESSION_FROM_DIFF |
+  REVERSAL | COVERAGE_BREACH).
+- Every blocking finding's Required Fix follows the remedy contract
+  (specter-agent-protocols §5): the restored invariant, the minimum compliant
+  outcome, what must NOT be added or changed, exact replacement text only when
+  doctrine determines one answer, alternatives or escalation otherwise, and a
+  §10 self-check.
+
 Write:
 
 # Codex Analyze Review
@@ -230,12 +277,18 @@ Write:
 **Mode**: agent-document-consistency
 **Feature**: Feature {NNN}
 **Tasks SHA256**: {TASKS_SHA}
+**Protocol**: continuity-v1
 **Result**: PASS | WARN | FAIL
+
+## Coverage
+
+| Key | Result | Evidence |
+| --- | --- | --- |
 
 ## Findings
 
-| Severity | Finding | Evidence | Required Fix |
-| --- | --- | --- | --- |
+| ID | Predecessor | Status | Class | Severity | Finding | Evidence | Required Fix |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Verdict
 
@@ -291,6 +344,29 @@ Focus on:
   `<receipt.tier_settings.targeted_checks>`; reviewers do not add or remove
   policy modules
 
+Continuity & coverage contract (continuity-v1):
+- Declared coverage closure: read
+  .specify/continuity/analyze-NNN.manifest.json (the gate-generated expected
+  inventory — spec FR ids plus this Feature's owned map C-IDs and obligation
+  D-IDs). Your report MUST contain a ## Coverage section with exactly one
+  | Key | Result | Evidence | row per inventory key (PASS | FAIL |
+  UNVERIFIED; evidence non-empty, file:line where possible). The aggregation
+  rejects any coverage set not exactly equal to the inventory.
+- Report violations by RULE CLASS: when a rule is violated, list every
+  violator of that rule you can find, never just the first instance.
+- Findings lineage: use the 8-column Findings table below. Every finding has a
+  stable unique ID. On the first round use Predecessor `none`, Status `NEW`,
+  and Class NEW_EVIDENCE or PREVIOUSLY_UNAUDITED. On re-rounds carry prior
+  blocking findings forward by ID with Status
+  (PERSISTING | RESOLVED | REOPENED | NEW) and classify every new blocking
+  finding (NEW_EVIDENCE | PREVIOUSLY_UNAUDITED | REGRESSION_FROM_DIFF |
+  REVERSAL | COVERAGE_BREACH).
+- Every blocking finding's Required Fix follows the remedy contract
+  (specter-agent-protocols §5): the restored invariant, the minimum compliant
+  outcome, what must NOT be added or changed, exact replacement text only when
+  doctrine determines one answer, alternatives or escalation otherwise, and a
+  §10 self-check.
+
 Write:
 
 # Antigravity Analyze Review
@@ -298,12 +374,18 @@ Write:
 **Mode**: agent-document-consistency
 **Feature**: Feature {NNN}
 **Tasks SHA256**: {TASKS_SHA}
+**Protocol**: continuity-v1
 **Result**: PASS | WARN | FAIL
+
+## Coverage
+
+| Key | Result | Evidence |
+| --- | --- | --- |
 
 ## Findings
 
-| Severity | Finding | Evidence | Required Fix |
-| --- | --- | --- | --- |
+| ID | Predecessor | Status | Class | Severity | Finding | Evidence | Required Fix |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 
 ## Verdict
 
@@ -339,11 +421,22 @@ both reports' appearance; never end the turn to hand the recheck back to the
 user. Once both reports exist:
 
 ```bash
-.specify/scripts/bash/specter-gate.sh aggregate analyze specs/[spec-id] --ledger --round <R>
+# round 1 (full scope): coverage closure is mandatory
+.specify/scripts/bash/specter-gate.sh aggregate analyze specs/[spec-id] --ledger --round 1 --expect-protocol continuity-v1 --require-coverage
+# re-rounds (scoped): lineage is mandatory, coverage only validated if present
+.specify/scripts/bash/specter-gate.sh aggregate analyze specs/[spec-id] --ledger --round <R> --expect-protocol continuity-v1
 ```
 
 `<R>` is the current §4 convergence round and must not exceed
 `receipt.tier_settings.max_automatic_rounds`. Every round uses `--fresh`.
+
+If the receipt reports `reversal: true`, do NOT start another automatic repair
+round: per §4 the next round is a fresh dual doctrine-dispute round, and
+reviewer disagreement escalates to the user. If it reports
+`coverage_breach: true`, the affected class's closure claim is void; the new
+finding itself is repaired normally, never suppressed. At the round cap, ask
+the §4 post-cap question (resolve doctrine / amend authority / accept WARN /
+stop) — never "run one more round?".
 
 - The receipt `verdict` is the agent-station outcome; the final `/ms.analyze`
   result is the **worse** of Step 2's host result and the receipt verdict.

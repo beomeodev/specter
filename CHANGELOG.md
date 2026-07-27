@@ -4,6 +4,25 @@ All notable changes to this repository are documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **감사 연속성·커버리지 폐쇄 계약 continuity-v1 (2026-07-27, 게이트 개편 트랙 A)**:
+  PRD-081 pre-verify 28라운드 실행의 회고(Codex 검토 ①/②)를 반영한 C4′/C5′ 출하.
+  `specter-gate.sh` v3.1.0 — `manifest`(스테이션별 기대 커버리지 인벤토리를 게이트가
+  기계 생성; pre-verify/verify/analyze), `continuity`(불변 라운드 아카이브에서 이전
+  차단 지적+Required Fix 원문만 담은 재라운드 연속성 패킷을 기계 조립; PASS 화이트리스트
+  아님), `aggregate` 확장(`--expect-protocol continuity-v1`·`--require-coverage`,
+  `--ledger` 시 `<report>.round-NN.md` 불변 아카이브, Findings 계보 4필드
+  ID/Predecessor/Status/Class 검증, `## Coverage` 집합 등식·증거 실재 검증,
+  UNVERIFIED→WARN 캡, REVERSAL/COVERAGE_BREACH 기계 라우팅과 receipt/원장 필드).
+  `specter-agent-protocols` §3(불변 라운드 아카이브), §4(연속성 패킷·REVERSAL 자동수리
+  중단·종료 신호 5종·cap 이후 4지선다), §5(레인 정의·REVERSAL 교리·개선안 계약·정직성
+  한계), §6(continuity-v1 보고서 스키마·선언된 커버리지 폐쇄와 그 한계) 신설.
+  4개 스테이션 명령(pre-verify/verify/analyze/review)에 능력 버전 확인·manifest/패킷
+  디스패치·신규 프롬프트 계약 반영. `/ms.specify`에 계보 인용 규칙(§3.5, 분류 아님·권한
+  아님) 추가. 감사자 교리 시험 corpus 신설(`docs/doctrine-tests/`, 공개 15케이스+홀드아웃
+  3케이스, sync 매니페스트 제외). 레거시 보고서는 새 플래그 없는 집계에서 계속 판독
+  가능(호환 리더). 회귀: `tests/specter/test_specter_gate_continuity.py` 20케이스.
+
 ### Changed
 - **검증 명령 개명 및 저술 station 에이전트화 (2026-07-19)**: `/ms.codex-checklist` →
   `/ms.featuremap-checklist`(Codex 백그라운드 → `featuremap-checklist-author` 격리

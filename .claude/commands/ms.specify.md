@@ -296,6 +296,20 @@ You are creating a specification that MUST follow the project Constitution.
 User input (Korean): "사용자가 로그인하면 토큰을 발급한다"
 Your output (English): "When a user logs in with valid credentials, the auth service shall issue a JWT session token."
 
+**Source-lineage preservation (ancestry only — NOT a classification)**:
+Every behavioral FR in the spec MUST end with a lineage citation naming one or
+more existing authorities from the checked Feature prompt bundle:
+`[Source: C-NNN]` (a Commitment Index row this Feature owns or realizes),
+`[Source: D-NNN]` (an owned Implementation Obligations row), or — once a typed
+clarify interpretation exists — `[Source: clarify C-NNN|D-NNN]`. The citation
+records ancestry ONLY: it does not classify the statement as commitment,
+interpretation, realization, or test evidence, and it grants no authority
+beyond the cited row (`specter-agent-protocols` §10 still governs what each
+artifact may authorize). If no existing authority can be cited for a
+behavioral statement, do NOT invent one and do NOT drop the statement
+silently — mark it `[Source: unresolved]` so Step 4.5 routes it to
+`/ms.clarify`.
+
 **Refer to Constitution for detailed GEARS rules and TRUST principles.**
 
 Now create the specification following these principles.
@@ -342,6 +356,29 @@ scoped to this single invocation:
 ```bash
 rm -f ".specify/.ms-gate-pass-<NNN>"
 ```
+
+### 3.5. Source-Lineage Check (light host check — not a Layer-1 gate)
+
+After `spec.md` is created, list the behavioral FRs that carry no lineage
+citation or are marked `[Source: unresolved]`:
+
+```bash
+grep -nE '^\s*-?\s*\*{0,2}FR-' specs/<spec-id>/spec.md | grep -v '\[Source:' || true
+grep -n '\[Source: unresolved\]' specs/<spec-id>/spec.md || true
+```
+
+- Uncited FRs: add the correct `[Source: C-NNN|D-NNN]` citation from the
+  Feature prompt bundle when the ancestry is evident from the bundle itself.
+  Never fabricate a citation — a statement whose authority you cannot point
+  at in the bundle becomes `[Source: unresolved]`.
+- `[Source: unresolved]` FRs: report them to the user as the exact question
+  list `/ms.clarify` must settle next. They are open questions, not silent
+  scope.
+
+This rule preserves ancestry only. It never classifies a statement and never
+lets a downstream author infer authoritative provenance classifications from
+untagged legacy Feature Map prose (that classification system ships only with
+a future newly-authored Feature Map schema).
 
 ### 4. Add Constitution Reference Footer
 

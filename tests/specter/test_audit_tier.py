@@ -627,8 +627,10 @@ def test_policy_keeps_two_reviewers_and_executable_gates_for_t1() -> None:
 def test_zero_reviewer_and_station_fixed_invariants_remain_in_gate_script() -> None:
     gate = (ROOT / "docs/templates/scripts/specter-gate.sh").read_text()
     assert "no independent verifier ran" in gate
+    # Station inputs stay hardcoded inside the script (resolve_station), so the
+    # caller can never add, omit, or reorder report files.
     assert (
-        'INPUTS=("docs/prd/checklists/feature-${agg_feature}.codex-verify.md"' in gate
+        'RS_INPUTS=("docs/prd/checklists/feature-${RS_FEATURE}.codex-verify.md"' in gate
     )
 
 
