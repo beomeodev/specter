@@ -50,17 +50,17 @@ When executing /speckit-plan, the agent must read and strictly adhere to constit
 **Constitution Reading Guidelines**:
 
 1. **Focus on Planning-Relevant Sections** (Priority Order):
-   - **Section VI**: File, Architecture, And Tooling Governance
+   - the Constitution's **file, architecture, and tooling governance** section
      → Prefer mature tools over custom implementations
      → Production files ≤700 SLOC, functions ≤100 LOC
      → Choose the simplest sufficient design
 
-   - **Section VII**: Security Governance
+   - the Constitution's **security governance** section
      → Validate security-sensitive paths early
      → Bind authorization to resource ownership
      → Keep secrets out of source code and logs
 
-   - **Section IV**: TRUST Review Model
+   - the Constitution's **TRUST review** section
      → Plan for tests, readability, consistency, security, and best-effort traceability
 
 2. **Apply Project-Specific Constraints** (if exists):
@@ -257,9 +257,9 @@ After plan.md is created, append Constitution reference section to document:
 This plan follows the project [Constitution](../../.specify/memory/constitution.md).
 
 **Key Sections:**
--   **Section IV**: TRUST Review Model
--   **Section VI**: File, Architecture, And Tooling Governance
--   **Section VII**: Security Governance
+-   **TRUST review**
+-   **File, architecture, and tooling governance** (production-file SLOC, function-size, complexity limits)
+-   **Security governance**
 
 _Auto-added by `/ms.plan`_
 ```

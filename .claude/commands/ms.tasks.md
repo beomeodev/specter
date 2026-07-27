@@ -41,7 +41,7 @@ Extends `/speckit-tasks` to generate implementation tasks with automatic TAG ID 
 - Exit
 
 **Reference for task generation**:
-- Constitution Section VI (File, Architecture, And Tooling Governance - file size targets: ≤700 SLOC, ≤100 LOC/function)
+- the Constitution's **file, architecture, and tooling governance** section (production-file SLOC, function-size, and complexity limits)
 - Constitution Section IX (Project-specific baseline established from the checked PRD Feature Map by `/ms.constitution`)
 - AGENTS.md (coding standards, task organization patterns - if exists)
 

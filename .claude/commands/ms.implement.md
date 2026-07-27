@@ -87,10 +87,10 @@ silently proceed — tell the user analyze has not passed for this Feature and g
 explicit confirmation to continue without it.
 
 **Reference key sections**:
-- Constitution Section III (Test-First Implementation)
-- Constitution Section IV (TRUST Review Model)
-- Constitution Section V (TAGS: Best-Effort Traceability)
-- Constitution Section VI (File, Architecture, And Tooling Governance - Files ≤700 SLOC, Functions ≤100 LOC)
+- the Constitution's **Test-First** section
+- the Constitution's **TRUST review** section
+- the Constitution's **TAGS traceability** section
+- the Constitution's **file, architecture, and tooling governance** section (production-file SLOC, function-size, and complexity limits)
 - Constitution Section IX (Project-specific baseline established from the checked PRD Feature Map by `/ms.constitution`)
 - AGENTS.md (coding standards, patterns to follow - if exists)
 
@@ -238,17 +238,17 @@ You are implementing code that MUST follow the project Constitution.
 
 **CRITICAL: Read and apply these sections**:
 
-**Section III - Test-First Implementation (MANDATORY)**:
+**Test-First (MANDATORY)** — the Constitution's Test-First section:
 - Define the behavior contract before coding
 - Write or update the relevant test or verification case first
 - Implement the smallest change that satisfies it
 
-**Section VI - File, Architecture, And Tooling Governance (MANDATORY)**:
+**File, architecture, and tooling governance (MANDATORY)** — the Constitution's governance section:
 - Production files ≤700 SLOC; test files have no SLOC limit
 - Functions target ≤100 LOC and complexity ≤10
 - Prefer mature built-in/project tools over new custom implementations
 
-**Section IV - TRUST Review Model (MANDATORY)**:
+**TRUST review (MANDATORY)** — the Constitution's TRUST review section:
 - **Test-First**: touched behavior has tests or verification cases
 - **Readable**: clear naming, ≤5 parameters target, ≤4 nesting target
 - **Unified**: strict typing and existing project patterns

@@ -84,7 +84,7 @@
 
 ### Functional Requirements
 
-Write each requirement in **GEARS** canonical form: `[Where <static>] [While <runtime>] [When <trigger>] the <subject> shall <behavior>.` (Constitution Section IV). Use a concrete subject, not "the system", unless genuinely product-wide.
+Write each requirement in **GEARS** canonical form: `[Where <static>] [While <runtime>] [When <trigger>] the <subject> shall <behavior>.` (the Constitution's Requirements Clarity / GEARS section). Use a concrete subject, not "the system", unless genuinely product-wide.
 
 - **FR-001**: When a user submits the signup form, the account service shall create an account.
 - **FR-002**: the account service shall reject any email that fails RFC 5322 validation.

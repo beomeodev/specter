@@ -25,6 +25,15 @@ regardless of agent judgment.
 - If this file conflicts with the Constitution, the more specific active
   Constitution rule wins for workflow details, but safety, permissions, and
   surgical-scope rules in this file always remain binding.
+- **Never cite the Constitution by section number.** The Constitution is a
+  project-local file (`/ms.sync` explicitly never broadcasts it), so its
+  numbering differs between projects and cannot be assumed by any command,
+  skill, template, spec, plan, or task. Cite by section *name* — "the
+  Requirements Clarity (GEARS Standard) section", "the TRUST review section",
+  "the file, architecture, and tooling governance section". The one exception is
+  **Section IX**, whose literal heading `## IX. Project-Specific Constraints` is
+  a cross-project structural contract that `specter-gate.sh` greps for; keep
+  that reference exactly as-is.
 
 ---
 

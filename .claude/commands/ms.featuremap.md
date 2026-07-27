@@ -43,7 +43,7 @@ user before proceeding.
 ## Language Policy (MANDATORY)
 
 - **The Feature Map document is written in ENGLISH, unconditionally.** It is a workflow document
-  (Constitution Section IV: spec.md / plan.md / tasks.md and their upstream artifacts are English).
+  (the Constitution's language policy in its Requirements Clarity / GEARS section: spec.md / plan.md / tasks.md and their upstream artifacts are English).
   All section content — summaries, scope, decisions, criteria — is English.
 - **Interaction with the user may be Korean** (questions, confirmations, the final report).
   Only the persisted `feature-map.md` is forced to English.

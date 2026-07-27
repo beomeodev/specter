@@ -22,7 +22,7 @@ This command extends `/speckit-clarify` by injecting Constitution principles (es
 
 **User Interaction: KOREAN** ✅
 
-Per Constitution Section II:
+Per the Constitution's Requirements Clarity (GEARS Standard) section:
 
 > "워크플로우 중 생성되는 문서들(spec.md, plan.md, tasks.md)에서만 반드시 영어를 사용하며,
 > 사용자와의 상호작용에서는 한국어를 사용한다."
@@ -44,9 +44,9 @@ Read `.specify/memory/constitution.md` and confirm it exists.
 
 **Key section to reference:**
 
--   **Section II**: Requirements Clarity (GEARS Standards)
+-   the Constitution's **Requirements Clarity (GEARS Standard)** section
 
-**Language Policy** (from Section II):
+**Language Policy** (from the Requirements Clarity / GEARS section):
 
 -   User interaction: KOREAN
 -   Workflow documents: ENGLISH
@@ -64,7 +64,7 @@ You are clarifying requirements in spec.md. Follow the project Constitution.
 
 **Constitution**: .specify/memory/constitution.md
 
-**Read and apply Section II** (Requirements Clarity - GEARS Standard):
+**Read and apply the Requirements Clarity (GEARS Standard) section**:
 - Use the GEARS canonical form: `[Where <static>] [While <runtime>] [When <trigger>] the <subject> shall <behavior>.`
 - Identify ambiguous requirements and provide alternative interpretations
 
@@ -86,7 +86,7 @@ B) 사용자가 로그인 버튼을 클릭하면, 인증 서비스가 자격증�
 
 ```
 
-**Refer to Constitution Section II for detailed GEARS rules.**
+**Refer to the Constitution's Requirements Clarity (GEARS Standard) section for detailed GEARS rules.**
 
 Now identify ambiguous requirements and begin clarification.
 ```
@@ -208,7 +208,7 @@ Display next steps (in KOREAN):
 3. AI가 Constitution 기반으로 GEARS 형식을 따랐습니다 ✅
 
 📖 GEARS 준수 달성:
-- Constitution Section II (GEARS 규칙)
+- 헌법의 Requirements Clarity(GEARS) 조항
 - AI 자연어 이해
 - 강제 변환 로직 없음 (Constitution 주입 방식)
 ```

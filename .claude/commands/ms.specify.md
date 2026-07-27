@@ -267,9 +267,9 @@ Then continue to Step 1.
 - Continue
 
 **Reference key sections**:
-- Constitution Section II (Requirements Clarity: GEARS Standard)
-- Constitution Section IV (TRUST Review Model)
-- Constitution Section V (TAGS: Best-Effort Traceability)
+- the Constitution's **Requirements Clarity (GEARS Standard)** section
+- the Constitution's **TRUST review** section
+- the Constitution's **TAGS traceability** section
 - Constitution Section IX (Project-specific baseline established from the checked PRD Feature Map by `/ms.constitution`)
 - project-structure.md (understand existing tech stack - **if exists**)
 
@@ -283,9 +283,9 @@ You are creating a specification that MUST follow the project Constitution.
 **Constitution**: .specify/memory/constitution.md
 
 **Read and apply these sections**:
-- **Section II**: Requirements Clarity (GEARS Standard) - Use the GEARS canonical form ([Where][While][When] the <subject> shall <behavior>) for behavioral requirements
-- **Section IV**: TRUST Review Model - Design for testability, readability, security, and reviewability
-- **Section V**: TAGS - Treat traceability as best-effort metadata, not a substitute for tests or review
+- **Requirements Clarity (GEARS Standard)** section - Use the GEARS canonical form ([Where][While][When] the <subject> shall <behavior>) for behavioral requirements
+- **TRUST review** section - Design for testability, readability, security, and reviewability
+- **TAGS traceability** section - Treat traceability as best-effort metadata, not a substitute for tests or review
 
 **Language Policy**:
 - Write ALL requirements in ENGLISH
@@ -392,9 +392,9 @@ After spec.md is created, append Constitution reference section to document:
 This specification follows the project [Constitution](../../.specify/memory/constitution.md).
 
 **Key Sections:**
-- **Section II**: GEARS Requirements Standards
-- **Section IV**: TRUST Review Model
-- **Section V**: TAGS Best-Effort Traceability
+- **Requirements Clarity (GEARS Standard)**
+- **TRUST review**
+- **TAGS traceability**
 
 _Auto-added by `/ms.specify`_
 ```
@@ -445,9 +445,9 @@ Display next steps:
 3. Then proceed to `/ms.plan` for implementation planning
 
 📖 Constitution Sections Applied:
-- Section II: GEARS (5 requirement patterns)
-- Section IV: TRUST (5 quality principles)
-- Section V: TAGS (Traceability)
+- Requirements Clarity (GEARS): 5 requirement patterns
+- TRUST review: 5 quality principles
+- TAGS traceability
 ```
 
 ## Error Handling

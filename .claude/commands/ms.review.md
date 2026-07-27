@@ -443,7 +443,7 @@ Rules:
 Run the code-level TRUST checks inline with the repository's own tooling
 (coverage runner, linter, type checker, security scanner):
 
-- coverage threshold from Constitution Section III (Test-First Implementation) or the active project threshold
+- coverage threshold from the Constitution's Test-First section or the active project threshold
 - production file SLOC and function length limits
 - function complexity limits
 - strict typing and zero-warning lint policy

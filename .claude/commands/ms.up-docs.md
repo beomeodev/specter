@@ -51,7 +51,7 @@ This command performs **document synchronization** with 3 modes:
 **Session read policy**: per AGENTS.md §2 — reuse files already read this session; a fresh `Read` immediately before `Edit`/`Write` is still required.
 
 **Reference key sections**:
-- Constitution Section V (TAGS: Best-Effort Traceability)
+- the Constitution's **TAGS traceability** section
 - TAG system requirements and traceability standards
 
 ### Step 1: Analyze Sync Scope
@@ -218,7 +218,7 @@ rg '@(SPEC|TEST|CODE|DOC):([A-Z]+-[0-9]+)' -n
   write them.
 - Multiple `@TEST:ID` occurrences are allowed for multi-file work; `@CODE:ID`
   anchors are unique per id (secondary files restate the chain on a `@CHAIN:` line
-  — Constitution Section V, enforced by the pre-commit backstop).
+  — the Constitution's TAGS traceability section, enforced by the pre-commit backstop).
 - Do not block documentation sync on TAG warnings unless the active Constitution
   Section IX or CI explicitly promotes TAG integrity to blocking.
 
@@ -420,6 +420,6 @@ CHANGELOG.md           # Change history (manual — no command updates it automa
 
 ## References
 
-- SPECTER TAGS: `.specify/memory/constitution.md` Section V
+- SPECTER TAGS: the TAGS traceability section of `.specify/memory/constitution.md`
 - TAG chain rules: `/ms.implement` Step 3 and `scripts/specter/check_tag_chain.py`
 - Document standards: `AGENTS.md` Section 2 (Documentation Updates)
