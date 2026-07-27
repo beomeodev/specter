@@ -375,3 +375,76 @@ class TestLineage:
                        "--expect-protocol", "continuity-v1")
         assert out["verdict"] == "FAIL"
         assert any("invalid Classification" in r for r in out["reasons"])
+
+
+class TestParserRobustness:
+    """Regressions from the 2026-07-27 Feature 081 cycle (suseonglm).
+
+    Both defects made a *valid* report look invalid or empty. The dangerous
+    direction in both cases is silent under-reporting: a rejected report or a
+    dropped finding is one the next round is never told to carry forward.
+    """
+
+    def test_trailing_whitespace_in_header_does_not_reject_a_valid_report(
+        self, repo: Path
+    ) -> None:
+        """A Markdown hard-break (two trailing spaces) is invisible but was fatal.
+
+        `extract_field` stripped leading whitespace only, so `**Mode**: x  `
+        compared unequal to `x` and the report was graded as coming from the
+        wrong station.
+        """
+        path = write_v2_report(repo, "codex", coverage_keys=VERIFY_KEYS)
+        text = path.read_text()
+        text = text.replace(
+            "**Mode**: codex-per-feature-verify\n",
+            "**Mode**: codex-per-feature-verify  \n",
+        ).replace("**Result**: PASS\n", "**Result**: PASS  \n")
+        path.write_text(text)
+        write_v2_report(repo, "antigravity", coverage_keys=VERIFY_KEYS)
+
+        out = run_gate(
+            repo, "aggregate", "verify", "1", "--round", "1",
+            "--expect-protocol", "continuity-v1", "--require-coverage",
+        )
+
+        assert not any("does not match station mode" in r for r in out["reasons"]), (
+            f"trailing whitespace rejected a valid report: {out['reasons']}"
+        )
+        assert out["verdict"] == "PASS"
+
+    def test_blocking_severity_is_carried_into_the_continuity_packet(
+        self, repo: Path
+    ) -> None:
+        """`BLOCKING` is the vocabulary §6 itself uses for these findings.
+
+        The packet builder matched only CRITICAL/HIGH, so a round whose report
+        carried BLOCKING findings produced '(no blocking findings in this lane
+        at this round)' and the re-round lost the lineage entirely.
+        """
+        row = (
+            "| CX-009 | none | NEW | NEW_EVIDENCE | BLOCKING | idempotency key "
+            "not unique | 0067.sql:120 | add a unique index |"
+        )
+        write_v2_report(
+            repo, "codex", result="FAIL", coverage_keys=VERIFY_KEYS,
+            finding_rows=[row],
+        )
+        write_v2_report(repo, "antigravity", coverage_keys=VERIFY_KEYS)
+        run_gate(
+            repo, "aggregate", "verify", "1", "--ledger", "--round", "1",
+            "--expect-protocol", "continuity-v1",
+        )
+
+        out = run_gate(repo, "continuity", "verify", "1", "--round", "2")
+
+        assert out["blocking_findings"] == 1, (
+            "a BLOCKING-severity finding was dropped from the continuity packet"
+        )
+        packet = (repo / out["packet"]).read_text()
+        assert row in packet
+        # The codex lane must carry the row; the antigravity lane legitimately
+        # reports none, so assert per-lane rather than over the whole packet.
+        codex_section = packet.split("codex-verify.md")[1].split("## Round")[0]
+        assert row in codex_section
+        assert "(no blocking findings in this lane at this round)" not in codex_section
