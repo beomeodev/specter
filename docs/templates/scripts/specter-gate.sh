@@ -137,8 +137,15 @@ extract_field() {
   # `|| true`: tolerates a missing field under `set -euo pipefail` so the
   # caller sees an empty string (treated as FAIL downstream) instead of the
   # whole script aborting with no JSON output.
+  #
+  # BOTH sides are trimmed. Trailing whitespace is invisible in a rendered
+  # report but was enough to fail the exact-match Mode/Result comparisons — an
+  # agent that ends the line with the Markdown hard-break (two spaces) had its
+  # otherwise valid report rejected as "wrong station". Surrounding whitespace
+  # is never semantic in these header fields.
   local file="$1" field="$2"
-  grep -m1 "^\*\*${field}\*\*:" "$file" 2>/dev/null | sed -E "s/^\*\*${field}\*\*:[[:space:]]*//" || true
+  grep -m1 "^\*\*${field}\*\*:" "$file" 2>/dev/null \
+    | sed -E "s/^\*\*${field}\*\*:[[:space:]]*//; s/[[:space:]]+$//" || true
 }
 
 reasons_to_json() {
@@ -806,17 +813,25 @@ if [ "$SUBCOMMAND" = "continuity" ]; then
           printf '\n## Round %s — %s\n\n' "$rr" "$f"
           [ -n "$arch_sha_val" ] && printf '**Audited artifact SHA at that round**: %s\n\n' "$arch_sha_val"
         } >> "$packet"
-        # Verbatim CRITICAL/HIGH rows from the archived Findings table — never
+        # Verbatim blocking rows from the archived Findings table — never
         # paraphrased. Works for both the legacy 4-column and the continuity-v1
-        # lineage schema (any cell exactly CRITICAL or HIGH).
+        # lineage schema (any cell exactly one of the blocking severities).
+        #
+        # BLOCKING is accepted alongside CRITICAL/HIGH: §6 of the protocol calls
+        # these "prior blocking findings" and the station prompts never fix a
+        # severity vocabulary, so reviewers legitimately write BLOCKING. Omitting
+        # it made the packet report "(no blocking findings)" for a round whose
+        # report carried three, silently dropping the lineage a re-round depends
+        # on. Under-reporting here is the dangerous direction: a dropped finding
+        # is one the next round is never told to carry forward.
         rows=$(awk '
           /^## Findings/ { f = 1; next }
           /^## / { f = 0 }
           f && /^\|/ && $0 !~ /^\|[-: |]+$/ && $0 !~ /Severity[ ]*\|/ {
             n = split($0, c, "|")
             for (i = 1; i <= n; i++) {
-              cell = c[i]; gsub(/^[ ]+|[ ]+$/, "", cell)
-              if (cell == "CRITICAL" || cell == "HIGH") { print; next }
+              cell = c[i]; gsub(/^[ \t]+|[ \t]+$/, "", cell)
+              if (cell == "CRITICAL" || cell == "HIGH" || cell == "BLOCKING") { print; next }
             }
           }' "$arch")
         if [ -n "$rows" ]; then

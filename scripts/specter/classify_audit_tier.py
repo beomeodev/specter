@@ -364,12 +364,54 @@ def git_output(root: Path, *args: str) -> str:
     return result.stdout
 
 
+# Gate machinery output — never part of the implementation diff being classified.
+#
+# Two of these paths made `--phase diff` structurally unusable. The classifier
+# writes its receipt into `.specify/audit-tiers/` and the aggregation writes the
+# station receipt into `.specify/specter-run.jsonl`; both were inside the hashed
+# bundle, so producing a receipt changed the very evidence that receipt records
+# and the receipt was stale the instant it was written. A T3 station could not
+# reach a valid receipt at all.
+#
+# Only *installed runtime copies and gate outputs* are excluded. The tracked
+# sources they come from — `scripts/specter/`, `docs/templates/` — stay in the
+# diff, so a real policy, classifier, or gate change still triggers its floor.
+# Excluding a receipt is not excluding a code change.
+GATE_MACHINERY_PATHS: tuple[str, ...] = (
+    ".specify/audit-tiers/",  # per-Feature tier receipts (this classifier's own output)
+    ".specify/continuity/",  # coverage manifests and continuity packets
+    ".specify/specter-run.jsonl",  # the run ledger — the station receipt itself
+    ".specify/review-state.txt",  # /ms.review visibility artifact
+    ".specify/review-hash.cache",  # /ms.review <-> /ms.fin cache
+    ".specify/policies/",  # installed copy of docs/templates/audit-tier-policy.json
+    ".specify/scripts/",  # installed copies of the runtime scripts
+)
+
+
+def is_gate_machinery(relpath: str) -> bool:
+    """Whether `relpath` is gate output rather than implementation under review."""
+    normalized = relpath.strip()
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+    return any(
+        normalized == entry.rstrip("/") or normalized.startswith(entry)
+        for entry in GATE_MACHINERY_PATHS
+    )
+
+
 def diff_evidence(root: Path, base: str) -> tuple[str, str, list[str]]:
     git_output(root, "rev-parse", "--verify", base)
-    diff = git_output(root, "diff", "--no-ext-diff", "--binary", base, "--")
+    # Exclude gate machinery from the tracked diff via pathspec so the bundle
+    # cannot move when a receipt or ledger line is written.
+    excludes = [f":(exclude){entry.rstrip('/')}" for entry in GATE_MACHINERY_PATHS]
+    diff = git_output(
+        root, "diff", "--no-ext-diff", "--binary", base, "--", ".", *excludes
+    )
     names = {
         line.strip()
-        for line in git_output(root, "diff", "--name-only", base, "--").splitlines()
+        for line in git_output(
+            root, "diff", "--name-only", base, "--", ".", *excludes
+        ).splitlines()
         if line.strip()
     }
     status = git_output(root, "status", "--porcelain", "--untracked-files=all")
@@ -377,6 +419,8 @@ def diff_evidence(root: Path, base: str) -> tuple[str, str, list[str]]:
     for line in status.splitlines():
         if line.startswith("?? "):
             relpath = line[3:]
+            if is_gate_machinery(relpath):
+                continue
             untracked.append(relpath)
             names.add(relpath)
     additions: list[str] = []
@@ -604,7 +648,18 @@ def classify(args: argparse.Namespace, policy: Policy, root: Path) -> dict[str, 
         "timestamp": utc_timestamp(),
     }
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json_dump(receipt) + "\n", encoding="utf-8")
+    # Idempotent write. A re-classification that observes exactly the same inputs
+    # and reaches exactly the same verdict must not churn the receipt's sha256:
+    # human WARN acknowledgements bind to that sha, and the mandatory
+    # re-classification steps (e.g. /ms.implement before touching code) would
+    # otherwise void an acknowledgement the user gave moments earlier against
+    # byte-identical evidence, forcing them to approve the same thing twice.
+    # Only `timestamp` may differ; every other field participates in the compare,
+    # so a genuine change still rewrites the receipt and correctly voids the ack.
+    if _receipt_is_unchanged(path, receipt):
+        receipt["timestamp"] = json.loads(path.read_text(encoding="utf-8"))["timestamp"]
+    else:
+        path.write_text(json_dump(receipt) + "\n", encoding="utf-8")
     receipt["receipt_path"] = str(path)
     if args.ledger:
         ledger_path = root / ".specify" / "specter-run.jsonl"
@@ -626,6 +681,35 @@ def classify(args: argparse.Namespace, policy: Policy, root: Path) -> dict[str, 
         with ledger_path.open("a", encoding="utf-8") as ledger:
             ledger.write(json.dumps(entry, sort_keys=True, ensure_ascii=False) + "\n")
     return receipt
+
+
+def _receipt_is_unchanged(path: Path, candidate: dict[str, Any]) -> bool:
+    """Whether an existing receipt is identical to `candidate` apart from its timestamp.
+
+    Returns False on any read/parse problem so a damaged receipt is always
+    rewritten — never silently trusted.
+
+    The two failure modes are caught in separate clauses on purpose. A single
+    `except (OSError, json.JSONDecodeError):` is rewritten by `ruff format` into
+    PEP 758's unparenthesized form, which `pyproject.toml`'s
+    `requires-python = ">=3.14"` permits — but this script is executed by
+    whatever `python3` a consumer repo happens to have on PATH, and the test
+    harness's own PATH resolves to 3.11, where that form is a SyntaxError.
+    Separate clauses are valid on every interpreter and cannot be rewritten
+    into one.
+    """
+    try:
+        existing = json.loads(path.read_text(encoding="utf-8"))
+    except OSError:
+        return False
+    except json.JSONDecodeError:
+        return False
+    if not isinstance(existing, dict):
+        return False
+    volatile = {"timestamp", "receipt_path"}
+    return {k: v for k, v in existing.items() if k not in volatile} == {
+        k: v for k, v in candidate.items() if k not in volatile
+    }
 
 
 def load_receipt(root: Path, feature: str) -> tuple[Path, dict[str, Any]]:

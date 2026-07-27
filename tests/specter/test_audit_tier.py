@@ -6,6 +6,7 @@ import hashlib
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -690,3 +691,107 @@ def test_gate_capability_probe_rejects_partial_sync(repo: Path) -> None:
     partial_policy.write_bytes(POLICY.read_bytes())
     version = run_gate(repo, "version")
     assert version["audit_tier_capability"] == "partial-sync"
+
+
+# --- Regressions from the 2026-07-27 Feature 081 cycle (suseonglm) -----------
+#
+# All three made a station unable to reach a valid receipt, or destroyed a
+# human acknowledgement that was still accurate. None was detectable from the
+# tier value itself, which is why the existing suite stayed green through them.
+
+
+def test_writing_the_receipt_does_not_invalidate_the_receipt(repo: Path) -> None:
+    """`--phase diff` was structurally unusable: it invalidated itself.
+
+    `diff_evidence` hashed every untracked file's content, and the classifier
+    writes its own receipt into the untracked `.specify/audit-tiers/`. So the
+    act of recording the classification changed the evidence being recorded and
+    the receipt was stale the instant it existed.
+    """
+    (repo / "backend").mkdir(parents=True, exist_ok=True)
+    (repo / "backend" / "svc.py").write_text("x = 1\n")
+
+    classify(repo, "diff", "--diff-base", "HEAD")
+    status = payload(run(repo, "gate-status", "--feature", "1", "--station", "review"))
+
+    assert status["valid"] is True, status.get("reasons")
+
+
+def test_ledger_write_does_not_invalidate_the_diff_receipt(repo: Path) -> None:
+    """Same loop through the tracked ledger: the ledger IS the station receipt.
+
+    `.specify/specter-run.jsonl` is tracked, so emitting the station receipt
+    changed `git diff` and voided the tier receipt the acknowledgement depends
+    on — the review station could never reach an acknowledged WARN.
+    """
+    (repo / "backend").mkdir(parents=True, exist_ok=True)
+    (repo / "backend" / "svc.py").write_text("x = 1\n")
+
+    classify(repo, "diff", "--diff-base", "HEAD", "--ledger")
+    status = payload(run(repo, "gate-status", "--feature", "1", "--station", "review"))
+
+    assert status["valid"] is True, status.get("reasons")
+
+
+def test_gate_machinery_is_excluded_but_its_tracked_source_is_not(repo: Path) -> None:
+    """The exclusion must not become a hole.
+
+    Only *installed runtime copies and gate outputs* are excluded. A real change
+    to the tracked policy/classifier/gate source still has to reach the
+    classifier and force T3, or the fix would have disabled a safety floor.
+    """
+    target = repo / "docs" / "templates" / "audit-tier-policy.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("{}\n")
+
+    data = classify(repo, "diff", "--diff-base", "HEAD")
+
+    assert data["effective_tier"] == "T3"
+    assert any("policy" in f or "gate" in f for f in data["triggered_floors"])
+
+
+def test_reclassifying_identical_evidence_keeps_the_receipt_sha(repo: Path) -> None:
+    """A no-op reclassification must not void a human WARN acknowledgement.
+
+    Acknowledgements bind to the receipt sha256. The mandatory re-classification
+    steps (e.g. `/ms.implement` before touching code) rewrote the receipt with a
+    fresh timestamp only, which voided an acknowledgement the user had given
+    minutes earlier against byte-identical evidence — forcing them to approve
+    the same thing twice.
+    """
+    receipt = repo / ".specify" / "audit-tiers" / "feature-001.json"
+
+    # The first run establishes `prior_effective_tier`, which legitimately moves
+    # from absent to the recorded tier — that write is a real content change.
+    # The invariant under test is the one acknowledgements depend on: once a
+    # receipt exists, re-running the same classification is a no-op.
+    classify(repo)
+    classify(repo)
+    settled = hashlib.sha256(receipt.read_bytes()).hexdigest()
+
+    # `utc_timestamp()` has second granularity, so two back-to-back runs can
+    # land in the same second and hide the churn. Cross a second boundary so
+    # this test actually discriminates — without the fix it must fail.
+    time.sleep(1.1)
+
+    classify(repo)
+    repeated = hashlib.sha256(receipt.read_bytes()).hexdigest()
+
+    assert settled == repeated, "an unchanged reclassification churned the receipt sha"
+
+
+def test_reclassifying_changed_evidence_does_rewrite_the_receipt(repo: Path) -> None:
+    """The idempotent write must never mask a genuine change."""
+    receipt = repo / ".specify" / "audit-tiers" / "feature-001.json"
+
+    classify(repo)
+    before = hashlib.sha256(receipt.read_bytes()).hexdigest()
+
+    (repo / "docs/prd/feature-map.md").write_text(
+        feature_map({"auth_or_authorization": "yes"})
+    )
+    classify(repo)
+    after = hashlib.sha256(receipt.read_bytes()).hexdigest()
+
+    assert before != after, "a real evidence change did not rewrite the receipt"
+    assert json.loads(receipt.read_text())["effective_tier"] == "T3"
