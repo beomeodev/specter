@@ -378,13 +378,13 @@ def git_output(root: Path, *args: str) -> str:
 # diff, so a real policy, classifier, or gate change still triggers its floor.
 # Excluding a receipt is not excluding a code change.
 GATE_MACHINERY_PATHS: tuple[str, ...] = (
-    ".specify/audit-tiers/",       # per-Feature tier receipts (this classifier's own output)
-    ".specify/continuity/",        # coverage manifests and continuity packets
+    ".specify/audit-tiers/",  # per-Feature tier receipts (this classifier's own output)
+    ".specify/continuity/",  # coverage manifests and continuity packets
     ".specify/specter-run.jsonl",  # the run ledger — the station receipt itself
-    ".specify/review-state.txt",   # /ms.review visibility artifact
+    ".specify/review-state.txt",  # /ms.review visibility artifact
     ".specify/review-hash.cache",  # /ms.review <-> /ms.fin cache
-    ".specify/policies/",          # installed copy of docs/templates/audit-tier-policy.json
-    ".specify/scripts/",           # installed copies of the runtime scripts
+    ".specify/policies/",  # installed copy of docs/templates/audit-tier-policy.json
+    ".specify/scripts/",  # installed copies of the runtime scripts
 )
 
 
@@ -404,7 +404,9 @@ def diff_evidence(root: Path, base: str) -> tuple[str, str, list[str]]:
     # Exclude gate machinery from the tracked diff via pathspec so the bundle
     # cannot move when a receipt or ledger line is written.
     excludes = [f":(exclude){entry.rstrip('/')}" for entry in GATE_MACHINERY_PATHS]
-    diff = git_output(root, "diff", "--no-ext-diff", "--binary", base, "--", ".", *excludes)
+    diff = git_output(
+        root, "diff", "--no-ext-diff", "--binary", base, "--", ".", *excludes
+    )
     names = {
         line.strip()
         for line in git_output(
@@ -686,10 +688,21 @@ def _receipt_is_unchanged(path: Path, candidate: dict[str, Any]) -> bool:
 
     Returns False on any read/parse problem so a damaged receipt is always
     rewritten — never silently trusted.
+
+    The two failure modes are caught in separate clauses on purpose. A single
+    `except (OSError, json.JSONDecodeError):` is rewritten by `ruff format` into
+    PEP 758's unparenthesized form, which `pyproject.toml`'s
+    `requires-python = ">=3.14"` permits — but this script is executed by
+    whatever `python3` a consumer repo happens to have on PATH, and the test
+    harness's own PATH resolves to 3.11, where that form is a SyntaxError.
+    Separate clauses are valid on every interpreter and cannot be rewritten
+    into one.
     """
     try:
         existing = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except OSError:
+        return False
+    except json.JSONDecodeError:
         return False
     if not isinstance(existing, dict):
         return False
