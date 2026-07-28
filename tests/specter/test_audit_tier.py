@@ -795,3 +795,95 @@ def test_reclassifying_changed_evidence_does_rewrite_the_receipt(repo: Path) -> 
 
     assert before != after, "a real evidence change did not rewrite the receipt"
     assert json.loads(receipt.read_text())["effective_tier"] == "T3"
+
+
+# ---------------------------------------------------------------------------
+# 2026-07-28 — conservative artifact scans must not lie about scope
+# ---------------------------------------------------------------------------
+
+
+def _spec_plan_tasks(repo: Path, tasks_body: str) -> list[str]:
+    """Write a minimal spec/plan/tasks trio and return the classify args."""
+    spec_dir = repo / "specs" / "001-x"
+    spec_dir.mkdir(parents=True, exist_ok=True)
+    (spec_dir / "spec.md").write_text("# Spec\n\nNothing risky here.\n")
+    (spec_dir / "plan.md").write_text("# Plan\n\nNothing risky here.\n")
+    (spec_dir / "tasks.md").write_text(tasks_body)
+    return [
+        "--spec",
+        "specs/001-x/spec.md",
+        "--plan",
+        "specs/001-x/plan.md",
+        "--tasks",
+        "specs/001-x/tasks.md",
+    ]
+
+
+def test_mandated_boilerplate_does_not_trigger_a_risk_signal(repo: Path) -> None:
+    """SPECTER's own required phrases carry no information about this Feature.
+
+    `CI passes green` is the mandated last done criterion and the audit-tier
+    reclassification is a mandated task, so before the 2026-07-28 fix every
+    Feature tripped `build-release-policy` and `audit-policy-change` — signals
+    that are always on, next to evidence saying the opposite.
+    """
+    args = _spec_plan_tasks(
+        repo,
+        "# Tasks\n\n"
+        "- [ ] T001 Do the work\n"
+        "- [ ] T045 Re-run the audit-tier classification at the diff boundary\n"
+        "- [ ] T049 CI passes green\n",
+    )
+
+    receipt = classify(repo, "pre-implement", *args)
+
+    assert "T3:build-release-policy" not in receipt["triggered_floors"]
+    assert "T3:audit-policy-change" not in receipt["triggered_floors"]
+
+
+def test_the_boilerplate_exemption_is_narrow(repo: Path) -> None:
+    """Only the exact mandated phrases are exempt — the words still count.
+
+    Without this the previous test would pass by gutting the rule instead of
+    exempting boilerplate.
+    """
+    args = _spec_plan_tasks(
+        repo,
+        "# Tasks\n\n- [ ] T001 Rewrite the CI workflow and publish a release\n",
+    )
+
+    receipt = classify(repo, "pre-implement", *args)
+
+    assert "T3:build-release-policy" in receipt["triggered_floors"]
+
+
+def test_scan_derived_signals_do_not_overwrite_declared_ones(repo: Path) -> None:
+    """The receipt must not contradict its own cited evidence.
+
+    A plan citing an existing migration's `CREATE INDEX` flipped
+    `schema_or_data_migration` to `yes` on a Feature whose map said `no` with
+    evidence "this Feature adds no DDL". Both statements are true; they belong
+    in different fields.
+    """
+    args = _spec_plan_tasks(
+        repo,
+        "# Tasks\n\n- [ ] T001 Reuse the index created by CREATE INDEX idx_x in 0067\n",
+    )
+
+    receipt = classify(repo, "pre-implement", *args)
+
+    assert receipt["observed_signals"]["schema_or_data_migration"] == "no"
+    assert receipt["scan_derived_signals"]["schema_or_data_migration"] == "yes"
+
+
+def test_a_scan_hit_still_raises_the_tier(repo: Path) -> None:
+    """Separating the sources must not lower any floor — fail-safe is preserved."""
+    args = _spec_plan_tasks(
+        repo,
+        "# Tasks\n\n- [ ] T001 Reuse the index created by CREATE INDEX idx_x in 0067\n",
+    )
+
+    receipt = classify(repo, "pre-implement", *args)
+
+    assert "T3:schema-migration" in receipt["triggered_floors"]
+    assert receipt["effective_tier"] == "T3"
