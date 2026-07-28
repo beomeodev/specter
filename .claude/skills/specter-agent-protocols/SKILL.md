@@ -244,6 +244,30 @@ Feature-089 rejected-record episode is the direct counterexample):
    valid;
 6. a self-check explaining why the proposed repair does not violate §10.
 
+**Repair contract (the fixer's obligation).** Reviewers are already required to
+report violations **by rule class** — every violator they can find, never just
+the first. The same obligation binds whoever repairs the finding, and until
+2026-07-28 it did not: a finding names the violators the reviewer happened to
+see, so fixing exactly those leaves the rule broken everywhere else, and the
+next round reports the remainder as `PERSISTING` or `REOPENED`.
+
+Before reporting a blocking finding repaired, the fixer must:
+
+1. **Derive the rule** the finding is an instance of — not the line it cites.
+   "This page ignores the access mode" is an instance of "every surface gated by
+   the mode must consult it".
+2. **Sweep for every other instance** of that rule across the Feature's diff and
+   the seams it touches, and repair those too.
+3. **State the sweep in the repair report**: what rule, what search, how many
+   sites found, all repaired. A repair claim with no sweep statement is
+   incomplete, and the next round is entitled to treat it as unrepaired.
+
+Two 2026-07-28 rounds were spent exactly here: an access-mode guard added to two
+pages but not to the selector that offers them (`REOPENED`), and an identifier
+scan widened on the backend but not in the page test (`PERSISTING`). Both fixes
+were correct and both were partial; the sweep step is what makes "fixed" mean the
+rule holds rather than the cited line changed.
+
 **Honesty limit.** Mechanical enforcement (stable IDs, lineage fields, packet
 input, Layer-3 validation) makes *omission* impossible — it cannot make a
 dishonest classification true. Classification truthfulness remains the job of
