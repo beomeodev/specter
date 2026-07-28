@@ -349,6 +349,44 @@ can never certify the whole map:
   global station the cap is §4's fixed 3 automatic rounds; the final
   full audit is the certification run, not an extra repair round.
 
+**Delta certification (2026-07-28) — scope the re-audit to the change.** The
+rules above answer "how do we certify a map we are actively repairing". They
+were also being applied to a *settled* map that someone later edited, and there
+the full sweep is miscalibrated: the certificate binds to the map's SHA, so any
+byte forces a 436-key re-audit of everything, no matter how small the edit.
+
+Measured on 2026-07-28: three targeted edits (two Commitment-Index rows extended,
+one audit-signal number corrected) triggered four full certification rounds.
+Findings attributable to those edits: **zero**. The two real findings that surfaced
+(`C-185`, `C-159`) were pre-existing omissions the *previous* certification had
+already passed — the sweep was re-sampling the whole map, not verifying the change.
+
+So when the map was already certified `PASS`/`WARN` and the pending diff is
+**low-risk**, the re-audit is scoped to the change:
+
+- **Low-risk (delta-certifiable)** — edits that cannot move a commitment's owner
+  or the audit's key set: wording clarified inside an existing row, evidence or
+  citation corrected, an `### Audit signals` value updated, a done criterion
+  reworded without changing what it observes, typo/formatting.
+- **High-risk (always full-scope)** — ownership moved between Features, a Feature
+  split/merged, any DAG edge changed, a C-ID or D-ID added or removed, a
+  commitment deleted, a tier lowered, or the map's **first** certification. These
+  ripple beyond the edited lines, which is the reason the full sweep exists.
+  When in doubt, treat the edit as high-risk.
+- The delta round audits the diff hunks **plus their citation radius** — every
+  row that cites, is cited by, or owns something the diff touched — and its
+  coverage section may cover that radius instead of the whole inventory.
+- The canonical gate records `**Certification Scope**: full | delta-from-<prior SHA>`
+  so a later reader can tell which guarantee they hold, and a delta certificate
+  names the prior full certificate it extends.
+- A delta round may **not** clear findings outside its scope, and it may not chain
+  indefinitely: after **three consecutive** delta certifications, or on the first
+  high-risk edit, the next accepted verdict comes from a full-scope audit again.
+- Manifest arity is the mechanical tell: if the regenerated
+  `pre-verify-manifest.json` key count changes, the edit was **not** low-risk —
+  fall back to full scope. (Extending an existing row keeps the count; adding a
+  C-ID does not.)
+
 ### Step 2.5: Derived-Impact Acknowledgment (only when non-`none` Impact rows exist)
 
 If the map has an `## Implementation Obligations` table, list every row whose
@@ -383,6 +421,9 @@ metadata, and layout only:
 **Feature Map SHA256**: <the FEATURE_MAP_SHA the reports were graded against>
 **Git Ref**: <git rev-parse HEAD at audit time — record only after checking `git status --porcelain docs/prd/`: if audited PRDs/Feature Map are uncommitted, this ref does NOT contain what was audited and `/ms.expand`'s delta baseline breaks (audit #30); tell the user to commit first, or write `DIRTY` here if they decline>
 **Result**: <receipt verdict, copied verbatim>
+**Certification Scope**: <`full`, or `delta-from-<prior Feature Map SHA256>` when the
+accepted verdict came from a delta round — see the delta-certification rules in Step 2.
+A delta certificate also names the full certificate it extends.>
 **Generated**: YYYY-MM-DD
 
 ## Structural Gate (Layer 1)
