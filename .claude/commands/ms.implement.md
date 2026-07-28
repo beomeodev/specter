@@ -296,6 +296,27 @@ Implementation contract:
 - If `plan.md` contains a `## State Ownership & Invariants` section, every declared invariant
   gets at least one test that can actually go red on violation, written during the RED step.
   A missing invariant test is a `/ms.review` Step 5-J HIGH finding.
+- **No check that cannot fail.** A test, guard, or fetched value that looks like
+  verification while verifying nothing is worse than none: it consumes the budget of a
+  real check and reads as covered. Three shapes, all found in one 2026-07-28 Feature:
+  - **Mocked-away seam.** If every test of a module replaces that module (`vi.mock`,
+    `monkeypatch`, a fake client), then **one test must execute the real module** —
+    its URL construction, header/cookie assembly, error branch, and return shape. The
+    500-on-load defect above lived entirely inside a module that only ever appeared
+    mocked. Mocking a *dependency* is fine; mocking the *thing under test* is not
+    coverage of it.
+  - **Fetched and discarded.** A value read for a decision must reach the decision.
+    `await fetchAccessMode()` with the result dropped is dead code shaped like a guard —
+    and a test asserting the call *happened* passes while nothing is enforced. Assert on
+    the **effect** (denied / rendered / rejected), never on the call.
+  - **Structurally blind assertion.** A check whose matcher cannot match the real shape
+    always passes. An import-boundary test that scanned only `import x` silently ignored
+    `from pkg import x` and would have greenlit any violation.
+  For any check whose failure mode is "silently always passes", write the **non-vacuity
+  proof**: a sibling test that runs the same check against a deliberately violating
+  input (the pre-fix code path, a seeded bad row, a throwaway offending fixture) and
+  asserts it goes red. Name it so the intent survives, e.g.
+  `test_<check>_can_actually_go_red`.
 - When the effective receipt is T3, execute every applicable identifier in
   `receipt.tier_settings.targeted_checks`; do not restate or select a different
   module list in this command. These obligations supplement,
@@ -341,6 +362,49 @@ Rules:
   `@STATUS`, `@CREATED`, `@UPDATED`) in already-tagged files remain valid — the
   backstop ignores everything except anchors. Do not rewrite them
   retroactively; new work writes bare anchors only.
+
+### Step 3.4: Execution Smoke — drive what you just built (blocking)
+
+Green tests prove the code compiles and its units behave. They do not prove the
+product **runs**. Run this at the end of every GREEN phase, before moving on.
+
+**Why this is here and not only in `/ms.review`.** On 2026-07-28 a Feature shipped
+`fetch("/api/...")` from a Next.js server component. Relative URLs cannot resolve
+server-side, so both new pages returned HTTP 500 on first load — while 4,563
+backend tests, 1,890 frontend tests, ruff, `mypy --strict`, eslint, `tsc`, the
+production build and 95.95% coverage were all green, because every page test
+mocked the API module wholesale. Nine prior document-review rounds could not see
+it either: reviewers read files, they do not execute them. `/ms.review`'s
+real-entrypoint step caught it — one command, after the whole cycle had already
+been paid for. Catching it here costs seconds.
+
+**What to run.** The lightest thing that exercises the real path end to end for
+the surface this phase touched:
+
+| This phase added | Smoke it with |
+| --- | --- |
+| an HTTP endpoint | boot the app's real entrypoint, `curl` the route as each actor class the spec names (authorized / unauthorized / anonymous), print status + body |
+| a page or UI route | serve the built app, request the route, assert on the rendered markup — not on a green component test |
+| a CLI command or script | invoke it with real arguments and diff against a known-good output |
+| a background job or poller | trigger one cycle and observe the state transition it claims to make |
+| library/pure logic only | skip with a one-line reason — there is no entrypoint to drive |
+
+Rules:
+
+- **The real entrypoint, never a mock or a test harness.** The point is to
+  execute the wiring that unit tests replace: URL construction, dependency
+  resolution, middleware, config loading, env requirements.
+- Bounded: seconds, not a load test. Kill any server/watcher once observed.
+- Record the **exact command and observed output** in the Step 5 report — "worked
+  fine" is not evidence.
+- A failure here is a **blocker for this phase**, the same as a failing test.
+  Fix it before starting the next phase; do not defer it to `/ms.review`.
+- Running the app is covered by the invoked command's permission (AGENTS.md §7),
+  so no extra approval is needed for the boots this step defines.
+
+This does not replace `/ms.review` Step 6.6, which drives the Feature's Done
+Criteria as a whole. This is the per-phase early warning; that is the acceptance
+gate.
 
 ### Step 3.5: Update Documentation (Living Docs)
 

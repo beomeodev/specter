@@ -435,6 +435,30 @@ def diff_evidence(root: Path, base: str) -> tuple[str, str, list[str]]:
     return bundle, sha256_bytes(bundle.encode("utf-8")), sorted(names)
 
 
+def strip_boilerplate(policy: Policy, content: str) -> str:
+    """Remove SPECTER's own mandated phrases before content scanning.
+
+    A content pattern that matches a string the workflow *requires* every
+    artifact to contain fires on every Feature, so it carries no information
+    while looking like a risk signal. Measured on 2026-07-28: `\\bCI\\b` matched
+    the mandated `CI passes green` done criterion and `audit-tier` matched the
+    mandated reclassification task, flipping `build_release_...` and
+    `policy_or_gate_change` to `yes` on a Feature whose own evidence said
+    "No CI, hook, release, or sandbox change" and "No change to the audit-tier
+    policy, classifier, or gate scripts".
+
+    Only exact, workflow-mandated phrases are exempted, declared in the policy
+    so the list is auditable — this narrows nothing else. Any other occurrence of
+    the same words still triggers the rule.
+    """
+    phrases = policy.data.get("content_scan_boilerplate") or []
+    if not phrases:
+        return content
+    for phrase in phrases:
+        content = content.replace(str(phrase), " ")
+    return content
+
+
 def scan_artifacts(
     policy: Policy,
     phase: str,
@@ -456,9 +480,10 @@ def scan_artifacts(
         ]
         matches: list[str] = []
         for path, content in text_by_path.items():
+            scannable = strip_boilerplate(policy, content)
             if any(pattern.search(path) for pattern in path_patterns):
                 matches.append(f"path:{path}")
-            if any(pattern.search(content) for pattern in content_patterns):
+            if any(pattern.search(scannable) for pattern in content_patterns):
                 matches.append(f"content:{path}")
         if not matches:
             continue
@@ -591,7 +616,15 @@ def classify(args: argparse.Namespace, policy: Policy, root: Path) -> dict[str, 
     scan_tier, scan_floors, scan_reasons, scanned_signals = scan_artifacts(
         policy, phase, text_by_path
     )
-    observed_signals.update(scanned_signals)
+    # Keep the two sources distinct. `observed_signals` is what the Feature Map
+    # DECLARES with cited evidence; `scan_derived_signals` is what the
+    # conservative artifact scan matched. Overwriting the former with the latter
+    # produced receipts that contradicted their own `signal_evidence` — e.g.
+    # `schema_or_data_migration: yes` next to evidence reading "this Feature adds
+    # no DDL", because the plan cited an existing migration's `CREATE INDEX`.
+    # The tier still takes the maximum of both, so nothing is graded lower; only
+    # the receipt stops lying about which statement came from where.
+    scan_derived_signals = dict(scanned_signals)
     triggered_floors.extend(scan_floors)
     reasons.extend(scan_reasons)
     newly_computed = rank_max(signal_tier, scan_tier)
@@ -636,6 +669,10 @@ def classify(args: argparse.Namespace, policy: Policy, root: Path) -> dict[str, 
         "classification_status": status,
         "input_artifacts": input_artifacts,
         "observed_signals": observed_signals,
+        # What the conservative artifact scan matched, kept separate from the
+        # map's declared, evidence-cited values so a keyword hit never
+        # overwrites — or silently contradicts — a documented `no`.
+        "scan_derived_signals": scan_derived_signals,
         "signal_evidence": parsed.evidence,
         "triggered_floors": triggered_floors,
         "prior_effective_tier": prior,

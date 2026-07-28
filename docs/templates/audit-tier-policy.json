@@ -134,6 +134,10 @@
     "behavioral_fr_count_max": 3,
     "estimated_touched_files_max": 8
   },
+  "content_scan_boilerplate": [
+    "CI passes green",
+    "Re-run the audit-tier classification at the diff boundary"
+  ],
   "artifact_scan_rules": [
     {
       "id": "auth-or-ownership",
