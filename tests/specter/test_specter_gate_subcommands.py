@@ -261,6 +261,68 @@ class TestStructural:
         assert data["verdict"] == "FAIL"
         assert any("destination" in r for r in data["reasons"])
 
+    def test_exclusion_row_with_non_goal_owner_passes(self, repo: Path) -> None:
+        # 2026-07-23 spade-ace false positive: Exclusion rows legitimately have
+        # no owning Feature — the established convention marks them "— (non-goal)".
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(
+            GOOD_MAP.replace(
+                "| Product PRD | §3.2 | Functional | Logout | Feature 002 | Implemented |",
+                "| Product PRD | §3.2 | Functional | Logout | Feature 002 | Implemented |\n"
+                "| Product PRD | §8 | Exclusion | Live trading | — (non-goal) | Out — successor PRD (§8) |",
+            )
+        )
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "PASS", data["reasons"]
+        assert data["checks"]["commitment_index_ok"] is True
+
+    def test_exclusion_row_with_empty_owner_still_fails(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(
+            GOOD_MAP.replace(
+                "| Product PRD | §3.2 | Functional | Logout | Feature 002 | Implemented |",
+                "| Product PRD | §3.2 | Functional | Logout | Feature 002 | Implemented |\n"
+                "| Product PRD | §8 | Exclusion | Live trading |  | Out — successor PRD (§8) |",
+            )
+        )
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "FAIL"
+        assert data["checks"]["commitment_index_ok"] is False
+
+    def test_non_exclusion_row_with_non_goal_owner_still_fails(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(
+            GOOD_MAP.replace(
+                "| Product PRD | §3.2 | Functional | Logout | Feature 002 | Implemented |",
+                "| Product PRD | §3.2 | Functional | Logout | — (non-goal) | Implemented |",
+            )
+        )
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "FAIL"
+        assert data["checks"]["commitment_index_ok"] is False
+
+    def test_out_of_scope_prose_destination_passes(self, repo: Path) -> None:
+        # 2026-07-23 spade-ace false positive: a destination may be non-Feature
+        # prose (successor PRD, backlog, frozen branch). The deterministic layer
+        # checks only the arrow-and-named-destination form; destination validity
+        # is Layer-2 semantics.
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(
+            GOOD_MAP.replace(
+                "- logout UI → 002",
+                "- logout UI → successor auto-trading PRD (§8 non-goal)",
+            )
+        )
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "PASS", data["reasons"]
+
+    def test_out_of_scope_empty_destination_still_fails(self, repo: Path) -> None:
+        fmap = repo / "docs" / "prd" / "feature-map.md"
+        fmap.write_text(GOOD_MAP.replace("- logout UI → 002", "- logout UI →"))
+        data = run_gate(repo, "structural")
+        assert data["verdict"] == "FAIL"
+        assert any("destination" in r for r in data["reasons"])
+
     def test_feature_scope_ignores_other_sections(self, repo: Path) -> None:
         # A placeholder in Feature 001 must not fail a Feature-002-scoped run.
         fmap = repo / "docs" / "prd" / "feature-map.md"
