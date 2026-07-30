@@ -167,22 +167,14 @@ This runs clarification workflow with AI following GEARS principles and using Ko
 ### 4. Report Success
 
 Clarification may introduce a concrete risk that was not present in the first
-draft. Before reporting success, recompute the spec phase receipt:
-
-```bash
-python3 .specify/scripts/python/classify_audit_tier.py \
-  --policy .specify/policies/audit-tier-policy.json classify \
-  --feature <NNN> --phase spec \
-  --feature-map docs/prd/feature-map.md \
-  --spec specs/<spec-id>/spec.md --ledger
-python3 .specify/scripts/python/classify_audit_tier.py \
-  --policy .specify/policies/audit-tier-policy.json validate-receipt \
-  --feature <NNN>
-```
-
-Stop on classification/freshness failure and adopt any escalation immediately.
-The clarify agent records behavioral decisions in `spec.md`; it does not assign
-or lower `audit_tier`.
+draft. If a resolved decision introduces high-risk behavior (authorization,
+secrets, data-migration, destructive-data, irreversible-operation,
+public-contract, financial-or-regulated, gate-or-policy-change), update the
+Feature's `### Verification signals` table in `docs/prd/feature-map.md` with
+the new evidence — the gate reads the declared signals mechanically at
+`/ms.verify`/`/ms.analyze`/`/ms.review`; there is no separate classification
+step. The clarify agent records behavioral decisions in `spec.md`; it never
+assigns or lowers a risk profile.
 
 Display summary:
 

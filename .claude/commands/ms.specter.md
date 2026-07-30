@@ -1,6 +1,6 @@
 ---
 description: "Drive one Feature through the full per-Feature cycle with clarify as the only unconditional human stop"
-argument-hint: "<Feature NNN> [@docs/prd/<PRD>.md] [@docs/prd/feature-map.md] [--raise-audit-tier T2|T3]"
+argument-hint: "<Feature NNN> [@docs/prd/<PRD>.md] [@docs/prd/feature-map.md] [--raise-risk]"
 ---
 
 # /ms.specter - Per-Feature Cycle Conductor
@@ -10,9 +10,12 @@ The conductor invokes each `/ms.*` step in order, reads each step's PASS / WARN 
 FAIL verdict, and advances on its own. The only always-mandatory human stop is
 `/ms.clarify`; `/ms.review` adds a conditional stop (explicit user ack of the
 migration rollback analysis, Step 6.6b) when the Feature's diff includes
-schema/data migrations. T3 residual WARNs, T3 single-reviewer environmental
-degrades, destructive changes, and other explicitly high-stakes or irreversible
-operations also require conditional human acknowledgment. The run ends at
+schema/data migrations. The other conditional stops are the closed list in
+`specter-agent-protocols` §8: named-class acknowledgments (migration /
+destructive-data / irreversible-operation / gate-or-policy-change), a
+high-risk required check that could not be observed, a high-risk degrade whose
+missing reviewer was needed for a triggered check, and an unresolved FAIL at
+the round cap. The run ends at
 `/ms.review` (publishing is left to `/ms.fin`).
 
 `/ms.specter` does **not** replace or weaken any gate. Every underlying command
@@ -29,8 +32,9 @@ reads those verdicts and decides whether to continue, collect a warning, or stop
 - It does not auto-answer `/ms.clarify`. Clarification is the human's call.
 - It does not pass any gate-weakening flag (e.g. `--skip-codex`). Codex and
   Antigravity verification always run.
-- It does not classify or infer `audit_tier`. It reads a deterministic,
-  input-hash-bound receipt and may pass only a user-requested upward override.
+- It does not assign or infer a risk profile. The gate computes it inside
+  each station's aggregation; the conductor may pass only a user-requested
+  upward `--raise-risk`.
 
 ## Usage
 
@@ -127,17 +131,14 @@ does not interpret it.
    install -D -m 0755 docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
    .specify/scripts/bash/specter-gate.sh
    ```
-   Also install and probe the synced audit-tier capability before any Feature
+   Also install and probe the synced verification-v2 config before any Feature
    station runs:
    ```bash
-   install -D -m 0755 scripts/specter/classify_audit_tier.py .specify/scripts/python/classify_audit_tier.py
-   install -D -m 0644 docs/templates/audit-tier-policy.json .specify/policies/audit-tier-policy.json
-   python3 .specify/scripts/python/classify_audit_tier.py \
-     --policy .specify/policies/audit-tier-policy.json version
+   install -D -m 0644 docs/templates/verification-v2.json .specify/policies/verification-v2.json
+   .specify/scripts/bash/specter-gate.sh version | grep -q '"contract": "verification-v2"'
    ```
-   A missing half of this pair or an incompatible contract is a partial-sync
-   FAIL, not a reason to assume T1. Fully legacy projects may start only through
-   the documented legacy T2 compatibility path until `/ms.sync` installs both.
+   A failed probe is a partial-sync FAIL — stop and tell the user to run
+   /ms.sync (or /ms.init) first.
    This mechanically checks that the Feature Map exists, `docs/prd/feature-map.checklist.md`
    is `Result: PASS` or `WARN` and its SHA256 matches the current Feature Map, and Constitution
    Section IX is established. If the JSON `overall` field is `MISSING` or `FAIL`, stop and tell
@@ -186,14 +187,11 @@ does not interpret it.
    `FAIL` receipt means `tasks.md` changed after the analyze reports were written, so the
    `analyze` entry is stale and the cycle resumes there.
 
-   For every resume point after checklist, validate
-   `.specify/audit-tiers/feature-NNN.json`. Then require the phase appropriate
-   to the next station (`feature-map` for verify, `pre-implement` for analyze,
-   `diff` for review). A missing/stale receipt reruns the corresponding
-   deterministic classification boundary; it never falls back to T1. Compare
-   `effective_tier` to all prior ledgered tier receipts and stop on any
-   decrease—the classifier is the only component allowed to calculate the
-   monotonic maximum.
+   For every resume point after a grading station, validate that station's
+   receipt (`.specify/verification-v2/<station>-<NNN>.json`): its `verdict` is
+   PASS/WARN and its `input_digest` still matches
+   `specter-gate.sh digest <station> <arg>`. A missing or stale receipt
+   resumes from that station.
 
    **Step-order invariant (no silent skips).** The same per-step last-entry-wins data enforces
    order, not just the resume shortcut: before executing any step of the sequence, every earlier
@@ -235,10 +233,9 @@ Run `/ms.checklist <NNN>`. Read `docs/prd/checklists/feature-NNN.checklist.md`.
 - FAIL → stop. Report the audit's Blocking Fixes and tell the user to fix the
   Feature section, then rerun `/ms.specter <NNN>`.
 
-Read the classifier receipt written by this command and add its
-`effective_tier`, `reasons`, policy version/hash, and receipt hash to run state.
-If the user supplied `--raise-audit-tier`, pass it only to the classifier's
-upward-only interface. Never pass it as prose to an author or reviewer.
+If the user supplied `--raise-risk`, pass it only to the grading stations'
+upward-only `--raise-risk` flag. Never pass it as prose to an author or
+reviewer.
 
 ### Step 2: `/ms.verify` (foreground, parallel)
 
@@ -253,9 +250,10 @@ produced (`specter-gate.sh aggregate verify NNN`) — not by weighing the
 two reports yourself:
 
 - Receipt verdict PASS → continue.
-- Receipt verdict WARN → record it and continue only when
-  `warn_ack_required` is false or `warn_ack_satisfied` is true. If required,
-  pause for explicit human acknowledgment and let `/ms.verify` record it.
+- Receipt verdict WARN → record it and continue (protocols §8: an ordinary
+  WARN advances; the only verify-station stop is an `ack-degrade` when the
+  missing reviewer was needed for a triggered high-risk check — pause for the
+  human decision and record it via `specter-gate.sh decide`).
 - Receipt verdict FAIL → stop. Report the receipt's `reasons[]` and the
   failing report's findings verbatim.
 
@@ -267,14 +265,14 @@ checklists PASS/WARN, dual-agent verification present, Constitution Section IX)
 are already satisfied by Steps 0–2, so the command proceeds and writes
 `specs/<id>/spec.md`.
 
-If `/ms.specify` still refuses (an unexpected gate failure), stop and report it.
-Read the new spec-phase receipt and immediately adopt any higher effective tier.
+If `/ms.specify` still refuses (an unexpected gate failure), stop and report
+it. If the spec surfaced undeclared high-risk behavior, `/ms.specify` updates
+the Feature's Verification-signals table — no separate receipt to read.
 
 ### Step 4: `/ms.clarify` — 🔴 human stop
 
-Run `/ms.clarify`. This is the one always-mandatory human interaction;
-migration, T3 WARN/degrade, destructive, and high-stakes acknowledgments are
-conditional stops.
+Run `/ms.clarify`. This is the one always-mandatory human interaction; the
+protocols §8 named-class acknowledgments are conditional stops.
 
 - Present every clarification question the command raises, in Korean, with its
   A/B/C options.
@@ -283,9 +281,9 @@ conditional stops.
 - Then resume automatically with Step 5. Do not stop and ask the user to run the
   next command manually — the conductor continues.
 
-If `/ms.clarify` finds no ambiguity, continue immediately.
-After any spec update, read the refreshed spec-phase tier receipt and adopt an
-escalation before planning.
+If `/ms.clarify` finds no ambiguity, continue immediately. A clarified
+decision that introduced high-risk behavior lands in the Verification-signals
+table (per `/ms.clarify`), which the later stations read mechanically.
 
 ### Step 5: `/ms.plan`
 
@@ -300,8 +298,7 @@ distinction the conductor must honor:
   stops here too and surfaces that question. Do not auto-resolve a design-level
   mismatch.
 
-On a clean plan → continue (record any WARN). Read the plan-phase receipt and
-immediately adopt any escalation.
+On a clean plan → continue (record any WARN).
 
 ### Step 6: `/ms.tasks`
 
@@ -314,9 +311,8 @@ Run `/ms.analyze` (foreground default; Codex and Antigravity run inline, no
 `--background`). Read its verdict.
 
 - PASS → continue.
-- WARN → record the warning and continue only after the receipt's WARN policy is
-  satisfied. A T3 acknowledgment is explicit human input; collecting the
-  warning for the final report is not acknowledgment.
+- WARN → record the warning and continue (an `ack-degrade` stop applies only
+  when a needed reviewer was missing under high-risk — protocols §8).
 - FAIL → stop. Report the drift / coverage gap.
 
 ### Step 8: `/ms.implement --to-end`
@@ -329,8 +325,8 @@ If implementation hits a blocker it cannot resolve within scope (e.g. an
 unverifiable unstable API), the command stops and surfaces it; the conductor
 stops too.
 
-`/ms.analyze` and `/ms.implement` both validate the pre-implementation receipt;
-the conductor cannot pass a weaker tier or skip the repeat check.
+`/ms.implement` validates the analyze-station receipt's verdict and digest;
+the conductor cannot pass a weaker profile or skip that check.
 
 ### Step 9: `/ms.review` (adversarial, foreground)
 
@@ -338,8 +334,9 @@ Run `/ms.review`. The dual-agent review always runs in adversarial mode and the
 executable code gates (lint, typecheck, tests, build) run regardless.
 
 - PASS → continue to the final report.
-- WARN → record the warning and continue only after every tier, migration, and
-  high-stakes acknowledgment reported by `/ms.review` is satisfied.
+- WARN → record the warning and continue only after the review receipt reports
+  `acks_satisfied: true` (named-class decisions recorded via
+  `specter-gate.sh decide`) and any required migration ack is done.
 - FAIL / NOT READY → stop. Report the failing gates and findings. The conductor
   does not auto-fix; fixes belong to `/ms.implement --mode=refactor` or the main
   conversation.
@@ -354,10 +351,9 @@ When the run reaches the end (Step 9 PASS/WARN) or stops early, report in Korean
 진행: checklist → verify → specify → clarify → plan → tasks → analyze → implement → review
 상태: ✅ review까지 완료  |  ⛔ <단계>에서 정지
 
-감사 등급: <effective_tier> (<Routine|Standard|High-Risk>)
-정책: <policy version> / <policy hash>
-분류 근거:
-- <receipt reasons[] 전부>
+위험 프로파일: <review receipt risk_profile> (ordinary|high-risk)
+근거:
+- <receipt risk_evidence 전부>
 
 ⚠️ 수집된 경고 (WARN):
 - <step>: <요약> (<audit 파일>)
@@ -379,8 +375,9 @@ exactly the silent-quality-loss failure mode this report exists to prevent.
 | any step | `Result: FAIL` | stop, report audit + blocking fixes |
 | `/ms.clarify` | always | human Q&A, then resume |
 | `/ms.review` | migration in diff (Step 6.6b) | stop, present rollback analysis, wait for explicit user ack |
-| any tiered station | T3 residual WARN or one-agent degrade | stop, record receipt-bound human acknowledgment |
-| any tiered station | stale/missing/incompatible receipt | stop or rerun deterministic classification; never assume T1 |
+| `/ms.review` | named-class ack required (`acks_satisfied: false`) | stop, record the typed decision via `specter-gate.sh decide` |
+| any grading station | high-risk degrade where the missing reviewer was needed | stop, record `ack-degrade` |
+| any grading station | stale/missing receipt on resume | resume from that station |
 | `/ms.plan` | design-level reality FAIL | stop, surface the design question |
 | `/ms.verify` | agent write failure after retry | stop, report the failing agent |
 | `/ms.implement` | in-scope blocker | stop, surface the blocker |

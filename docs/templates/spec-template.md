@@ -110,14 +110,15 @@ Write each requirement in **GEARS** canonical form: `[Where <static>] [While <ru
 
 <!--
   Record concrete behavior discovered while specifying that may affect the
-  Feature Map's Audit signals: trust/ownership boundaries, money, secrets,
-  sensitive or destructive data, migration, public contracts, state ownership,
-  concurrency/background work, CI/release/hooks/permissions/sandbox, runtime
-  dependencies, persistence, or cross-layer/cross-Feature contracts.
+  Feature Map's Verification signals (the closed 8-signal schema:
+  authorization, secrets, data-migration, destructive-data,
+  irreversible-operation, public-contract, financial-or-regulated,
+  gate-or-policy-change).
 
-  Cite the originating FR or PRD reference. Do NOT assign an audit_tier here;
-  the deterministic classifier recomputes the tier from authoritative
-  artifacts and preserves monotonic escalation.
+  Cite the originating FR or PRD reference. Do NOT assign a risk profile
+  here; if a signal's declared value is now wrong, update the Feature Map
+  table with this evidence. The gate reads declared signals and diff facts
+  only — never this prose.
 -->
 
 - **[FR/PRD reference]**: [audit-relevant behavior and affected boundary]

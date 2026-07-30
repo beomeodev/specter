@@ -273,32 +273,20 @@ a broken governance reference.
 
 ### 7. Report Success
 
-Before reporting success, recompute the deterministic tier from `spec.md` and
-the completed `plan.md`:
-
-```bash
-python3 .specify/scripts/python/classify_audit_tier.py \
-  --policy .specify/policies/audit-tier-policy.json classify \
-  --feature <NNN> --phase plan \
-  --feature-map docs/prd/feature-map.md \
-  --spec specs/<spec-id>/spec.md \
-  --plan specs/<spec-id>/plan.md --ledger
-python3 .specify/scripts/python/classify_audit_tier.py \
-  --policy .specify/policies/audit-tier-policy.json validate-receipt \
-  --feature <NNN>
-```
-
-Stop on classifier or freshness failure and adopt any escalation. A planned
-dependency, migration, trust-boundary, state-ownership, or policy/gate change
-can raise the tier even when the Feature Map started lower; no later artifact
-may lower the effective tier.
+Before reporting success: if the plan introduced high-risk behavior the
+Feature Map's `### Verification signals` table does not yet declare
+(authorization, secrets, data-migration, destructive-data,
+irreversible-operation, public-contract, financial-or-regulated,
+gate-or-policy-change), update that table with the new evidence — downstream
+gates read the declared signals mechanically; a plan that hides a declared
+risk is a blocking reviewer finding at `/ms.analyze`. No later artifact may
+lower a declared signal without the evidence changing.
 
 Display summary:
 
 ```json
 {
     "plan_created": "specs/001-user-authentication/plan.md",
-    "audit_tier_receipt": ".specify/audit-tiers/feature-001.json",
     "constitution_referenced": true,
     "constitution_exists": true,
     "next_step": "/ms.tasks"

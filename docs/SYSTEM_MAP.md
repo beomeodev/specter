@@ -27,6 +27,14 @@ stale_when:
   - command, agent, skill, template, or workflow files are modified
 ---
 
+> **STALE (2026-07-30)**: this snapshot predates the **verification-v2**
+> contract, which replaced the audit-tier system (T1/T2/T3, `classify_audit_tier.py`,
+> `audit-tier-policy.json` — all retired), the coverage/continuity machinery, and
+> the prose round caps described below. Until this map is regenerated, treat
+> `docs/design/verification-v2.md` and `specter-agent-protocols` SKILL.md as the
+> authoritative description of the verification system; tier/continuity claims in
+> this file are historical.
+
 # System Map
 
 ## Snapshot Status

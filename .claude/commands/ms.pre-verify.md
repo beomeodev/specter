@@ -8,9 +8,9 @@ argument-hint: ""
 Verify `docs/prd/feature-map.md` against the source PRDs and the independent
 baseline checklist created by `/ms.featuremap-checklist`.
 
-This product-wide gate is always full strength and is never Feature-tiered.
-Audit-tier settings cannot narrow its PRD scope, reviewer effort, two-reviewer
-Layer 2, convergence behavior, or Layer-3 aggregation.
+This product-wide gate is always full strength. The risk profile cannot
+narrow its PRD scope, reviewer effort, two-reviewer Layer 2, convergence
+behavior, or Layer-3 aggregation.
 
 This command replaces the old `/ms.checklist --global` flow. It owns the global
 gate artifact consumed by `/ms.constitution`, `/ms.checklist`, and
@@ -70,10 +70,14 @@ The station compares the following sources:
 and produces three artifacts:
 
 ```text
-docs/prd/feature-map.codex-verify.md            (Codex global verdict, Layer 2)
-docs/prd/feature-map.antigravity-checklist.md   (Antigravity global verdict, Layer 2)
-docs/prd/feature-map.checklist.md               (canonical global gate, assembled)
+docs/prd/feature-map.codex-verify.r<R>.md         (Codex global verdict, Layer 2)
+docs/prd/feature-map.antigravity-verify.r<R>.md   (Antigravity global verdict, Layer 2)
+docs/prd/feature-map.checklist.md                 (canonical global gate, assembled)
+.specify/verification-v2/pre-verify-global.json   (station receipt, gate-written)
 ```
+
+Report paths are round-numbered — a new round is a new file, never an
+overwrite.
 
 The canonical gate's `**Result**` is copied verbatim from the Layer-3
 aggregation receipt — it is never authored by the host.
@@ -88,11 +92,11 @@ Apply the Preflight and Degrade Rule from
 
 - If **one** agent is unavailable after preflight + one retry: run the station
   single-agent and write the §2 degrade placeholder at the missing agent's
-  report path (`docs/prd/feature-map.codex-verify.md` /
-  `docs/prd/feature-map.antigravity-checklist.md`) — `**Result**: WARN` +
-  `**Availability**: UNAVAILABLE (<reason>)`, plus the `**Mode**:` and
-  `**Feature Map SHA256**:` fields so the aggregation can parse it. The
-  aggregation then caps the station at `WARN` mechanically.
+  round-numbered report path (`docs/prd/feature-map.codex-verify.r<R>.md` /
+  `docs/prd/feature-map.antigravity-verify.r<R>.md`) — a VALID v2 report:
+  `**Contract**: verification-v2`, `**Mode**:`, `**Scope**: global`,
+  `**Input Digest**:`, `**Result**: WARN`, `**Availability**: UNAVAILABLE
+  (<reason>)`. The aggregation then caps the station at `WARN` mechanically.
 - If **both** agents are unavailable: **stop and report**. A global gate with
   zero independent verifiers would be a host-only verdict — exactly the
   self-judgment this station exists to remove (§7 typed degrade). Never run
@@ -121,48 +125,37 @@ Read the JSON `verdict` and `reasons[]`:
 Layer 1 judges shape only. A structural `PASS` says nothing about whether the
 PRD was semantically preserved — that is exactly what Layer 2 exists to audit.
 
-Then confirm the refreshed gate carries the continuity capability — a
+Then confirm the refreshed gate carries the verification-v2 contract — a
 partially synced project must fail loudly here, never silently run the
-station without the continuity contract:
+station under a different contract:
 
 ```bash
-.specify/scripts/bash/specter-gate.sh version | grep -q '"continuity_contract": "continuity-v1"'
+install -D -m 0644 docs/templates/verification-v2.json .specify/policies/verification-v2.json
+.specify/scripts/bash/specter-gate.sh version | grep -q '"contract": "verification-v2"'
 ```
 
 If the grep fails, stop and tell the user to run `/ms.sync` (or `/ms.init`)
 first.
 
-### Step 0.3: Compute the Feature Map hash and coverage inventory
+### Step 0.3: Compute the input digest
 
 ```bash
-FEATURE_MAP_SHA=$(sha256sum docs/prd/feature-map.md | awk '{print $1}')
-mkdir -p .specify/continuity
-.specify/scripts/bash/specter-gate.sh manifest pre-verify > .specify/continuity/pre-verify-manifest.json
+DIGEST=$(.specify/scripts/bash/specter-gate.sh digest pre-verify | python3 -c "import json,sys; print(json.load(sys.stdin)['input_digest'])")
 ```
 
-Substitute `{FEATURE_MAP_SHA}` into both agent prompts below. The aggregation
-fails any report whose recorded hash does not match the current map — a
-verdict for a previous map revision is stale, not reusable. The manifest is
-the gate-generated declared-coverage inventory (`specter-agent-protocols` §6):
-both full-scope audits (round 1 and the final certification round) must return
-one `## Coverage` row per inventory key.
+Substitute `{DIGEST}` into both agent prompts below. The aggregation fails any
+report whose recorded digest does not match the current map + baseline — a
+verdict for a previous revision is stale, not reusable.
 
-**On a §4 re-round (round R ≥ 2)**, additionally build the mechanical
-continuity packet and pass its PATH into both prompts (the host never authors
-or pastes packet content):
-
-```bash
-.specify/scripts/bash/specter-gate.sh continuity pre-verify --round <R>
-# packet: .specify/continuity/pre-verify.packet.md
-```
-
-Append to both prompts: `Re-round continuity: read
-.specify/continuity/pre-verify.packet.md FIRST. It contains prior blocking
-findings and Required Fixes only — it is NOT a PASS whitelist and does not
-suppress discovery outside those findings. If this reviewer lane previously
-prescribed the state you now reject, retain the predecessor ID, classify the
-finding REVERSAL, quote the prior Required Fix verbatim, and identify the
-failed premise.`
+**On a §4 re-round (R = 2)**, pass both prior-round report paths into both
+prompts and append: `Re-round continuity: read the prior round's reports
+first — docs/prd/feature-map.codex-verify.r1.md and
+docs/prd/feature-map.antigravity-verify.r1.md. They are NOT a PASS whitelist
+and do not suppress discovery. Re-check every prior blocking finding by ID and
+mark each resolved or persists in your Findings State column. A grade may
+improve only against changed, cited evidence. If your own lane previously
+prescribed the state you now reject, say so explicitly, cite the prior finding
+ID, and recommend escalation.`
 
 ### Step 1: Layer 2 — Dual Independent Global Audits (Foreground, Parallel)
 
@@ -184,8 +177,9 @@ Rule applies only to Step 0.1 preflight failures, never to an agent that ran.
 
 Prompt template — substitute `{AGENT}` (`Codex` / `Antigravity using Google
 Antigravity`), `{MODE}` (`codex-global-verify` / `antigravity-global-verify`),
-and `{REPORT_PATH}` (`docs/prd/feature-map.codex-verify.md` /
-`docs/prd/feature-map.antigravity-checklist.md`):
+`{DIGEST}`, `{R}`, and `{REPORT_PATH}`
+(`docs/prd/feature-map.codex-verify.r{R}.md` /
+`docs/prd/feature-map.antigravity-verify.r{R}.md`):
 
 ```text
 You are performing an independent global Feature Map audit for SPECTER as {AGENT}.
@@ -213,81 +207,53 @@ already machine-checked — focus on semantics:
 3. Does every independent-checklist item (C-IDs) survive into the Feature Map,
    or carry a justified false-positive explanation?
 4. Untagged invention: does any in-scope deliverable, done criterion, Key
-   decision, or other behavior in the map lack BOTH a PRD trace and a
-   covering `## Implementation Obligations` row? Key decisions are a known
-   smuggling surface — a decision may record the chosen realization of a
-   cited C-/D-ID, but a "decision" introducing scope with neither behind it
-   is untagged. Untagged additions are FAIL findings.
+   decision, or other behavior in the map lack a PRD trace (C-ID or
+   Amendment)? Key decisions are a known smuggling surface — a decision may
+   record the chosen realization of a cited C-/D-ID, but a "decision"
+   introducing scope with neither behind it is untagged. Untagged additions
+   are FAIL findings.
    (An idea parked in docs/prd/opportunities.md is out of audit scope — do
    not read that file.)
-5. For every `## Implementation Obligations` row, apply §10's two-part test:
-   (a) entailment across designs — actively look for a plausible alternative
-   implementation of the cited C-IDs that avoids the item; if one exists, the
-   row is a design choice masquerading as necessity (FAIL the row); removal
-   breaking the author's chosen design proves nothing. The Feature
-   decomposition is a FIXED INPUT to this test: an alternative must vary how
-   the obligation is realized, not which Feature performs the work —
-   "another Feature could do it" never refutes a row. (b) scope-expansion
-   denylist — a row introducing, observably beyond the cited C-IDs' existing
-   envelope (§10's definition of "introduces"), a new capability, data
+5. `## Implementation Obligations` rows (if present) are references, never
+   product authority (.claude/skills/specter-agent-protocols/SKILL.md §10):
+   FAIL any row used to justify NEW observable scope — a new capability, data
    category/retention, permission, third-party integration, notification
    channel, irreversible/destructive effect, billing, public API, or
-   quantitative promise is product scope and can never be a D-ID (FAIL the
-   row; it needs a PRD Amendment). A mechanism the cited C-ID's own text
-   already promises is in-envelope and is not "introduced" by the row. Also FAIL a row whose Obligation states a chosen
-   realization instead of the smallest abstract obligation, whose Supports
-   cites a non-existent C-ID or another D-ID, or that is used anywhere to
-   own or satisfy a baseline C-ID.
+   quantitative promise beyond the cited C-IDs' envelope (that needs a PRD
+   Amendment) — and any row whose Supports cites a non-existent C-ID or
+   another D-ID, or that is used anywhere to own or satisfy a baseline C-ID.
 6. Are stubs forwarded correctly (each stub names the Feature that activates
    real behavior), and does each Phase's last Feature carry that Phase's E2E
    scenario?
+7. Do the `### Verification signals` tables honestly reflect the PRD
+   evidence? A declared "no" the PRD contradicts is a blocking finding.
 
-Continuity & coverage contract (continuity-v1):
-- Declared coverage closure (full-scope rounds): read
-  .specify/continuity/pre-verify-manifest.json (the gate-generated expected
-  inventory — map C-IDs, baseline checklist IDs, obligation D-IDs, Feature
-  sections). Your report MUST contain a ## Coverage section with exactly one
-  | Key | Result | Evidence | row per inventory key (PASS | FAIL |
-  UNVERIFIED; evidence non-empty, file:line where possible). The aggregation
-  rejects any coverage set not exactly equal to the inventory — counts are
-  not equality. A baseline key that consolidated into a map C-ID gets
-  evidence naming that C-ID; a justified false positive says so explicitly.
-- Report violations by RULE CLASS: when a rule is violated (e.g. the journey
-  rule, the D-ID entailment test), list every violator of that rule you can
-  find, never just the first instance.
-- Findings lineage: use the 8-column Findings table below. Every finding has a
-  stable unique ID. On the first round use Predecessor `none`, Status `NEW`,
-  and Class NEW_EVIDENCE or PREVIOUSLY_UNAUDITED. On re-rounds carry prior
-  blocking findings forward by ID with Status
-  (PERSISTING | RESOLVED | REOPENED | NEW) and classify every new blocking
-  finding (NEW_EVIDENCE | PREVIOUSLY_UNAUDITED | REGRESSION_FROM_DIFF |
-  REVERSAL | COVERAGE_BREACH).
-- Every blocking finding's Required Fix follows the remedy contract
-  (specter-agent-protocols §5): the restored invariant, the minimum compliant
-  outcome, what must NOT be added or changed, exact replacement text only when
-  doctrine determines one answer, alternatives or escalation otherwise, and a
-  §10 self-check.
+When a rule is violated (e.g. the journey rule), list every violator of that
+rule you can find, never just the first instance.
 
 Grade down on doubt; cite PRD/section evidence for every finding and every
 PASS claim. Write this output to {REPORT_PATH}:
 
-# Feature Map {AGENT} Verification
+# Feature Map {AGENT} Verification — Round {R}
 
+**Contract**: verification-v2
 **Mode**: {MODE}
-**Feature Map SHA256**: {FEATURE_MAP_SHA}
-**Protocol**: continuity-v1
+**Scope**: global
+**Input Digest**: {DIGEST}
 **Result**: PASS | WARN | FAIL
-**Generated By**: {AGENT}
 
-## Coverage
-
-| Key | Result | Evidence |
-| --- | --- | --- |
+## Scope and evidence
+**Checked**: <named check classes 1-7 above, with file:line citations>
+**Not checked**: <explicit exclusions with reasons, or the evidence basis for claiming none>
 
 ## Findings
 
-| ID | Predecessor | Status | Class | Severity | Finding | Evidence | Required Fix |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| ID | Severity | State | Finding | Evidence | Required Fix |
+| --- | --- | --- | --- | --- | --- |
+
+(IDs stable within your lane, e.g. CX-P-001 / AG-P-001. State: new | persists |
+resolved. Required Fix = restored invariant + minimum repair + no new scope;
+escalate instead of choosing when several product interpretations remain valid.)
 
 ## Verdict
 
@@ -299,24 +265,22 @@ final message, verbatim, so it can be salvaged if the file write fails.
 
 ### Step 2: Layer 3 — Mechanical Aggregation
 
+First apply the Validate / Salvage / Format-Retry lane (protocols §3) to each
+report: `specter-gate.sh validate-report <path> pre-verify --round <R>`;
+invalid → salvage from markers → still invalid → one same-agent re-dispatch
+with the validator's errors (track for `--format-retries`). Then:
+
 ```bash
-# full-scope rounds (round 1 AND the final certification round): coverage mandatory
-.specify/scripts/bash/specter-gate.sh aggregate pre-verify --ledger --round <R> --expect-protocol continuity-v1 --require-coverage
-# scoped repair rounds: lineage mandatory, coverage only validated if present
-.specify/scripts/bash/specter-gate.sh aggregate pre-verify --ledger --round <R> --expect-protocol continuity-v1
+.specify/scripts/bash/specter-gate.sh aggregate pre-verify --ledger --round <R> \
+  [--format-retries "<codex-retries> <antigravity-retries>"]
 ```
 
-`<R>` is the current §4 convergence round (1 on the first run, 2/3 on
-re-rounds).
-
-If the receipt reports `reversal: true`, do NOT start another automatic repair
-round: per §4 the next round is a fresh dual doctrine-dispute round scoped to
-the disputed doctrine question, and reviewer disagreement escalates to the
-user. If it reports `coverage_breach: true`, the affected class's closure
-claim is void and the class must be re-exhausted at the next full-scope round;
-the new finding itself is repaired normally, never suppressed. At the round
-cap, ask the §4 post-cap question — **"resolve the doctrine / amend the
-authority (PRD) / accept as WARN / stop"**, never "run one more round?".
+`<R>` is the current §4 round (1 on the first run, 2 on the repair round).
+The gate itself refuses rounds beyond the automatic budget (2) without a
+recorded `authorize-round` decision. At the round cap, present the §4
+post-cap options verbatim — **fix and restart / amend the authority (PRD) /
+authorize one doctrine-dispute round / accept WARN / stop** — never "run one
+more round?".
 
 The station's report set is fixed by the station name — never pass file paths,
 and never omit a report that turned out badly (§7). The receipt JSON contains
@@ -325,7 +289,7 @@ the per-report grading, the station `verdict`, any `cap`
 `--ledger` flag appends the `.specify/specter-run.jsonl` line mechanically —
 do not hand-write a ledger line for this station.
 
-- `verdict: PASS`/`WARN` → continue to Step 2.5.
+- `verdict: PASS`/`WARN` → continue to Step 3.
 - `verdict: FAIL` → the map (or a report) failed. Report the receipt's
   `reasons[]` and both reports' Findings verbatim as Blocking Fixes, fix the
   map (in a conducted run, `/ms.featuremap`'s fix-round rules apply — targeted
@@ -341,67 +305,54 @@ can never certify the whole map:
   landed cheaply, and their reports never become the station's accepted
   verdict.
 - **The accepted PASS/WARN always comes from a fresh full-scope dual audit**
-  (both agents, full prompt above, current map SHA) run after the repair
-  rounds converge. One final full round replaces the old
-  full-audit-every-round loop — diagnosis gets cheap scoped rounds, the
+  (both agents, full prompt above, current input digest) run after the repair
+  round converges. One final full round replaces the old
+  full-audit-every-round loop — diagnosis gets a cheap scoped round, the
   certificate stays full-strength.
-- The §4 round caps count repair rounds as usual — for this receipt-less
-  global station the cap is §4's fixed 3 automatic rounds; the final
-  full audit is the certification run, not an extra repair round.
+- The §4 budget counts repair rounds as usual (2 automatic rounds); the final
+  full audit is the certification run, authorized as the follow-on round via
+  `specter-gate.sh decide authorize-round pre-verify global --round <R>
+  --reason "certification run after repairs"` when it falls beyond the
+  automatic budget.
 
 **Delta certification (2026-07-28) — scope the re-audit to the change.** The
 rules above answer "how do we certify a map we are actively repairing". They
 were also being applied to a *settled* map that someone later edited, and there
-the full sweep is miscalibrated: the certificate binds to the map's SHA, so any
-byte forces a 436-key re-audit of everything, no matter how small the edit.
+the full sweep is miscalibrated: the certificate binds to the map's digest, so
+any byte forces a full re-audit of everything, no matter how small the edit.
 
-Measured on 2026-07-28: three targeted edits (two Commitment-Index rows extended,
-one audit-signal number corrected) triggered four full certification rounds.
-Findings attributable to those edits: **zero**. The two real findings that surfaced
-(`C-185`, `C-159`) were pre-existing omissions the *previous* certification had
-already passed — the sweep was re-sampling the whole map, not verifying the change.
+Measured on 2026-07-28: three targeted edits (two Commitment-Index rows
+extended, one signal value corrected) triggered four full certification rounds.
+Findings attributable to those edits: **zero** — the sweep was re-sampling the
+whole map, not verifying the change.
 
 So when the map was already certified `PASS`/`WARN` and the pending diff is
 **low-risk**, the re-audit is scoped to the change:
 
-- **Low-risk (delta-certifiable)** — edits that cannot move a commitment's owner
-  or the audit's key set: wording clarified inside an existing row, evidence or
-  citation corrected, an `### Audit signals` value updated, a done criterion
-  reworded without changing what it observes, typo/formatting.
-- **High-risk (always full-scope)** — ownership moved between Features, a Feature
-  split/merged, any DAG edge changed, a C-ID or D-ID added or removed, a
-  commitment deleted, a tier lowered, or the map's **first** certification. These
-  ripple beyond the edited lines, which is the reason the full sweep exists.
+- **Low-risk (delta-certifiable)** — edits that cannot move a commitment's
+  owner or the map's ID set: wording clarified inside an existing row,
+  evidence or citation corrected, a `### Verification signals` value raised
+  or its evidence updated, a done criterion reworded without changing what it
+  observes, typo/formatting.
+- **High-risk (always full-scope)** — ownership moved between Features, a
+  Feature split/merged, any DAG edge changed, a C-ID or D-ID added or
+  removed, a commitment deleted, a Verification signal flipped `yes` → `no`,
+  or the map's **first** certification. These ripple beyond the edited lines.
   When in doubt, treat the edit as high-risk.
 - The delta round audits the diff hunks **plus their citation radius** — every
   row that cites, is cited by, or owns something the diff touched — and its
-  coverage section may cover that radius instead of the whole inventory.
-- The canonical gate records `**Certification Scope**: full | delta-from-<prior SHA>`
-  so a later reader can tell which guarantee they hold, and a delta certificate
-  names the prior full certificate it extends.
-- A delta round may **not** clear findings outside its scope, and it may not chain
-  indefinitely: after **three consecutive** delta certifications, or on the first
-  high-risk edit, the next accepted verdict comes from a full-scope audit again.
-- Manifest arity is the mechanical tell: if the regenerated
-  `pre-verify-manifest.json` key count changes, the edit was **not** low-risk —
-  fall back to full scope. (Extending an existing row keeps the count; adding a
-  C-ID does not.)
-
-### Step 2.5: Derived-Impact Acknowledgment (only when non-`none` Impact rows exist)
-
-If the map has an `## Implementation Obligations` table, list every row whose
-`Impact` is not `none`. If there are any, present them to the user verbatim
-(D-ID, Obligation, Impact, owning Feature) and ask for explicit
-acknowledgment — a summary the user never reacted to is visibility, not
-approval (silence is never consent). The user may **veto** rows (each veto is
-a map fix: the row moves to a PRD Amendment proposal or
-`docs/prd/opportunities.md`, and the certification contract above applies) or
-**acknowledge** them. Record the outcome in the canonical gate file
-(Step 3's `## Derived Obligations Acknowledgment` section) bound to the
-current `FEATURE_MAP_SHA`. The station result does not stand while a
-non-`none` row is neither acknowledged nor vetoed. Rows with `Impact: none`
-never require acknowledgment — mechanically bounded obligations stay
-non-interactive by design.
+  `**Checked**:` line names that radius instead of the whole map.
+- The canonical gate records `**Certification Scope**: full | delta-from-<prior digest>`
+  so a later reader can tell which guarantee they hold, and a delta
+  certificate names the prior full certificate it extends.
+- A delta round may **not** clear findings outside its scope, and it may not
+  chain indefinitely: after **three consecutive** delta certifications, or on
+  the first high-risk edit, the next accepted verdict comes from a full-scope
+  audit again.
+- The ID set is the mechanical tell: if the map's sorted C-ID/D-ID/Feature-
+  section set changed (`grep -oE 'C-[0-9]+|D-[0-9]+|^## Feature [0-9]+' | sort -u`
+  before vs after), the edit was **not** low-risk — fall back to full scope.
+  (Extending an existing row keeps the set; adding a C-ID does not.)
 
 ### Step 3: Assemble The Canonical Global Gate (host: paths and metadata only)
 
@@ -414,11 +365,12 @@ metadata, and layout only:
 
 **Mode**: global
 **Baseline Checklist**: <the resolved {BASELINE} path>
-**Global Codex Verify**: docs/prd/feature-map.codex-verify.md
-**Antigravity Checklist**: docs/prd/feature-map.antigravity-checklist.md
+**Global Codex Verify**: docs/prd/feature-map.codex-verify.r<R>.md
+**Global Antigravity Verify**: docs/prd/feature-map.antigravity-verify.r<R>.md
 **PRDs**: <source label -> path list>
 **Feature Map**: docs/prd/feature-map.md
-**Feature Map SHA256**: <the FEATURE_MAP_SHA the reports were graded against>
+**Feature Map SHA256**: <sha256 of docs/prd/feature-map.md at audit time>
+**Input Digest**: <the receipt's input_digest — what the reports were graded against>
 **Git Ref**: <git rev-parse HEAD at audit time — record only after checking `git status --porcelain docs/prd/`: if audited PRDs/Feature Map are uncommitted, this ref does NOT contain what was audited and `/ms.expand`'s delta baseline breaks (audit #30); tell the user to commit first, or write `DIRTY` here if they decline>
 **Result**: <receipt verdict, copied verbatim>
 **Certification Scope**: <`full`, or `delta-from-<prior Feature Map SHA256>` when the
@@ -453,13 +405,6 @@ when no such row exists>
 partitioning is by the Severity cell alone, never by the host's own reading of
 the finding>
 
-## Derived Obligations Acknowledgment
-
-<omit this section when the map has no Implementation Obligations rows with
-non-`none` Impact. Otherwise: the Feature Map SHA the acknowledgment binds to,
-then one row per non-`none` D-ID — D-ID, Obligation, Impact, and the user's
-verbatim decision (`acknowledged` / `vetoed → <destination>`), per Step 2.5.
-The user's decision text is recorded, never summarized.>
 ```
 
 The `**Baseline Checklist**` field always means the PRD-only baseline; the new
@@ -473,8 +418,8 @@ one to mean the other.
 - `structural` verdict `FAIL` (index/ownership/DAG/heading/placeholder defects
   — the script's `reasons[]` are the authoritative list).
 - Any agent report missing, empty, malformed (zero or multiple `Result` lines,
-  unknown value), or stale (recorded `Feature Map SHA256` differs from the
-  current map).
+  unknown value, wrong Contract/Mode/Scope), or stale (recorded `Input Digest`
+  differs from the current map + baseline).
 - Any agent `Result: FAIL`.
 - Every agent report is a degrade placeholder (zero independent verifiers).
 
@@ -486,7 +431,7 @@ If `PASS`:
 ✅ Global Feature Map verification passed.
 
 📄 Audit: docs/prd/feature-map.checklist.md
-📄 Agent verdicts: docs/prd/feature-map.codex-verify.md, docs/prd/feature-map.antigravity-checklist.md
+📄 Agent verdicts: docs/prd/feature-map.codex-verify.r<R>.md, docs/prd/feature-map.antigravity-verify.r<R>.md
 🎯 Next step: /ms.constitution
 ```
 

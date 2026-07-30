@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Deterministic SPECTER gate checker (WI-11).
+# Deterministic SPECTER gate checker — verification-v2.
 #
-# Owns only mechanical facts: verdict lines, SHA256 equality, file existence.
-# Content judgment (PRD fidelity, boundary discipline, severity) stays with
-# the model in /ms.checklist, /ms.pre-verify, /ms.specify, /ms.constitution.
+# Owns only mechanical facts: verdict lines, SHA256 equality, file existence,
+# declared signals, deterministic diff facts. Content judgment (PRD fidelity,
+# boundary discipline, severity) stays with the Layer-2 reviewers.
+# Contract: docs/design/verification-v2.md. Config: verification-v2.json.
 #
 # Usage:
 #   specter-gate.sh          # global gate only (legacy invocation, unchanged)
@@ -12,54 +13,56 @@
 #   specter-gate.sh structural [NNN]
 #                            # Layer-1 deterministic structure checks:
 #                            # global = commitment-index ownership, DAG cycle,
-#                            # required headings, CI-passes-green, placeholders;
-#                            # NNN adds checklist placeholder + C-ID cross-refs
+#                            # required headings, CI-passes-green, placeholders,
+#                            # Verification-signals schema; NNN adds checklist
+#                            # placeholder + C-ID cross-refs
+#   specter-gate.sh digest <pre-verify|verify|analyze|review|expand> [arg]
+#                            # Compute the station's input digest (sha256 over
+#                            # the fixed ordered path+hash list; review adds the
+#                            # working-diff digest). The driver embeds it in
+#                            # both reviewer prompts; aggregate recomputes it.
+#   specter-gate.sh validate-report <path> <station> [arg] [--round N]
+#                            # Deterministic report-format check (format-retry
+#                            # lane, design §2.5): header fields, one Result,
+#                            # required sections. Never grades semantics.
 #   specter-gate.sh aggregate <pre-verify|verify|analyze|review|expand> [arg]
-#                            [--ledger] [--round N]
-#                            [--expect-protocol continuity-v1] [--require-coverage]
+#                            [--ledger] [--round N] [--raise-risk]
+#                            [--format-retries "N N"]
 #                            # Layer-3 verdict aggregation over the STATION-FIXED
-#                            # report set (the caller never picks input files).
-#                            # --ledger also appends the .specify/specter-run.jsonl
-#                            # line mechanically (verbatim caught quotes + cap) and
-#                            # archives each report as an immutable round copy
-#                            # (<report>.round-NN.md — continuity-v1);
-#                            # --round N records the §4 convergence round;
-#                            # --expect-protocol enforces the continuity-v1 report
-#                            # schema (Protocol field, lineage columns on re-rounds);
-#                            # --require-coverage demands the declared-coverage
-#                            # closure section (## Coverage) in every agent report.
-#   specter-gate.sh manifest <pre-verify|verify|analyze> [arg]
-#                            # Emit the station's gate-generated expected coverage
-#                            # inventory (declared coverage closure, C5'): the
-#                            # reviewer must return one ## Coverage row per key.
-#   specter-gate.sh continuity <pre-verify|verify|analyze|review> [arg] --round N [--diff <path>]
-#                            # Mechanically build the re-round continuity packet
-#                            # from the immutable round archives (prior blocking
-#                            # findings + Required Fix verbatim — never a PASS
-#                            # whitelist). The host passes the packet PATH to the
-#                            # reviewer prompt; it never authors packet content.
+#                            # round-numbered report set (<base>.rN.md — the
+#                            # caller never picks input files). Computes the
+#                            # risk profile in-gate (declared signals + diff
+#                            # facts; never prose scanning). Refuses --round 3+
+#                            # without a recorded authorize-round decision.
+#                            # Writes the station receipt
+#                            # (.specify/verification-v2/<station>-<scope>.json);
+#                            # --ledger appends the .specify/specter-run.jsonl
+#                            # line mechanically (verbatim caught rows).
+#   specter-gate.sh decide <type> <station> <scope> [--round N] [--actor A] --reason "..."
+#                            # Append a typed human-decision event to the
+#                            # ledger (ack-migration|ack-destructive|
+#                            # ack-irreversible|ack-gate-policy|ack-degrade|
+#                            # authorize-round|accept-warn|stop). Decisions can
+#                            # never lower a verdict, effort, scope, or
+#                            # reviewer count.
 #
 # Every mode prints one JSON object to stdout, even on malformed input.
-# Legacy overall is one of: PASS | WARN | FAIL | MISSING
-#   MISSING = a required artifact file does not exist yet (gate never ran)
-#   FAIL    = an artifact exists but its content fails the gate (Result FAIL,
-#             stale SHA256, wrong Mode/Feature, unestablished Section IX)
-#   WARN    = every check passes but at least one Result is WARN
-#   PASS    = every check passes and every Result is PASS
+# Legacy overall is one of: PASS | WARN | FAIL | MISSING.
 # structural/aggregate emit "verdict": PASS | WARN | FAIL (no MISSING — a
-# missing input at those layers is a FAIL by the three-layer contract,
-# specter-agent-protocols §7).
+# missing input at those layers is a FAIL by the three-layer contract).
 
 set -euo pipefail
 
-GATE_VERSION="3.1.0"
-GATE_CONTRACT="three-layer-v2-audit-tier"
-AUDIT_TIER_CONTRACT="audit-tier-v1"
-CONTINUITY_CONTRACT="continuity-v1"
+GATE_VERSION="4.0.0"
+GATE_CONTRACT="verification-v2"
+
+# Closed signal set (design §2.2 / verification-v2.json "signals" — the config
+# is the versioned authority; this mirror exists so Layer 1 needs no python).
+SIGNALS_RE='authorization|secrets|data-migration|destructive-data|irreversible-operation|public-contract|financial-or-regulated|gate-or-policy-change'
 
 SUBCOMMAND="gate"
 case "${1:-}" in
-  version|structural|aggregate|manifest|continuity) SUBCOMMAND="$1"; shift ;;
+  version|structural|aggregate|digest|validate-report|decide) SUBCOMMAND="$1"; shift ;;
 esac
 
 FEATURE_RAW=""
@@ -79,50 +82,43 @@ fi
 GLOBAL_CHECKLIST="docs/prd/feature-map.checklist.md"
 FEATURE_MAP="docs/prd/feature-map.md"
 CONSTITUTION=".specify/memory/constitution.md"
+LEDGER_FILE=".specify/specter-run.jsonl"
+RECEIPT_DIR=".specify/verification-v2"
 
 REASONS=()
 add_reason() { REASONS+=("$1"); }
 
-AUDIT_CLASSIFIER=""
-AUDIT_POLICY=""
-AUDIT_CAPABILITY="legacy-unavailable"
 PYTHON_BIN=""
+if command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="python3"
+elif command -v python >/dev/null 2>&1; then
+  PYTHON_BIN="python"
+fi
 
-resolve_audit_runtime() {
-  local source_classifier="scripts/specter/classify_audit_tier.py"
-  local source_policy="docs/templates/audit-tier-policy.json"
-  local runtime_classifier=".specify/scripts/python/classify_audit_tier.py"
-  local runtime_policy=".specify/policies/audit-tier-policy.json"
+# Config resolution: source-repo template first, installed runtime copy second.
+V2_CONFIG=""
+if [ -f "docs/templates/verification-v2.json" ]; then
+  V2_CONFIG="docs/templates/verification-v2.json"
+elif [ -f ".specify/policies/verification-v2.json" ]; then
+  V2_CONFIG=".specify/policies/verification-v2.json"
+fi
 
-  if command -v python3 >/dev/null 2>&1; then
-    PYTHON_BIN="python3"
-  elif command -v python >/dev/null 2>&1; then
-    PYTHON_BIN="python"
-  fi
-
-  if [ -f "$source_classifier" ] && [ -f "$source_policy" ]; then
-    AUDIT_CLASSIFIER="$source_classifier"
-    AUDIT_POLICY="$source_policy"
-    AUDIT_CAPABILITY="available"
-  elif [ -f "$runtime_classifier" ] && [ -f "$runtime_policy" ]; then
-    AUDIT_CLASSIFIER="$runtime_classifier"
-    AUDIT_POLICY="$runtime_policy"
-    AUDIT_CAPABILITY="available"
-  elif [ -f "$source_classifier" ] || [ -f "$source_policy" ] ||
-       [ -f "$runtime_classifier" ] || [ -f "$runtime_policy" ]; then
-    AUDIT_CAPABILITY="partial-sync"
-  fi
-  if [ "$AUDIT_CAPABILITY" = "available" ] && [ -z "$PYTHON_BIN" ]; then
-    AUDIT_CAPABILITY="python-unavailable"
-  fi
+cfg_list() {
+  # cfg_list <dot.path> -> newline list (array items or dict keys), "" on error
+  [ -n "$V2_CONFIG" ] && [ -n "$PYTHON_BIN" ] || return 0
+  "$PYTHON_BIN" - "$V2_CONFIG" "$1" <<'PY' 2>/dev/null || true
+import json, sys
+cur = json.load(open(sys.argv[1]))
+for part in sys.argv[2].split('.'):
+    cur = cur[part]
+if isinstance(cur, list):
+    print('\n'.join(str(x) for x in cur))
+elif isinstance(cur, dict):
+    print('\n'.join(cur.keys()))
+else:
+    print(cur)
+PY
 }
-
-json_value() {
-  local json="$1" key="$2"
-  "$PYTHON_BIN" -c 'import json,sys; value=json.load(sys.stdin).get(sys.argv[1]); print("" if value is None else str(value).lower() if isinstance(value,bool) else value)' "$key" <<<"$json"
-}
-
-resolve_audit_runtime
 
 json_escape() {
   local s="$1"
@@ -134,22 +130,14 @@ json_escape() {
 
 extract_field() {
   # extract_field <file> <field-name>  ->  value after "**field-name**:"
-  # `|| true`: tolerates a missing field under `set -euo pipefail` so the
-  # caller sees an empty string (treated as FAIL downstream) instead of the
-  # whole script aborting with no JSON output.
-  #
-  # BOTH sides are trimmed. Trailing whitespace is invisible in a rendered
-  # report but was enough to fail the exact-match Mode/Result comparisons — an
-  # agent that ends the line with the Markdown hard-break (two spaces) had its
-  # otherwise valid report rejected as "wrong station". Surrounding whitespace
-  # is never semantic in these header fields.
+  # BOTH sides trimmed: trailing whitespace (e.g. a Markdown hard-break) is
+  # never semantic in these header fields.
   local file="$1" field="$2"
   grep -m1 "^\*\*${field}\*\*:" "$file" 2>/dev/null \
     | sed -E "s/^\*\*${field}\*\*:[[:space:]]*//; s/[[:space:]]+$//" || true
 }
 
 reasons_to_json() {
-  # Serialize the REASONS array as a JSON string array.
   local out="[]" i
   if [ "${#REASONS[@]}" -gt 0 ]; then
     out="["
@@ -171,7 +159,6 @@ rank_of() {
 }
 
 worse() {
-  # worse <a> <b> -> the more severe of two PASS/WARN/FAIL values
   if [ "$(rank_of "$1")" -ge "$(rank_of "$2")" ]; then printf '%s' "$1"; else printf '%s' "$2"; fi
 }
 
@@ -186,20 +173,20 @@ resolve_baseline() {
 }
 
 # resolve_station <station> <arg>
-# Shared by aggregate/continuity/manifest so every mode sees the same
-# STATION-FIXED input set (specter-agent-protocols §7 — the caller never picks
-# input files). Sets RS_* globals; RS_ERROR is non-empty on invalid input.
+# Shared by aggregate/digest/validate-report so every mode sees the same
+# STATION-FIXED input set (the caller never picks input files).
+# Sets RS_* globals; RS_ERROR is non-empty on invalid input.
+# RS_BASES are canonical report bases; the round-R file is <base%.md>.rR.md.
 resolve_station() {
   local station="$1" arg="$2"
-  RS_INPUTS=(); RS_MODES=(); RS_SHA_FIELD=""; RS_SHA_TARGET=""
-  RS_CYCLE=""; RS_STEP=""; RS_FEATURE=""; RS_FEATURE_CHECK=false; RS_ERROR=""
-  # Legacy alias (pre-2026-07-19 rename).
-  [ "$station" = "agent-verify" ] && station="verify"
+  RS_BASES=(); RS_MODES=(); RS_DIGEST_ARTIFACTS=(); RS_DIFF_IN_DIGEST=false
+  RS_SCOPE=""; RS_SCOPE_LABEL=""; RS_CYCLE=""; RS_STEP=""; RS_FEATURE=""; RS_ERROR=""
   case "$station" in
     pre-verify)
-      RS_INPUTS=("docs/prd/feature-map.codex-verify.md" "docs/prd/feature-map.antigravity-checklist.md")
+      RS_BASES=("docs/prd/feature-map.codex-verify.md" "docs/prd/feature-map.antigravity-verify.md")
       RS_MODES=("codex-global-verify" "antigravity-global-verify")
-      RS_SHA_FIELD="Feature Map SHA256"; RS_SHA_TARGET="docs/prd/feature-map.md"
+      RS_DIGEST_ARTIFACTS=("docs/prd/feature-map.md" "$(resolve_baseline)")
+      RS_SCOPE="global"; RS_SCOPE_LABEL="global"
       RS_CYCLE="pre"; RS_STEP="pre-verify"
       ;;
     verify)
@@ -207,25 +194,25 @@ resolve_station() {
         RS_ERROR="station verify requires a numeric Feature number (got '${arg:-<none>}')"
       else
         RS_FEATURE=$(pad_feature "$arg")
-        RS_INPUTS=("docs/prd/checklists/feature-${RS_FEATURE}.codex-verify.md" "docs/prd/checklists/feature-${RS_FEATURE}.antigravity-verify.md")
+        RS_BASES=("docs/prd/checklists/feature-${RS_FEATURE}.codex-verify.md" "docs/prd/checklists/feature-${RS_FEATURE}.antigravity-verify.md")
         RS_MODES=("codex-per-feature-verify" "antigravity-per-feature-verify")
-        RS_SHA_FIELD="Checklist SHA256"; RS_SHA_TARGET="docs/prd/checklists/feature-${RS_FEATURE}.checklist.md"
-        RS_FEATURE_CHECK=true
+        RS_DIGEST_ARTIFACTS=("docs/prd/feature-map.md" "docs/prd/checklists/feature-${RS_FEATURE}.checklist.md")
+        RS_SCOPE="${RS_FEATURE}"; RS_SCOPE_LABEL="Feature ${RS_FEATURE}"
         RS_CYCLE="feature"; RS_STEP="verify"
       fi
       ;;
     analyze)
       # Spec dirs follow the NNN-name convention; requiring the numeric prefix
-      # both blocks traversal fragments ("specs/..") and guarantees the
-      # Feature-identity check is always enabled.
+      # blocks traversal fragments and guarantees Feature identity.
       if ! [[ "$arg" =~ ^specs/[0-9]{3}-[A-Za-z0-9._-]+/?$ ]]; then
         RS_ERROR="station analyze requires a spec directory of the form specs/NNN-name (got '${arg:-<none>}')"
       else
-        RS_INPUTS=("${arg%/}/analyze.codex.md" "${arg%/}/analyze.antigravity.md")
+        RS_BASES=("${arg%/}/analyze.codex.md" "${arg%/}/analyze.antigravity.md")
         RS_MODES=("agent-document-consistency" "agent-document-consistency")
-        RS_SHA_FIELD="Tasks SHA256"; RS_SHA_TARGET="${arg%/}/tasks.md"
+        RS_DIGEST_ARTIFACTS=("docs/prd/feature-map.md" "${arg%/}/spec.md" "${arg%/}/plan.md" "${arg%/}/tasks.md")
         local base; base=$(basename "${arg%/}")
-        [[ "$base" =~ ^0*([0-9]+) ]] && RS_FEATURE=$(pad_feature "${BASH_REMATCH[1]}") && RS_FEATURE_CHECK=true
+        [[ "$base" =~ ^0*([0-9]+) ]] && RS_FEATURE=$(pad_feature "${BASH_REMATCH[1]}")
+        RS_SCOPE="${RS_FEATURE}"; RS_SCOPE_LABEL="Feature ${RS_FEATURE}"
         RS_CYCLE="feature"; RS_STEP="analyze"
       fi
       ;;
@@ -233,11 +220,12 @@ resolve_station() {
       if ! [[ "$arg" =~ ^[0-9]{3}-[A-Za-z0-9._-]+$ ]]; then
         RS_ERROR="station review requires a spec id of the form NNN-name (got '${arg:-<none>}')"
       else
-        RS_INPUTS=("docs/review/${arg}.codex-review.md" "docs/review/${arg}.antigravity-review.md")
+        RS_BASES=("docs/review/${arg}.codex-review.md" "docs/review/${arg}.antigravity-review.md")
         RS_MODES=("codex-adversarial-code-review" "antigravity-adversarial-code-review")
-        # Agent reports bind to Feature identity; the mandatory audit-tier
-        # receipt separately binds the tracked + untracked diff hash.
-        [[ "$arg" =~ ^0*([0-9]+) ]] && RS_FEATURE=$(pad_feature "${BASH_REMATCH[1]}") && RS_FEATURE_CHECK=true
+        RS_DIGEST_ARTIFACTS=("docs/prd/feature-map.md")
+        RS_DIFF_IN_DIGEST=true
+        [[ "$arg" =~ ^0*([0-9]+) ]] && RS_FEATURE=$(pad_feature "${BASH_REMATCH[1]}")
+        RS_SCOPE="${RS_FEATURE}"; RS_SCOPE_LABEL="Feature ${RS_FEATURE}"
         RS_CYCLE="feature"; RS_STEP="review"
       fi
       ;;
@@ -245,9 +233,10 @@ resolve_station() {
       if ! [[ "$arg" =~ ^[0-9]+$ ]]; then
         RS_ERROR="station expand requires a numeric amendment number (got '${arg:-<none>}')"
       else
-        RS_INPUTS=("docs/prd/feature-map.delta-${arg}.antigravity-verify.md")
+        RS_BASES=("docs/prd/feature-map.delta-${arg}.antigravity-verify.md")
         RS_MODES=("antigravity-delta-verify")
-        RS_SHA_FIELD="Feature Map SHA256"; RS_SHA_TARGET="docs/prd/feature-map.md"
+        RS_DIGEST_ARTIFACTS=("docs/prd/feature-map.md")
+        RS_SCOPE="amendment-${arg}"; RS_SCOPE_LABEL="Amendment ${arg}"
         RS_CYCLE="pre"; RS_STEP="expand"
       fi
       ;;
@@ -257,110 +246,270 @@ resolve_station() {
   esac
 }
 
-# ---- declared-coverage-closure key extraction (C5', continuity-v1) ----
-# The expected inventory is generated from the audited artifacts, never
-# asserted by the reviewer. It is a DECLARED finite universe: set equality
-# proves every declared key received a disposition, not semantic
-# exhaustiveness (that honesty limit is stated in specter-agent-protocols §6).
-
-map_commitment_keys() {
-  # map_commitment_keys <map> <feature-or-empty> -> "map:C-NNN" per index row
-  # (rows without a C-token, e.g. legacy maps, contribute no key).
-  local map="$1" feature="$2"
-  [ -f "$map" ] || return 0
-  awk -v want="$feature" '
-    /^## PRD Commitment Index/ { f = 1; next }
-    /^## / { f = 0 }
-    f && /^\|/ {
-      if ($0 ~ /^\|[-: |]+$/) next
-      n = split($0, c, "|")
-      if ($0 ~ /Owning Feature/ && $0 !~ /C-[0-9]+/) {
-        for (i = 1; i <= n; i++) if (c[i] ~ /Owning Feature/) ocol = i
-        next
-      }
-      if (!match($0, /C-[0-9]+/)) next
-      key = substr($0, RSTART, RLENGTH)
-      if (want != "") {
-        if (!ocol) ocol = 6
-        owner = c[ocol]; gsub(/^[ ]+|[ ]+$/, "", owner)
-        if (owner !~ ("^Feature 0*" (want + 0) "$")) next
-      }
-      print "map:" key
-    }' "$map"
+round_path() {
+  # round_path <base.md> <round> -> base.rN.md
+  printf '%s.r%s.md' "${1%.md}" "$2"
 }
 
-obligation_keys() {
-  # obligation_keys <map> <feature-or-empty> -> "obligation:D-NNN" (and E-NNN
-  # once a Slice Contracts table exists) per obligations row.
-  local map="$1" feature="$2"
-  [ -f "$map" ] || return 0
-  awk -v want="$feature" '
-    /^## (Implementation Obligations|Slice Contracts)/ { f = 1; ocol = 0; next }
-    /^## / { f = 0 }
-    f && /^\|/ {
-      if ($0 ~ /^\|[-: |]+$/) next
-      n = split($0, c, "|")
-      if ($0 ~ /(D|E)-ID/) {
-        for (i = 1; i <= n; i++) if (c[i] ~ /Owning Feature|To Feature/) ocol = i
-        next
-      }
-      id = c[2]; gsub(/^[ ]+|[ ]+$/, "", id)
-      if (id !~ /^[DE]-[0-9]+$/) next
-      if (want != "") {
-        owner = ""
-        if (ocol) { owner = c[ocol]; gsub(/^[ ]+|[ ]+$/, "", owner) }
-        if (owner !~ ("Feature 0*" (want + 0) "([^0-9]|$)")) next
-      }
-      print "obligation:" id
-    }' "$map"
+# ---- working-diff facts (review station; deterministic, changed files only) ----
+
+DIFF_EXCLUDES=()
+load_diff_excludes() {
+  DIFF_EXCLUDES=()
+  local p
+  while IFS= read -r p; do
+    [ -n "$p" ] && DIFF_EXCLUDES+=(":(exclude)${p}")
+  done < <(cfg_list "diff_exclude_paths")
 }
 
-manifest_keys() {
-  # manifest_keys <station> <padded-feature-or-empty> <arg>
-  # Prints the station's expected coverage keys, one per line, sorted, unique.
-  local station="$1" feature="$2" arg="$3"
-  local map="docs/prd/feature-map.md"
-  local baseline; baseline=$(resolve_baseline)
+untracked_files() {
+  # Untracked, non-excluded file paths, sorted (git porcelain ?? rows).
+  local line p excl skip
+  git status --porcelain=v1 -uall 2>/dev/null | while IFS= read -r line; do
+    [ "${line:0:2}" = "??" ] || continue
+    p="${line:3}"
+    skip=false
+    while IFS= read -r excl; do
+      [ -n "$excl" ] || continue
+      case "$p" in "$excl"*) skip=true; break ;; esac
+    done < <(cfg_list "diff_exclude_paths")
+    $skip || printf '%s\n' "$p"
+  done | sort
+}
+
+diff_digest() {
+  # sha256 over (tracked working diff vs HEAD) + (sorted untracked path=sha rows).
+  load_diff_excludes
   {
-    case "$station" in
-      pre-verify)
-        map_commitment_keys "$map" ""
-        if [ -f "$baseline" ]; then
-          grep -oE 'C-?[0-9]+' "$baseline" | tr -d '-' | sed 's/^/baseline:/' || true
+    git diff --no-ext-diff HEAD -- . ${DIFF_EXCLUDES[@]+"${DIFF_EXCLUDES[@]}"} 2>/dev/null || true
+    local p
+    while IFS= read -r p; do
+      [ -f "$p" ] && printf 'UNTRACKED %s %s\n' "$p" "$(sha256sum "$p" | awk '{print $1}')"
+    done < <(untracked_files)
+  } | sha256sum | awk '{print $1}'
+}
+
+changed_paths() {
+  load_diff_excludes
+  {
+    git diff --name-only HEAD -- . ${DIFF_EXCLUDES[@]+"${DIFF_EXCLUDES[@]}"} 2>/dev/null || true
+    untracked_files
+  } | sed '/^$/d' | sort -u
+}
+
+added_content() {
+  # Added lines of the tracked diff + full contents of untracked files.
+  # Content rules apply ONLY here — never to spec/plan/tasks prose.
+  load_diff_excludes
+  git diff --no-ext-diff HEAD -- . ${DIFF_EXCLUDES[@]+"${DIFF_EXCLUDES[@]}"} 2>/dev/null \
+    | grep '^+' | grep -v '^+++' || true
+  local p
+  while IFS= read -r p; do
+    [ -f "$p" ] && cat "$p" 2>/dev/null
+  done < <(untracked_files)
+}
+
+# ---- input digest (identity binding for every v2 report) ----
+
+DIGEST_VALUE=""
+DIGEST_ERROR=""
+compute_digest() {
+  # compute_digest — uses RS_* set by resolve_station.
+  DIGEST_VALUE=""; DIGEST_ERROR=""
+  local lines="" a
+  for a in ${RS_DIGEST_ARTIFACTS[@]+"${RS_DIGEST_ARTIFACTS[@]}"}; do
+    if [ ! -f "$a" ]; then
+      DIGEST_ERROR="missing digest artifact: $a"
+      return 0
+    fi
+    lines+="${a}=$(sha256sum "$a" | awk '{print $1}')"$'\n'
+  done
+  if [ "$RS_DIFF_IN_DIGEST" = true ]; then
+    if ! git rev-parse --verify HEAD >/dev/null 2>&1; then
+      DIGEST_ERROR="review digest requires a git repository with at least one commit"
+      return 0
+    fi
+    lines+="diff=$(diff_digest)"$'\n'
+  fi
+  DIGEST_VALUE=$(printf '%s' "$lines" | sha256sum | awk '{print $1}')
+}
+
+# ---- declared Verification signals (design §2.2) ----
+
+signals_rows() {
+  # signals_rows <feature-or-empty> -> "signal|value|evidence" rows from the
+  # Feature section's (or, with empty arg, every section's)
+  # "### Verification signals" table.
+  local feature="$1"
+  [ -f "$FEATURE_MAP" ] || return 0
+  awk -v want="$feature" '
+    /^## Feature [0-9]+:/ {
+      insec = 0
+      if (want == "") insec = 1
+      else {
+        sec = $0; sub(/^## Feature /, "", sec); sub(/:.*$/, "", sec)
+        if (sec + 0 == want + 0) insec = 1
+      }
+      intab = 0; next
+    }
+    /^## / { insec = 0; intab = 0 }
+    insec && /^### Verification signals[[:space:]]*$/ { intab = 1; next }
+    insec && /^### / { intab = 0 }
+    intab && /^\|/ {
+      if ($0 ~ /^\|[-: |]+$/) next
+      n = split($0, c, "|")
+      for (i = 1; i <= n; i++) gsub(/^[ ]+|[ ]+$/, "", c[i])
+      if (c[2] == "Signal") next
+      print c[2] "|" c[3] "|" c[4]
+    }' "$FEATURE_MAP"
+}
+
+feature_has_signals_table() {
+  # feature_has_signals_table <feature> -> exit 0 iff the section carries the table
+  local feature="$1"
+  [ -f "$FEATURE_MAP" ] || return 1
+  awk -v want="$feature" '
+    /^## Feature [0-9]+:/ {
+      insec = 0
+      sec = $0; sub(/^## Feature /, "", sec); sub(/:.*$/, "", sec)
+      if (sec + 0 == want + 0) insec = 1
+      next
+    }
+    /^## / { insec = 0 }
+    insec && /^### Verification signals[[:space:]]*$/ { found = 1 }
+    END { exit found ? 0 : 1 }' "$FEATURE_MAP"
+}
+
+validate_signals_rows() {
+  # validate_signals_rows <feature-or-empty> -> error lines (empty = valid)
+  local row sig val ev
+  while IFS='|' read -r sig val ev; do
+    [ -n "$sig" ] || continue
+    if ! [[ "$sig" =~ ^(${SIGNALS_RE})$ ]]; then
+      printf 'unknown Verification signal: %s\n' "$sig"
+    fi
+    if [ "$val" != "yes" ] && [ "$val" != "no" ]; then
+      printf 'Verification signal %s has invalid value "%s" (expected yes|no)\n' "$sig" "$val"
+    fi
+    if [ -z "$ev" ]; then
+      printf 'Verification signal %s has empty evidence\n' "$sig"
+    fi
+  done < <(signals_rows "$1")
+}
+
+# ---- risk profile (in-gate; declared signals + diff facts; never prose) ----
+
+RISK_PROFILE="ordinary"
+RISK_EVIDENCE=()   # entries: "signal|source"
+compute_risk_profile() {
+  # compute_risk_profile <station> — uses RS_FEATURE.
+  local station="$1" sig val ev cls pat
+  RISK_PROFILE="ordinary"; RISK_EVIDENCE=()
+
+  case "$station" in
+    verify|analyze|review)
+      if ! feature_has_signals_table "$RS_FEATURE"; then
+        # Legacy Feature without the table: fail-safe high-risk for this one
+        # re-check; the Feature must gain the table (design §2.2).
+        RISK_PROFILE="high-risk"
+        RISK_EVIDENCE+=("legacy-missing-signals-table|docs/prd/feature-map.md Feature ${RS_FEATURE}")
+      else
+        local sig_errors
+        sig_errors=$(validate_signals_rows "$RS_FEATURE")
+        if [ -n "$sig_errors" ]; then
+          RISK_PROFILE="high-risk"
+          RISK_EVIDENCE+=("malformed-signals-table|${sig_errors%%$'\n'*}")
         fi
-        obligation_keys "$map" ""
-        if [ -f "$map" ]; then
-          sed -nE 's/^## Feature ([0-9]+):.*$/feature:\1/p' "$map" || true
+        while IFS='|' read -r sig val ev; do
+          [ "$val" = "yes" ] || continue
+          RISK_PROFILE="high-risk"
+          RISK_EVIDENCE+=("${sig}|${ev:-feature-map}")
+        done < <(signals_rows "$RS_FEATURE")
+      fi
+      ;;
+    pre-verify)
+      while IFS='|' read -r sig val ev; do
+        [ "$val" = "yes" ] || continue
+        RISK_PROFILE="high-risk"
+        RISK_EVIDENCE+=("${sig}|${ev:-feature-map}")
+      done < <(signals_rows "")
+      ;;
+    expand)
+      : # single-agent delta station stays ordinary; pre-verify covers the map
+      ;;
+  esac
+
+  # Observed diff facts (review only): file-level paths + added-line content.
+  if [ "$station" = "review" ] && git rev-parse --verify HEAD >/dev/null 2>&1; then
+    local files added
+    files=$(changed_paths)
+    added=$(added_content)
+    while IFS= read -r cls; do
+      [ -n "$cls" ] || continue
+      while IFS= read -r pat; do
+        [ -n "$pat" ] || continue
+        local hit
+        hit=$(printf '%s\n' "$files" | grep -E -m1 -- "$pat" || true)
+        if [ -n "$hit" ]; then
+          RISK_PROFILE="high-risk"
+          RISK_EVIDENCE+=("${cls}|path:${hit}")
+          break
         fi
-        ;;
-      verify)
-        map_commitment_keys "$map" "$feature"
-        obligation_keys "$map" "$feature"
-        [ -n "$feature" ] && printf 'feature:%s\n' "$feature"
-        ;;
-      analyze)
-        local spec="${arg%/}/spec.md"
-        if [ -f "$spec" ]; then
-          grep -oE 'FR-[A-Z]*-?[0-9]+' "$spec" | sed 's/^/fr:/' || true
+      done < <(cfg_list "diff_path_classes.${cls}")
+    done < <(cfg_list "diff_path_classes")
+    while IFS= read -r cls; do
+      [ -n "$cls" ] || continue
+      while IFS= read -r pat; do
+        [ -n "$pat" ] || continue
+        if printf '%s\n' "$added" | grep -Eq -- "$pat"; then
+          RISK_PROFILE="high-risk"
+          RISK_EVIDENCE+=("${cls}|content:added-lines")
+          break
         fi
-        map_commitment_keys "$map" "$feature"
-        obligation_keys "$map" "$feature"
-        ;;
-    esac
-  } | sort -u
+      done < <(cfg_list "diff_content_classes.${cls}")
+    done < <(cfg_list "diff_content_classes")
+  fi
+}
+
+risk_evidence_json() {
+  local out="[]" i entry
+  if [ "${#RISK_EVIDENCE[@]}" -gt 0 ]; then
+    out="["
+    for i in "${!RISK_EVIDENCE[@]}"; do
+      entry="${RISK_EVIDENCE[$i]}"
+      [ "$i" -gt 0 ] && out+=","
+      out+="{\"signal\":\"$(json_escape "${entry%%|*}")\",\"source\":\"$(json_escape "${entry#*|}")\"}"
+    done
+    out+="]"
+  fi
+  printf '%s' "$out"
+}
+
+# ---- ledger decision lookup ----
+
+decision_recorded() {
+  # decision_recorded <decision> <station> <scope> [round]
+  local decision="$1" station="$2" scope="$3" round="${4:-}"
+  [ -f "$LEDGER_FILE" ] || return 1
+  local pat="\"type\":\"decision\".*\"decision\":\"${decision}\".*\"station\":\"${station}\".*\"scope\":\"${scope}\""
+  if [ -n "$round" ]; then
+    grep -E "$pat" "$LEDGER_FILE" 2>/dev/null | grep -q "\"round\":${round}[,}]"
+  else
+    grep -Eq "$pat" "$LEDGER_FILE" 2>/dev/null
+  fi
 }
 
 # ---- version subcommand ----
 
 if [ "$SUBCOMMAND" = "version" ]; then
+  config_json="null"
+  [ -n "$V2_CONFIG" ] && config_json="\"$(json_escape "$V2_CONFIG")\""
   cat <<JSON
 {
   "version": "${GATE_VERSION}",
   "contract": "${GATE_CONTRACT}",
-  "audit_tier_contract": "${AUDIT_TIER_CONTRACT}",
-  "audit_tier_capability": "${AUDIT_CAPABILITY}",
-  "continuity_contract": "${CONTINUITY_CONTRACT}",
-  "subcommands": ["gate", "version", "structural", "aggregate", "manifest", "continuity"]
+  "config": ${config_json},
+  "subcommands": ["gate", "version", "structural", "digest", "validate-report", "aggregate", "decide"]
 }
 JSON
   exit 0
@@ -368,13 +517,11 @@ fi
 
 # ---- structural subcommand (Layer 1: deterministic structure only) ----
 # Judges shape, never semantics: whether the PRD was actually understood is
-# Layer 2's job (specter-agent-protocols §7).
+# Layer 2's job.
 
 if [ "$SUBCOMMAND" = "structural" ]; then
   MAP="docs/prd/feature-map.md"
   PROGRESS="docs/prd/feature-map.progress.md"
-  # Baseline checklist: new path first, legacy Codex-era path as fallback so
-  # established consumer projects keep passing their C-ID cross-references.
   CODEX_PRD_CHECKLIST="docs/prd/featuremap-checklist.md"
   [ -f "$CODEX_PRD_CHECKLIST" ] || CODEX_PRD_CHECKLIST="docs/prd/codex/checklist.md"
 
@@ -384,11 +531,10 @@ if [ "$SUBCOMMAND" = "structural" ]; then
   dag_ok=true
   placeholders_ok=true
   checklist_refs_ok=true
-  audit_signals_ok=true
+  signals_ok=true
   obligations_ok=true
 
   note() {
-    # note <F|W> <reason>
     add_reason "$2"
     if [ "$1" = "F" ]; then verdict=$(worse "$verdict" "FAIL"); else verdict=$(worse "$verdict" "WARN"); fi
   }
@@ -412,9 +558,6 @@ if [ "$SUBCOMMAND" = "structural" ]; then
         if ($0 ~ /^\|[-: |]+$/) next
         n = split($0, c, "|")
         if (c[2] ~ /Source PRD/ || $0 ~ /Owning Feature/) {
-          # Header row: locate the owner column by name instead of assuming
-          # position 6 (2026-07-22 doit-n-live false positive on a map with a
-          # legitimate extra leading column).
           for (i = 1; i <= n; i++) if (c[i] ~ /Owning Feature/) ocol = i
           next
         }
@@ -471,8 +614,7 @@ if [ "$SUBCOMMAND" = "structural" ]; then
       /^### / { subh = $0; seen[$0] = 1; next }
       {
         # Standalone uppercase tokens only: a product/domain word like "Todo"
-        # or an identifier like "TODOS_TABLE" is not a placeholder (2026-07-22
-        # doit-n-live false positive).
+        # or an identifier like "TODOS_TABLE" is not a placeholder.
         if ($0 ~ /(^|[^A-Za-z_])(TBD|TODO)([^A-Za-z_]|$)|\{\{/) {
           if (subh == "### Done criteria") print "F|" sec "|unresolved placeholder in done criteria: " $0
           else print "W|" sec "|unresolved placeholder: " $0
@@ -490,32 +632,19 @@ if [ "$SUBCOMMAND" = "structural" ]; then
       note F "Feature ${FEATURE} section not found in $MAP"
     fi
 
-    # Audit Signals are classified by the canonical policy runtime, never by
-    # duplicated shell conditions. Legacy maps without the section remain
-    # valid and classify T2 later; a present section requires the complete
-    # capability and strict closed-schema validation.
-    if grep -q '^### Audit signals[[:space:]]*$' "$MAP"; then
-      if [ "$AUDIT_CAPABILITY" != "available" ]; then
-        audit_signals_ok=false
-        note F "Audit signals present but audit-tier capability is ${AUDIT_CAPABILITY}"
-      else
-        validate_args=(--policy "$AUDIT_POLICY" validate-map --feature-map "$MAP")
-        [ -n "$FEATURE" ] && validate_args+=(--feature "$FEATURE")
-        if ! audit_validation=$("$PYTHON_BIN" "$AUDIT_CLASSIFIER" "${validate_args[@]}" 2>&1); then
-          audit_signals_ok=false
-          note F "Audit signals schema validation failed: ${audit_validation//$'\n'/ }"
-        fi
-      fi
-    elif [ "$AUDIT_CAPABILITY" = "partial-sync" ]; then
-      audit_signals_ok=false
-      note F "audit-tier capability is partially synced"
-    fi
+    # Verification signals (v2, design §2.2): the table is optional — a
+    # Feature without it runs high-risk until it gains one — but a present
+    # table must satisfy the closed schema. Validated in-gate; no external
+    # classifier process exists in v2.
+    while IFS= read -r err; do
+      [ -n "$err" ] || continue
+      signals_ok=false
+      note F "$err"
+    done < <(validate_signals_rows "$FEATURE")
 
-    # Implementation Obligations (D-IDs, specter-agent-protocols §10): the
-    # section is optional — legacy maps without it stay valid — but a present
-    # section must satisfy the closed schema. Semantic tenability (the two-part
-    # entailment/denylist test) is Layer 2's job; this checks shape and
-    # referential integrity only.
+    # Implementation Obligations (D-IDs): the section is optional and rows are
+    # references, never product authority (design §0 D3). A present section
+    # must satisfy the closed shape; referential integrity only.
     if grep -q '^## Implementation Obligations' "$MAP"; then
       while IFS= read -r line; do
         [ -n "$line" ] || continue
@@ -568,9 +697,6 @@ if [ "$SUBCOMMAND" = "structural" ]; then
           if (hdr && rows == 0) print "F|Implementation Obligations section has no rows"
         }' "$MAP")
 
-      # Referential integrity: every C-ID cited in the section must exist in
-      # the baseline checklist (dash-insensitive). Skipped when no baseline
-      # exists yet — /ms.featuremap's structural run precedes the checklist.
       if [ -f "$CODEX_PRD_CHECKLIST" ]; then
         while IFS= read -r cid; do
           [ -n "$cid" ] || continue
@@ -669,7 +795,7 @@ if [ "$SUBCOMMAND" = "structural" ]; then
     "dag_acyclic": ${dag_ok},
     "placeholders_clean": ${placeholders_ok},
     "checklist_refs_ok": ${checklist_refs_ok},
-    "audit_signals_ok": ${audit_signals_ok},
+    "verification_signals_ok": ${signals_ok},
     "implementation_obligations_ok": ${obligations_ok}
   },
   "verdict": "${verdict}",
@@ -679,55 +805,36 @@ JSON
   exit 0
 fi
 
-# ---- manifest subcommand (C5': gate-generated expected coverage inventory) ----
-# The inventory is derived from the audited artifacts so the reviewer cannot
-# assert "191/191 checked" after sampling — Layer 3 later verifies exact set
-# equality against the reviewer's ## Coverage rows. Review has no manifest:
-# its per-criterion inventory is the Done Criteria Execution table.
+# ---- digest subcommand ----
 
-if [ "$SUBCOMMAND" = "manifest" ]; then
+if [ "$SUBCOMMAND" = "digest" ]; then
   STATION="${1:-}"; ARG="${2:-}"
+  resolve_station "$STATION" "$ARG"
   verdict="PASS"
-  keys=""
-  case "$STATION" in
-    pre-verify|verify|analyze)
-      resolve_station "$STATION" "$ARG"
-      if [ -n "$RS_ERROR" ]; then
-        add_reason "$RS_ERROR"; verdict="FAIL"
-      else
-        keys=$(manifest_keys "$STATION" "$RS_FEATURE" "$ARG")
-        [ -n "$keys" ] || { add_reason "no coverage keys could be extracted for station ${STATION} — check the audited artifacts exist"; verdict="FAIL"; }
-      fi
-      ;;
-    *)
-      add_reason "unknown manifest station '${STATION:-<none>}' (expected pre-verify|verify|analyze)"
-      verdict="FAIL"
-      ;;
-  esac
-  keys_json="[]"
-  count=0
-  if [ -n "$keys" ]; then
-    keys_json="["
-    kfirst=true
-    while IFS= read -r k; do
-      [ -n "$k" ] || continue
-      $kfirst || keys_json+=","
-      kfirst=false
-      keys_json+="\"$(json_escape "$k")\""
-      count=$((count + 1))
-    done <<< "$keys"
-    keys_json+="]"
+  if [ -n "$RS_ERROR" ]; then
+    add_reason "$RS_ERROR"; verdict="FAIL"
+  else
+    compute_digest
+    if [ -n "$DIGEST_ERROR" ]; then
+      add_reason "$DIGEST_ERROR"; verdict="FAIL"
+    fi
   fi
-  feature_json="null"
-  [ -n "${RS_FEATURE:-}" ] && feature_json="\"$(json_escape "$RS_FEATURE")\""
+  artifacts_json="["
+  afirst=true
+  for a in ${RS_DIGEST_ARTIFACTS[@]+"${RS_DIGEST_ARTIFACTS[@]}"}; do
+    $afirst || artifacts_json+=","
+    afirst=false
+    artifacts_json+="\"$(json_escape "$a")\""
+  done
+  [ "${RS_DIFF_IN_DIGEST:-false}" = true ] && { $afirst || artifacts_json+=","; artifacts_json+="\"<working-diff>\""; }
+  artifacts_json+="]"
   cat <<JSON
 {
-  "mode": "manifest",
+  "mode": "digest",
   "station": "$(json_escape "$STATION")",
-  "feature": ${feature_json},
-  "continuity_contract": "${CONTINUITY_CONTRACT}",
-  "count": ${count},
-  "keys": ${keys_json},
+  "scope": "$(json_escape "${RS_SCOPE:-}")",
+  "artifacts": ${artifacts_json},
+  "input_digest": "$(json_escape "$DIGEST_VALUE")",
   "verdict": "${verdict}",
   "reasons": $(reasons_to_json)
 }
@@ -735,135 +842,164 @@ JSON
   exit 0
 fi
 
-# ---- continuity subcommand (C4': mechanical re-round continuity packet) ----
-# Built ONLY from the immutable round archives + verbatim finding rows: the
-# host passes the packet path to the reviewer prompt but never authors packet
-# content. The packet is explicitly NOT a PASS whitelist — it exists so a
-# reviewer lane that contradicts its own prior Required Fix must classify the
-# finding REVERSAL instead of issuing an ordinary new FAIL.
+# ---- validate-report subcommand (format-retry lane, design §2.5) ----
 
-if [ "$SUBCOMMAND" = "continuity" ]; then
-  STATION="${1:-}"
-  shift || true
+if [ "$SUBCOMMAND" = "validate-report" ]; then
+  RPT="${1:-}"; STATION="${2:-}"; shift 2 || true
   ARG=""
-  ROUND="2"
-  DIFF_PATH=""
+  ROUND="1"
   while [ $# -gt 0 ]; do
     case "$1" in
-      --round) shift; ROUND="${1:-2}" ;;
-      --diff) shift; DIFF_PATH="${1:-}" ;;
+      --round) shift; ROUND="${1:-1}" ;;
       *) [ -z "$ARG" ] && ARG="$1" ;;
     esac
     shift || true
   done
-  [[ "$ROUND" =~ ^[0-9]+$ ]] || ROUND="2"
+  [[ "$ROUND" =~ ^[0-9]+$ ]] || ROUND="1"
 
-  verdict="PASS"
-  packet=""
-  rounds_archived=0
-  blocking=0
+  errors=()
+  add_err() { errors+=("$1"); }
 
-  case "$STATION" in
-    pre-verify|verify|analyze|review|agent-verify)
-      resolve_station "$STATION" "$ARG"
-      if [ -n "$RS_ERROR" ]; then
-        add_reason "$RS_ERROR"; verdict="FAIL"
-      fi
-      ;;
-    *)
-      add_reason "unknown continuity station '${STATION:-<none>}' (expected pre-verify|verify|analyze|review)"
-      verdict="FAIL"
-      ;;
-  esac
-
-  if [ "$verdict" = "PASS" ]; then
-    suffix=""
-    if [ -n "$RS_FEATURE" ]; then suffix="-${RS_FEATURE}"
-    elif [ -n "$ARG" ]; then suffix="-$(basename "${ARG%/}")"
-    fi
-    mkdir -p .specify/continuity
-    packet=".specify/continuity/${RS_STEP}${suffix}.packet.md"
-    {
-      printf '# Continuity Packet — %s%s\n\n' "$RS_STEP" "$suffix"
-      printf '**Station**: %s\n' "$RS_STEP"
-      printf '**Built for round**: %s\n' "$ROUND"
-      printf '**Generated**: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-      [ -n "$DIFF_PATH" ] && printf '**Repair diff**: %s\n' "$DIFF_PATH"
-      printf '\n'
-      printf '> This packet contains prior BLOCKING findings and their Required Fixes\n'
-      printf '> only, copied verbatim from the immutable round archives. It is NOT a\n'
-      printf '> PASS whitelist: it confers no immunity, and full-scope discovery outside\n'
-      printf '> these findings remains allowed and expected. If this reviewer lane\n'
-      printf '> previously prescribed the state now being rejected, retain the\n'
-      printf '> predecessor ID, classify the finding REVERSAL, quote the prior Required\n'
-      printf '> Fix verbatim, and identify the failed premise\n'
-      printf '> (specter-agent-protocols §5).\n'
-    } > "$packet"
-    r=1
-    while [ "$r" -lt "$ROUND" ]; do
-      rr=$(printf '%02d' "$r")
-      found_this_round=false
-      for f in ${RS_INPUTS[@]+"${RS_INPUTS[@]}"}; do
-        arch="${f%.md}.round-${rr}.md"
-        [ -s "$arch" ] || continue
-        found_this_round=true
-        arch_sha_val=""
-        [ -n "$RS_SHA_FIELD" ] && arch_sha_val=$(extract_field "$arch" "$RS_SHA_FIELD")
-        {
-          printf '\n## Round %s — %s\n\n' "$rr" "$f"
-          [ -n "$arch_sha_val" ] && printf '**Audited artifact SHA at that round**: %s\n\n' "$arch_sha_val"
-        } >> "$packet"
-        # Verbatim blocking rows from the archived Findings table — never
-        # paraphrased. Works for both the legacy 4-column and the continuity-v1
-        # lineage schema (any cell exactly one of the blocking severities).
-        #
-        # BLOCKING is accepted alongside CRITICAL/HIGH: §6 of the protocol calls
-        # these "prior blocking findings" and the station prompts never fix a
-        # severity vocabulary, so reviewers legitimately write BLOCKING. Omitting
-        # it made the packet report "(no blocking findings)" for a round whose
-        # report carried three, silently dropping the lineage a re-round depends
-        # on. Under-reporting here is the dangerous direction: a dropped finding
-        # is one the next round is never told to carry forward.
-        rows=$(awk '
-          /^## Findings/ { f = 1; next }
-          /^## / { f = 0 }
-          f && /^\|/ && $0 !~ /^\|[-: |]+$/ && $0 !~ /Severity[ ]*\|/ {
-            n = split($0, c, "|")
-            for (i = 1; i <= n; i++) {
-              cell = c[i]; gsub(/^[ \t]+|[ \t]+$/, "", cell)
-              if (cell == "CRITICAL" || cell == "HIGH" || cell == "BLOCKING") { print; next }
-            }
-          }' "$arch")
-        if [ -n "$rows" ]; then
-          printf '%s\n' "$rows" >> "$packet"
-          blocking=$((blocking + $(printf '%s\n' "$rows" | wc -l)))
-        else
-          printf '(no blocking findings in this lane at this round)\n' >> "$packet"
-        fi
-      done
-      [ "$found_this_round" = true ] && rounds_archived=$((rounds_archived + 1))
-      r=$((r + 1))
+  resolve_station "$STATION" "$ARG"
+  expected_mode=""
+  if [ -n "$RS_ERROR" ]; then
+    add_err "$RS_ERROR"
+  else
+    # Which lane is this file? Match against the station's round paths.
+    idx=0; lane=-1
+    for b in ${RS_BASES[@]+"${RS_BASES[@]}"}; do
+      [ "$RPT" = "$(round_path "$b" "$ROUND")" ] && lane=$idx
+      idx=$((idx + 1))
     done
-    if [ "$rounds_archived" -eq 0 ]; then
-      printf '\n(no archived prior rounds found — this station has no continuity history yet; legacy in-flight reports predate continuity-v1)\n' >> "$packet"
-      add_reason "no archived round reports found for rounds < ${ROUND} — packet is empty (legacy in-flight station or wrong --round)"
+    if [ "$lane" -ge 0 ]; then
+      expected_mode="${RS_MODES[$lane]}"
+    else
+      add_err "path is not a station report for ${STATION} round ${ROUND}: ${RPT}"
     fi
   fi
 
-  feature_json="null"
-  [ -n "${RS_FEATURE:-}" ] && feature_json="\"$(json_escape "$RS_FEATURE")\""
-  packet_json="null"
-  [ -n "$packet" ] && packet_json="\"$(json_escape "$packet")\""
+  if [ ! -s "$RPT" ]; then
+    add_err "missing or empty report: ${RPT}"
+  else
+    in_contract=$(extract_field "$RPT" "Contract")
+    in_mode=$(extract_field "$RPT" "Mode")
+    in_scope=$(extract_field "$RPT" "Scope")
+    in_digest=$(extract_field "$RPT" "Input Digest")
+    in_avail=$(extract_field "$RPT" "Availability")
+    result_count=$(grep -c '^\*\*Result\*\*:' "$RPT" || true)
+    in_result=$(extract_field "$RPT" "Result")
+
+    [ "$in_contract" = "$GATE_CONTRACT" ] || add_err "Contract is '${in_contract:-missing}', expected ${GATE_CONTRACT}"
+    if [ -n "$expected_mode" ] && [ "$in_mode" != "$expected_mode" ]; then
+      add_err "Mode '${in_mode:-missing}' does not match station mode '${expected_mode}'"
+    fi
+    [ "$result_count" -eq 1 ] || add_err "expected exactly one Result line (found ${result_count})"
+    case "$in_result" in PASS|WARN|FAIL) : ;; *) add_err "invalid Result '${in_result:-missing}'" ;; esac
+    [ -n "$in_digest" ] || add_err "missing Input Digest field"
+    if [ -n "$RS_SCOPE_LABEL" ]; then
+      scope_ok=false
+      if [ "$RS_SCOPE_LABEL" = "global" ]; then
+        [ "$in_scope" = "global" ] && scope_ok=true
+      elif [[ "$RS_SCOPE_LABEL" =~ ^Feature\ 0*([0-9]+)$ ]]; then
+        fnum="${BASH_REMATCH[1]}"
+        [[ "$in_scope" =~ ^Feature\ 0*${fnum}$ ]] && scope_ok=true
+      else
+        [ "$in_scope" = "$RS_SCOPE_LABEL" ] && scope_ok=true
+      fi
+      $scope_ok || add_err "Scope '${in_scope:-missing}' does not match station scope '${RS_SCOPE_LABEL}'"
+    fi
+
+    is_placeholder=false
+    [[ "$in_avail" =~ ^(UNAVAILABLE|RECUSED) ]] && is_placeholder=true
+    if [ "$is_placeholder" = false ]; then
+      grep -q '^\*\*Checked\*\*:' "$RPT" || add_err "missing non-empty **Checked** line (Scope and evidence section)"
+      grep -q '^\*\*Not checked\*\*:' "$RPT" || add_err "missing non-empty **Not checked** line (Scope and evidence section)"
+      grep -q '^## Findings' "$RPT" || add_err "missing ## Findings section"
+      # Findings rows, when present, must parse as 6-cell table rows.
+      while IFS= read -r frow; do
+        [ -n "$frow" ] || continue
+        cells=$(awk -F'|' '{print NF}' <<<"$frow")
+        if [ "$cells" -lt 8 ]; then
+          add_err "findings row does not have 6 columns (ID|Severity|State|Finding|Evidence|Required Fix): ${frow:0:80}"
+          break
+        fi
+      done < <(awk '/^## Findings/{f=1;next} /^## /{f=0} f && /^\|/ && $0 !~ /^\|[-: |]+$/ && $0 !~ /\| *ID *\|/ {print}' "$RPT")
+    fi
+  fi
+
+  valid=true
+  [ "${#errors[@]}" -gt 0 ] && valid=false
+  errors_json="[]"
+  if [ "${#errors[@]}" -gt 0 ]; then
+    errors_json="["
+    for i in "${!errors[@]}"; do
+      [ "$i" -gt 0 ] && errors_json+=","
+      errors_json+="\"$(json_escape "${errors[$i]}")\""
+    done
+    errors_json+="]"
+  fi
   cat <<JSON
 {
-  "mode": "continuity",
+  "mode": "validate-report",
+  "path": "$(json_escape "$RPT")",
   "station": "$(json_escape "$STATION")",
-  "feature": ${feature_json},
   "round": ${ROUND},
-  "continuity_contract": "${CONTINUITY_CONTRACT}",
-  "packet": ${packet_json},
-  "rounds_archived": ${rounds_archived},
-  "blocking_findings": ${blocking},
+  "valid": ${valid},
+  "errors": ${errors_json}
+}
+JSON
+  exit 0
+fi
+
+# ---- decide subcommand (typed human-decision ledger events, design §2.6) ----
+
+if [ "$SUBCOMMAND" = "decide" ]; then
+  DTYPE="${1:-}"; DSTATION="${2:-}"; DSCOPE="${3:-}"; shift 3 || true
+  DROUND=""; DACTOR="human"; DREASON=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --round) shift; DROUND="${1:-}" ;;
+      --actor) shift; DACTOR="${1:-human}" ;;
+      --reason) shift; DREASON="${1:-}" ;;
+    esac
+    shift || true
+  done
+
+  verdict="PASS"
+  valid_types="ack-migration ack-destructive ack-irreversible ack-gate-policy ack-degrade authorize-round accept-warn stop"
+  case " $valid_types " in
+    *" $DTYPE "*) : ;;
+    *) add_reason "unknown decision type '${DTYPE:-<none>}' (expected one of: ${valid_types// /|})"; verdict="FAIL" ;;
+  esac
+  [ -n "$DSTATION" ] || { add_reason "decide requires a station"; verdict="FAIL"; }
+  [ -n "$DSCOPE" ] || { add_reason "decide requires a scope"; verdict="FAIL"; }
+  [ -n "$DREASON" ] || { add_reason "decide requires --reason (decisions are recorded with their rationale)"; verdict="FAIL"; }
+  if [ "$DTYPE" = "authorize-round" ] && ! [[ "$DROUND" =~ ^[0-9]+$ ]]; then
+    add_reason "authorize-round requires --round N"; verdict="FAIL"
+  fi
+
+  event_written=false
+  if [ "$verdict" = "PASS" ]; then
+    mkdir -p .specify
+    receipt_sha=""
+    receipt_file="${RECEIPT_DIR}/${DSTATION}-${DSCOPE}.json"
+    [ -f "$receipt_file" ] && receipt_sha=$(sha256sum "$receipt_file" | awk '{print $1}')
+    event="{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"type\":\"decision\",\"decision\":\"${DTYPE}\",\"station\":\"$(json_escape "$DSTATION")\",\"scope\":\"$(json_escape "$DSCOPE")\""
+    [ -n "$DROUND" ] && event+=",\"round\":${DROUND}"
+    event+=",\"actor\":\"$(json_escape "$DACTOR")\",\"reason\":\"$(json_escape "$DREASON")\",\"receipt_sha256\":\"$(json_escape "$receipt_sha")\"}"
+    printf '%s\n' "$event" >> "$LEDGER_FILE"
+    event_written=true
+  fi
+
+  cat <<JSON
+{
+  "mode": "decide",
+  "decision": "$(json_escape "$DTYPE")",
+  "station": "$(json_escape "$DSTATION")",
+  "scope": "$(json_escape "$DSCOPE")",
+  "round": ${DROUND:-null},
+  "actor": "$(json_escape "$DACTOR")",
+  "event_written": ${event_written},
   "verdict": "${verdict}",
   "reasons": $(reasons_to_json)
 }
@@ -873,8 +1009,8 @@ fi
 
 # ---- aggregate subcommand (Layer 3: mechanical verdict aggregation) ----
 # The station name fixes the report set; the caller can never add, omit, or
-# reorder inputs (specter-agent-protocols §7 — dynamic input choice would let
-# a failing report simply be left out).
+# reorder inputs (dynamic input choice would let a failing report simply be
+# left out).
 
 if [ "$SUBCOMMAND" = "aggregate" ]; then
   STATION="${1:-}"
@@ -882,88 +1018,75 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
   ARG=""
   LEDGER=false
   ROUND="1"
-  EXPECT_PROTOCOL=""
-  REQUIRE_COVERAGE=false
+  RAISE_RISK=false
+  FORMAT_RETRIES=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --ledger) LEDGER=true ;;
       --round) shift; ROUND="${1:-1}" ;;
-      --expect-protocol) shift; EXPECT_PROTOCOL="${1:-}" ;;
-      --require-coverage) REQUIRE_COVERAGE=true ;;
+      --raise-risk) RAISE_RISK=true ;;
+      --format-retries) shift; FORMAT_RETRIES="${1:-}" ;;
       *) [ -z "$ARG" ] && ARG="$1" ;;
     esac
     shift || true
   done
   [[ "$ROUND" =~ ^[0-9]+$ ]] || ROUND="1"
-  if [ -n "$EXPECT_PROTOCOL" ] && [ "$EXPECT_PROTOCOL" != "$CONTINUITY_CONTRACT" ]; then
-    add_reason "--expect-protocol '${EXPECT_PROTOCOL}' does not match this gate's continuity contract '${CONTINUITY_CONTRACT}' — partial sync; run /ms.sync"
-  fi
 
   verdict="PASS"
-  audit_tier="T2"
-  tier_receipt_sha=""
-  tier_policy_hash=""
-  tier_settings_json="null"
-  warn_ack_required=false
-  warn_ack_satisfied=false
-  reversal_present=false
-  coverage_breach_present=false
-
-  # Legacy alias normalization also happens here so the later
-  # station-name comparisons see the canonical name.
-  [ "$STATION" = "agent-verify" ] && STATION="verify"
 
   resolve_station "$STATION" "$ARG"
   if [ -n "$RS_ERROR" ]; then
     add_reason "$RS_ERROR"; verdict="FAIL"
   fi
-  INPUTS=(${RS_INPUTS[@]+"${RS_INPUTS[@]}"})
-  EXPECTED_MODES=(${RS_MODES[@]+"${RS_MODES[@]}"})
+
+  # Partial-sync fail-fast: the v2 config is part of the atomic capability.
+  if [ -z "$V2_CONFIG" ] || [ -z "$PYTHON_BIN" ]; then
+    add_reason "verification-v2 config or python runtime unavailable — partial sync; run /ms.sync (or /ms.init)"
+    verdict="FAIL"
+  fi
+
+  # Executable round budget (design §2.4): rounds 1-2 are the entire automatic
+  # budget; round 3+ requires a recorded authorize-round decision — checked
+  # BEFORE any report is read, so an over-cap round spends nothing.
+  AUTOMATIC_ROUNDS=2
+  budget=$(cfg_list "round_budget.automatic_rounds")
+  [[ "$budget" =~ ^[0-9]+$ ]] && AUTOMATIC_ROUNDS="$budget"
+  if [ "$verdict" != "FAIL" ] && [ "$ROUND" -gt "$AUTOMATIC_ROUNDS" ]; then
+    if ! decision_recorded "authorize-round" "$STATION" "$RS_SCOPE" "$ROUND"; then
+      add_reason "round ${ROUND} exceeds the automatic budget (${AUTOMATIC_ROUNDS}) and no authorize-round decision is recorded for ${STATION}/${RS_SCOPE} round ${ROUND} — the post-cap options are: fix and restart with a new input digest / amend the PRD authority / authorize one doctrine-dispute round (specter-gate.sh decide authorize-round ...) / accept WARN / stop"
+      verdict="FAIL"
+      cat <<JSON
+{
+  "mode": "aggregate",
+  "station": "$(json_escape "$STATION")",
+  "scope": "$(json_escape "${RS_SCOPE:-}")",
+  "round": ${ROUND},
+  "verdict": "FAIL",
+  "over_budget": true,
+  "reasons": $(reasons_to_json)
+}
+JSON
+      exit 0
+    fi
+    add_reason "round ${ROUND} runs under a recorded authorize-round decision"
+  fi
+
   cycle="$RS_CYCLE"
   step="$RS_STEP"
   agg_feature="$RS_FEATURE"
-  sha_field="$RS_SHA_FIELD"
-  sha_target="$RS_SHA_TARGET"
-  feature_check="$RS_FEATURE_CHECK"
 
-  # Declared-coverage stations (C5'): only these have a gate-generated
-  # expected inventory to check ## Coverage against.
-  manifest_station=false
-  case "$STATION" in pre-verify|verify|analyze) manifest_station=true ;; esac
-  if [ "$REQUIRE_COVERAGE" = true ] && [ "$manifest_station" != true ]; then
-    add_reason "--require-coverage is only valid for stations pre-verify|verify|analyze"
-    REQUIRE_COVERAGE=false
-  fi
-  expected_keys=""
-  if [ "$manifest_station" = true ] && { [ "$REQUIRE_COVERAGE" = true ] || [ -n "$EXPECT_PROTOCOL" ]; }; then
-    expected_keys=$(manifest_keys "$STATION" "$agg_feature" "$ARG")
-  fi
-
-  # Tiered stations consume the one fixed per-Feature receipt path. The host
-  # cannot pass a receipt path or tier value. Global pre-verify and expand stay
-  # full-strength and untiered.
-  if [ "$STATION" = "verify" ] || [ "$STATION" = "analyze" ] || [ "$STATION" = "review" ]; then
-    if [ "$AUDIT_CAPABILITY" = "available" ] && [ -n "$agg_feature" ]; then
-      if tier_status=$("$PYTHON_BIN" "$AUDIT_CLASSIFIER" --policy "$AUDIT_POLICY" gate-status \
-          --feature "$agg_feature" --station "$STATION" 2>&1); then
-        audit_tier=$(json_value "$tier_status" "effective_tier")
-        tier_receipt_sha=$(json_value "$tier_status" "tier_receipt_sha256")
-        tier_policy_hash=$(json_value "$tier_status" "policy_hash")
-        warn_ack_required=$(json_value "$tier_status" "warn_ack_required")
-        warn_ack_satisfied=$(json_value "$tier_status" "warn_ack_satisfied")
-        tier_settings_json=$(printf '%s' "$tier_status" | "$PYTHON_BIN" -c 'import json,sys; print(json.dumps(json.load(sys.stdin).get("tier_settings"), separators=(",",":")))')
-      else
-        verdict="FAIL"
-        add_reason "invalid or stale audit-tier receipt for ${STATION} Feature ${agg_feature}: ${tier_status//$'\n'/ }"
-      fi
-    elif [ "$AUDIT_CAPABILITY" = "partial-sync" ] || [ "$AUDIT_CAPABILITY" = "python-unavailable" ]; then
+  # Input digest + risk profile — both computed in-gate, from current inputs.
+  DIGEST_VALUE=""; DIGEST_ERROR=""
+  if [ "$verdict" != "FAIL" ] || [ -z "$RS_ERROR" ]; then
+    compute_digest
+    if [ -n "$DIGEST_ERROR" ]; then
+      add_reason "$DIGEST_ERROR"
       verdict="FAIL"
-      add_reason "audit-tier capability is ${AUDIT_CAPABILITY}; run /ms.init or /ms.sync"
-    else
-      # Backward compatibility for a fully legacy consumer: current SPECTER
-      # behavior is T2. Updated commands require the capability probe before
-      # using tier-specific orchestration.
-      audit_tier="T2"
+    fi
+    compute_risk_profile "$STATION"
+    if [ "$RAISE_RISK" = true ] && [ "$RISK_PROFILE" != "high-risk" ]; then
+      RISK_PROFILE="high-risk"
+      RISK_EVIDENCE+=("manual-raise|--raise-risk")
     fi
   fi
 
@@ -974,47 +1097,40 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
   first=true
   idx=0
 
-  for f in ${INPUTS[@]+"${INPUTS[@]}"}; do
+  for base in ${RS_BASES[@]+"${RS_BASES[@]}"}; do
+    f=$(round_path "$base" "$ROUND")
     in_result=""
     in_avail=""
     in_sha=""
-    in_mode=""
     in_verdict="FAIL"
-    expected_mode="${EXPECTED_MODES[$idx]:-}"
+    expected_mode="${RS_MODES[$idx]:-}"
+    fmt_retry="0"
+    if [ -n "$FORMAT_RETRIES" ]; then
+      fmt_retry=$(awk -v n=$((idx + 1)) '{print $n}' <<<"$FORMAT_RETRIES" 2>/dev/null || printf '0')
+      [[ "$fmt_retry" =~ ^[0-9]+$ ]] || fmt_retry="0"
+    fi
     idx=$((idx + 1))
 
     if [ ! -s "$f" ]; then
-      # Keep the hash array aligned with the artifacts array: an unhashable
-      # (missing/empty) input records "" at its position, never a silent skip.
       REPORT_SHAS+=("")
       add_reason "missing or empty report: $f"
     else
       in_sha=$(sha256sum "$f" | awk '{print $1}')
       REPORT_SHAS+=("$in_sha")
-      # Immutable round archive (continuity-v1): a --ledger run is the verdict
-      # emission of record, so it archives what it graded. Re-rounds overwrite
-      # the canonical path; the archive is where the original observation
-      # survives. Reusing a round number with different content is exactly the
-      # overwrite the archive exists to prevent.
-      if [ "$LEDGER" = true ]; then
-        arch="${f%.md}.round-$(printf '%02d' "$ROUND").md"
-        if [ -f "$arch" ]; then
-          if ! cmp -s "$f" "$arch"; then
-            verdict="FAIL"
-            add_reason "round ${ROUND} archive already exists with different content: ${arch} — round reports are immutable; use the next --round number"
-          fi
-        else
-          cp "$f" "$arch"
-        fi
-      fi
+      in_contract=$(extract_field "$f" "Contract")
       in_mode=$(extract_field "$f" "Mode")
+      in_scope=$(extract_field "$f" "Scope")
+      in_digest=$(extract_field "$f" "Input Digest")
       result_count=$(grep -c '^\*\*Result\*\*:' "$f" || true)
       in_result=$(extract_field "$f" "Result")
       in_avail=$(extract_field "$f" "Availability")
       structural_ok=true
-      if [ -n "$expected_mode" ] && [ "$in_mode" != "$expected_mode" ]; then
+      if [ "$in_contract" != "$GATE_CONTRACT" ]; then
+        structural_ok=false
+        add_reason "report Contract '${in_contract:-missing}' is not ${GATE_CONTRACT}: $f"
+      elif [ -n "$expected_mode" ] && [ "$in_mode" != "$expected_mode" ]; then
         # A report from the wrong station (or with no Mode) must never grade
-        # this station — degrade placeholders carry the normal Mode too (§2).
+        # this station — degrade placeholders carry the normal Mode too.
         structural_ok=false
         add_reason "report Mode '${in_mode:-missing}' does not match station mode '${expected_mode}': $f"
       elif [ "$result_count" -ne 1 ]; then
@@ -1025,214 +1141,33 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
         add_reason "invalid Result '${in_result}' in $f"
       fi
       # Identity and freshness bind EVERY report, degrade placeholders
-      # included (§2 placeholders carry Feature and the SHA field too) —
-      # a stale or mis-scoped placeholder must not become an accepted cap.
-      if [ "$structural_ok" = true ] && [ "$feature_check" = true ]; then
-        rep_feature=$(extract_field "$f" "Feature")
-        feature_num=$((10#$agg_feature))
-        if ! [[ "$rep_feature" =~ Feature\ 0*${feature_num}([^0-9]|$) ]]; then
-          structural_ok=false
-          add_reason "report Feature field '${rep_feature:-missing}' does not match Feature ${agg_feature}: $f"
-        fi
-      fi
-      if [ "$structural_ok" = true ] && [ -n "$sha_field" ]; then
-        if [ -f "$sha_target" ]; then
-          rec_sha=$(extract_field "$f" "$sha_field")
-          cur_sha=$(sha256sum "$sha_target" | awk '{print $1}')
-          if [ -z "$rec_sha" ] || [ "$rec_sha" != "$cur_sha" ]; then
-            structural_ok=false
-            add_reason "stale ${sha_field} in $f (recorded=${rec_sha:-none}, current=${cur_sha})"
-          fi
+      # included — a stale or mis-scoped placeholder must not become an
+      # accepted cap.
+      if [ "$structural_ok" = true ] && [ -n "$RS_SCOPE_LABEL" ]; then
+        scope_ok=false
+        if [ "$RS_SCOPE_LABEL" = "global" ]; then
+          [ "$in_scope" = "global" ] && scope_ok=true
+        elif [[ "$RS_SCOPE_LABEL" =~ ^Feature\ 0*([0-9]+)$ ]]; then
+          fnum="${BASH_REMATCH[1]}"
+          [[ "$in_scope" =~ ^Feature\ 0*${fnum}$ ]] && scope_ok=true
         else
+          [ "$in_scope" = "$RS_SCOPE_LABEL" ] && scope_ok=true
+        fi
+        if [ "$scope_ok" = false ]; then
           structural_ok=false
-          add_reason "missing SHA target: $sha_target"
+          add_reason "report Scope '${in_scope:-missing}' does not match station scope '${RS_SCOPE_LABEL}' (stale or reused report): $f"
         fi
-      fi
-      # ---- continuity-v1 validations (C4'/C5') — non-placeholder reports only ----
-      cov_unverified=false
-      if [ "$structural_ok" = true ] && [ -z "$in_avail" ] && [ -n "$EXPECT_PROTOCOL" ]; then
-        in_proto=$(extract_field "$f" "Protocol")
-        if [ "$in_proto" != "$EXPECT_PROTOCOL" ]; then
-          structural_ok=false
-          add_reason "report Protocol '${in_proto:-missing}' does not match expected '${EXPECT_PROTOCOL}' (report predates the continuity schema or the agent omitted the field — re-run the station): $f"
-        fi
-      fi
-      if [ "$structural_ok" = true ] && [ -z "$in_avail" ] && [ "$manifest_station" = true ]; then
-        cov_count=$(grep -c '^## Coverage' "$f" || true)
-        if [ "$cov_count" -eq 0 ]; then
-          if [ "$REQUIRE_COVERAGE" = true ]; then
-            structural_ok=false
-            add_reason "missing '## Coverage' declared-coverage-closure section (one row per expected inventory key): $f"
-          fi
-        else
-          # Parse "| key | result | evidence |" rows.
-          cov_rows=$(awk '
-            /^## Coverage/ { f = 1; next }
-            /^## / { f = 0 }
-            f && /^\|/ && $0 !~ /^\|[-: |]+$/ {
-              n = split($0, c, "|")
-              for (i = 1; i <= n; i++) gsub(/^[ ]+|[ ]+$/, "", c[i])
-              if (c[2] == "Key") next
-              print c[2] "\t" c[3] "\t" c[4]
-            }' "$f")
-          declared_keys=""
-          while IFS=$'\t' read -r ck cr ce; do
-            [ -n "$ck" ] || continue
-            declared_keys+="${ck}"$'\n'
-            case "$cr" in
-              PASS) : ;;
-              FAIL)
-                if [ "$in_result" = "PASS" ]; then
-                  structural_ok=false
-                  add_reason "coverage row '${ck}' is FAIL but the report Result is PASS (inconsistent closure claim): $f"
-                fi
-                ;;
-              UNVERIFIED) cov_unverified=true ;;
-              *)
-                structural_ok=false
-                add_reason "coverage row '${ck}' has invalid result '${cr:-<empty>}' (expected PASS|FAIL|UNVERIFIED): $f"
-                ;;
-            esac
-            if [ -z "$ce" ]; then
-              structural_ok=false
-              add_reason "coverage row '${ck}' has empty evidence: $f"
-            else
-              # When the evidence leads with a file:line citation, the file
-              # must exist (a cheap reality check; deeper spot-checks stay
-              # with the second reviewer).
-              ev_tok="${ce%% *}"
-              if [[ "$ev_tok" =~ ^([A-Za-z0-9_./-]+):[0-9]+$ ]] && [ ! -f "${BASH_REMATCH[1]}" ]; then
-                structural_ok=false
-                add_reason "coverage row '${ck}' cites non-existent file '${BASH_REMATCH[1]}': $f"
-              fi
-            fi
-          done <<< "$cov_rows"
-          dup_keys=$(printf '%s' "$declared_keys" | sort | uniq -d | head -5 || true)
-          if [ -n "$dup_keys" ]; then
-            structural_ok=false
-            add_reason "duplicate coverage keys (${dup_keys//$'\n'/, }): $f"
-          fi
-          if [ -n "$expected_keys" ]; then
-            declared_sorted=$(printf '%s' "$declared_keys" | sort -u)
-            missing_keys=$(comm -23 <(printf '%s\n' "$expected_keys") <(printf '%s\n' "$declared_sorted") | sed '/^$/d' || true)
-            unknown_keys=$(comm -13 <(printf '%s\n' "$expected_keys") <(printf '%s\n' "$declared_sorted") | sed '/^$/d' || true)
-            if [ -n "$missing_keys" ]; then
-              structural_ok=false
-              n_missing=$(printf '%s\n' "$missing_keys" | wc -l)
-              sample=$(printf '%s\n' "$missing_keys" | head -15 | tr '\n' ' ')
-              add_reason "coverage is not set-equal to the expected inventory: ${n_missing} expected key(s) undeclared (${sample% }...): $f"
-            fi
-            if [ -n "$unknown_keys" ]; then
-              structural_ok=false
-              n_unknown=$(printf '%s\n' "$unknown_keys" | wc -l)
-              sample=$(printf '%s\n' "$unknown_keys" | head -15 | tr '\n' ' ')
-              add_reason "coverage declares ${n_unknown} key(s) not in the expected inventory (${sample% }...): $f"
-            fi
-          fi
-        fi
-      fi
-      if [ "$structural_ok" = true ] && [ -z "$in_avail" ]; then
-        # Finding-lineage validation (C4'): strict on re-rounds under
-        # --expect-protocol; enum/dup validation whenever lineage columns are
-        # present. REVERSAL / COVERAGE_BREACH markers route mechanically.
-        strict_lineage=false
-        [ "$ROUND" -ge 2 ] && [ -n "$EXPECT_PROTOCOL" ] && strict_lineage=true
-        lineage_rows=$(awk '
-          /^## Findings/ { f = 1; next }
-          /^## / { f = 0 }
-          f && /^\|/ {
-            if ($0 ~ /^\|[-: |]+$/) next
-            n = split($0, c, "|")
-            for (i = 1; i <= n; i++) gsub(/^[ ]+|[ ]+$/, "", c[i])
-            if (!hdr) {
-              ishdr = 0
-              for (i = 1; i <= n; i++) if (c[i] == "Severity") ishdr = 1
-              if (ishdr) {
-                for (i = 1; i <= n; i++) {
-                  if (c[i] == "ID") idc = i
-                  if (c[i] == "Predecessor") pc = i
-                  if (c[i] == "Status") sc = i
-                  if (c[i] == "Class") cc = i
-                }
-                hdr = 1
-                next
-              }
-            }
-            if (idc && cc) print "ROW\t" c[idc] "\t" (pc ? c[pc] : "") "\t" (sc ? c[sc] : "") "\t" c[cc]
-            else nolineage = 1
-          }
-          END { if (nolineage) print "NOHDR" }' "$f")
-        prior_ids=""
-        if [ "$strict_lineage" = true ]; then
-          r=1
-          while [ "$r" -lt "$ROUND" ]; do
-            p_arch="${f%.md}.round-$(printf '%02d' "$r").md"
-            if [ -s "$p_arch" ]; then
-              p_ids=$(awk '
-                /^## Findings/ { f = 1; next }
-                /^## / { f = 0 }
-                f && /^\|/ {
-                  if ($0 ~ /^\|[-: |]+$/) next
-                  n = split($0, c, "|")
-                  for (i = 1; i <= n; i++) gsub(/^[ ]+|[ ]+$/, "", c[i])
-                  if (!hdr) {
-                    ishdr = 0
-                    for (i = 1; i <= n; i++) if (c[i] == "Severity") ishdr = 1
-                    if (ishdr) { for (i = 1; i <= n; i++) if (c[i] == "ID") idc = i; hdr = 1; next }
-                  }
-                  if (idc && c[idc] != "") print c[idc]
-                }' "$p_arch")
-              [ -n "$p_ids" ] && prior_ids+="${p_ids}"$'\n'
-            fi
-            r=$((r + 1))
-          done
-          prior_ids=$(printf '%s' "$prior_ids" | sed '/^$/d' | sort -u)
-        fi
-        seen_ids=""
-        while IFS=$'\t' read -r tag lid lpred lstat lclass; do
-          case "$tag" in
-            NOHDR)
-              if [ "$strict_lineage" = true ]; then
-                structural_ok=false
-                add_reason "re-round Findings rows lack the continuity lineage columns (ID/Predecessor/Status/Class): $f"
-              fi
-              ;;
-            ROW)
-              if [ -z "$lid" ]; then
-                structural_ok=false; add_reason "finding row has an empty ID: $f"
-              elif printf '%s\n' "$seen_ids" | grep -qx -- "$lid"; then
-                structural_ok=false; add_reason "duplicate finding ID '${lid}': $f"
-              fi
-              seen_ids+="${lid}"$'\n'
-              case "$lstat" in
-                PERSISTING|RESOLVED|REOPENED|NEW|"") : ;;
-                *) structural_ok=false; add_reason "finding '${lid}' has invalid Status '${lstat}' (expected PERSISTING|RESOLVED|REOPENED|NEW): $f" ;;
-              esac
-              case "$lclass" in
-                NEW_EVIDENCE|PREVIOUSLY_UNAUDITED|REGRESSION_FROM_DIFF) : ;;
-                REVERSAL) reversal_present=true ;;
-                COVERAGE_BREACH) coverage_breach_present=true ;;
-                "")
-                  if [ "$strict_lineage" = true ]; then
-                    structural_ok=false; add_reason "finding '${lid}' has no Classification (expected NEW_EVIDENCE|PREVIOUSLY_UNAUDITED|REGRESSION_FROM_DIFF|REVERSAL|COVERAGE_BREACH): $f"
-                  fi
-                  ;;
-                *) structural_ok=false; add_reason "finding '${lid}' has invalid Classification '${lclass}': $f" ;;
-              esac
-              if [ "$strict_lineage" = true ] && [ -n "$prior_ids" ] && [ -n "$lpred" ] && [ "$lpred" != "none" ]; then
-                if ! printf '%s\n' "$prior_ids" | grep -qx -- "$lpred"; then
-                  structural_ok=false
-                  add_reason "finding '${lid}' cites unknown Predecessor '${lpred}' (not in any archived prior round): $f"
-                fi
-              fi
-              ;;
-          esac
-        done <<< "$lineage_rows"
       fi
       if [ "$structural_ok" = true ]; then
-        if [ -n "$in_avail" ]; then
-          # §2/§7 typed degrade placeholder: only WARN + UNAVAILABLE/RECUSED
-          # is environmental; anything else is an agent-authored failure -> FAIL.
+        if [ -z "$in_digest" ] || [ "$in_digest" != "$DIGEST_VALUE" ]; then
+          structural_ok=false
+          add_reason "stale Input Digest in $f (recorded=${in_digest:-none}, current=${DIGEST_VALUE}) — the audited artifacts changed; re-run the round"
+        fi
+      fi
+      if [ "$structural_ok" = true ]; then
+        if [ -n "$in_avail" ] && [[ ! "$in_avail" =~ ^PRESENT ]]; then
+          # Typed degrade placeholder: only WARN + UNAVAILABLE/RECUSED is
+          # environmental; anything else is an agent-authored failure -> FAIL.
           if [[ "$in_avail" =~ ^(UNAVAILABLE|RECUSED) ]] && [ "$in_result" = "WARN" ]; then
             in_verdict="WARN"
             cap_agents+=("$f")
@@ -1241,16 +1176,11 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
           fi
         else
           in_verdict="$in_result"
-          if [ "$cov_unverified" = true ] && [ "$in_verdict" = "PASS" ]; then
-            # §5: an UNVERIFIED item is never folded into PASS — WARN cap.
-            in_verdict="WARN"
-            add_reason "coverage contains UNVERIFIED row(s) — Result capped at WARN (§5 UNVERIFIED-not-PASS): $f"
-          fi
           if [ "$in_verdict" != "PASS" ]; then
             # Verbatim finding rows for the mechanical ledger (never paraphrased).
             while IFS= read -r row; do
               [ -n "$row" ] && caught+=("$row")
-            done < <(awk '/^## Findings/ { f = 1; next } /^## / { f = 0 } f && /^\|/ && $0 !~ /^\|[-: |]+$/ && $0 !~ /Severity[ ]*\|/ { print }' "$f")
+            done < <(awk '/^## Findings/ { f = 1; next } /^## / { f = 0 } f && /^\|/ && $0 !~ /^\|[-: |]+$/ && $0 !~ /\| *ID *\|/ { print }' "$f")
           fi
         fi
       fi
@@ -1259,29 +1189,19 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
     verdict=$(worse "$verdict" "$in_verdict")
     $first || inputs_json+=","
     first=false
-    inputs_json+="{\"path\":\"$(json_escape "$f")\",\"sha256\":\"$(json_escape "$in_sha")\",\"result\":\"$(json_escape "$in_result")\",\"availability\":\"$(json_escape "$in_avail")\",\"graded\":\"${in_verdict}\"}"
+    inputs_json+="{\"path\":\"$(json_escape "$f")\",\"sha256\":\"$(json_escape "$in_sha")\",\"result\":\"$(json_escape "$in_result")\",\"availability\":\"$(json_escape "$in_avail")\",\"graded\":\"${in_verdict}\",\"format_retries\":${fmt_retry}}"
   done
   inputs_json+="]"
 
   # Zero independent verifiers left (every input is a degrade placeholder):
   # the station cannot produce a verdict — FAIL, never a host-only opinion.
-  if [ "${#INPUTS[@]}" -gt 0 ] && [ "${#cap_agents[@]}" -eq "${#INPUTS[@]}" ]; then
+  if [ "${#RS_BASES[@]}" -gt 0 ] && [ "${#cap_agents[@]}" -eq "${#RS_BASES[@]}" ]; then
     verdict="FAIL"
     add_reason "every agent report is a degrade placeholder — no independent verifier ran"
   fi
 
-  # Mechanical continuity routing (C4'): the receipt records these so the
-  # driving command cannot proceed into another automatic repair round.
-  if [ "$reversal_present" = true ]; then
-    add_reason "REVERSAL finding present — automatic repair rounds stop mechanically; enter a fresh dual doctrine-dispute round (specter-agent-protocols §4/§5); disagreement escalates to the human"
-  fi
-  if [ "$coverage_breach_present" = true ]; then
-    add_reason "COVERAGE_BREACH finding present — a previously exhausted class produced a pre-existing violation; the prior closure claim is invalidated and the class must be re-exhausted (the new defect is preserved, never suppressed)"
-  fi
-
-  # Expand-only: the Codex delta checklist is this station's independent input
-  # baseline; its absence is a mechanical WARN cap, never silently absorbed by
-  # host prose.
+  # Expand-only: the delta checklist is this station's independent input
+  # baseline; its absence is a mechanical WARN cap, never silently absorbed.
   baseline_cap=""
   if [ "$STATION" = "expand" ] && [[ "$ARG" =~ ^[0-9]+$ ]]; then
     delta_baseline="docs/prd/featuremap-checklist-delta-${ARG}.md"
@@ -1302,6 +1222,33 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
     fi
   fi
 
+  # Named-class acknowledgments (design §2.6, review station only): report
+  # which triggered risk classes require a decision event and whether one is
+  # recorded. Mechanical report — the driving command enforces advancement.
+  required_acks_json="[]"
+  acks_satisfied=true
+  if [ "$STATION" = "review" ] && [ "$RISK_PROFILE" = "high-risk" ]; then
+    required_acks_json="["
+    rfirst=true
+    while IFS= read -r cls; do
+      [ -n "$cls" ] || continue
+      hitcls=false
+      for entry in ${RISK_EVIDENCE[@]+"${RISK_EVIDENCE[@]}"}; do
+        [ "${entry%%|*}" = "$cls" ] && hitcls=true
+      done
+      $hitcls || continue
+      dtype=$(cfg_list "ack_required_classes.${cls}" | head -1)
+      [ -n "$dtype" ] || continue
+      sat=false
+      decision_recorded "$dtype" "$STATION" "$RS_SCOPE" && sat=true
+      $sat || acks_satisfied=false
+      $rfirst || required_acks_json+=","
+      rfirst=false
+      required_acks_json+="{\"class\":\"$(json_escape "$cls")\",\"decision\":\"$(json_escape "$dtype")\",\"satisfied\":${sat}}"
+    done < <(cfg_list "ack_required_classes")
+    required_acks_json+="]"
+  fi
+
   caught_json="[]"
   if [ "${#caught[@]}" -gt 0 ]; then
     caught_json="["
@@ -1314,74 +1261,80 @@ if [ "$SUBCOMMAND" = "aggregate" ]; then
 
   feature_json="null"
   [ -n "$agg_feature" ] && feature_json="\"$(json_escape "$agg_feature")\""
-  final_warn_ack_required=false
-  if [ "$verdict" = "WARN" ] && [ "$warn_ack_required" = true ]; then
-    final_warn_ack_required=true
+
+  artifacts_json="["
+  afirst=true
+  for base in ${RS_BASES[@]+"${RS_BASES[@]}"}; do
+    $afirst || artifacts_json+=","
+    afirst=false
+    artifacts_json+="\"$(json_escape "$(round_path "$base" "$ROUND")")\""
+  done
+  artifacts_json+="]"
+  shas_json="["
+  sfirst=true
+  for s in ${REPORT_SHAS[@]+"${REPORT_SHAS[@]}"}; do
+    $sfirst || shas_json+=","
+    sfirst=false
+    shas_json+="\"$(json_escape "$s")\""
+  done
+  shas_json+="]"
+
+  receipt_json=$(cat <<JSON
+{
+  "contract": "${GATE_CONTRACT}",
+  "mode": "aggregate",
+  "station": "$(json_escape "$STATION")",
+  "scope": "$(json_escape "${RS_SCOPE:-}")",
+  "feature": ${feature_json},
+  "round": ${ROUND},
+  "automatic_round_cap": ${AUTOMATIC_ROUNDS},
+  "risk_profile": "$(json_escape "$RISK_PROFILE")",
+  "risk_evidence": $(risk_evidence_json),
+  "input_digest": "$(json_escape "$DIGEST_VALUE")",
+  "inputs": ${inputs_json},
+  "verdict": "${verdict}",
+  "cap": ${cap_json},
+  "required_acks": ${required_acks_json},
+  "acks_satisfied": ${acks_satisfied},
+  "caught": ${caught_json},
+  "reasons": $(reasons_to_json)
+}
+JSON
+)
+
+  # The receipt is the station's outcome of record for the CURRENT round;
+  # history lives in the append-only ledger.
+  receipt_written=false
+  if [ -n "$RS_SCOPE" ]; then
+    mkdir -p "$RECEIPT_DIR"
+    printf '%s\n' "$receipt_json" > "${RECEIPT_DIR}/${STATION}-${RS_SCOPE}.json"
+    receipt_written=true
   fi
 
   ledger_written=false
   if [ "$LEDGER" = true ] && [ -n "$step" ]; then
     mkdir -p .specify
-    artifacts_json="["
-    afirst=true
-    for f in ${INPUTS[@]+"${INPUTS[@]}"}; do
-      $afirst || artifacts_json+=","
-      afirst=false
-      artifacts_json+="\"$(json_escape "$f")\""
-    done
-    artifacts_json+="]"
-    shas_json="["
-    sfirst=true
-    for s in ${REPORT_SHAS[@]+"${REPORT_SHAS[@]}"}; do
-      $sfirst || shas_json+=","
-      sfirst=false
-      shas_json+="\"$(json_escape "$s")\""
-    done
-    shas_json+="]"
-    # This ledger line IS the persisted receipt (§7): verdict, verbatim caught
-    # rows, cap, round, and the report files' content hashes — append-only.
-    ledger_line="{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"cycle\":\"${cycle}\",\"feature\":${feature_json},\"step\":\"${step}\",\"verdict\":\"${verdict}\",\"round\":${ROUND},\"artifacts\":${artifacts_json},\"report_shas\":${shas_json}"
-    if [ "$STATION" = "verify" ] || [ "$STATION" = "analyze" ] || [ "$STATION" = "review" ]; then
-      ledger_line+=",\"audit_tier\":\"$(json_escape "$audit_tier")\",\"tier_receipt_sha256\":\"$(json_escape "$tier_receipt_sha")\",\"policy_hash\":\"$(json_escape "$tier_policy_hash")\""
-      if [ "$final_warn_ack_required" = true ]; then
-        ledger_line+=",\"warn_ack_required\":true,\"warn_ack_satisfied\":${warn_ack_satisfied}"
-      fi
-    fi
+    ledger_line="{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"contract\":\"${GATE_CONTRACT}\",\"cycle\":\"${cycle}\",\"feature\":${feature_json},\"step\":\"${step}\",\"scope\":\"$(json_escape "${RS_SCOPE:-}")\",\"verdict\":\"${verdict}\",\"round\":${ROUND},\"risk_profile\":\"$(json_escape "$RISK_PROFILE")\",\"input_digest\":\"$(json_escape "$DIGEST_VALUE")\",\"artifacts\":${artifacts_json},\"report_shas\":${shas_json}"
     if [ "$verdict" != "PASS" ]; then
       ledger_line+=",\"caught\":${caught_json}"
       [ "$cap_json" != "null" ] && ledger_line+=",\"cap\":${cap_json}"
     fi
-    [ "$reversal_present" = true ] && ledger_line+=",\"reversal\":true"
-    [ "$coverage_breach_present" = true ] && ledger_line+=",\"coverage_breach\":true"
+    [ "$acks_satisfied" = false ] && ledger_line+=",\"acks_satisfied\":false"
     ledger_line+="}"
-    printf '%s\n' "$ledger_line" >> .specify/specter-run.jsonl
+    printf '%s\n' "$ledger_line" >> "$LEDGER_FILE"
     ledger_written=true
   fi
 
+  printf '%s\n' "$receipt_json" | sed '$d'
   cat <<JSON
-{
-  "mode": "aggregate",
-  "station": "$(json_escape "$STATION")",
-  "feature": ${feature_json},
-  "round": ${ROUND},
-  "audit_tier": "$(json_escape "$audit_tier")",
-  "tier_receipt_sha256": "$(json_escape "$tier_receipt_sha")",
-  "policy_hash": "$(json_escape "$tier_policy_hash")",
-  "tier_settings": ${tier_settings_json},
-  "inputs": ${inputs_json},
-  "verdict": "${verdict}",
-  "cap": ${cap_json},
-  "warn_ack_required": ${final_warn_ack_required},
-  "warn_ack_satisfied": ${warn_ack_satisfied},
-  "reversal": ${reversal_present},
-  "coverage_breach": ${coverage_breach_present},
-  "caught": ${caught_json},
-  "ledger_written": ${ledger_written},
-  "reasons": $(reasons_to_json)
+  ,"receipt_written": ${receipt_written},
+  "ledger_written": ${ledger_written}
 }
 JSON
   exit 0
 fi
+
+# ---- legacy gate subcommand (default): cheap precondition probe ----
 
 any_missing=false
 any_fail=false
@@ -1464,21 +1417,13 @@ feature_checklist_result=""
 feature_checklist_result_ok=false
 feature_checklist_sha_ok=false
 feature_checklist_current_sha=""
-codex_verify_exists=false
-codex_verify_result=""
-codex_verify_result_ok=false
-codex_verify_feature_match=false
-codex_verify_sha_ok=false
-antigravity_verify_exists=false
-antigravity_verify_result=""
-antigravity_verify_result_ok=false
-antigravity_verify_feature_match=false
-antigravity_verify_sha_ok=false
+verify_receipt_exists=false
+verify_receipt_verdict=""
+verify_receipt_verdict_ok=false
+verify_receipt_fresh=false
 
 if [ -n "$FEATURE" ]; then
   FEATURE_CHECKLIST="docs/prd/checklists/feature-${FEATURE}.checklist.md"
-  CODEX_VERIFY="docs/prd/checklists/feature-${FEATURE}.codex-verify.md"
-  ANTIGRAVITY_VERIFY="docs/prd/checklists/feature-${FEATURE}.antigravity-verify.md"
 
   if [ -f "$FEATURE_CHECKLIST" ]; then
     feature_checklist_exists=true
@@ -1514,9 +1459,8 @@ if [ -n "$FEATURE" ]; then
     fi
 
     # Split-slate support: a checklist may pin its own map file via the
-    # "**Feature Map**:" field (e.g. feature-map_072_*.md with the master
-    # frozen); its recorded SHA256 must be checked against that file, not
-    # against the master map.
+    # "**Feature Map**:" field; its recorded SHA256 must be checked against
+    # that file, not against the master map.
     map_field=$(extract_field "$FEATURE_CHECKLIST" "Feature Map")
     feature_map_path="$FEATURE_MAP"
     [ -n "$map_field" ] && feature_map_path="${map_field%% *}"
@@ -1535,69 +1479,36 @@ if [ -n "$FEATURE" ]; then
     fi
   fi
 
-  # Verify-report binding (2026-07-18 audit finding #3): a verify report must
-  # name the requested Feature AND be hashed against the CURRENT checklist.
-  # Without this, a stale PASS from an earlier checklist/Feature-Map revision
-  # would satisfy the gate after the checklist was rewritten.
-  if [ -f "$CODEX_VERIFY" ]; then
-    codex_verify_exists=true
-    codex_verify_result=$(extract_field "$CODEX_VERIFY" "Result")
-    if [ "$codex_verify_result" = "PASS" ] || [ "$codex_verify_result" = "WARN" ]; then
-      codex_verify_result_ok=true
-      [ "$codex_verify_result" = "WARN" ] && any_warn=true
-    else
-      add_reason "codex-verify Result is '${codex_verify_result:-missing}', expected PASS or WARN"
-      any_fail=true
-    fi
-    codex_verify_feature_field=$(extract_field "$CODEX_VERIFY" "Feature")
-    if [[ "$codex_verify_feature_field" == *"Feature ${FEATURE}"* ]] || [[ "$codex_verify_feature_field" == *"Feature ${FEATURE_RAW}"* ]]; then
-      codex_verify_feature_match=true
-    else
-      add_reason "codex-verify Feature field '${codex_verify_feature_field:-missing}' does not match requested Feature ${FEATURE} (stale or reused report — re-run /ms.verify)"
-      any_fail=true
-    fi
-    if $feature_checklist_exists; then
-      codex_recorded_checklist_sha=$(extract_field "$CODEX_VERIFY" "Checklist SHA256")
-      if [ -n "$codex_recorded_checklist_sha" ] && [ "$codex_recorded_checklist_sha" = "$feature_checklist_current_sha" ]; then
-        codex_verify_sha_ok=true
+  # Verify-station binding (v2): the station outcome of record is the verify
+  # receipt, not the report files. Fresh = the receipt's input digest still
+  # matches the current artifacts (a rewritten checklist invalidates it).
+  VERIFY_RECEIPT="${RECEIPT_DIR}/verify-${FEATURE}.json"
+  if [ -f "$VERIFY_RECEIPT" ]; then
+    verify_receipt_exists=true
+    if [ -n "$PYTHON_BIN" ]; then
+      verify_receipt_verdict=$("$PYTHON_BIN" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("verdict",""))' "$VERIFY_RECEIPT" 2>/dev/null || true)
+      receipt_digest=$("$PYTHON_BIN" -c 'import json,sys; print(json.load(open(sys.argv[1])).get("input_digest",""))' "$VERIFY_RECEIPT" 2>/dev/null || true)
+      if [ "$verify_receipt_verdict" = "PASS" ] || [ "$verify_receipt_verdict" = "WARN" ]; then
+        verify_receipt_verdict_ok=true
+        [ "$verify_receipt_verdict" = "WARN" ] && any_warn=true
       else
-        add_reason "codex-verify Checklist SHA256 stale (recorded=${codex_recorded_checklist_sha:-none}, current=${feature_checklist_current_sha}) — re-run /ms.verify"
+        add_reason "verify receipt verdict is '${verify_receipt_verdict:-missing}', expected PASS or WARN — re-run /ms.verify"
         any_fail=true
       fi
-    fi
-  else
-    add_reason "missing: $CODEX_VERIFY"
-    any_missing=true
-  fi
-
-  if [ -f "$ANTIGRAVITY_VERIFY" ]; then
-    antigravity_verify_exists=true
-    antigravity_verify_result=$(extract_field "$ANTIGRAVITY_VERIFY" "Result")
-    if [ "$antigravity_verify_result" = "PASS" ] || [ "$antigravity_verify_result" = "WARN" ]; then
-      antigravity_verify_result_ok=true
-      [ "$antigravity_verify_result" = "WARN" ] && any_warn=true
-    else
-      add_reason "antigravity-verify Result is '${antigravity_verify_result:-missing}', expected PASS or WARN"
-      any_fail=true
-    fi
-    antigravity_verify_feature_field=$(extract_field "$ANTIGRAVITY_VERIFY" "Feature")
-    if [[ "$antigravity_verify_feature_field" == *"Feature ${FEATURE}"* ]] || [[ "$antigravity_verify_feature_field" == *"Feature ${FEATURE_RAW}"* ]]; then
-      antigravity_verify_feature_match=true
-    else
-      add_reason "antigravity-verify Feature field '${antigravity_verify_feature_field:-missing}' does not match requested Feature ${FEATURE} (stale or reused report — re-run /ms.verify)"
-      any_fail=true
-    fi
-    if $feature_checklist_exists; then
-      antigravity_recorded_checklist_sha=$(extract_field "$ANTIGRAVITY_VERIFY" "Checklist SHA256")
-      if [ -n "$antigravity_recorded_checklist_sha" ] && [ "$antigravity_recorded_checklist_sha" = "$feature_checklist_current_sha" ]; then
-        antigravity_verify_sha_ok=true
+      resolve_station "verify" "$FEATURE"
+      compute_digest
+      if [ -z "$DIGEST_ERROR" ] && [ -n "$receipt_digest" ] && [ "$receipt_digest" = "$DIGEST_VALUE" ]; then
+        verify_receipt_fresh=true
       else
-        add_reason "antigravity-verify Checklist SHA256 stale (recorded=${antigravity_recorded_checklist_sha:-none}, current=${feature_checklist_current_sha}) — re-run /ms.verify"
+        add_reason "verify receipt input digest stale (recorded=${receipt_digest:-none}, current=${DIGEST_VALUE:-unavailable}) — re-run /ms.verify"
         any_fail=true
       fi
+    else
+      add_reason "python runtime unavailable — verify receipt not readable"
+      any_fail=true
     fi
   else
-    add_reason "missing: $ANTIGRAVITY_VERIFY"
+    add_reason "missing: $VERIFY_RECEIPT — /ms.verify has not aggregated for Feature ${FEATURE}"
     any_missing=true
   fi
 fi
@@ -1614,16 +1525,6 @@ elif $any_warn; then
 fi
 
 # ---- Emit JSON ----
-
-reasons_json="[]"
-if [ "${#REASONS[@]}" -gt 0 ]; then
-  reasons_json="["
-  for i in "${!REASONS[@]}"; do
-    [ "$i" -gt 0 ] && reasons_json+=","
-    reasons_json+="\"$(json_escape "${REASONS[$i]}")\""
-  done
-  reasons_json+="]"
-fi
 
 feature_json="null"
 [ -n "$FEATURE" ] && feature_json="\"$(json_escape "$FEATURE")\""
@@ -1644,16 +1545,12 @@ cat <<JSON
     "feature_checklist_result": "$(json_escape "$feature_checklist_result")",
     "feature_checklist_result_ok": ${feature_checklist_result_ok},
     "feature_checklist_sha_ok": ${feature_checklist_sha_ok},
-    "codex_verify_exists": ${codex_verify_exists},
-    "codex_verify_result_ok": ${codex_verify_result_ok},
-    "codex_verify_feature_match": ${codex_verify_feature_match},
-    "codex_verify_sha_ok": ${codex_verify_sha_ok},
-    "antigravity_verify_exists": ${antigravity_verify_exists},
-    "antigravity_verify_result_ok": ${antigravity_verify_result_ok},
-    "antigravity_verify_feature_match": ${antigravity_verify_feature_match},
-    "antigravity_verify_sha_ok": ${antigravity_verify_sha_ok}
+    "verify_receipt_exists": ${verify_receipt_exists},
+    "verify_receipt_verdict": "$(json_escape "$verify_receipt_verdict")",
+    "verify_receipt_verdict_ok": ${verify_receipt_verdict_ok},
+    "verify_receipt_fresh": ${verify_receipt_fresh}
   },
   "overall": "${overall}",
-  "reasons": ${reasons_json}
+  "reasons": ${reasons_json:-$(reasons_to_json)}
 }
 JSON

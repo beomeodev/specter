@@ -35,9 +35,9 @@ not exist for you.
    `docs/prd/opportunities.md`, never into the map. A silent untagged addition
    is exactly the invention the gates FAIL. If the PRDs are ambiguous, record
    the ambiguity in the Feature's Key decisions as an open question — do not
-   resolve it yourself. Fill every fixed `### Audit signals` row with
-   evidence, but never write or choose `audit_tier`; deterministic policy
-   owns classification.
+   resolve it yourself. Fill every fixed `### Verification signals` row with
+   evidence, but never write or choose a risk profile; the deterministic gate
+   owns that computation.
 4. **Journey ownership** (§10): a journey-shaped commitment is owned by the
    Feature where the whole observable journey first becomes verifiable —
    never split half-engine/half-screen. Enabling slices get D-ID obligations,

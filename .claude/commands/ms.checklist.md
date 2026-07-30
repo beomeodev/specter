@@ -167,28 +167,25 @@ Otherwise, select the next eligible Feature:
 5. If no Feature is eligible, report that all planned Features are already
    specified or blocked by unmet dependencies.
 
-### Step 2.25: Classify The Feature Mechanically
+### Step 2.25: Probe The Gate Contract
 
-Install the synced classifier and policy into their project-local runtime
-locations, probe the contract, and classify from the Feature Map:
+Install the synced gate + config into their project-local runtime locations
+and validate the Feature's declared signals structurally:
 
 ```bash
-install -D -m 0755 scripts/specter/classify_audit_tier.py .specify/scripts/python/classify_audit_tier.py
-install -D -m 0644 docs/templates/audit-tier-policy.json .specify/policies/audit-tier-policy.json
-python3 .specify/scripts/python/classify_audit_tier.py \
-  --policy .specify/policies/audit-tier-policy.json version
-python3 .specify/scripts/python/classify_audit_tier.py \
-  --policy .specify/policies/audit-tier-policy.json classify \
-  --feature <NNN> --phase feature-map \
-  --feature-map docs/prd/feature-map.md --ledger
+install -D -m 0755 docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
+install -D -m 0644 docs/templates/verification-v2.json .specify/policies/verification-v2.json
+.specify/scripts/bash/specter-gate.sh version | grep -q '"contract": "verification-v2"' \
+  || { echo "partial sync — run /ms.sync (or /ms.init) first"; }
+.specify/scripts/bash/specter-gate.sh structural <NNN>
 ```
 
-The resulting `.specify/audit-tiers/feature-<NNN>.json` receipt, not prose or
-an author-supplied field, is the audit-tier source of truth. Stop on a policy
-parse error, capability mismatch, malformed present `### Audit signals`
-section, or rejected override. A legacy Feature without this section resolves
-to T2 with `legacy-unclassified`; do not rewrite it merely to make this command
-pass. No author, reviewer, or host may write `audit_tier: T1` directly.
+Stop on a structural FAIL (including a malformed `### Verification signals`
+table). The risk profile is computed mechanically inside `/ms.verify`'s
+aggregation from the declared signals — no separate classification step
+exists, and no author, reviewer, or host assigns a profile directly. A legacy
+Feature without a signals table runs high-risk until it gains one; do not
+rewrite it merely to make this command pass.
 
 ### Step 2.5: Dispatch The Isolated Authoring Subagent
 
@@ -238,7 +235,7 @@ For the selected Feature:
 - Extract the full `## Feature NNN:` section.
 - Extract its `### Source PRDs` list.
 - Extract its `### PRD references` list.
-- Extract the complete fixed-schema `### Audit signals` table when present.
+- Extract the complete fixed-schema `### Verification signals` table when present.
 - Extract every PRD Commitment Index row where `Owning Feature = Feature NNN`.
 - Extract every `## Implementation Obligations` row where `Owning Feature = Feature NNN`
   (when the table exists) — these D-IDs are audited obligations of this Feature, distinct from
@@ -306,17 +303,16 @@ rows, mark FAIL.
   anywhere, FAIL if it's inside a done criterion. These cause clarify-time
   churn if left for `/ms.specify`/`/ms.clarify` to catch instead.
 
-#### 4. Audit-Signal Fidelity
+#### 4. Verification-Signal Fidelity
 
-- Every Audit signal value is supported by its cited PRD reference or other
-  named evidence; compare the evidence to the actual source text.
-- A hard-risk behavior is not represented as `no`, omitted, or hidden behind a
-  low file/domain estimate.
-- `unknown` is honest when evidence is insufficient, but it cannot support T1.
-- Numeric estimates are plausible for the described scope and use the closed
-  integer-or-`unknown` form.
-- The Feature author records evidence only. Any direct `audit_tier:` assignment
-  is a FAIL because deterministic classification owns the tier.
+- Every Verification signal value is supported by its cited PRD reference or
+  other named evidence; compare the evidence to the actual source text.
+- A high-risk behavior (authorization, secrets, data-migration,
+  destructive-data, irreversible-operation, public-contract,
+  financial-or-regulated, gate-or-policy-change) is not represented as `no`,
+  omitted, or hidden.
+- The Feature author records evidence only. Any direct risk-profile assignment
+  is a FAIL because the gate computes the profile mechanically.
 
 ### Step 5: Write The Per-Feature Audit
 
@@ -342,7 +338,6 @@ Use this structure:
 **PRDs**: <source label -> path list>
 **Feature Map**: docs/prd/feature-map.md
 **Feature Map SHA256**: <sha256 of docs/prd/feature-map.md at audit time>
-**Audit Tier Receipt**: .specify/audit-tiers/feature-NNN.json
 **Global Audit**: docs/prd/feature-map.checklist.md
 **Baseline Checklist**: <the resolved {BASELINE} path> | not available
 **Result**: PASS | WARN | FAIL
@@ -358,7 +353,7 @@ Use this structure:
 | Baseline ID | PRD Ref | Expected Handling | Handling In This Feature |
 | --- | --- | --- | --- |
 
-## Audit Signal Evidence
+## Verification Signal Evidence
 
 | Signal | Recorded Value | Source Evidence | Audit Result |
 | --- | --- | --- | --- |
@@ -415,9 +410,9 @@ no judgment, shape only:
   and no out-of-scope row naming its owning Feature.
 - A done criterion contains an unresolved placeholder (`TBD`, `TODO`, `{{...}}`,
   an `_or_equivalent`-style token).
-- A required Audit signal is malformed, omitted from a new or meaningfully
-  edited Feature, contradicted by its evidence, or understates a hard risk.
-- The Feature section directly assigns `audit_tier`.
+- A Verification signal is malformed, omitted from a new or meaningfully
+  edited Feature, contradicted by its evidence, or understates a high risk.
+- The Feature section directly assigns a risk profile.
 
 ## Result Model
 
