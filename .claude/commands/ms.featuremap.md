@@ -205,14 +205,15 @@ is gone.
 #### STEP 8 — Put the Phase's E2E integration scenario into the **completion criteria of that Phase's
 last Feature.**
 
-#### STEP 9 — Record evidence-bound Audit signals
-For every Feature, fill the fixed `### Audit signals` table from the Feature's
-PRD references, scope, dependency boundaries, and concrete implementation
-estimate. Use only `yes`, `no`, or `unknown` for boolean rows and a
-non-negative integer or `unknown` for numeric rows. Every row needs a specific
-PRD reference or Feature-scope rationale. The author records evidence only and
-MUST NOT write or select `audit_tier`; the deterministic classifier applies
-`docs/templates/audit-tier-policy.json`.
+#### STEP 9 — Record evidence-bound Verification signals
+For every Feature, fill the fixed `### Verification signals` table (the closed
+8-signal schema from `verification-v2.json`) from the Feature's PRD
+references, scope, and dependency boundaries. Use only `yes` or `no`; every
+row needs a specific PRD reference or Feature-scope rationale. When the
+evidence is genuinely insufficient to say `no`, declare `yes` — the gate treats
+any `yes` as high-risk, and a false `no` the artifacts contradict is a
+blocking reviewer finding. The author records evidence only and MUST NOT
+assign a risk profile; the gate computes it mechanically.
 
 ### 3. Feature Section — FIXED template (identical for every Feature, ENGLISH)
 
@@ -231,29 +232,18 @@ MUST NOT write or select `audit_tier`; the deterministic classifier applies
 - <source label §x.y title> (the PRD location this Feature implements; details live in the PRD)
 - ...
 
-### Audit signals
+### Verification signals
 
 | Signal | Value | Evidence |
 | --- | --- | --- |
-| auth_or_authorization | yes \| no \| unknown | <PRD ref or scope evidence> |
-| tenant_or_resource_ownership | yes \| no \| unknown | <PRD ref or scope evidence> |
-| money_billing_or_financial | yes \| no \| unknown | <PRD ref or scope evidence> |
-| secrets_crypto_or_credentials | yes \| no \| unknown | <PRD ref or scope evidence> |
-| personal_sensitive_or_destructive_data | yes \| no \| unknown | <PRD ref or scope evidence> |
-| schema_or_data_migration | yes \| no \| unknown | <PRD ref or scope evidence> |
-| public_api_or_external_integration | yes \| no \| unknown | <PRD ref or scope evidence> |
-| state_machine_or_multi_store_state | yes \| no \| unknown | <PRD ref or scope evidence> |
-| concurrency_background_jobs_or_distributed_work | yes \| no \| unknown | <PRD ref or scope evidence> |
-| build_release_ci_hooks_permissions_or_sandbox | yes \| no \| unknown | <PRD ref or scope evidence> |
-| cross_layer_or_cross_feature_contract | yes \| no \| unknown | <PRD ref or scope evidence> |
-| new_runtime_dependency | yes \| no \| unknown | <PRD ref or scope evidence> |
-| persistence_change | yes \| no \| unknown | <PRD ref or scope evidence> |
-| irreversible_operations | yes \| no \| unknown | <PRD ref or scope evidence> |
-| policy_or_gate_change | yes \| no \| unknown | <PRD ref or scope evidence> |
-| unresolved_clarification | yes \| no \| unknown | <PRD ref or scope evidence> |
-| behavioral_fr_count | <integer \| unknown> | <count basis> |
-| estimated_domains | <integer \| unknown> | <domain list> |
-| estimated_touched_files | <integer \| unknown> | <file estimate basis> |
+| authorization | yes \| no | <PRD ref or scope evidence> |
+| secrets | yes \| no | <PRD ref or scope evidence> |
+| data-migration | yes \| no | <PRD ref or scope evidence> |
+| destructive-data | yes \| no | <PRD ref or scope evidence> |
+| irreversible-operation | yes \| no | <PRD ref or scope evidence> |
+| public-contract | yes \| no | <PRD ref or scope evidence> |
+| financial-or-regulated | yes \| no | <PRD ref or scope evidence> |
+| gate-or-policy-change | yes \| no | <PRD ref or scope evidence> |
 
 ### In scope
 **<sub-group title>**
@@ -455,9 +445,9 @@ Then validate the FIRST Feature and specify it:
 - ❌ FAIL if any out-of-scope item lacks an owning Feature.
 - ❌ FAIL if the dependency graph has a cycle.
 - ❌ FAIL if a Phase's last Feature has no E2E integration scenario.
-- ❌ FAIL if a new or meaningfully edited Feature lacks the fixed Audit signals
-  schema, uses an out-of-schema value, lacks evidence, or assigns `audit_tier`
-  directly.
+- ❌ FAIL if a new or meaningfully edited Feature lacks the fixed Verification
+  signals schema, uses an out-of-schema value, lacks evidence, or assigns a
+  risk profile directly.
 - ✅ Read the entire PRD set and finish STEP 1–9 mentally BEFORE writing. Verify against the PRDs; do not guess.
 
 ---

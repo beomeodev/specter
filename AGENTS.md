@@ -265,36 +265,39 @@ intended hybrid structure; do not migrate it to a different shape on a whim.
   and the generative artifacts of `/ms.featuremap` and `/ms.checklist` are
   authored by fresh subagents whose self-grade is never authoritative.
   Canonical contract: `.claude/skills/specter-agent-protocols/SKILL.md` §7.
-- **Feature Audit Tiers (2026-07-20)**: the only executable classification
-  policy is `docs/templates/audit-tier-policy.json`; the deterministic runtime
-  is `scripts/specter/classify_audit_tier.py`, and shared receipt/reviewer rules
-  live in `specter-agent-protocols` §8. Feature Map authors record
-  evidence-bound Audit signals but never select `audit_tier`. Classification
-  reruns at Feature Map, spec, plan, pre-implementation, and diff boundaries;
-  the effective tier is monotonic and a manual override may raise only. The
-  global Feature Map gate is not tiered. T1/T2/T3 all retain L1, two independent
-  reviewers at current dual stations, station-fixed L3 worst aggregation,
-  fresh rounds, identity/freshness bindings, executable gates, Done Criteria,
-  direct-call and Stop hooks, pre-commit/CI, TAG wiring, migration/destructive
-  checks, and high-stakes acknowledgments. Legacy Features without signals are
-  T2; malformed policy/metadata, stale receipts, partial sync, or lowering
-  attempts fail safe.
+- **Verification-v2 risk profiles (2026-07-30)**: the executable authority is
+  `docs/templates/verification-v2.json` as read by `specter-gate.sh`; shared
+  reviewer rules live in `specter-agent-protocols` §8; the normative design is
+  `docs/design/verification-v2.md`. Feature Map authors record the
+  evidence-bound closed 8-signal `### Verification signals` table but never
+  select a profile. The gate computes `ordinary`/`high-risk` inside each
+  station's aggregation — declared signals at verify/analyze, plus
+  deterministic changed-file facts at review; never prose scanning, never a
+  cross-phase floor. A manual override may raise only (`--raise-risk`). Both
+  profiles retain L1, two independent reviewers at dual stations,
+  station-fixed L3 worst aggregation, fresh rounds, input-digest freshness,
+  executable gates, Done Criteria, direct-call and Stop hooks, pre-commit/CI,
+  TAG wiring, and migration/destructive checks. The automatic round budget is
+  2, gate-enforced; human decisions are typed ledger events
+  (`specter-gate.sh decide`) from the closed §8 stop list. Legacy Features
+  without a signals table run high-risk until they gain one; malformed
+  config, partial sync, or lowering attempts fail safe.
 - **Provenance & Authority Lattice (2026-07-22)**: the canonical definition of
   which artifact may authorize what lives in `specter-agent-protocols` §10.
   Product behavior is added ONLY by PRD text (C-IDs) and appended PRD
-  Amendments. Entailed-but-unstated deliverables live in the Feature Map's
-  `## Implementation Obligations` table (D-IDs: closed Kind/Impact schema,
-  Layer-1 validated, audited by the §10 two-part entailment/denylist test;
-  non-`none` Impact requires explicit user acknowledgment at `/ms.pre-verify`).
-  Clarify decisions are typed `interpretation` (in-envelope, recorded with
-  cited C-/D-ID) or `scope-addition` (refused; routes to a PRD Amendment).
-  Unpromised ideas live in `docs/prd/opportunities.md`, which no gate, spec
-  prompt, or reviewer ever loads; promotion is Amendment-only via `/ms.expand`.
+  Amendments. The Feature Map MAY carry an `## Implementation Obligations`
+  table (D-IDs, Layer-1 shape-validated); its rows are references, never
+  product authority — a D-ID used to justify NEW observable scope is an
+  ordinary blocking finding routed to a PRD Amendment (2026-07-30 D3: the
+  formal entailment test is retired from the gate). Clarify decisions are
+  typed `interpretation` (in-envelope, recorded with cited C-/D-ID) or
+  `scope-addition` (refused; routes to a PRD Amendment). Unpromised ideas
+  live in `docs/prd/opportunities.md`, which no gate, spec prompt, or
+  reviewer ever loads; promotion is Amendment-only via `/ms.expand`.
   Journey-shaped commitments are owned by the Feature where the whole journey
-  first becomes verifiable — enabling slices carry D-IDs, never half a C-ID.
-  Untagged additions remain blocking invention findings at every station.
-  `/ms.pre-verify` tightens §4: scoped repair rounds are advisory; its
-  accepted verdict always comes from a final full-scope dual audit.
+  first becomes verifiable. Untagged additions remain blocking invention
+  findings at every station. `/ms.pre-verify` tightens §4: its accepted
+  verdict always comes from a final full-scope dual audit.
 - Upstream Spec-Kit may emit its Claude integration as either
   `.claude/commands/speckit.*.md` (command layout) or
   `.claude/skills/speckit-*/SKILL.md` (native-skill layout), or both. `/ms.init`

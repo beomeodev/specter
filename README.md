@@ -108,31 +108,32 @@ SPECTER does not force GEARS onto schemas, scope declarations, preservation cons
 
 GEARS compliance is currently enforced through templates, workflow rules, structural checks, and semantic reviewers. It is not presented as a complete formal-language parser.
 
-### Feature Audit Tiers
+### Verification Risk Profiles (verification-v2)
 
 SPECTER deterministically varies audit intensity by Feature risk without
 skipping the harness:
 
-| Tier | Policy-controlled intensity |
+| Profile | Gate-controlled intensity |
 | --- | --- |
-| T1 — Routine | Narrow Feature/direct-seam scope, lowest approved reviewer effort, at most two automatic fresh rounds. |
-| T2 — Standard | Current standard scope and effort, at most three automatic fresh rounds. This is the default and the legacy-Feature fallback. |
-| T3 — High-Risk | Strongest effort, adjacent trust-boundary and targeted risk checks, plus explicit human acknowledgment for residual WARNs or a one-reviewer environmental degrade. |
+| ordinary | Standard scope, fixed reviewer effort, 2 automatic fresh rounds. The default. |
+| high-risk | Adds the named checks (trust boundaries, data integrity, rollback, real entrypoint/E2E, …), adjacent-seam scope at review, and the typed named-class human acknowledgments (migration / destructive / irreversible / gate-policy). Same reviewers, effort, and round budget. |
 
-Every tier retains L1 structural checks, two independent reviewers at existing
-dual-agent stations, station-fixed L3 worst-result aggregation, executable
-gates, Done Criteria Execution, hooks, CI, TAG wiring, migration analysis, and
-high-stakes acknowledgments. Feature Map authors record evidence-bound
-`### Audit signals`; they never assign a tier. A deterministic classifier
-recomputes at Feature Map, spec, plan, pre-implementation, and actual-diff
-boundaries, and the effective tier can only rise. Legacy Features without
-signals resolve to T2; malformed new metadata fails safe.
+Both profiles retain L1 structural checks, two independent fresh reviewers,
+station-fixed L3 worst-result aggregation, input-digest freshness, executable
+gates, Done Criteria Execution, hooks, CI, TAG wiring, and migration analysis.
+Feature Map authors record the evidence-bound closed 8-signal
+`### Verification signals` table; they never assign a profile. The gate
+computes the profile inside each station's aggregation — declared signals at
+verify/analyze, plus deterministic changed-file facts at review. Never from
+prose scanning, never with a cross-phase floor. A legacy Feature without a
+signals table runs high-risk until it gains one; malformed config fails safe.
 
 The executable source of truth is
-[`audit-tier-policy.json`](./docs/templates/audit-tier-policy.json); receipt,
-freshness, and reviewer rules live in
+[`verification-v2.json`](./docs/templates/verification-v2.json); the normative
+design is [`docs/design/verification-v2.md`](./docs/design/verification-v2.md);
+report, budget, and reviewer rules live in
 [`specter-agent-protocols`](./.claude/skills/specter-agent-protocols/SKILL.md).
-The global Feature Map gate is always full strength and is not tiered.
+The global Feature Map gate is always full strength.
 
 ---
 
@@ -260,7 +261,7 @@ Below the prompt-based gates lies a mechanical enforcement layer: direct `/speck
 
 | Command | Role |
 | --- | --- |
-| `/ms.init` | Install Spec-Kit + Inject SPECTER overlays, hooks, backstops, audit-tier policy/classifier, and the Graphify code graph |
+| `/ms.init` | Install Spec-Kit + Inject SPECTER overlays, hooks, backstops, the verification-v2 config, and the Graphify code graph |
 | `/ms.prd` | Co-author PRD via discovery interview (Out-of-cycle) |
 | `/ms.pre-specter` | Bulk run the Pre-Feature cycle (featuremap → constitution) |
 | `/ms.featuremap` | Decompose PRD into a Feature DAG and generate per-feature prompts |
@@ -279,11 +280,11 @@ Below the prompt-based gates lies a mechanical enforcement layer: direct `/speck
 | `/ms.up-docs` | Sync living docs |
 | `/ms.sync` | Broadcast workflow files to registered project repos (with 3-way conflict protection) |
 
-Tiered verification commands take reviewer effort and scope only from the
-validated receipt. Their only tier override is `--raise-audit-tier T2|T3`;
-reviewer-skip, effort-lowering, and tier-lowering flags are rejected. Other
-command-specific controls are documented in the
-[command files](./.claude/commands/).
+Verification commands take their risk profile, round budget, and report
+validity from the gate mechanically. Their only risk override is the
+upward-only `--raise-risk`; reviewer-skip, effort-lowering, and
+profile-lowering flags are rejected. Other command-specific controls are
+documented in the [command files](./.claude/commands/).
 
 ### Two Stages of Constitution
 
@@ -423,10 +424,10 @@ Optional: GitHub CLI (PR/release automation in `/ms.fin` and `/ms.merglease`)
 ## Validation Status
 
 The workflow has automated fixture and gate-contract tests, including the
-deterministic audit-tier classifier and receipt invariants. The newest
-three-layer station architecture, audit-tier orchestration, and Graphify
-integration are still being validated through full end-to-end runs in real
-consuming projects.
+verification-v2 gate's round budget, risk-profile, and receipt invariants
+(seeded-defect corpus in `tests/specter/test_specter_gate_v2.py`). The newest
+verification-v2 contract and Graphify integration are still being validated
+through full end-to-end runs in real consuming projects.
 
 See [docs/SYSTEM_MAP.md](./docs/SYSTEM_MAP.md) for current verified invariants and known gaps.
 

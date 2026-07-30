@@ -4,6 +4,47 @@ All notable changes to this repository are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **verification-v2 계약 전환 (2026-07-30)**: 7/18~7/27 게이트 변경이 소비 프로젝트
+  사이클을 2.5배(109분→276분) 감속시킨 전수 감사
+  (`docs/audits/2026-07-30-verification-slowdown-analysis.md`, Codex 교차 검증 포함)와
+  독립 이중 설계 병합(`docs/design/verification-v2.md` 정본, claude/codex 소스 병존)에
+  따른 검증 비용 모델 전면 재설계. 3층 구조(L1 결정론 / L2 신선한 이중 리뷰 / L3 기계
+  집계)·신선도 결속·PRD 단독 권한·append-only 원장은 유지.
+  - **감사 등급(T1/T2/T3) 폐지 → 2프로파일(ordinary/high-risk)**: 위험은 Feature Map의
+    닫힌 8신호 `### Verification signals` 선언표와 리뷰 시점의 결정론적 변경 파일
+    사실(마이그레이션 경로, 게이트 기계, 추가된 diff 라인의 DDL/파괴 구문)로만 계산 —
+    산문 키워드 스캔 금지(실측: 실제 spec 86개 중 97%가 스캔만으로 T3, 최대 트리거는
+    강제 문구 "CI passes green"). 단조 바닥·5회 재분류 경계·별도 분류기 프로세스 삭제
+    (`classify_audit_tier.py`·`audit-tier-policy.json` 은퇴, sync 매니페스트 제외).
+    실행 권한은 `docs/templates/verification-v2.json` + `specter-gate.sh` v4.0.0.
+  - **라운드 예산 실행 강제**: 전 스테이션 자동 2라운드; `aggregate --round 3+`는
+    원장의 typed `authorize-round` 결정 이벤트 없이는 리포트를 읽기 전에 FAIL
+    (v1에서 `--round 28`이 PASS로 통과하던 결함 봉쇄).
+  - **커버리지 집합-등식 표 폐지 → Checked/Not-checked 정직 신고**: manifest/continuity
+    서브커맨드·불변 아카이브·8열 계보표·REVERSAL/COVERAGE_BREACH 기계 라우팅 삭제.
+    리포트는 라운드 번호 파일(`*.rN.md`, 덮어쓰기 없음), 발견표는 6열
+    (ID/Severity/State/Finding/Evidence/Required Fix), Required Fix는 3항
+    (불변식/최소수리/범위추가금지).
+  - **서식 재시도 레인**: 서식 불량 리포트는 해당 에이전트 1회 재디스패치
+    (`validate-report` 신설) — 스테이션 라운드를 소모하지 않음.
+  - **사람 정지 폐쇄 목록 + typed 결정**: clarify / 양쪽 리뷰어 다운 / 명명 4종 ack
+    (migration·destructive·irreversible·gate-policy) / 점검 불가 고위험 항목 /
+    필요 리뷰어 결손 degrade / 라운드 상한 도달. 모든 결정은
+    `specter-gate.sh decide`가 원장에 typed 이벤트로 기록(ack 파일 없음).
+    일반 WARN은 기록 후 진행.
+  - **저장소 축소**: 스테이션 영수증 1개(`.specify/verification-v2/<station>-<scope>.json`,
+    게이트 단독 작성) + append-only 원장. `.specify/audit-tiers/`·`.specify/continuity/`
+    신규 생성 중단(레거시는 읽기 전용 증거).
+  - **D-ID 함의 2단계 심사 게이트 은퇴(소유자 결정 D3)**: D-ID는 참고자료; 범위 정당화에
+    쓰인 D-ID는 일반 차단 지적으로 PRD Amendment 경로. 파생영향 ack 단계 삭제.
+  - 명령 반영: ms.verify/analyze/review/pre-verify 전면 개정, ms.checklist/specify/
+    clarify/plan/implement/specter/featuremap/init/sync 분류기 단계 제거·영수증 검증
+    전환. 프로토콜 SKILL §3~§8 재작성. 구 테스트 4파일 은퇴, 신규
+    `tests/specter/test_specter_gate_v2.py` 47케이스(심은 결함 코퍼스).
+  - 이관: 레거시 영수증/아카이브는 재해석 없이 읽기 전용 보존; 진행 중 Feature는 현재
+    스테이션에서 v2로 1회 재검사; 정리는 사용자 승인 커밋으로 별도 진행.
+
 ### Added
 - **감사 연속성·커버리지 폐쇄 계약 continuity-v1 (2026-07-27, 게이트 개편 트랙 A)**:
   PRD-081 pre-verify 28라운드 실행의 회고(Codex 검토 ①/②)를 반영한 C4′/C5′ 출하.

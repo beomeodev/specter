@@ -75,31 +75,34 @@ scenario.
 - `/ms.fin` handles commit/push/PR workflows according to its command
   definitions and user approval requirements.
 
-### Feature Audit-Tier Governance
+### Verification Risk-Profile Governance
 
-Feature audit intensity is governed by the machine-readable policy installed
-from `docs/templates/audit-tier-policy.json` and the deterministic classifier
-installed from `scripts/specter/classify_audit_tier.py`.
+Verification intensity is governed by the machine-readable config installed
+from `docs/templates/verification-v2.json` as read by the deterministic gate
+(`specter-gate.sh`) — the verification-v2 contract
+(`docs/design/verification-v2.md`).
 
-- Feature Map authors record evidence-bound Audit signals and never assign
-  `audit_tier`.
-- Classification is recomputed at Feature Map, spec, plan,
-  pre-implementation, and implementation-diff boundaries.
-- The effective tier is monotonic for the Feature lifecycle. Manual overrides
-  may raise it only.
-- T1, T2, and T3 all retain deterministic structure, two independent semantic
-  reviewers at existing dual stations, station-fixed worst-result
-  aggregation, fresh-context rounds, artifact freshness, executable gates,
-  Done Criteria Execution, hooks, CI, TAG wiring, migration/destructive-data
-  analysis, and required human acknowledgments.
-- Missing/malformed policy or new metadata fails safe. Legacy Features without
-  Audit signals resolve explicitly to T2 and are not silently rewritten.
-- The tier receipt is authoritative for orchestration; the append-only run
+- Feature Map authors record the evidence-bound `### Verification signals`
+  table (closed 8-signal schema) and never assign a risk profile.
+- The gate computes the profile inside each station's aggregation: from
+  declared signals at verify/analyze, from declared signals plus
+  deterministic changed-file facts at review. Never from prose scanning.
+- Manual overrides may raise the profile only (`--raise-risk`).
+- Both profiles retain deterministic structure, two independent semantic
+  reviewers at dual stations, station-fixed worst-result aggregation,
+  fresh-context rounds, input-digest freshness, executable gates, Done
+  Criteria Execution, hooks, CI, TAG wiring, and migration/destructive-data
+  analysis. High-risk adds the named checks and the typed named-class human
+  decisions.
+- The automatic round budget is 2; the gate refuses further rounds without a
+  recorded `authorize-round` decision.
+- Missing/malformed config fails safe (partial-sync stop). A legacy Feature
+  without a signals table runs high-risk until it gains one.
+- The station receipt is authoritative for orchestration; the append-only run
   ledger is audit history, not a replacement for artifact freshness checks.
 
 No command flag, authoring agent, conductor, host, or reviewer may select a
-weaker path. The global Feature Map gate is always full strength and is not
-tiered.
+weaker path. The global Feature Map gate is always full strength.
 
 ---
 

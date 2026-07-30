@@ -1,14 +1,17 @@
 ---
 name: specter-agent-protocols
-description: Canonical external-agent protocols shared by the dual-agent SPECTER commands (/ms.verify, /ms.pre-verify, /ms.analyze, /ms.review, /ms.expand) — session-level preflight, single-agent degrade rule, report-write/salvage protocol, re-round convergence caps, the finding-continuity contract (continuity-v1: immutable round archives, mechanically built continuity packets, stable finding IDs with Predecessor/Status/Classification lineage, the REVERSAL stop rule, declared-coverage-closure manifests, COVERAGE_BREACH, termination signals and the post-cap question), the auditor bias-prevention doctrine (context isolation, evidence-cited verdicts, UNVERIFIED marking, grade-down-on-doubt, defect-claim symmetry, the remedy contract), the verification-report structure (Claim/Evidence/Baseline/Gaps/Residual-risk), and the three-layer station contract (deterministic structural checks → independent dual-agent semantics → mechanical verdict aggregation via specter-gate.sh, with the typed degrade contract and mechanical ledger emission), the background-completion-collection rule (detached external-agent daemons never self-notify — route completion through a harness-tracked waiter or Agent subagent, never an idle turn), and the provenance & authority lattice (§10 — which artifacts may add product behavior vs oblige, select, constrain, or merely reference; the D-ID Implementation-Obligations contract with its two-part entailment/denylist audit test; journey ownership; typed clarify decisions). Commands reference this file instead of restating the mechanics; each command keeps only its own report paths and station-specific invariants inline.
+description: Canonical external-agent protocols shared by the dual-agent SPECTER commands (/ms.verify, /ms.pre-verify, /ms.analyze, /ms.review, /ms.expand) under the verification-v2 contract — session-level preflight, single-agent degrade rule, report-write/salvage protocol plus the format-retry lane (a malformed report costs one same-agent retry, never a station round), the executable round budget (2 automatic rounds, gate-refused beyond, typed authorize-round decisions, the post-cap options), the v2 report schema (Contract/Mode/Scope/Input Digest binding, Checked/Not-checked honesty sections, 6-column findings with stable IDs and State), the risk-profile contract (ordinary vs high-risk from declared 8-signal tables and deterministic diff facts — never prose scanning), typed human-decision ledger events and the closed human-stop list, the auditor bias-prevention doctrine (context isolation, evidence-cited verdicts, grade-down-on-doubt, defect-claim symmetry, the 3-clause remedy contract), the three-layer station contract (deterministic structural checks → independent dual-agent semantics → mechanical verdict aggregation via specter-gate.sh, with typed degrade and mechanical receipt/ledger emission), the background-completion-collection rule (detached external-agent daemons never self-notify), and the provenance & authority lattice (§10 — which artifacts may add product behavior vs oblige, select, constrain, or merely reference). Commands reference this file instead of restating the mechanics; each command keeps only its own report paths and station-specific invariants inline.
 ---
 
-# SPECTER External-Agent Protocols
+# SPECTER External-Agent Protocols (verification-v2)
 
 Single source of truth for the mechanics every Codex/Antigravity station shares.
 A command that invokes an external agent applies these protocols and states
 inline only what is specific to it (its report paths, single- vs dual-agent
-station, and any degrade direction that differs).
+station, and any degrade direction that differs). The normative design is
+`docs/design/verification-v2.md`; the executable authority for signals, diff
+facts, and budgets is `verification-v2.json` (synced) as read by
+`specter-gate.sh`.
 
 ## 1. Preflight (session-level, once)
 
@@ -28,186 +31,155 @@ of blocking the command.
 ## 2. Degrade Rule (one agent down)
 
 - If one agent of a dual-agent station is unavailable after retry: run the
-  station with the remaining agent only, force the station result to at most
-  `WARN`, and write a **degrade placeholder report** at the missing agent's
-  report path — a minimal but VALID report, not free text, so deterministic
-  gates (`specter-gate.sh`) can still parse it:
+  station with the remaining agent only and write a **degrade placeholder
+  report** at the missing agent's round-numbered report path — a minimal but
+  VALID report, not free text, so Layer 3 can parse it:
 
   ```markdown
   # <Agent> <Station> (degraded)
 
+  **Contract**: verification-v2
   **Mode**: <the station's normal Mode value>
-  **Feature**: Feature NNN
-  **Checklist SHA256**: <current checklist sha — when the station's gate checks it>
+  **Scope**: <Feature NNN | global>
+  **Input Digest**: <the digest computed for this round>
   **Result**: WARN
   **Availability**: UNAVAILABLE (<reason>)
   ```
 
-  A bare `<Agent>: UNAVAILABLE (<reason>)` line is NOT a valid placeholder —
-  it carries no `**Result**:` field, so the gate reads it as FAIL and an
-  environment issue alone blocks the cycle (2026-07-18 audit finding #2).
+  Layer 3 then caps the station at `WARN` mechanically
+  (`cap: single-agent-degrade`). A bare `<Agent>: UNAVAILABLE` line is NOT a
+  valid placeholder — it carries no `**Result**:` field, so the gate grades it
+  FAIL and an environment issue alone blocks the cycle.
 - **Never** present a single-agent run as if both agents ran.
 - **Never** block a cycle on an external-agent environment issue alone —
-  degrade, record it, continue.
-- A single-agent station (e.g. `/ms.expand`'s delta verify, where Antigravity
-  is the only Layer-2 verifier) has nothing to degrade to: stop and report the
-  failure instead.
+  degrade, record it, continue. Exception (§8): when the missing reviewer was
+  needed for a triggered high-risk check, the degrade WARN requires an
+  `ack-degrade` decision before advancement.
+- A single-agent station (e.g. `/ms.expand`'s delta verify) has nothing to
+  degrade to: stop and report the failure instead.
+- Both agents down at a dual station leaves zero independent verifiers: the
+  station **stops and reports** — it never runs host-only, because a host-only
+  verdict is exactly the self-judgment this architecture removes.
 
-## 3. Report-Write / Salvage Protocol
+## 3. Report-Write / Salvage / Format-Retry
 
-Agents write their own report files (primary path). Every agent prompt also
-requires echoing the finished report verbatim between `===REPORT BEGIN===` /
-`===REPORT END===` markers in the agent's final message — near-zero marginal
-cost, since a final message is emitted regardless.
+Agents write their own report files (primary path) at **round-numbered paths**:
+`<base>.r<N>.md` (e.g. `feature-006.codex-verify.r1.md`). Round files are never
+overwritten — a new round is a new file, so history needs no archive machinery.
+Every agent prompt also requires echoing the finished report verbatim between
+`===REPORT BEGIN===` / `===REPORT END===` markers in the final message —
+near-zero marginal cost, since a final message is emitted regardless.
 
-**Immutable round archives (continuity-v1).** Re-rounds overwrite the
-canonical report path, so the canonical path is always *the latest copy*, never
-the record. The record is the round archive `<report>.round-NN.md`, written
-mechanically by `specter-gate.sh aggregate --ledger` for every input it graded
-(placeholders and malformed reports included — the archive preserves what was
-observed, not what was valid). Archives are immutable: re-emitting a verdict
-for an already-archived round with different report content is a FAIL, never a
-silent overwrite. Continuity packets (§4) and predecessor-ID validation read
-only these archives; nobody — host or agent — edits or deletes them.
+After each agent run, check the file **deterministically**:
 
-After the run, check the written file **deterministically**: it exists, is
-non-empty, and contains the expected marker line (usually `**Result**:`; for
-the PRD checklist, `**Mode**: prd-only`). If the file is missing or partial:
+```bash
+.specify/scripts/bash/specter-gate.sh validate-report <path> <station> [arg] --round <N>
+```
 
-1. Retry that agent once.
-2. Still bad → **salvage**: write the file from the retry's
-   `===REPORT BEGIN===`/`===REPORT END===` markers. Do not hand-transcribe.
-3. No markers either → this is an **agent-authored failure**, not an
-   environmental one (§7 typed degrade): the agent ran and produced nothing
-   valid. Do NOT write a §2 placeholder for it — leave the missing/invalid
-   report as-is and let Layer-3 aggregation grade that input `FAIL`. Only a §1
-   preflight failure (the agent never ran) creates the environmental WARN cap.
+If `valid` is false:
 
-## 4. Convergence Policy (receipt-bound re-round caps)
+1. **Salvage**: rewrite the file from the `===REPORT BEGIN===`/`===REPORT END===`
+   markers of the agent's final message; re-validate.
+2. Still invalid → **format retry**: re-dispatch **that one agent** once, same
+   round, with the validator's `errors` list prefixed to the prompt. Record the
+   retry (`aggregate --format-retries`). A format problem costs one
+   single-agent retry — never a station round, never the other agent's work.
+3. Still invalid → this is an **agent-authored failure** (§7 typed degrade):
+   leave the report as-is and let Layer 3 grade that input `FAIL`. Do NOT
+   write a §2 placeholder for it — only a §1 preflight failure (the agent
+   never ran) creates the environmental WARN cap.
 
-Unbounded re-review loops burn tokens without improving outcomes:
+## 4. Round Budget (executable, universal)
+
+Unbounded re-review loops burn tokens without improving outcomes. The budget
+is enforced by the gate, not by prose: `aggregate --round 3` (and above)
+**exits FAIL before reading any report** unless a matching `authorize-round`
+decision event is recorded.
 
 - **Round 1**: full run over the whole scope.
-- **Round 2** (only if Round 1 produced a `FAIL` finding): scoped to the failing
-  findings plus the fix diffs — not a re-review of everything.
-- **Later rounds**: re-check only findings still `FAIL`, up to the validated
-  audit-tier receipt's `tier_settings.max_automatic_rounds` (currently T1: 2,
-  T2/T3: 3). No command, conductor, reviewer, or host may supply a larger or
-  smaller policy value.
-- **Receipt-less global stations are capped too**: stations with no audit-tier
-  receipt (the product-wide gates — `/ms.pre-verify` and the Feature-Map
-  stations) use a fixed cap of **3 automatic rounds**. This number is part of
-  this policy, not a tier setting; no host or conductor may exceed it. If the
-  two reviewers are still oscillating at the cap (one agent flipping grades
-  while the other holds across rounds), that is a rule-conflict symptom to
-  escalate to the user as a doctrine question — never something another
-  repair round can settle (2026-07-23 doit-n-live ran 17 rounds before this
-  was recognized).
-- **Stop**: after that receipt-bound cap, or as soon as only `WARN`-level findings remain.
-  Record every residual `WARN` in the command's artifacts; hand the
-  proceed-or-fix decision to the user. Further rounds require an explicit user
-  instruction. After the cap, an unresolved `FAIL` stays `FAIL` — it is never
-  aged into a `WARN` by exhaustion.
+- **Round 2** (only if Round 1 produced a `FAIL` finding): scoped to the
+  failing findings plus the fix diffs — not a re-review of everything.
+  Exception: `/ms.pre-verify`'s accepted verdict always comes from a
+  full-scope round, because a map or ownership edit can ripple globally.
+- **That is the entire automatic budget, every station, both risk profiles.**
 - **Every round is fresh**: dispatch each round with `--fresh`. Prior-round
-  findings travel as report **file paths**, never via thread resume — a resumed
-  reviewer carries the conversational pressure of the rounds in between ("we
-  fixed it") into its verdict, which recreates the author-memory contamination
-  this architecture removes. `--resume` is reserved for non-gate work
-  continuation (debugging threads, approved implementation-delegation
-  follow-ups); any invocation whose output becomes a gate verdict is fresh.
+  findings travel as the prior round's report **file paths** (they are on disk,
+  round-numbered), never via thread resume — a resumed reviewer carries the
+  conversational pressure of the rounds in between into its verdict. On a
+  re-round the reviewer re-checks prior blocking findings **by ID** and marks
+  each `resolved` or `persists` in its Findings `State` column.
 - **Changed evidence only**: a re-round may change a finding's grade only when
-  the evidence changed — the fix diff or corrected artifact exists and is cited
-  in the revised report. Reconsidering identical evidence never upgrades a
-  grade (`FAIL`→`WARN`/`PASS`); it can still downgrade one (§5).
-- **Stations may tighten, never loosen, this policy.** A station whose repairs
-  can have artifact-wide effects (e.g. `/ms.pre-verify`, where an ownership
-  move or DAG edit ripples beyond the fixed rows) may declare scoped repair
-  rounds *advisory* and require a final full-scope round for the accepted
-  verdict — see that command's certification contract. No station may widen
-  the caps or accept a scoped report as full-scope certification.
-
-### Continuity, termination, and the post-cap question (continuity-v1)
-
-Re-rounds carry **finding continuity**, built mechanically — never from
-conversational memory and never from a frozen PASS list:
-
-- Before every re-round dispatch, the driver runs
-  `specter-gate.sh continuity <station> [arg] --round <R>` and passes the
-  generated **packet path** (prior blocking findings + Required Fix verbatim,
-  per lane, from the §3 round archives) into the reviewer prompt. The packet
-  is explicitly NOT a PASS whitelist: it confers no immunity and never
-  suppresses full-scope discovery. The host passes the path only; it never
-  authors or edits packet content.
-- **`REVERSAL` stops automatic repair mechanically.** When any finding is
-  classified `REVERSAL` (§5), the aggregation receipt records `reversal: true`
-  and the station may not enter another automatic repair round: the next round
-  is a fresh dual **doctrine-dispute round** scoped to the disputed doctrine
-  question; reviewer disagreement escalates to the human. The host still
-  grades nothing.
-- **`COVERAGE_BREACH` invalidates closure, never the finding.** A blocking
-  finding in a class an earlier Coverage section declared exhausted is
-  classified `COVERAGE_BREACH`: the new defect is preserved and repaired
-  normally (late real findings are never suppressed), while the prior closure
-  claim for that class is void and the class must be re-exhausted.
-
-**Termination signals** (any of these means another identical repair round
-cannot help — stop and escalate instead of re-rolling):
-
-1. the same stable finding ID survives a correctly targeted fix;
-2. a reviewer lane reverses its own remedy (`REVERSAL`);
-3. a class declared exhausted produces another pre-existing violator
-   (`COVERAGE_BREACH`);
-4. reviewers oscillate on identical evidence (§4 receipt-less-station rule);
-5. the automatic round cap is reached.
-
-A raw "finding count did not decrease" rule is NOT a termination signal —
-legitimate class-exhaustive sweeps increase the count.
-
-**The post-cap question.** When the cap is reached, the human choice is never
-"run one more identical round?". Present exactly these options: **resolve the
-doctrine** (fix the rule the reviewers disagree about), **amend the authority**
-(the PRD/Amendment path), **accept as WARN** (recorded residual), or **stop**.
-Authorizing more rounds without choosing one of these re-runs the same
-open-ended search that produced the 2026-07-27 28-round global gate.
+  the evidence changed — the fix diff or corrected artifact exists and is
+  cited. Reconsidering identical evidence never upgrades a grade; it can still
+  downgrade one (§5).
+- **Repair contract (the fixer's obligation)**: reviewers report violations by
+  rule class — every violator they can find, never just the first — and the
+  same obligation binds whoever repairs a finding. Before claiming a blocking
+  finding repaired, the fixer must (1) derive the **rule** the finding is an
+  instance of, not the line it cites; (2) sweep for every other instance of
+  that rule across the Feature's diff and the seams it touches, and repair
+  those too; (3) state the sweep in the repair notes — what rule, what search,
+  how many sites, all repaired. A repair claim with no sweep statement is
+  incomplete, and the re-round reviewer is entitled to mark the finding
+  `persists`. (2026-07-28: two full rounds were spent on correct-but-partial
+  fixes — a guard added to two pages but not the selector offering them, and a
+  scan widened on the backend but not in the page test.)
+- **After the cap** an unresolved `FAIL` stays `FAIL` — it is never aged into
+  a `WARN` by exhaustion. Present the human exactly these options (never "run
+  one more identical round?"):
+  1. **fix and restart** — repair the artifacts; a new input digest starts a
+     fresh round 1;
+  2. **amend the authority** — the PRD/Amendment path;
+  3. **authorize one doctrine-dispute round** —
+     `specter-gate.sh decide authorize-round <station> <scope> --round 3
+     --reason "..."`; one fresh dual round scoped to the disputed doctrine
+     question. It can raise scrutiny; it can never turn FAIL into WARN/PASS;
+  4. **accept as WARN** — `decide accept-warn ...`, recorded residual;
+  5. **stop** — `decide stop ...`.
+- **Reversal doctrine** (prompt-level, no machinery): a reviewer lane that now
+  rejects the state its own prior Required Fix prescribed must say so
+  explicitly, cite the prior finding ID, and recommend escalation rather than
+  another authoring guess. The 2-round budget guarantees oscillation reaches
+  the human at round 3 by construction.
 
 ## 5. Auditor Bias-Prevention Doctrine
 
 The value of a verification station is exactly the independence of its verdict.
 These rules bind both sides: how the **driver composes** a reviewer prompt, and
-how the **reviewer grades**. (Adapted 2026-07-07 from MoAI-ADK's plan-auditor
-bias-prevention protocol.)
+how the **reviewer grades**.
 
 - **Context isolation (driver-side)**: the reviewer receives only the artifacts
-  the station defines (PRD, Feature Map, spec/plan/tasks, diff — as file paths,
-  per AGENTS.md §2 dispatch discipline). Never include the authoring reasoning,
-  prior drafts, the conversation history, or the driver's own conclusions or
-  expectations ("I believe this passes", "should be fine"). If such context
-  leaks in anyway, the reviewer must state it is ignoring it and grade from the
-  artifacts alone.
+  the station defines — as file paths, per AGENTS.md §2 dispatch discipline.
+  Never include the authoring reasoning, prior drafts, the conversation
+  history, or the driver's own conclusions ("I believe this passes"). If such
+  context leaks in anyway, the reviewer must state it is ignoring it and grade
+  from the artifacts alone.
 - **Evidence-cited verdicts (reviewer-side)**: a `PASS` on any checked item
   requires concrete evidence — a `file:line` citation or exact quoted text.
-  "Looks fine" is not a verdict. A report whose PASS items carry no citations
-  fails the deterministic report check (§3) in spirit: treat it as partial and
-  retry once with the citation requirement restated.
-- **UNVERIFIED, not PASS**: an item the reviewer could not actually check
-  (missing tooling, unreadable file, out-of-scope dependency) is marked
-  `UNVERIFIED` with the reason — never silently folded into PASS. Any
-  `UNVERIFIED` item caps the station result at `WARN`, the same convention as
-  agent unavailability (§2).
-- **Grade down on doubt, per item, no offsetting**: the reviewer's default
-  assumption is that defects exist; ambiguous evidence grades down (PASS→WARN,
-  WARN→FAIL), never up. Each dimension is graded independently — a strong PASS
-  in one area never offsets or softens a FAIL in another, and an issue the
-  reviewer identified must appear in the report; talking itself out of a
-  finding it already articulated is malpractice.
-- **Absence of evidence is not evidence**: what was not observed is neither a
-  success nor a failure — it belongs in the report's Gaps section (§6), never
-  in the verdict, in either direction.
-- **Defect-claim symmetry**: the UNVERIFIED convention applies to defect claims
-  too. A suspected defect, debt, or drift is a hypothesis — marked `UNVERIFIED`
-  until the domain tool confirms it — never asserted as fact from pattern
-  matching alone. (Real case: a grep-based estimate of "29 items need cleanup"
-  audited to 0 by the actual tool.)
+  "Looks fine" is not a verdict.
+- **Honest gaps, reviewer-graded**: everything the reviewer did not or could
+  not examine goes in the report's `**Not checked**:` line with the reason.
+  The reviewer grades the impact of its own gaps: a gap that could hide a
+  blocking defect makes the Result `WARN` or `FAIL` by the reviewer's own
+  judgment — never silently folded into PASS, and never mechanically capped by
+  the gate (the only mechanical cap is §2 availability).
+- **Grade down on doubt, per item, no offsetting**: ambiguous evidence grades
+  down (PASS→WARN, WARN→FAIL), never up. A strong PASS in one area never
+  offsets a FAIL in another, and an issue the reviewer identified must appear
+  in the report; talking itself out of a finding it already articulated is
+  malpractice.
+- **Absence of evidence is not evidence**: what was not observed belongs in
+  `**Not checked**:`, never in the verdict, in either direction.
+- **Defect-claim symmetry**: a suspected defect, debt, or drift is a
+  hypothesis until the domain tool confirms it — never asserted as fact from
+  pattern matching alone.
+- **Remedy contract (3 clauses)**: every blocking finding's Required Fix
+  states (1) the invariant that must be restored, (2) the minimum compliant
+  repair, (3) what must NOT be added — no new scope. When several product
+  interpretations remain valid, the fix escalates to the owner or the
+  Amendment path instead of choosing one. Reviewers never supply unconditional
+  replacement product text — an auditor who always writes the replacement
+  becomes an unauthorized author.
 - **No unilateral host downgrade (driver-side)**: the host/driver never
   re-grades an external verdict or finding — not by explaining it away as a
   false positive, not by relabeling a content finding as environmental. A
@@ -216,212 +188,104 @@ bias-prevention protocol.)
   changed evidence. The station verdict is whatever §7's aggregation computes
   from the report files as written.
 
-### Finding continuity & REVERSAL (continuity-v1)
+## 6. Report Schema (all dual-agent stations)
 
-"Self" is the **station lane** — e.g. `pre-verify/codex`,
-`verify/antigravity` — never a remembered agent instance: a `--fresh` reviewer
-has no memory, so its own prior guidance reaches it only through the §4
-continuity packet built from the same lane's round archives.
+Report paths are round-numbered and station-fixed. The required form:
 
-> A reviewer lane MUST NOT issue an ordinary new blocking finding against a
-> state its own prior Required Fix produced. It MUST retain the predecessor
-> ID, classify the finding `REVERSAL`, quote the prior Required Fix verbatim,
-> state which prior premise was unsound, and provide one reconciled
-> replacement. `REVERSAL` stops automatic repair (§4); it is a doctrine
-> dispute, not another authoring guess. Contradicting the *other* lane's
-> finding is an ordinary cross-reviewer dispute, never a `REVERSAL`.
+```markdown
+# <Agent> <Station> Verification — <Scope> — Round <R>
 
-**Remedy contract.** Every blocking finding carries a Required Fix in this
-form — never an unconditional paste-ready product decision (an auditor who
-always writes replacement text becomes an unauthorized author; the 2026-07-27
-Feature-089 rejected-record episode is the direct counterexample):
+**Contract**: verification-v2
+**Mode**: <fixed station mode>
+**Scope**: <Feature NNN | global>
+**Input Digest**: <digest from specter-gate.sh digest — supplied in the prompt>
+**Result**: PASS | WARN | FAIL
 
-1. the invariant that must be restored;
-2. the minimum compliant outcome;
-3. what must NOT be added or changed;
-4. exact replacement text only when doctrine determines a single answer;
-5. alternatives or an escalation when several product interpretations remain
-   valid;
-6. a self-check explaining why the proposed repair does not violate §10.
+## Scope and evidence
+**Checked**: <named check classes with citations or commands>
+**Not checked**: <explicit exclusions with reasons, or the evidence basis for claiming none>
 
-**Repair contract (the fixer's obligation).** Reviewers are already required to
-report violations **by rule class** — every violator they can find, never just
-the first. The same obligation binds whoever repairs the finding, and until
-2026-07-28 it did not: a finding names the violators the reviewer happened to
-see, so fixing exactly those leaves the rule broken everywhere else, and the
-next round reports the remainder as `PERSISTING` or `REOPENED`.
+## Findings
+| ID | Severity | State | Finding | Evidence | Required Fix |
+| --- | --- | --- | --- | --- | --- |
 
-Before reporting a blocking finding repaired, the fixer must:
+## High-risk checks   (high-risk profile only — one row per TRIGGERED signal)
+| Signal | Check | Result | Evidence |
 
-1. **Derive the rule** the finding is an instance of — not the line it cites.
-   "This page ignores the access mode" is an instance of "every surface gated by
-   the mode must consult it".
-2. **Sweep for every other instance** of that rule across the Feature's diff and
-   the seams it touches, and repair those too.
-3. **State the sweep in the repair report**: what rule, what search, how many
-   sites found, all repaired. A repair claim with no sweep statement is
-   incomplete, and the next round is entitled to treat it as unrepaired.
+## Verdict
+<one short paragraph>
+```
 
-Two 2026-07-28 rounds were spent exactly here: an access-mode guard added to two
-pages but not to the selector that offers them (`REOPENED`), and an identifier
-scan widened on the backend but not in the page test (`PERSISTING`). Both fixes
-were correct and both were partial; the sweep step is what makes "fixed" mean the
-rule holds rather than the cited line changed.
+- `ID` is stable and unique within the lane (e.g. `CX-V-003`); `State` is
+  `new | persists | resolved` (prior IDs carry forward on re-rounds).
+- `Required Fix` follows the §5 3-clause remedy contract.
+- An optional `**Availability**:` line (`UNAVAILABLE (<reason>)` |
+  `RECUSED (<reason>)`) marks a §2 degrade placeholder.
+- Validity (checked by `validate-report` and re-checked at L3): non-empty;
+  exactly one `Result` valued PASS|WARN|FAIL; `Contract`/`Mode`/`Scope` match
+  the station; `Input Digest` matches the current artifacts; non-empty
+  `Checked`/`Not checked`; parseable 6-column Findings rows. Anything else is
+  a §3 format defect, and after the format retry, a FAIL input — never
+  repaired, reinterpreted, or hand-patched by the host (salvage from §3
+  markers is the only sanctioned repair, and it copies the agent's own text).
 
-**Honesty limit.** Mechanical enforcement (stable IDs, lineage fields, packet
-input, Layer-3 validation) makes *omission* impossible — it cannot make a
-dishonest classification true. Classification truthfulness remains the job of
-the independent second reviewer and the doctrine-dispute round.
-
-## 6. Verification-Report Structure
-
-Every verification-style report the **host composes** — verify/audit summaries,
-station reconciliation sections — carries five sections. Dual-agent station
-report files stay in their compact machine-parsed form (`**Result**:` +
-Findings + Verdict — what the deterministic gates read); their gaps and
-residual-risk content lives in the host's station summary, not in the agent
-files (2026-07-18 audit #22 reconciliation). This structure exists because final verdicts
-systematically under-report what a station actually observed (2026-07-10 gate
-audit): what was *not* observed must survive in the report, not evaporate into
-a one-word verdict.
-
-- **Claim** — the specific statement being verified, not just the station name.
-- **Evidence** — the commands run and their output, verbatim (trim to the
-  relevant lines; never paraphrase a result). This is §5's evidence-cited
-  verdict rule applied to the whole report.
-- **Baseline** — what the result is compared against, measured in *this* run —
-  not remembered from a previous run, not assumed.
-- **Gaps** — what was not observed: paths not exercised, tools unavailable,
-  scopes excluded, inputs not tried. The defensive core of the report. An
-  empty Gaps section must state the basis for claiming exhaustive observation;
-  a bare "none" is the empty-section cliché this structure exists to prevent.
-- **Residual-risk** — what can still go wrong even though everything above was
-  observed (timing, environment differences, untested scale).
-
-### Continuity report schema (continuity-v1) — dual-agent station files
-
-Station report files gain three machine-validated elements. The gate enforces
-them only when the driving command passes `--expect-protocol continuity-v1`
-(fresh dispatches always do); already-finished legacy reports stay readable.
-
-- **`**Protocol**: continuity-v1`** — header field marking the report as
-  written under this schema.
-- **Findings lineage columns** — the Findings table is
-  `| ID | Predecessor | Status | Class | Severity | Finding | Evidence | Required Fix |`.
-  `ID` is stable and unique within the lane; `Predecessor` cites a prior-round
-  ID from the same lane or `none`; `Status` is
-  `PERSISTING | RESOLVED | REOPENED | NEW`; `Class` is
-  `NEW_EVIDENCE | PREVIOUSLY_UNAUDITED | REGRESSION_FROM_DIFF | REVERSAL |
-  COVERAGE_BREACH`. Layer 3 rejects malformed lineage: duplicate IDs, unknown
-  predecessors, missing classification on re-rounds.
-- **`## Coverage` — declared coverage closure (manifest stations:
-  pre-verify, verify, analyze).** The driver generates the expected inventory
-  with `specter-gate.sh manifest <station>`; the reviewer returns exactly one
-  `| Key | Result | Evidence |` row per key (`PASS | FAIL | UNVERIFIED`,
-  non-empty evidence). Layer 3 checks exact set equality — not counts — plus
-  no duplicates/unknown keys and lead file:line citations existing. Findings
-  are additionally reported **by rule class** (the complete violator list per
-  rule, not one instance per round): the 2026-07-27 run showed per-class
-  sweeps surfacing 3 extra unreported violations every time they were
-  demanded.
-
-  **Name it honestly.** This is *declared* coverage closure: it proves every
-  key in a gate-declared finite universe received a disposition with evidence,
-  and it makes silent omission a detectable protocol violation. It does NOT
-  prove semantic exhaustiveness, and it cannot prove the reviewer cognitively
-  performed each check — residual gaps stay explicit in the host summary's
-  Gaps section, and a later defect in a closed class is a `COVERAGE_BREACH`
-  (§4), never a suppressed finding. `/ms.review` has no manifest: its
-  per-criterion inventory is the Done Criteria Execution table.
+Host-composed station summaries keep the five-section discipline — Claim /
+Evidence / Baseline / Gaps / Residual-risk — because final verdicts
+systematically under-report what a station actually observed. The Gaps section
+aggregates the reviewers' `Not checked` lines; it must never evaporate into a
+one-word verdict.
 
 ## 7. Three-Layer Station Contract
 
-Every SPECTER verification station is composed of three layers (adopted
-2026-07-19; externally reviewed by Codex the same day). The division exists to
-close the author-judge vector: the host — which authored or assembled the
-artifacts under test, and carries session memory of authoring them — never
-grades them.
+Every SPECTER verification station is composed of three layers. The division
+exists to close the author-judge vector: the host — which authored or
+assembled the artifacts under test — never grades them.
 
 - **Layer 1 — deterministic structure** (`specter-gate.sh structural`):
-  parseable facts only — required fields/sections, single commitment ownership,
-  DAG acyclicity, placeholder scans, `CI passes green` suffixes, cited-ID
-  cross-references. Runs **before** agent dispatch: a structural FAIL stops the
-  station without spending agents. L1 never claims semantic fidelity (whether
-  the PRD was actually understood and preserved) — that is L2's job; treating a
-  structural PASS as semantic coverage is a known false-confidence trap.
+  parseable facts only — required fields/sections, single commitment
+  ownership, DAG acyclicity, placeholder scans, `CI passes green` suffixes,
+  cited-ID cross-references, Verification-signals schema. Runs **before**
+  agent dispatch: a structural FAIL stops the station without spending agents.
+  L1 also computes the station's **input digest**
+  (`specter-gate.sh digest <station> [arg]`) which the driver embeds in both
+  prompts. L1 never claims semantic fidelity — that is L2's job.
 - **Layer 2 — independent semantics** (external dual agents, always `--fresh`,
-  §4): Codex and Antigravity each audit the same artifacts independently and
-  each write their own report with a single `**Result**:`. Each report binds to
-  the exact revision it audited via the station's SHA field.
-- **Layer 3 — mechanical aggregation** (`specter-gate.sh aggregate <station>`):
-  computes the station verdict from the **fixed** report set the station
-  defines. The host invokes the station by name; it never selects, adds, or
-  omits report files (dynamic input choice would let a failing report simply be
-  left out). Verdict = worst valid input (FAIL > WARN > PASS), folding in the
-  L1 result where the station defines it.
+  §4): Codex and Antigravity each audit the same artifacts independently at
+  **fixed effort** (`codex: xhigh`, `antigravity: medium` — effort is not
+  risk-dependent) and each write their own §6 report.
+- **Layer 3 — mechanical aggregation** (`specter-gate.sh aggregate <station>
+  [arg] --ledger --round <N>`): computes the station verdict from the
+  **fixed** round-numbered report set the station defines. The host invokes
+  the station by name; it never selects, adds, or omits report files. Verdict
+  = worst valid input (FAIL > WARN > PASS). The gate computes the risk
+  profile (§8) and the round-budget check (§4) in the same call.
 
-### Report validity (L2)
+### Receipt and ledger (L3 output)
 
-A station report is valid iff it: is non-empty; contains exactly one
-`**Result**:` line valued `PASS`|`WARN`|`FAIL`; carries the station's exact
-`**Mode**:` (aggregation rejects a report whose Mode belongs to another
-station); names the audited scope (`**Feature**:` on per-Feature stations);
-and carries the freshness binding the station defines (`**Checklist SHA256**:`
-/ `**Feature Map SHA256**:` / `**Tasks SHA256**:` for `/ms.analyze`) matching
-the current artifact. `/ms.review` agent reports bind to Feature identity while
-the required audit-tier receipt independently binds the actual tracked and
-untracked diff hash; aggregation rejects a stale receipt. An optional
-`**Availability**:` line (`UNAVAILABLE (<reason>)` | `RECUSED (<reason>)`)
-marks a §2 degrade placeholder. Anything else — missing file, empty file, zero
-or multiple Result lines, unknown value, stale SHA — is graded `FAIL` by L3
-and never repaired, reinterpreted, or hand-patched by the host (salvage from
-§3 markers is the only sanctioned repair, and it copies the agent's own text).
+`aggregate` writes the station receipt to
+`.specify/verification-v2/<station>-<scope>.json`: contract, station, scope,
+round, risk profile + evidence, input digest, per-input
+`{path, sha256, result, availability, graded, format_retries}`, verdict, cap,
+required acks, verbatim `caught` rows, reasons. The receipt — not host
+prose — is the station's outcome of record for the current round; history
+lives in the append-only ledger. `--ledger` appends the
+`.specify/specter-run.jsonl` line mechanically (verbatim `caught` rows copied
+from the reports' Findings tables). The host never authors these fields at an
+aggregated station.
 
-### Receipt (L3 output)
-
-`aggregate` emits one JSON receipt: station, scope, `round`, per-input `{path,
-sha256, result, availability}` (a missing/empty input records `""` at its
-position so the hash array always aligns with the input array), `verdict`,
-`cap` (present only when the verdict was capped mechanically —
-`single-agent-degrade` for an availability placeholder, or
-`missing-baseline` at the expand station when the independent delta baseline
-checklist is absent), and `reasons[]`.
-The receipt — not host prose — is the station's outcome of record. Canonical
-artifacts the host assembles afterward (e.g. the global Feature Map checklist)
-copy the receipt's verdict verbatim; the host contributes paths and metadata,
-never findings, verdicts, `caught` selections, or cap classifications.
+**Composite stations.** A station whose final result folds in more than the
+agent reports (`/ms.review`'s executable gates and Done Criteria) appends its
+own ledger line **after** the mechanical one, embedding the receipt's verdict
+verbatim as `agents_verdict`; it may only equal or worsen it.
 
 ### Typed degrade
 
 Only a §1 preflight failure (after one retry) creates an environmental
-degrade: the driver writes the §2 placeholder (`**Result**: WARN` +
-`**Availability**:` line) and L3 records the cap. An agent-authored failure —
-malformed report, mid-run crash, refusal — is a `FAIL` input, never relabeled
-as environmental by the host. `RECUSED` (implementer recusal, AGENTS.md §2) is
-handled identically to `UNAVAILABLE`: single-agent run, WARN cap. Both agents
-down at a dual station leaves zero independent verifiers: the station **stops
-and reports** — it never runs host-only, because a host-only verdict is
-exactly the self-judgment this contract removes.
-
-### Mechanical ledger
-
-For aggregated stations, the `.specify/specter-run.jsonl` line is emitted by
-`aggregate --ledger`, which copies finding-table rows verbatim from the report
-files into `caught` and the receipt's cap into `cap`. This appended line **is
-the persisted receipt**: it also records `round` (pass `--round N` on
-re-rounds) and `report_shas` (each report file's content hash), append-only,
-so a later fix round can never rewrite what a station originally observed.
-The host never authors these fields at an aggregated station — the 2026-07-10
-ledger under-reporting incident is why this is mechanical, not stylistic.
-
-**Composite stations.** A station whose final result folds in more than the
-agent reports (`/ms.review`'s executable gates and Done Criteria; a host
-WARN-level detection at `/ms.analyze`) appends its own line **after** the
-mechanical one. That composite line must embed the receipt's verdict verbatim
-as `agents_verdict` and may only equal or worsen it — a composite line that
-softens the mechanical verdict is a §5 violation. The mechanical line always
-remains in the ledger (append-only), so the original station observation
-survives regardless.
+degrade: the driver writes the §2 placeholder and L3 records the cap. An
+agent-authored failure — malformed report after the §3 format retry, mid-run
+crash, refusal — is a `FAIL` input, never relabeled as environmental.
+`RECUSED` (implementer recusal, AGENTS.md §2) is handled identically to
+`UNAVAILABLE`.
 
 ### Authoring stations are not verdicts
 
@@ -429,56 +293,73 @@ survives regardless.
 authoring stations**: a fresh subagent writes the artifact so the session's
 authoring memory cannot leak into it. Their self-reported Result is a draft
 grade, never authoritative — the authoritative verdict comes from the
-L1+L2+L3 station that follows (`/ms.pre-verify`, `/ms.verify`). A single
-subagent's PASS must never be presented as, or substituted for, dual
-verification. Fix rounds after a FAIL re-dispatch a fresh subagent scoped to
-the reported defects only (max 2 fix rounds before escalating to the user),
-and a fix subagent must never delete or reword commitments merely to make a
-structural check pass.
+L1+L2+L3 station that follows. Fix rounds after a FAIL re-dispatch a fresh
+subagent scoped to the reported defects only (max 2 fix rounds before
+escalating to the user), and a fix subagent must never delete or reword
+commitments merely to make a structural check pass.
 
-**Persistent subagent memory is forbidden for gate roles.** Claude Code's
-`memory` frontmatter field (`user` / `project` / `local`; absent by default,
-and absent means fully fresh) gives a subagent a cross-invocation memory
-directory whose `MEMORY.md` is injected into every later run. No authoring
+**Persistent subagent memory is forbidden for gate roles.** No authoring
 station, and no subagent whose output feeds a gate verdict, may declare a
-`memory` field: a station that remembers prior rounds is no longer fresh, and
-the PRD-blind checklist author's baseline value depends on never having seen a
-Feature Map — in any session. Freshness here means omitting the field, and
-sync targets must not add one to synced agent definitions.
+`memory` frontmatter field: a station that remembers prior rounds is no longer
+fresh, and the PRD-blind checklist author's baseline value depends on never
+having seen a Feature Map — in any session.
 
-## 8. Deterministic Feature Audit Tiers
+## 8. Risk Profile & Human Decisions
 
-The canonical executable policy is
-`docs/templates/audit-tier-policy.json`; the deterministic classifier is
-`scripts/specter/classify_audit_tier.py`. Commands reference the validated
-receipt at `.specify/audit-tiers/feature-NNN.json` and do not reproduce
-classification conditions in prompts.
+Two profiles: `ordinary` (default) and `high-risk`. The gate computes the
+profile inside `aggregate` — there is no separate classifier process, receipt
+handshake, or cross-phase floor. **Risk is declared or observed in files; it
+is never inferred from spec/plan/tasks prose.**
 
-- The Feature Map author records the closed-schema, evidence-bound
-  `### Audit signals` table but never assigns a tier.
-- Classification runs at Feature Map, spec, plan, pre-implementation, and
-  implementation-diff boundaries. The effective tier is the mechanical maximum
-  of every observed floor and any manual upward-only override.
-- A policy parse/capability error, malformed present signals section, stale
-  receipt, invalid override, or partial sync fails safe. A legacy Feature with
-  no signals is explicitly T2 (`legacy-unclassified`), never T1.
-- All tiers preserve L1, two independent L2 reviewers at dual stations, fixed
-  L3 inputs/worst-result aggregation, fresh rounds, Report Mode/identity/hash
-  binding, executable gates, Done Criteria, hooks, CI, TAG wiring, migration
-  analysis, and high-stakes acknowledgments.
-- T1 narrows semantic adjacency, uses the lowest approved policy effort, and
-  caps automatic convergence at two rounds. T2 is the standard behavior. T3
-  uses strongest approved effort, expands to affected trust boundaries, runs
-  applicable targeted modules, and requires receipt-bound human acknowledgment
-  for residual WARN or one-reviewer environmental degrade.
-- The policy's `warn_promotions` arrays are the only place a warning category
-  may be mechanically promoted. Empty arrays mean no category promotion.
-  Exhausted retries never promote or soften a verdict.
+- **Declared signals**: each Feature section carries a closed
+  `### Verification signals` table (`| Signal | Value | Evidence |`, values
+  `yes|no`, the 8 signals in `verification-v2.json`: authorization, secrets,
+  data-migration, destructive-data, irreversible-operation, public-contract,
+  financial-or-regulated, gate-or-policy-change). Authors record evidence;
+  they never assign a profile. Any `yes` → high-risk at `verify`/`analyze`.
+  A malformed table is a Layer-1 FAIL; a missing table runs the Feature
+  high-risk until it gains one. A declared `no` the artifacts contradict is a
+  blocking reviewer finding — the reviewer, not a regex, keeps declarations
+  honest.
+- **Observed diff facts** (`review` only): deterministic changed-file facts —
+  migration dirs, auth/secret paths, CI/workflow files, gate machinery, and
+  DDL/destructive statements in **added lines of the working diff** — per the
+  config's path/content classes. Never one bundle attributed to every path;
+  never prose scanning.
+- **Manual raise**: `aggregate --raise-risk`, upward only, recorded. No
+  lowering flag exists.
 
-The receipt records policy/artifact hashes, observed signals, floors, prior and
-new tiers, monotonic effective tier, reasons, override, settings, phase, and
-timestamp. The append-only ledger records receipt metadata for audit history,
-but never replaces freshness checks against the authoritative artifacts.
+What high-risk changes — exhaustively: the applicable named checks
+(`high_risk_checks` in the config) as a `## High-risk checks` report table and
+as mandatory Done Criteria rows at `review`; review scope widens to affected
+trust boundaries; the §2 degrade exception; and the named-class
+acknowledgments below. Reviewer count, effort, budget, report schema:
+identical in both profiles.
+
+### Typed human decisions
+
+All human decisions are ledger events written by
+`specter-gate.sh decide <type> <station> <scope> [--round N] --reason "..."` —
+actor-attributed, append-only. Types: `ack-migration`, `ack-destructive`,
+`ack-irreversible`, `ack-gate-policy`, `ack-degrade`, `authorize-round`,
+`accept-warn`, `stop`. A decision can never lower a verdict, effort, scope, or
+reviewer count. Reviewers, agents, and the host cannot decide for the human.
+
+### The closed human-stop list
+
+1. `/ms.clarify` product decisions (by design);
+2. both reviewers environmentally unavailable (station stops);
+3. named-class acknowledgments when the class is present in the work:
+   data-migration / destructive-data / irreversible-operation /
+   gate-or-policy-change (the review receipt's `required_acks` records which
+   are satisfied — advancement requires `acks_satisfied: true`);
+4. a high-risk required check that could not be observed;
+5. single-agent degrade when the missing reviewer was needed for a triggered
+   high-risk check (`ack-degrade`);
+6. unresolved FAIL or doctrine dispute at the §4 round cap.
+
+An ordinary WARN — any profile, any station except the cases above — is
+recorded in receipt and ledger and **advances**.
 
 ## 9. Background Completion Collection (no daemon self-notifies)
 
@@ -486,26 +367,18 @@ An external-agent background job — `codex`/`agy` run with `--background`, or a
 codex-companion / Antigravity worker — runs as a **detached daemon** (`spawn`
 with `detached: true` + `unref()`). A detached daemon **never pushes a completion
 or death signal to the host**; the host learns the outcome only by pulling
-(`status` / `result`). The plugin commands even instruct the host to hand the job
-id to the *user* to poll — which is exactly how the host ends its turn idle while
-the job has long since finished or died. The only automatic wake the host ever
-receives is (a) a harness-tracked `Bash(run_in_background: true)` finishing, or
-(b) a Claude Agent subagent finishing. Every rule below routes external-agent
-completion through one of those two channels. (2026-07-21 transcript audit: one
-real workspace showed background dispatches where the result was never collected
-in 5 of 7 launches, and the job had already finished or died 10–60 min before the
-user's "아직?" nudge in 3 of them; the control session, whose calls all returned
-in-foreground, had zero incidents.)
+(`status` / `result`). The only automatic wake the host ever receives is (a) a
+harness-tracked `Bash(run_in_background: true)` finishing, or (b) a Claude Agent
+subagent finishing. Every rule below routes external-agent completion through
+one of those two channels. (2026-07-21 transcript audit: 5 of 7 background
+dispatches in one workspace were never collected; the foreground-only control
+session had zero incidents.)
 
 - **Prefer the Agent-tool path (default).** Dispatch external agents via the
   Claude Agent tool (`codex:codex-rescue`, `antigravity:rescue` subagents)
   whenever the station allows it. The harness tracks the subagent and wakes the
-  host automatically on completion, removing the idle-collection failure entirely.
-  (Audit: the workspace that consistently used this path self-collected every
-  launch with zero user nudges; the one that called the daemon directly stalled.)
-- **Foreground when it fits the Bash ceiling.** There is no hard 120-second
-  auto-background in the CLI. The practical two-minute cutoff is the harness Bash
-  tool's *default* timeout — not a Codex behavior. A direct daemon call expected
+  host automatically on completion.
+- **Foreground when it fits the Bash ceiling.** A direct daemon call expected
   to finish within the Bash ceiling (max `600000` ms = 10 min) runs foreground
   with `--wait` and an explicit `timeout: 600000`. Raise the timeout; do not
   background prematurely.
@@ -514,113 +387,47 @@ in-foreground, had zero incidents.)
   `Bash(run_in_background: true)` — `codex status <job> --wait` /
   `agy status <id> --wait`, or a poll loop on the expected report file. The
   waiter's completion **is** the job's completion, so the harness wakes the host.
-  This is what makes "I'll report back when it finishes" a true statement instead
-  of a false promise.
 - **Detect death; never wait forever.** When the waiter returns on timeout, check
-  health (Antigravity `status` exposes heartbeat / Health / last-progress; codex
-  job status exposes active vs terminal state). A dead job — non-zero exit, 0% CPU,
-  vanished output file, stale heartbeat — is failed immediately and degraded
-  (single-agent WARN per §2 for a dual station; stop-and-report for a single-agent
-  station). A live-but-slow job may be re-waited; a corpse is never re-waited.
+  health. A dead job — non-zero exit, 0% CPU, vanished output file, stale
+  heartbeat — is failed immediately and degraded (§2). A live-but-slow job may
+  be re-waited; a corpse is never re-waited.
 - **Never promise auto-notification without a waiter.** "I'll tell you when it
-  finishes" is true only when a harness-tracked waiter (Agent subagent or
-  background Bash) is actually in place. Without one, the host either
-  foreground-waits or stays actively polling — it must not end the turn idle and
-  offload the "is it done?" check onto the user.
+  finishes" is true only when a harness-tracked waiter is actually in place.
 
-## 10. Provenance & Authority Lattice (adopted 2026-07-22)
+## 10. Provenance & Authority Lattice
 
 The refinement pipeline (PRD → Feature Map → spec → plan → tasks) legitimately
 *adds information* at every stage. What it must never do is add *product scope*
 without an authorized source. This section is the single definition of which
 artifact may authorize what; every station cites this lattice instead of
-restating its own source rule. (Origin: the 2026-07-22 doit-n-live audit — a
-binary "literal PRD text or invented" rule produced 5 non-converging
-pre-verify rounds; externally reviewed by Codex the same day.)
+restating its own source rule.
 
 ### The lattice
 
 | Authority | Artifacts | What it can do |
 | --- | --- | --- |
 | **Add product behavior** | source PRD text (C-IDs); appended `## PRD Amendment N` sections | The only two sources of new product scope. Nothing else adds scope — not the map, not clarify, not a subagent's judgment. |
-| **Oblige implementation** | valid D-ID rows (`## Implementation Obligations`, contract below) | Require a deliverable that an existing commitment entails, without adding observable product scope. |
-| **Select within an envelope** | clarify **interpretation** records in `spec.md` (typed contract below) | Choose among behaviors already inside a cited commitment's observable envelope. Never widen the envelope. |
-| **Constrain implementation** | Constitution, product principles, `AGENTS.md` | Forbid or shape *how*; when a governing rule forces a concrete deliverable, that deliverable enters the map as a `governing-constraint` D-ID citing the rule — the rule itself never silently becomes scope. |
+| **Reference implementation obligations** | D-ID rows (`## Implementation Obligations`, optional) | Record a deliverable an existing commitment needs, without adding observable product scope. D-IDs are references, never promises: a D-ID cannot own, satisfy, or substitute for a baseline C-ID, and a D-ID used to justify NEW observable behavior is an ordinary blocking finding routed to a PRD Amendment (2026-07-30 decision D3 — the formal entailment test is retired from the gate; the PRD-only rule carries the defense). |
+| **Select within an envelope** | clarify **interpretation** records in `spec.md` | Choose among behaviors already inside a cited commitment's observable envelope. Never widen the envelope. |
+| **Constrain implementation** | Constitution, product principles, `AGENTS.md` | Forbid or shape *how*; a governing rule never silently becomes scope. |
 | **Reference only** | dependency Feature specs | Context for boundaries; never authority for behavior. |
-| **No authority** | `docs/prd/opportunities.md` (unpromised-ideas backlog) | Preserved ideas the PRD never asked for. Promotion happens ONLY via a PRD Amendment (`/ms.expand`); a note is never provenance, and no gate, checklist, spec prompt, or reviewer prompt loads this file. |
+| **No authority** | `docs/prd/opportunities.md` (unpromised-ideas backlog) | Preserved ideas the PRD never asked for. Promotion happens ONLY via a PRD Amendment (`/ms.expand`); no gate, checklist, spec prompt, or reviewer prompt loads this file. |
 
-An addition carrying none of these origins is **untagged invention** — the same
-blocking finding as before this section existed. The lattice narrows what
-"invented" means; it never softens the verdict for actual scope smuggling.
-
-### D-ID contract (Implementation Obligations)
-
-`docs/prd/feature-map.md` MAY carry one `## Implementation Obligations` table
-(legacy maps without it stay valid). Fixed columns:
-
-```
-| D-ID | Supports | Kind | Obligation | Why necessary | Impact | Owning Feature |
-```
-
-- `D-ID`: `D-NNN`, unique. `Supports`: one or more baseline C-IDs — C-IDs
-  only, ≥1. **No D→D chains**: a derived row never authorizes another derived
-  row; every D-ID traces directly to PRD commitments.
-- `Kind` (closed): `logical-enablement` (the commitment cannot be implemented
-  without it) · `verification-only` (needed to *prove* the commitment — a test
-  harness, never shipped behavior) · `governing-constraint` (forced by
-  Constitution/principles; cite the rule in `Why necessary`) ·
-  `existing-system-constraint` (forced by the verified existing codebase —
-  adapter, migration; cite the repo evidence).
-- `Obligation` states the **smallest abstract obligation**, not the chosen
-  realization: "a reachable capture affordance for C-014", not "a standalone
-  input screen". The realization is a design decision and lives in the
-  Feature's `### Key decisions` or the plan.
-- `Impact` (closed): `none` · `user-visible` · `operational`. Any non-`none`
-  row requires the explicit user acknowledgment `/ms.pre-verify` defines
-  before the station result stands — visibility alone is never approval.
-- D-IDs are responsibilities, never promises: a D-ID cannot own, satisfy, or
-  substitute for a baseline C-ID, and the PRD-blind baseline checklist never
-  contains D items.
-
-**Two-part audit test** (L2 reviewers apply both; either failure kills the row):
-
-1. **Entailment across designs** — "Across reasonable implementations that
-   satisfy the cited C-IDs, must this obligation exist?" The reviewer actively
-   looks for a plausible alternative implementation that avoids the item; if
-   one exists, the item is a design choice, not a derived necessity. Removal
-   breaking *the author's chosen design* proves nothing — that reasoning is
-   circular. "Reasonable" is bounded by the cited C-ID's own text, never by
-   the author's unstated premises: a rationale that first strengthens the
-   commitment ("reminders must reach a closed app") and then derives from the
-   strengthened version has smuggled a requirement, not found an entailment.
-   The alternative search varies how the obligation could be *realized*,
-   never the Feature decomposition: the map's Feature split is a **fixed
-   input** to this test, so "another Feature could do this work" is not a
-   refutation — ask whether the work must exist at all in some compliant
-   design, never who performs it. (Otherwise every engine-side enablement
-   obligation is refutable by "the screen Feature could do it", and this test
-   destroys the journey-ownership doctrine that requires those D-IDs to
-   exist — the 2026-07-23 doit-n-live 14-round deadlock.)
-2. **Scope-expansion denylist** — an item that introduces a new
-   user journey or capability, stored data category or retention period,
-   permission or role, third-party integration, notification channel,
-   irreversible/destructive effect, billing behavior, public API, or
-   quantitative service promise is product scope. "Introduces" means
-   observable to a user or operator beyond the cited C-ID's existing
-   envelope — being *motivated by* a C-ID does not exempt an item from the
-   denylist. It can never ride the
-   derived lane regardless of rationale; it routes to a PRD Amendment (or the
-   opportunities backlog if not adopted).
+An addition carrying none of these origins is **untagged invention** — a
+blocking finding at every station. Scope-expansion review remains a reviewer
+duty: an item that introduces a new user journey or capability, stored data
+category or retention period, permission or role, third-party integration,
+notification channel, irreversible/destructive effect, billing behavior,
+public API, or quantitative service promise is product scope and routes to a
+PRD Amendment (or the opportunities backlog), regardless of what motivated it.
 
 ### Journey ownership doctrine
 
 A commitment describing an end-to-end user journey is owned by the Feature
 where the **whole observable journey first becomes verifiable** — never split
 "half" across an engine Feature and a screen Feature. Earlier slices carry
-D-ID enablement obligations toward that journey; the owning Feature's done
-criteria prove the journey end-to-end and name the enabling Features. (This
-resolves the engine-vs-screen ownership oscillation that consumed 4 of the
-doit-n-live rounds.)
+enabling obligations toward that journey; the owning Feature's done criteria
+prove the journey end-to-end and name the enabling Features.
 
 ### Typed clarify decisions
 
@@ -629,12 +436,10 @@ Every `/ms.clarify` resolution is one of exactly two types:
 - **interpretation** — selects among behaviors already inside a cited C-ID's
   (or D-ID's) observable envelope. Recorded in `spec.md` with provenance: the
   cited ID, the exact question and answer, and whether the user answered or
-  evidence auto-resolved it. Downstream stations treat a recorded
-  interpretation as legitimate refinement of its cited commitment.
-- **scope-addition** — would widen an envelope or add anything on the denylist
-  above. Clarify REFUSES to record it as a decision: it routes to a PRD
-  Amendment (`/ms.expand`) or, if not adopted now, to the opportunities
-  backlog. There is no clarify shortcut around the Amendment path; an
+  evidence auto-resolved it.
+- **scope-addition** — would widen an envelope or add product scope. Clarify
+  REFUSES to record it as a decision: it routes to a PRD Amendment
+  (`/ms.expand`) or, if not adopted now, to the opportunities backlog. An
   agent-side evidence auto-resolution can only ever produce an
   `interpretation`, never a scope-addition.
 

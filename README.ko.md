@@ -118,31 +118,32 @@ SPECTER는 schema, scope 선언, 보존 제약, implementation note에 GEARS를 
 
 현재 GEARS 준수는 템플릿, 워크플로우 규칙, 구조 검사, 의미 리뷰어를 통해 강제됩니다. 완전한 형식 언어 파서라고 주장하지 않습니다.
 
-### Feature Audit Tier
+### 검증 위험 프로파일 (verification-v2)
 
 SPECTER는 harness를 생략하지 않고 Feature 위험에 따라 감사 강도를
 결정론적으로 조정합니다.
 
-| Tier | 정책이 제어하는 감사 강도 |
+| Profile | gate가 제어하는 감사 강도 |
 | --- | --- |
-| T1 — Routine | Feature·직접 seam으로 범위를 좁히고 승인된 최저 reviewer effort를 사용하며 자동 fresh round는 최대 2회입니다. |
-| T2 — Standard | 현재 표준 범위와 effort, 자동 fresh round 최대 3회를 유지합니다. 기본값이며 legacy Feature의 fallback입니다. |
-| T3 — High-Risk | 최강 effort, 인접 trust boundary와 적용 가능한 위험별 검사를 수행하며 residual WARN 또는 reviewer 1명 환경 저하에 명시적 사람 확인이 필요합니다. |
+| ordinary | 표준 범위, 고정 reviewer effort, 자동 fresh round 2회. 기본값입니다. |
+| high-risk | 명명된 검사(trust boundary, 데이터 무결성, rollback, 실제 entrypoint/E2E 등)와 review의 인접 seam 범위, typed 명명-종류 사람 확인(migration/destructive/irreversible/gate-policy)이 추가됩니다. reviewer 수·effort·round 예산은 동일합니다. |
 
-모든 tier에서 L1 구조 검사, 기존 dual-agent station의 독립 reviewer 2명,
-station 고정 입력의 L3 최악 결과 집계, 실행형 gate, Done Criteria Execution,
-hook, CI, TAG wiring, migration 분석, high-stakes 확인은 그대로 유지됩니다.
-Feature Map 작성자는 근거에 묶인 `### Audit signals`만 기록하고 tier를 정하지
-않습니다. 결정론적 classifier가 Feature Map, spec, plan, 구현 직전, 실제 diff
-경계에서 재분류하며 effective tier는 상승만 가능합니다. Audit signals가 없는
-legacy Feature는 T2이고, 새 metadata가 잘못되면 fail-safe로 처리합니다.
+두 프로파일 모두 L1 구조 검사, 독립 fresh reviewer 2명, station 고정 입력의
+L3 최악 결과 집계, input-digest 신선도, 실행형 gate, Done Criteria Execution,
+hook, CI, TAG wiring, migration 분석은 그대로 유지됩니다. Feature Map
+작성자는 근거에 묶인 닫힌 8신호 `### Verification signals` 표만 기록하고
+profile을 정하지 않습니다. gate가 각 station의 집계 안에서 profile을
+계산합니다 — verify/analyze는 선언 신호, review는 선언 신호 + 결정론적 변경
+파일 사실. 산문 스캔과 단계 간 바닥(floor)은 없습니다. 신호 표가 없는 legacy
+Feature는 표를 얻을 때까지 high-risk로 돌고, config가 잘못되면 fail-safe로
+정지합니다.
 
-실행 가능한 단일 정책 원본은
-[`audit-tier-policy.json`](./docs/templates/audit-tier-policy.json)이며 receipt,
-freshness, reviewer 규칙은
+실행 가능한 단일 원본은
+[`verification-v2.json`](./docs/templates/verification-v2.json)이며 규범
+설계는 [`docs/design/verification-v2.md`](./docs/design/verification-v2.md),
+report·budget·reviewer 규칙은
 [`specter-agent-protocols`](./.claude/skills/specter-agent-protocols/SKILL.md)에
-있습니다. 전역 Feature Map gate는 항상 full-strength이며 tier 적용 대상이
-아닙니다.
+있습니다. 전역 Feature Map gate는 항상 full-strength입니다.
 
 ---
 
@@ -281,7 +282,7 @@ pre-commit과 CI(ruff·mypy·pytest·bandit)가 백스톱으로 잡습니다. �
 
 | 명령어 | 역할 |
 | --- | --- |
-| `/ms.init` | Spec-Kit 설치 + SPECTER 오버레이·훅·백스톱·audit-tier 정책/classifier·Graphify 코드 그래프 주입 |
+| `/ms.init` | Spec-Kit 설치 + SPECTER 오버레이·훅·백스톱·verification-v2 config·Graphify 코드 그래프 주입 |
 | `/ms.prd` | PRD 공동 작성 인터뷰 (사이클 밖) |
 | `/ms.pre-specter` | Pre-Feature 사이클(featuremap→constitution) 묶음 실행 |
 | `/ms.featuremap` | PRD를 Feature DAG로 분해, Feature별 프롬프트 작성 |
@@ -300,9 +301,9 @@ pre-commit과 CI(ruff·mypy·pytest·bandit)가 백스톱으로 잡습니다. �
 | `/ms.up-docs` | Living docs 동기화 |
 | `/ms.sync` | 워크플로우 파일을 등록된 프로젝트 레포들에 브로드캐스트 (3-way 충돌 보호) |
 
-Tier가 적용되는 검증 커맨드는 reviewer effort와 scope를 검증된 receipt에서만
-읽습니다. tier override는 상승 전용 `--raise-audit-tier T2|T3`뿐이며 reviewer
-skip, effort 하향, tier 하향 플래그는 거부합니다. 나머지 커맨드별 제어는
+검증 커맨드는 위험 프로파일·round 예산·report 유효성을 gate에서 기계적으로
+읽습니다. 위험 override는 상승 전용 `--raise-risk`뿐이며 reviewer skip,
+effort 하향, profile 하향 플래그는 거부합니다. 나머지 커맨드별 제어는
 [커맨드 파일](./.claude/commands/)에 문서화되어 있습니다.
 
 ### Constitution 두 단계
@@ -476,10 +477,11 @@ SPECTER는 현재 Claude Code 전용이지만, **Codex CLI에서도 동등하게
 
 ## 검증 상태
 
-워크플로우에는 결정론적 audit-tier classifier와 receipt 불변식을 포함한 자동화
-fixture 및 gate-contract 테스트가 있습니다. 최신 3계층 station 아키텍처,
-audit-tier orchestration, Graphify 통합은 실제 consuming project의 전체
-end-to-end 실행을 통해 아직 검증 중입니다.
+워크플로우에는 verification-v2 gate의 round 예산·위험 프로파일·receipt
+불변식을 포함한 자동화 fixture 및 gate-contract 테스트가 있습니다(심은 결함
+코퍼스: `tests/specter/test_specter_gate_v2.py`). 최신 verification-v2 계약과
+Graphify 통합은 실제 consuming project의 전체 end-to-end 실행을 통해 아직
+검증 중입니다.
 
 현재 확인된 불변식과 알려진 공백은 [docs/SYSTEM_MAP.md](./docs/SYSTEM_MAP.md)를 참고하세요.
 

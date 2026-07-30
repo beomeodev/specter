@@ -96,31 +96,20 @@ explicit confirmation to continue without it.
 
 **These documents MUST guide implementation to ensure code quality and consistency.**
 
-### Step 0.5: Reclassify Immediately Before Implementation
+### Step 0.5: Validate The Analyze-Station Receipt
 
-Before selecting or changing code, recompute from all authoritative
-pre-implementation artifacts:
+Before selecting or changing code, confirm `/ms.analyze` produced a fresh
+non-FAIL receipt:
 
 ```bash
-python3 .specify/scripts/python/classify_audit_tier.py \
-  --policy .specify/policies/audit-tier-policy.json classify \
-  --feature <NNN> --phase pre-implement \
-  --feature-map docs/prd/feature-map.md \
-  --spec specs/<spec-id>/spec.md \
-  --plan specs/<spec-id>/plan.md \
-  --tasks specs/<spec-id>/tasks.md --ledger
-python3 .specify/scripts/python/classify_audit_tier.py \
-  --policy .specify/policies/audit-tier-policy.json gate-status \
-  --feature <NNN> --station analyze
-.specify/scripts/bash/specter-gate.sh aggregate analyze specs/<spec-id>
+python3 -c "import json; r=json.load(open('.specify/verification-v2/analyze-<NNN>.json')); print(r['verdict'], r['risk_profile'], r['input_digest'])"
+.specify/scripts/bash/specter-gate.sh digest analyze specs/<spec-id>
 ```
 
-Stop on a missing, stale, malformed, or incompatible receipt. This check is
-mandatory for direct invocation as well as conducted runs. It accepts no
-tier-lowering argument; a manual override can only have been recorded through
-the classifier's upward-only `--raise-tier` contract. The read-only aggregate
-must be PASS, or WARN with every receipt-required acknowledgment satisfied;
-the run ledger alone is never sufficient.
+Stop if the receipt is missing, its `verdict` is FAIL, or its `input_digest`
+no longer matches the digest command's output (spec/plan/tasks changed since
+analysis — re-run /ms.analyze). This check is mandatory for direct invocation
+as well as conducted runs. It accepts no profile-lowering argument.
 
 ### Step 1: Scope and TAG Selection
 
@@ -317,11 +306,12 @@ Implementation contract:
   input (the pre-fix code path, a seeded bad row, a throwaway offending fixture) and
   asserts it goes red. Name it so the intent survives, e.g.
   `test_<check>_can_actually_go_red`.
-- When the effective receipt is T3, execute every applicable identifier in
-  `receipt.tier_settings.targeted_checks`; do not restate or select a different
-  module list in this command. These obligations supplement,
-  and never replace, the normal test-first, executable-gate, migration,
-  destructive-data, Stop-hook, pre-commit, CI, and Done Criteria checks.
+- When the analyze receipt's `risk_profile` is high-risk, execute every
+  applicable named check in `verification-v2.json` `high_risk_checks`; do not
+  restate or select a different check list in this command. These obligations
+  supplement, and never replace, the normal test-first, executable-gate,
+  migration, destructive-data, Stop-hook, pre-commit, CI, and Done Criteria
+  checks.
 - Insert TAG anchors yourself in Step 3; do not rely on an automatic skill invocation.
 - Keep the implementation within the selected phase/task/TAG boundary unless a blocker requires user-visible scope adjustment.
 - **Deviations log**: no plan survives contact with the territory intact. When an edge case in

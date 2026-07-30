@@ -1,6 +1,6 @@
 ---
 description: "Pre-implementation document consistency and drift validation"
-argument-hint: "[--background] [--raise-audit-tier T2|T3]"
+argument-hint: "[--background] [--raise-risk]"
 ---
 
 # /ms.analyze - Document Consistency Gate
@@ -24,14 +24,16 @@ lint, typecheck, coverage, or code-level TAG scans from this command.
 ```bash
 /ms.analyze
 /ms.analyze --background
-/ms.analyze --raise-audit-tier T3
+/ms.analyze --raise-risk
 ```
 
 Codex runs in the foreground by default. Use `--background` only when the
 document set is large and the user explicitly wants to resume later.
 
-Reviewer effort, scope, re-round cap, and WARN handling are read from the
-canonical audit-tier receipt. Models do not choose those settings.
+Reviewer effort is fixed (`codex: xhigh`, `antigravity: medium`). The risk
+profile, round budget, and report validity come from `specter-gate.sh`
+mechanically (verification-v2). Models do not choose those settings; the only
+risk flag is the upward-only `--raise-risk`.
 
 ## Purpose
 
@@ -78,28 +80,22 @@ Read these files in full:
 If any of `spec.md`, `plan.md`, or `tasks.md` is missing, stop and tell the user
 which upstream command must run first.
 
-### Step 0.5: Reclassify And Bind Audit Intensity
-
-Recompute immediately from the complete pre-implementation artifact set:
+### Step 0.5: Self-Heal The Gate And Bind The Inputs
 
 ```bash
-python3 .specify/scripts/python/classify_audit_tier.py \
-  --policy .specify/policies/audit-tier-policy.json classify \
-  --feature <NNN> --phase pre-implement \
-  --feature-map docs/prd/feature-map.md \
-  --spec specs/[spec-id]/spec.md \
-  --plan specs/[spec-id]/plan.md \
-  --tasks specs/[spec-id]/tasks.md --ledger
-python3 .specify/scripts/python/classify_audit_tier.py \
-  --policy .specify/policies/audit-tier-policy.json gate-status \
-  --feature <NNN> --station analyze
+# self-heal: the runtime copies are project-local (never synced)
+install -D -m 0755 docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
+install -D -m 0644 docs/templates/verification-v2.json .specify/policies/verification-v2.json
+.specify/scripts/bash/specter-gate.sh version | grep -q '"contract": "verification-v2"' \
+  || { echo "partial sync — run /ms.sync (or /ms.init) first"; }
+DIGEST=$(.specify/scripts/bash/specter-gate.sh digest analyze specs/[spec-id] | python3 -c "import json,sys; print(json.load(sys.stdin)['input_digest'])")
 ```
 
-If `--raise-audit-tier` was explicitly supplied, pass it only as the
-classifier's upward-only `--raise-tier T2|T3` option. Reject every model,
-effort, reviewer-skip, scope-lowering, or tier-lowering flag. Stop on a stale,
-malformed, missing, or capability-mismatched receipt. Use its exact
-`tier_settings` below.
+The digest binds both reports to the exact spec/plan/tasks revisions under
+review. The risk profile is computed inside the aggregation from the Feature's
+declared `### Verification signals` table — there is no separate
+classification step. Reject every model, effort, reviewer-skip, or
+scope-lowering flag; the only risk flag is the upward-only `--raise-risk`.
 
 ### Step 1: Run Spec-Kit Foundation
 
@@ -151,81 +147,66 @@ Then run these additional checks:
 
 ### Step 3: Dual-Agent Document Consistency Review
 
-Invoke both Codex and Antigravity for independent semantic reviews. T1 does not
-reduce reviewer count.
+Invoke both Codex and Antigravity for independent semantic reviews. The risk
+profile never reduces reviewer count.
 
-Before dispatching, compute the tasks hash and substitute it (with the Feature
-number) into both prompts — the aggregation rejects a report bound to a stale
-`tasks.md` revision — and generate the declared-coverage inventory
-(continuity-v1, `specter-agent-protocols` §6). Self-heal the gate first and
-confirm the continuity capability; if the grep fails, stop and tell the user
-to run `/ms.sync`:
+Report paths are round-numbered (`analyze.codex.r<R>.md` /
+`analyze.antigravity.r<R>.md`) — a new round is a new file, never an
+overwrite. Substitute Step 0.5's `{DIGEST}` and the Feature number into both
+prompts; the aggregation rejects a report whose digest no longer matches.
 
-```bash
-install -D -m 0755 docs/templates/scripts/specter-gate.sh .specify/scripts/bash/specter-gate.sh
-.specify/scripts/bash/specter-gate.sh version | grep -q '"continuity_contract": "continuity-v1"'
-TASKS_SHA=$(sha256sum specs/[spec-id]/tasks.md | awk '{print $1}')
-mkdir -p .specify/continuity
-.specify/scripts/bash/specter-gate.sh manifest analyze specs/[spec-id] > .specify/continuity/analyze-NNN.manifest.json
-```
-
-**On a §4 re-round (round R ≥ 2)**, additionally build the mechanical
-continuity packet and pass its PATH into both prompts (the host never authors
-or pastes packet content):
-
-```bash
-.specify/scripts/bash/specter-gate.sh continuity analyze specs/[spec-id] --round <R>
-# packet: .specify/continuity/analyze-NNN.packet.md
-```
-
-Append to both prompts: `Re-round continuity: read
-.specify/continuity/analyze-NNN.packet.md FIRST. It contains prior blocking
-findings and Required Fixes only — it is NOT a PASS whitelist and does not
-suppress discovery outside those findings. If this reviewer lane previously
-prescribed the state you now reject, retain the predecessor ID, classify the
-finding REVERSAL, quote the prior Required Fix verbatim, and identify the
-failed premise.`
+**On a §4 re-round (R = 2)**, pass both prior-round report paths into both
+prompts and append: `Re-round continuity: read the prior round's reports
+first — specs/[spec-id]/analyze.codex.r1.md and
+specs/[spec-id]/analyze.antigravity.r1.md. They are NOT a PASS whitelist and
+do not suppress discovery. Re-check every prior blocking finding by ID and
+mark each resolved or persists in your Findings State column. A grade may
+improve only against changed, cited evidence. If your own lane previously
+prescribed the state you now reject, say so explicitly, cite the prior finding
+ID, and recommend escalation.`
 
 #### 0. External Agent Preflight (session-level, once)
 
 Apply the Preflight and Degrade Rule from
 `.claude/skills/specter-agent-protocols/SKILL.md` (§1–2). For this command: a **dual-agent
 station** — if one agent is unavailable after preflight + one retry, run it single-agent and
-write the §2 degrade placeholder (a VALID report — `**Mode**: agent-document-consistency`,
-`**Feature**:`, `**Tasks SHA256**:`, `**Result**: WARN`, `**Availability**: UNAVAILABLE
-(<reason>)`) at the missing agent's report path (`specs/[spec-id]/analyze.codex.md` /
-`analyze.antigravity.md`); the Layer-3 aggregation then caps the station at `WARN`
+write the §2 degrade placeholder (a VALID v2 report — `**Contract**: verification-v2`,
+`**Mode**: agent-document-consistency`, `**Scope**: Feature NNN`, `**Input Digest**:
+{DIGEST}`, `**Result**: WARN`, `**Availability**: UNAVAILABLE (<reason>)`) at the missing
+agent's round-numbered report path (`specs/[spec-id]/analyze.codex.r<R>.md` /
+`analyze.antigravity.r<R>.md`); the Layer-3 aggregation then caps the station at `WARN`
 mechanically. Never present a single-agent run as dual; never block `/ms.analyze` on an
-environment issue alone except when both reviewers are unavailable, which
-stops the station. A T3 single-agent environmental degrade requires explicit
-human acknowledgment after aggregation.
+environment issue alone except when both reviewers are unavailable, which stops the
+station. A high-risk degrade requires `ack-degrade` only when the missing reviewer was
+needed for a triggered check (protocols §8).
 
-#### A. Codex Review
+#### A/B. Codex & Antigravity Review (same prompt body, different agent)
+
 ```text
-/codex:rescue --fresh --model gpt-5.6-luna --effort <receipt.tier_settings.reviewer_effort.codex> <prompt>
+/codex:rescue --fresh --model gpt-5.6-luna --effort xhigh <prompt>
+/antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <prompt>
 ```
-Codex must read:
+
+Both agents read:
 - `.specify/memory/constitution.md`
 - `AGENTS.md` if it exists
 - `docs/prd/feature-map.md`
 - `docs/prd/feature-map.checklist.md`
 - `docs/prd/checklists/feature-NNN.checklist.md`
-- `docs/prd/checklists/feature-NNN.codex-verify.md`
-- `docs/prd/checklists/feature-NNN.antigravity-verify.md`
 - `specs/[spec-id]/spec.md`
 - `specs/[spec-id]/plan.md`
 - `specs/[spec-id]/tasks.md`
 
-Codex must write:
-`specs/[spec-id]/analyze.codex.md`
+Codex writes `specs/[spec-id]/analyze.codex.r<R>.md`; Antigravity writes
+`specs/[spec-id]/analyze.antigravity.r<R>.md`. Substitute `{AGENT}`,
+`{REPORT}`, `{DIGEST}`, `{NNN}`, `{R}`:
 
-Codex prompt:
 ```text
 You are performing an advisory SPECTER document consistency review.
 
 Check spec.md, plan.md, and tasks.md against the Feature Map evidence,
 Constitution, and prior checklist gates. Do not edit files except writing
-specs/[spec-id]/analyze.codex.md.
+{REPORT}.
 
 Focus on:
 - spec FRs missing from tasks
@@ -236,156 +217,44 @@ Focus on:
 - migration number, file path, or contract drift
 - Feature Map commitments that no longer survive into spec/plan/tasks
 - provenance survival (.claude/skills/specter-agent-protocols/SKILL.md §10):
-  the Feature's owned Implementation Obligations (D-IDs) still discharged in
-  spec/plan/tasks; clarify interpretation records still citing their C-/D-ID;
-  and any spec/plan/tasks behavior with no C-ID, Amendment, D-ID, or recorded
+  clarify interpretation records still citing their C-/D-ID, and any
+  spec/plan/tasks behavior with no C-ID, Amendment, or recorded
   interpretation behind it (untagged addition — flag it, whatever document it
   first appeared in)
-- inconsistencies between Audit signals and the now-concrete spec, plan, or tasks
-- the receipt-bound review scope: <receipt.tier_settings.review_scope>
-- every applicable identifier in
-  `<receipt.tier_settings.targeted_checks>`; reviewers do not add or remove
-  policy modules
+- Verification-signal values (### Verification signals) that the now-concrete
+  spec, plan, or tasks contradict — a declared "no" the documents contradict
+  is a blocking finding
+- when a rule is violated, list every violator of that rule you can find,
+  never just the first instance
 
-Continuity & coverage contract (continuity-v1):
-- Declared coverage closure: read
-  .specify/continuity/analyze-NNN.manifest.json (the gate-generated expected
-  inventory — spec FR ids plus this Feature's owned map C-IDs and obligation
-  D-IDs). Your report MUST contain a ## Coverage section with exactly one
-  | Key | Result | Evidence | row per inventory key (PASS | FAIL |
-  UNVERIFIED; evidence non-empty, file:line where possible). The aggregation
-  rejects any coverage set not exactly equal to the inventory.
-- Report violations by RULE CLASS: when a rule is violated, list every
-  violator of that rule you can find, never just the first instance.
-- Findings lineage: use the 8-column Findings table below. Every finding has a
-  stable unique ID. On the first round use Predecessor `none`, Status `NEW`,
-  and Class NEW_EVIDENCE or PREVIOUSLY_UNAUDITED. On re-rounds carry prior
-  blocking findings forward by ID with Status
-  (PERSISTING | RESOLVED | REOPENED | NEW) and classify every new blocking
-  finding (NEW_EVIDENCE | PREVIOUSLY_UNAUDITED | REGRESSION_FROM_DIFF |
-  REVERSAL | COVERAGE_BREACH).
-- Every blocking finding's Required Fix follows the remedy contract
-  (specter-agent-protocols §5): the restored invariant, the minimum compliant
-  outcome, what must NOT be added or changed, exact replacement text only when
-  doctrine determines one answer, alternatives or escalation otherwise, and a
-  §10 self-check.
+{When high-risk add: High-risk profile — additionally run these named checks
+and report each as one row in a "## High-risk checks" table (one row per
+triggered signal): <applicable high_risk_checks from verification-v2.json>.}
+
+{On round R >= 2 add the re-round continuity block from Step 3's preamble.}
 
 Write:
 
-# Codex Analyze Review
+# {AGENT} Analyze Review — Feature {NNN} — Round {R}
 
+**Contract**: verification-v2
 **Mode**: agent-document-consistency
-**Feature**: Feature {NNN}
-**Tasks SHA256**: {TASKS_SHA}
-**Protocol**: continuity-v1
+**Scope**: Feature {NNN}
+**Input Digest**: {DIGEST}
 **Result**: PASS | WARN | FAIL
 
-## Coverage
-
-| Key | Result | Evidence |
-| --- | --- | --- |
+## Scope and evidence
+**Checked**: <named check classes, with file:line citations>
+**Not checked**: <explicit exclusions with reasons, or the evidence basis for claiming none>
 
 ## Findings
 
-| ID | Predecessor | Status | Class | Severity | Finding | Evidence | Required Fix |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+| ID | Severity | State | Finding | Evidence | Required Fix |
+| --- | --- | --- | --- | --- | --- |
 
-## Verdict
-
-One concise paragraph.
-
-Also echo the finished report between ===REPORT BEGIN=== and ===REPORT END=== markers in your
-final message, verbatim, so it can be salvaged if the file write fails.
-```
-
-#### B. Antigravity Review
-```text
-/antigravity:rescue --fresh --model gemini-3.5-flash --effort <receipt.tier_settings.reviewer_effort.antigravity> <prompt>
-```
-Antigravity must read:
-- `.specify/memory/constitution.md`
-- `AGENTS.md` if it exists
-- `docs/prd/feature-map.md`
-- `docs/prd/feature-map.checklist.md`
-- `docs/prd/checklists/feature-NNN.checklist.md`
-- `docs/prd/checklists/feature-NNN.antigravity-verify.md`
-- `specs/[spec-id]/spec.md`
-- `specs/[spec-id]/plan.md`
-- `specs/[spec-id]/tasks.md`
-
-Antigravity must write:
-`specs/[spec-id]/analyze.antigravity.md`
-
-Antigravity prompt:
-```text
-You are performing an advisory SPECTER document consistency review using Google Antigravity.
-
-Check spec.md, plan.md, and tasks.md against the Feature Map evidence,
-Constitution, and prior checklist gates. Do not edit files except writing
-specs/[spec-id]/analyze.antigravity.md.
-
-Focus on:
-- spec FRs missing from tasks
-- tasks with no spec, plan, setup, or verification source
-- plan components, migrations, APIs, or test strategies missing from tasks
-- contradictions between spec, plan, and tasks
-- stale or incomplete Amendment handling
-- migration number, file path, or contract drift
-- Feature Map commitments that no longer survive into spec/plan/tasks
-- provenance survival (.claude/skills/specter-agent-protocols/SKILL.md §10):
-  the Feature's owned Implementation Obligations (D-IDs) still discharged in
-  spec/plan/tasks; clarify interpretation records still citing their C-/D-ID;
-  and any spec/plan/tasks behavior with no C-ID, Amendment, D-ID, or recorded
-  interpretation behind it (untagged addition — flag it, whatever document it
-  first appeared in)
-- inconsistencies between Audit signals and the now-concrete spec, plan, or tasks
-- the receipt-bound review scope: <receipt.tier_settings.review_scope>
-- every applicable identifier in
-  `<receipt.tier_settings.targeted_checks>`; reviewers do not add or remove
-  policy modules
-
-Continuity & coverage contract (continuity-v1):
-- Declared coverage closure: read
-  .specify/continuity/analyze-NNN.manifest.json (the gate-generated expected
-  inventory — spec FR ids plus this Feature's owned map C-IDs and obligation
-  D-IDs). Your report MUST contain a ## Coverage section with exactly one
-  | Key | Result | Evidence | row per inventory key (PASS | FAIL |
-  UNVERIFIED; evidence non-empty, file:line where possible). The aggregation
-  rejects any coverage set not exactly equal to the inventory.
-- Report violations by RULE CLASS: when a rule is violated, list every
-  violator of that rule you can find, never just the first instance.
-- Findings lineage: use the 8-column Findings table below. Every finding has a
-  stable unique ID. On the first round use Predecessor `none`, Status `NEW`,
-  and Class NEW_EVIDENCE or PREVIOUSLY_UNAUDITED. On re-rounds carry prior
-  blocking findings forward by ID with Status
-  (PERSISTING | RESOLVED | REOPENED | NEW) and classify every new blocking
-  finding (NEW_EVIDENCE | PREVIOUSLY_UNAUDITED | REGRESSION_FROM_DIFF |
-  REVERSAL | COVERAGE_BREACH).
-- Every blocking finding's Required Fix follows the remedy contract
-  (specter-agent-protocols §5): the restored invariant, the minimum compliant
-  outcome, what must NOT be added or changed, exact replacement text only when
-  doctrine determines one answer, alternatives or escalation otherwise, and a
-  §10 self-check.
-
-Write:
-
-# Antigravity Analyze Review
-
-**Mode**: agent-document-consistency
-**Feature**: Feature {NNN}
-**Tasks SHA256**: {TASKS_SHA}
-**Protocol**: continuity-v1
-**Result**: PASS | WARN | FAIL
-
-## Coverage
-
-| Key | Result | Evidence |
-| --- | --- | --- |
-
-## Findings
-
-| ID | Predecessor | Status | Class | Severity | Finding | Evidence | Required Fix |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+(IDs stable within your lane, e.g. CX-A-001 / AG-A-001. State: new | persists |
+resolved. Required Fix = restored invariant + minimum repair + no new scope;
+escalate instead of choosing when several product interpretations remain valid.)
 
 ## Verdict
 
@@ -399,16 +268,15 @@ If the user supplied `--background`, add `--background` to both invocations. Do
 **not** offload a "rerun `/ms.analyze` later" onto the user: per
 `specter-agent-protocols` §9 a detached agent never self-notifies, so launch a
 harness-tracked waiter — a `Bash(run_in_background: true)` poll loop on the two
-report paths (`analyze.codex.md` / `analyze.antigravity.md`), or `status --wait`
-— that wakes the host when both reports appear, then continue to aggregation in
-the same session.
+round-numbered report paths, or `status --wait` — that wakes the host when both
+reports appear, then continue to aggregation in the same session.
 
-**Report-Write Protocol**: apply `specter-agent-protocols` §3 — deterministic file check
-(exists, non-empty, contains `**Result**:`), retry once, salvage from the
-`===REPORT BEGIN===`/`===REPORT END===` markers. If no markers exist either, that is an
-**agent-authored failure**: leave the report missing/invalid for the aggregation to grade
-`FAIL` (§3 step 3) — the subsection-0 Degrade Rule applies only to preflight failures,
-never to an agent that ran.
+**Validate / Salvage / Format-Retry**: apply `specter-agent-protocols` §3 — for
+each report run `specter-gate.sh validate-report <path> analyze specs/[spec-id]
+--round <R>`; invalid → salvage from the `===REPORT BEGIN/END===` markers →
+still invalid → re-dispatch that one agent once, same round, with the
+validator's errors prefixed (track for `--format-retries`). Still invalid →
+agent-authored failure: leave it for the aggregation to grade `FAIL`.
 
 #### C. Layer-3 Aggregation (mechanical — replaces host result-weighing)
 
@@ -421,22 +289,15 @@ both reports' appearance; never end the turn to hand the recheck back to the
 user. Once both reports exist:
 
 ```bash
-# round 1 (full scope): coverage closure is mandatory
-.specify/scripts/bash/specter-gate.sh aggregate analyze specs/[spec-id] --ledger --round 1 --expect-protocol continuity-v1 --require-coverage
-# re-rounds (scoped): lineage is mandatory, coverage only validated if present
-.specify/scripts/bash/specter-gate.sh aggregate analyze specs/[spec-id] --ledger --round <R> --expect-protocol continuity-v1
+.specify/scripts/bash/specter-gate.sh aggregate analyze specs/[spec-id] --ledger --round <R> \
+  [--raise-risk] [--format-retries "<codex-retries> <antigravity-retries>"]
 ```
 
-`<R>` is the current §4 convergence round and must not exceed
-`receipt.tier_settings.max_automatic_rounds`. Every round uses `--fresh`.
-
-If the receipt reports `reversal: true`, do NOT start another automatic repair
-round: per §4 the next round is a fresh dual doctrine-dispute round, and
-reviewer disagreement escalates to the user. If it reports
-`coverage_breach: true`, the affected class's closure claim is void; the new
-finding itself is repaired normally, never suppressed. At the round cap, ask
-the §4 post-cap question (resolve doctrine / amend authority / accept WARN /
-stop) — never "run one more round?".
+`<R>` is the current §4 round. The gate itself refuses rounds beyond the
+automatic budget (2) without a recorded `authorize-round` decision. Every
+round uses `--fresh`. At the cap, present the §4 post-cap options verbatim
+(fix and restart / amend authority / authorize one doctrine-dispute round /
+accept WARN / stop) — never "run one more round?".
 
 - The receipt `verdict` is the agent-station outcome; the final `/ms.analyze`
   result is the **worse** of Step 2's host result and the receipt verdict.
@@ -448,20 +309,19 @@ stop) — never "run one more round?".
 
 #### D. Convergence Policy (re-round caps)
 
-Apply the receipt-bound Convergence Policy from
-`specter-agent-protocols` §4 (T1 currently at most 2 automatic rounds; T2/T3
-currently at most 3; Round 2+ scoped to failing findings only; stop when only
-`WARN`s remain). Exhausting the budget leaves an unresolved FAIL as FAIL and
-returns control to the user. Record every residual WARN.
+Apply the Round Budget from `specter-agent-protocols` §4: 2 automatic rounds,
+Round 2 scoped to failing findings only, stop when only `WARN`s remain.
+Exhausting the budget leaves an unresolved FAIL as FAIL and returns control to
+the user. Record every residual WARN.
 
 ### Step 4: Result Model
 
 Use this result model:
 
 - `PASS`: `/ms.implement` may proceed.
-- `WARN`: `/ms.implement` may proceed only after the receipt's WARN policy is
-  satisfied. T3 always requires explicit human acknowledgment; this includes a
-  one-agent environmental-degrade cap.
+- `WARN`: recorded in the receipt and ledger; `/ms.implement` may proceed —
+  the only analyze-station human stop is an `ack-degrade` when the missing
+  reviewer was needed for a triggered high-risk check (protocols §8).
 - `FAIL`: `/ms.implement` must not proceed.
 
 **FAIL conditions:**
@@ -475,18 +335,15 @@ Use this result model:
 - Layer-3 aggregate verdict `FAIL` — an agent `FAIL` is final unless a §4
   re-round with changed evidence revises it; the host cannot explain it away.
 
-When the aggregate reports `warn_ack_required: true`, stop and show its
-reasons/cap. Only after explicit user acknowledgment run:
+When the receipt is WARN with `cap: single-agent-degrade` and the missing
+reviewer was needed for a triggered high-risk check, stop and request the
+typed decision before advancing:
 
 ```bash
-python3 .specify/scripts/python/classify_audit_tier.py \
-  --policy .specify/policies/audit-tier-policy.json acknowledge-warn \
-  --feature <NNN> --station analyze --actor human
-.specify/scripts/bash/specter-gate.sh aggregate analyze specs/[spec-id]
+.specify/scripts/bash/specter-gate.sh decide ack-degrade analyze <NNN> --reason "<user's words>"
 ```
 
-Advance only when `warn_ack_satisfied` is true. The conductor's act of
-recording a warning is not a substitute for T3 human acknowledgment.
+Reviewers, agents, and the host cannot decide for the human.
 
 ### Step 5: Report
 
@@ -495,11 +352,11 @@ Display a Korean summary:
 ```json
 {
   "document_consistency": "PASS|WARN|FAIL",
-  "audit_tier": "T1|T2|T3",
+  "risk_profile": "ordinary|high-risk",
   "codex_analysis": "PASS|WARN|FAIL|PENDING",
-  "codex_report": "specs/{id}/analyze.codex.md",
+  "codex_report": "specs/{id}/analyze.codex.r<R>.md",
   "antigravity_analysis": "PASS|WARN|FAIL|PENDING",
-  "antigravity_report": "specs/{id}/analyze.antigravity.md",
+  "antigravity_report": "specs/{id}/analyze.antigravity.r<R>.md",
   "feature_lineage": "PASS|WARN|FAIL",
   "fr_task_coverage": "100%",
   "orphan_tasks": 0,
