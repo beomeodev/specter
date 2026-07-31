@@ -90,7 +90,15 @@ SPECTER does not treat every artifact as a competing source of truth. Each artif
 | Tests and runtime evidence | Observed implementation behavior |
 | `implementation-notes.md` | In-scope deviations discovered during implementation |
 
-A downstream artifact may refine an upstream artifact within its assigned authority, but it must not silently redefine product intent. Requirement changes return through `/ms.expand`.
+A downstream artifact may add domain-appropriate detail without literal
+upstream wording. Such `refinement` and repository-backed
+`reality-correction` may be evidence-resolved. A new actor/journey, integration,
+retained-data category, permission boundary, paid capability, or explicit
+exclusion/cost/policy conflict is a `boundary-change`/`conflict`. At
+`/ms.clarify` it is presented to the user with a proposed upstream patch;
+outside that sole human boundary it fails rather than expanding scope
+silently. Input hashes prove what was reviewed; they do not grant product authority
+or lock an abstract document.
 
 ### GEARS and Acceptance Scenarios
 
@@ -108,32 +116,19 @@ SPECTER does not force GEARS onto schemas, scope declarations, preservation cons
 
 GEARS compliance is currently enforced through templates, workflow rules, structural checks, and semantic reviewers. It is not presented as a complete formal-language parser.
 
-### Verification Risk Profiles (verification-v2)
+### Lean, State-Free Verification
 
-SPECTER deterministically varies audit intensity by Feature risk without
-skipping the harness:
+Semantic stations use two fresh independent reviewers. Each writes a fixed-path
+report bound to the current input SHA256; `specter-gate.sh reduce` validates
+exactly one PASS/WARN/FAIL per report and returns worst-of. One unavailable
+reviewer caps a non-FAIL result at WARN, both unavailable is FAIL, and a station
+reruns once only after inputs change.
 
-| Profile | Gate-controlled intensity |
-| --- | --- |
-| ordinary | Standard scope, fixed reviewer effort, 2 automatic fresh rounds. The default. |
-| high-risk | Adds the named checks (trust boundaries, data integrity, rollback, real entrypoint/E2E, …), adjacent-seam scope at review, and the typed named-class human acknowledgments (migration / destructive / irreversible / gate-policy). Same reviewers, effort, and round budget. |
-
-Both profiles retain L1 structural checks, two independent fresh reviewers,
-station-fixed L3 worst-result aggregation, input-digest freshness, executable
-gates, Done Criteria Execution, hooks, CI, TAG wiring, and migration analysis.
-Feature Map authors record the evidence-bound closed 8-signal
-`### Verification signals` table; they never assign a profile. The gate
-computes the profile inside each station's aggregation — declared signals at
-verify/analyze, plus deterministic changed-file facts at review. Never from
-prose scanning, never with a cross-phase floor. A legacy Feature without a
-signals table runs high-risk until it gains one; malformed config fails safe.
-
-The executable source of truth is
-[`verification-v2.json`](./docs/templates/verification-v2.json); the normative
-design is [`docs/design/verification-v2.md`](./docs/design/verification-v2.md);
-report, budget, and reviewer rules live in
-[`specter-agent-protocols`](./.claude/skills/specter-agent-protocols/SKILL.md).
-The global Feature Map gate is always full strength.
+There are no risk profiles, signal tables, receipts, round state, or
+acknowledgment gates. Final review always applies the relevant executable safety
+checks for migrations, destructive operations, authorization, secrets, public
+contracts, and gate/hook changes. See
+[`refinement-first.md`](./docs/design/refinement-first.md).
 
 ---
 
@@ -145,7 +140,7 @@ The global Feature Map gate is always full strength.
 /ms.specter 001
 ```
 
-`/ms.pre-specter` prepares and verifies the product-wide Feature Map. `/ms.specter 001` runs Feature 001 from readiness checks through code review. `/ms.clarify` pauses the cycle when product intent requires a human decision.
+`/ms.pre-specter` prepares and verifies the product-wide Feature Map. `/ms.specter 001` runs Feature 001 from readiness checks through code review. `/ms.clarify` is the cycle's sole mandatory human stop: it resolves evidence-determined items first, then hands control to the user for review and any remaining product-intent choices.
 
 For debugging or manual control, each underlying `/ms.*` step can also be run individually.
 
@@ -189,7 +184,7 @@ For debugging or manual control, each underlying `/ms.*` step can also be run in
 ════════════════════════════════════════════════════════════════════
      2. /ms.featuremap       Decompose PRD into Feature DAG
      3. /ms.featuremap-checklist  PRD-only baseline checklist (isolated subagent)
-     4. /ms.pre-verify           L1 structural + Codex & Antigravity dual audit → Global Gate
+     4. /ms.pre-verify           Current-hash Codex & Antigravity audit → Global Gate
      5. /ms.constitution     Finalize project standards (Constitution §IX)
                             │
                             ▼   Repeat for each Feature in DAG order
@@ -197,25 +192,29 @@ For debugging or manual control, each underlying `/ms.*` step can also be run in
  🛰️  Per-Feature Cycle    ·  N times  ·  Bulk run: /ms.specter
 ════════════════════════════════════════════════════════════════════
   ┌─▶  6. /ms.checklist      Verify current Feature (PRD alignment)
-  │    7. /ms.verify         Tier-bound Codex + Antigravity verification
+  │    7. /ms.verify         Current-hash Codex + Antigravity verification
   │    8. /ms.specify        Write specification (Input Feature section)
-  │    9. /ms.clarify        🔴 Always requires human input
+  │    9. /ms.clarify        🔴 Mandatory human handoff (evidence-first Q&A)
   │   10. /ms.plan           Implementation plan + Reality check
   │   11. /ms.tasks          Generate TAG-based tasks
   │   12. /ms.analyze        Match spec ↔ plan ↔ tasks consistency
   │   13. /ms.implement      TDD implementation + TAG injection
-  │   14. /ms.review         🟠 Conditional human acknowledgment for migrations + execution gates
+  │   14. /ms.review         Automatic high-risk evidence + execution gates
   └──── Repeat from step 6 if features remain
                             │   All Features completed
                             ▼
 ────────────────────────────────────────────────────────────────────
  🚀  Publish / Release
 ────────────────────────────────────────────────────────────────────
-    15. /ms.fin              🟠 Conditional acknowledgment for high-stakes diffs → commit · push · PR
+    15. /ms.fin              Automatic high-stakes evidence → commit · push · PR
     16. /ms.merglease        Merge PR → tag → GitHub Release
 ```
 
-`/ms.clarify` is the only unconditional human stop in the normal per-Feature cycle. Additional human acknowledgment is required only for explicitly high-risk or irreversible operations, such as schema/data migrations, high-stakes publish diffs, destructive changes, or unresolved release risks.
+The normal per-Feature cycle has exactly one mandatory human stop:
+`/ms.clarify`. It always hands control to the user, but evidence-backed answers
+are resolved before questions are asked. Migration, destructive, irreversible,
+reviewer-availability, round-limit, and gate-policy decisions remain executable
+evidence gates and add no acknowledgment stop.
 
 **Using bare calls is recommended.** PRDs and the Feature Map are automatically discovered in their conventional paths (`docs/prd/*.md`, `docs/prd/feature-map.md`). Avoid attaching the entire PRD with `@` in conductor commands, as it re-injects the file into the context every time the conductor restarts (which can bloat token usage — e.g., 1.05M tokens in one project). Only use `@` for files outside conventional paths.
 
@@ -234,26 +233,21 @@ Tracks determined by the nature of changes outside the main cycle.
 
 ## Gates
 
-Each step is validated by output artifacts and deterministic checkers, not just prompt instructions.
+Authoring stays with the host; semantic grading stays with two fresh independent
+reviewers. The mechanical gate checks current hashes, fixed report paths, exact
+verdict fields, and worst-of without persisting workflow state.
 
-There are three kinds of gate station:
-
-| Station type | Role | Examples |
+| Gate | When | Verification |
 | --- | --- | --- |
-| Authoring station | An isolated agent writes an artifact; its self-verdict is non-authoritative. | Feature Map, checklist |
-| Verification station | L1 structural checks → L2 independent semantic audits → L3 mechanical aggregation. | pre-verify, verify, analyze, review |
-| Executable backstop | Enforces actual repository state without model judgment. | hooks, pre-commit, CI, tests/build |
+| Global Feature Map (`/ms.pre-verify`) | Pre-Feature | Full PRD coverage, ownership, DAG, exclusions, end-to-end journey |
+| Per-Feature (`/ms.checklist` + `/ms.verify`) | Feature start | Scope, dependencies, Done criteria, unsupported boundary additions |
+| Documents (`/ms.analyze`) | Before implementation | spec ↔ plan ↔ tasks against repository reality |
+| Code (`/ms.review`) | After implementation | lint/type/test/build once, real-entrypoint Done Criteria, applicable E2E and safety checks |
 
-Every verification station follows a **three-layer contract** (2026-07-19, `specter-agent-protocols` §7): Layer 1 runs deterministic structural checks (`specter-gate.sh structural`); Layer 2 runs Codex + Antigravity as independent fresh-context auditors who each write their own verdict; Layer 3 computes the station verdict mechanically (`specter-gate.sh aggregate` — station-fixed inputs, SHA-freshness validation, mechanical run-ledger emission). The host may author or assemble artifacts, but it never grades an aggregated verification station. The authoritative outcome is the Layer-3 receipt. Generative artifacts from authoring stations are written by isolated fresh subagents so the author's session memory cannot leak into the audit.
-
-| Gate | When | Verification Details |
-| --- | --- | --- |
-| Global Feature Map (`/ms.pre-verify`) | Pre-Feature, Once | Structural L1 + independent Codex & Antigravity global audits (each writes its own SHA-bound verdict) + mechanical aggregation. The PRD-only baseline checklist (featuremap-checklist-author subagent) stays the independent comparison input; vendor diversity lives in the L2 dual audit. |
-| Per-Feature (`/ms.checklist` + `/ms.verify`) | Every Feature start | Checks current Feature's commitment coverage, intrusion into other features, user-facing exposure, and unresolved placeholders. |
-| Doc Consistency (`/ms.analyze`) | Just before implementation | Validates spec ↔ plan ↔ tasks drift, orphan tasks, and Constitution compliance. |
-| Code (`/ms.review`) | Right after implementation | Runs lint/type/test/build + TAG integrity + Done Criteria Execution. Validates runnable criteria (e.g., verifying web UIs using Playwright rendering). |
-
-Below the prompt-based gates lies a mechanical enforcement layer: direct `/speckit-specify` calls bypassing `/ms.specify` are rejected by a PreToolUse hook, and during `/ms.implement`/`/ms.review` a Stop hook blocks turn-end when code changed without fresh gate-execution evidence (max 3 consecutive blocks; fresh evidence with any verdict — even FAIL — allows the turn, because the gate forces gates to run, not to succeed). Feature Map and TAG chain integrity are enforced via pre-commit and CI (ruff, mypy, pytest, bandit) as backstops. If one reviewer fails due to an environmental issue, the fixed two-report station records an explicit `WARN` placeholder and continues with the remaining independent reviewer; T3 requires human acknowledgment. With zero independent reviewers, the station stops.
+Direct `/speckit-specify` bypass is denied by a PreToolUse hook. A bounded Stop
+hook requires fresh executable evidence after code changes and accepts honest
+FAIL evidence. Pre-commit and CI retain Feature Map hash and TAG-chain
+backstops. `/ms.clarify` is the cycle's only mandatory human stop.
 
 ---
 
@@ -261,30 +255,24 @@ Below the prompt-based gates lies a mechanical enforcement layer: direct `/speck
 
 | Command | Role |
 | --- | --- |
-| `/ms.init` | Install Spec-Kit + Inject SPECTER overlays, hooks, backstops, the verification-v2 config, and the Graphify code graph |
+| `/ms.init` | Install Spec-Kit + inject SPECTER overlays, hooks, backstops, lean gate, and Graphify |
 | `/ms.prd` | Co-author PRD via discovery interview (Out-of-cycle) |
 | `/ms.pre-specter` | Bulk run the Pre-Feature cycle (featuremap → constitution) |
 | `/ms.featuremap` | Decompose PRD into a Feature DAG and generate per-feature prompts |
-| `/ms.featuremap-checklist` | Author PRD-only baseline checklist (featuremap-checklist-author subagent) |
+| `/ms.featuremap-checklist` | Create a fresh PRD-only independent baseline checklist |
 | `/ms.pre-verify` | Match PRD + checklists from both agents + Feature Map → Global Gate |
 | `/ms.constitution` | Establish Constitution Section IX project baseline (Usually once) |
-| `/ms.specter` | Bulk run the Per-Feature cycle (checklist → review), with unconditional human input at clarify and conditional acknowledgment for high-risk operations |
+| `/ms.specter` | Bulk run the Per-Feature cycle (checklist → review) with one human stop at clarify and automatic evidence gates elsewhere |
 | `/ms.checklist` / `/ms.verify` | Verify current Feature's PRD coverage (Host + Codex/Antigravity) |
 | `/ms.specify` / `/ms.clarify` / `/ms.plan` / `/ms.tasks` | GEARS spec → Clarification → Plan → TAG tasks |
 | `/ms.analyze` | Validate document consistency + agent checks before build |
 | `/ms.implement` | TDD implementation + TAG injection (`--to-end`, `--mode tdd\|refactor`, `--task TNNN`, `--pbt` property-based tests from GEARS) |
 | `/ms.review` | Code review + adversarial agent review + execution gates |
 | `/ms.fix` / `/ms.expand` / `/ms.audit` | Alternative tracks (See table above) |
-| `/ms.fin` | Sync docs → Conditional CI → commit · push · PR |
+| `/ms.fin` | Sync docs → require current review → commit · push · PR |
 | `/ms.merglease` | Merge PR → Automate semver → tag → GitHub Release |
 | `/ms.up-docs` | Sync living docs |
 | `/ms.sync` | Broadcast workflow files to registered project repos (with 3-way conflict protection) |
-
-Verification commands take their risk profile, round budget, and report
-validity from the gate mechanically. Their only risk override is the
-upward-only `--raise-risk`; reviewer-skip, effort-lowering, and
-profile-lowering flags are rejected. Other command-specific controls are
-documented in the [command files](./.claude/commands/).
 
 ### Two Stages of Constitution
 
@@ -411,7 +399,7 @@ The step-by-step execution plan follows: Cleanup → Renderer → Driver-aware p
 - Codex CLI (authenticated) + Codex plugin for Claude Code
 - Google Antigravity CLI `agy` (authenticated) + Antigravity plugin
 
-One unavailable reviewer degrades the station to `WARN`. If no independent reviewer remains, the station stops rather than substituting a host-only verdict.
+With one unavailable reviewer, a remaining FAIL stays FAIL and any other result is capped at WARN. If no independent reviewer remains, the station fails rather than substituting a host-only verdict.
 
 ### Exploration accelerator
 
@@ -423,11 +411,11 @@ Optional: GitHub CLI (PR/release automation in `/ms.fin` and `/ms.merglease`)
 
 ## Validation Status
 
-The workflow has automated fixture and gate-contract tests, including the
-verification-v2 gate's round budget, risk-profile, and receipt invariants
-(seeded-defect corpus in `tests/specter/test_specter_gate_v2.py`). The newest
-verification-v2 contract and Graphify integration are still being validated
-through full end-to-end runs in real consuming projects.
+The workflow has automated fixture and gate-contract tests for current input
+hashing, exact verdict parsing, reviewer unavailability, worst-of reduction,
+hooks, sync, and publish/release helpers. The lean contract is covered by
+`tests/specter/test_specter_gate.py`; consuming-project end-to-end runs remain
+the final integration check.
 
 See [docs/SYSTEM_MAP.md](./docs/SYSTEM_MAP.md) for current verified invariants and known gaps.
 

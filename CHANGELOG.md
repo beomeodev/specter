@@ -5,6 +5,24 @@ All notable changes to this repository are documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **철거 후 재건축: refinement-first + lean verification (2026-07-31)**:
+  7월 19일 이후 도입된 3층 검증 state machine을 제거하고
+  `docs/design/refinement-first.md`를 정본으로 채택.
+  - PRD/Amendment=제품 의도와 명시 경계, Feature Map=수정 가능한 파생
+    ownership/DAG, spec=관찰 행동, plan=기술 설계, tasks=실행 분할,
+    code/tests=관측 현실로 권위를 분리.
+  - `/ms.clarify`만 Feature 사이클의 필수 사람 정지로 유지. 나머지는
+    PASS/WARN/FAIL로 자동 진행 또는 종료하며 acknowledgment를 요구하지 않음.
+  - `specter-gate.sh`를 상태 없는 `lean-verification-v1`로 교체:
+    현재 입력 hash, station 고정 report 2개, 정확한 verdict, worst-of만 검사.
+    reviewer 한 명 부재는 남은 FAIL을 보존하고 그 외 WARN, 둘 다 부재는 FAIL.
+  - implement는 targeted RED/GREEN, review는 full gate/Done Criteria/E2E/dual
+    review를 한 번 소유하고, fin은 코드가 그대로면 재실행하지 않으며 바뀌면
+    review로 되돌림.
+  - Verification-v2 config·설계 3종·doctrine corpus·전용 author agent 3종·v2
+    test suite 삭제. legacy receipt/round/profile/signal/D-ID state는 무시.
+  - 핵심 Feature 명령 + 공통 protocol + gate를 5,740줄에서 약 1,000줄로 축소.
+
 - **verification-v2 계약 전환 (2026-07-30)**: 7/18~7/27 게이트 변경이 소비 프로젝트
   사이클을 2.5배(109분→276분) 감속시킨 전수 감사
   (`docs/audits/2026-07-30-verification-slowdown-analysis.md`, Codex 교차 검증 포함)와
@@ -158,7 +176,7 @@ All notable changes to this repository are documented in this file.
   `Hot Paths`) 폐지 — 구조 사실은 그래프 또는 실시간 `rg`/`find`가 담당하고, 맵은 저변동성
   큐레이션 프로즈(목적·워크플로·불변식·리스크·검증 커맨드)만 유지. Graphify 분업 원칙과
   `graphify:` 메타데이터 필드 추가. `docs/SYSTEM_MAP.md`를 새 스키마로 재생성.
-
++
 ## [2.3.1] - 2026-07-06
 
 ### Added
@@ -345,3 +363,5 @@ All notable changes to this repository are documented in this file.
 
 ### Added
 - Initial stable release baseline.
+
+## [2.3.1] - 2026-07-06

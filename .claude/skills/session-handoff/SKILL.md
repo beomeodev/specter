@@ -11,9 +11,9 @@ description: Compose the minimal paste-ready resume block when a session ends wi
 
 A handoff block is the **next session's minimum executable context**. It is not an
 audit record, not a diary, and not storage. Everything durable already has a home:
-code and diffs live in git, verdicts and steps live in the run ledger
-(`.specify/specter-run.jsonl`), review findings live in `docs/review/`, lessons and
-decisions live in memory files. The block only carries what none of those can:
+code and diffs live in git, current gate facts derive from artifacts, review
+findings live in `docs/review/`, and lessons and decisions live in memory
+files. The block only carries what none of those can:
 which entry point to take, how to verify the ground is still solid, and the one
 action that resumes the work.
 
@@ -49,8 +49,8 @@ fail-open, never block session end on bookkeeping.
 
 ## Filling the four slots
 
-- **적용 교훈 (≤ 4 lines)**: references, not prose — memory file names, ledger
-  entries, report paths. A lesson worth keeping is worth a memory file; write the
+- **적용 교훈 (≤ 4 lines)**: references, not prose — memory file names and
+  report paths. A lesson worth keeping is worth a memory file; write the
   file first, then reference it here. Never teach the lesson inside the block.
 - **전제 검증 (≤ 4 items, each ≤ 200 chars)**: each item is a runnable command
   with its expected result. Status narrative converts to commands:
@@ -67,9 +67,8 @@ fail-open, never block session end on bookkeeping.
 
 ## Diet Constraints (anti-patterns — each observed in the RED baseline)
 
-- **No history narrative.** What failed and got fixed today is already in the run
-  ledger and review reports — reference, never retell. A round-1-FAIL story is
-  ledger data, not handoff content.
+- **No history narrative.** What failed and got fixed today belongs in review
+  reports or git history — reference, never retell.
 - **No inlined decision rationale.** An abandoned-approach analysis ("why X didn't
   fit") is a decision record: save it as a memory/docs file and reference it.
   Inlining it "because the code was deleted" turns the block into the archive it
@@ -105,8 +104,7 @@ fail-open, never block session end on bookkeeping.
 
 ## Overlap rule (session-status hook)
 
-The SessionStart hook already injects the last ledger step and the next planned
-Feature (dependency-unchecked — `/ms.checklist` decides real eligibility) into
-the new session. Never restate those in the block body — if the next
-session must confirm them, express that as one 전제 검증 command
-(e.g. `tail -n 1 .specify/specter-run.jsonl` → last step/verdict), nothing more.
+The SessionStart hook injects the current global gate and next planned Feature
+(dependency-unchecked — `/ms.checklist` decides real eligibility). Never
+restate those in the block body. If the next session must confirm status, use
+one current-artifact command such as `specter-gate.sh NNN`.

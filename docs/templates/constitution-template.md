@@ -23,8 +23,10 @@ If the Constitution and `AGENTS.md` conflict:
 3. Command files under `.claude/commands/` define step-specific execution
    details, but must not contradict this Constitution.
 
-Deviations from this Constitution require explicit user approval and should be
-recorded as an amendment or project-specific rule when durable.
+Inside a Feature cycle, a proposed deviation returns FAIL or, when it changes
+product intent, routes to the existing `/ms.clarify` handoff. It must not
+create another approval stop. Durable Constitution changes are made through a
+separate explicit `/ms.constitution` invocation.
 
 ---
 
@@ -75,34 +77,31 @@ scenario.
 - `/ms.fin` handles commit/push/PR workflows according to its command
   definitions and user approval requirements.
 
-### Verification Risk-Profile Governance
+### Lean Verification Governance
 
-Verification intensity is governed by the machine-readable config installed
-from `docs/templates/verification-v2.json` as read by the deterministic gate
-(`specter-gate.sh`) — the verification-v2 contract
-(`docs/design/verification-v2.md`).
+Verification stations use two independent fresh reviewers and a deterministic,
+state-free reducer bound to the current input hash. The reducer reads fixed
+report paths, validates exactly one PASS/WARN/FAIL result per report, and returns
+the worst result. One unavailable reviewer caps a non-FAIL result at WARN; both
+unavailable is FAIL. A station reruns at most once and only after inputs change.
 
-- Feature Map authors record the evidence-bound `### Verification signals`
-  table (closed 8-signal schema) and never assign a risk profile.
-- The gate computes the profile inside each station's aggregation: from
-  declared signals at verify/analyze, from declared signals plus
-  deterministic changed-file facts at review. Never from prose scanning.
-- Manual overrides may raise the profile only (`--raise-risk`).
-- Both profiles retain deterministic structure, two independent semantic
-  reviewers at dual stations, station-fixed worst-result aggregation,
-  fresh-context rounds, input-digest freshness, executable gates, Done
-  Criteria Execution, hooks, CI, TAG wiring, and migration/destructive-data
-  analysis. High-risk adds the named checks and the typed named-class human
-  decisions.
-- The automatic round budget is 2; the gate refuses further rounds without a
-  recorded `authorize-round` decision.
-- Missing/malformed config fails safe (partial-sync stop). A legacy Feature
-  without a signals table runs high-risk until it gains one.
-- The station receipt is authoritative for orchestration; the append-only run
-  ledger is audit history, not a replacement for artifact freshness checks.
+No command creates or relies on risk profiles, Verification signals, receipts,
+round state, fingerprints, typed approvals, or acknowledgment bypasses.
+`/ms.clarify` is the only mandatory human stop in the Feature cycle.
 
-No command flag, authoring agent, conductor, host, or reviewer may select a
-weaker path. The global Feature Map gate is always full strength.
+### Progressive Refinement Governance
+
+Authority is domain-specific: PRD owns product intent and explicit boundaries;
+Feature Map owns ownership and DAG; `spec.md` owns observable detail;
+`plan.md` owns technical design; `tasks.md` owns execution partition; code and
+tests own observed reality. Downstream `refinement` and
+`reality-correction` are legitimate additions. A new actor/journey,
+integration, retained-data category, permission boundary, paid capability, or
+explicit exclusion/cost/policy conflict is a `boundary-change` or `conflict`
+and fails with the proposed upstream patch at grading stations. At
+`/ms.clarify`, the sole mandatory human boundary, it is presented to the user
+for an explicit intent decision instead. Missing literal PRD wording alone is
+never a blocking finding.
 
 ---
 
@@ -184,6 +183,10 @@ forbidden in requirements: "can", "could", "might" (resolve the condition into
 ### Enforcement
 
 - `/ms.specify` and `/ms.clarify` produce or refine behavioral requirements.
+- `/ms.clarify` is the Per-Feature cycle's sole mandatory human handoff. It
+  resolves evidence-determined ambiguities first, then waits for the user to
+  review those resolutions and decide every remaining product-intent choice.
+  No other station may add an acknowledgment stop.
 - `/ms.analyze` checks document coverage, drift, contradiction, and mappability
   from requirements to plan/tasks.
 - `/ms.review` may flag implemented behavior that no longer matches active
@@ -239,297 +242,3 @@ repository.
 
 - Production code files target <=700 SLOC, excluding blank/comment-only lines.
 - Test files have no SLOC limit; case coverage is prioritized over file length.
-- Functions target <=100 LOC.
-- Cyclomatic complexity target: <=10 per function.
-- Nesting depth target: <=4.
-- Parameters target: <=5 unless a framework interface requires more.
-
-### U - Unified
-
-- Code follows existing project patterns and folder structure.
-- Types are explicit and strict typing is preferred.
-- Lint and formatting rules come from the repository's configured tooling.
-
-### S - Secured
-
-- User-controlled inputs are validated at boundaries.
-- Authorization is checked before user- or tenant-scoped data access.
-- Secrets are loaded from environment/configuration, never hardcoded.
-- Sensitive data is not logged.
-- Dependency and static security tooling should be run by `/ms.review` or CI when
-  configured.
-
-### T - Trackable
-
-- TAGS provide best-effort grep-based traceability from requirement to tests,
-  code, and docs.
-- TAG **semantic** issues (does the test actually cover the spec, stale
-  references, orphaned tags) are warnings by default, not commit-blocking gates,
-  unless Section IX or a user decision explicitly promotes them to blockers.
-- TAG **wiring** (every `@CODE` anchor resolves to same-id `@SPEC` and `@TEST`
-  anchors; `@CODE` ids unique; `FIX-*` ids exempt from `@SPEC`) is mechanical
-  and IS commit-blocking where the pre-commit backstop
-  (`scripts/specter/check_tag_chain.py`) is installed.
-
-### TRUST Gate Ownership
-
-| Area | Owner | Default Blocking Behavior |
-| --- | --- | --- |
-| Document consistency | `/ms.analyze` | Blocks `/ms.implement` on FAIL |
-| Tests/lint/type/build | `/ms.review` or CI | Blocks when executable gates fail |
-| Coverage | `/ms.review` or CI | Blocks only when tooling and threshold are active |
-| Security scan | `/ms.review` or CI | Blocks HIGH/CRITICAL findings when tooling exists |
-| TAG wiring | pre-commit backstop | Blocks the commit where installed |
-| TAG semantics | `/ms.review` report | Warning by default |
-
-Gates in this table are enforced two ways, and the distinction matters: rows
-owned by hooks/CI/pre-commit are **mechanical** (they run regardless of agent
-judgment); rows owned by `/ms.*` commands are **model-followed** (the command's
-instructions enforce them, backed by conductor stop-on-FAIL policy). Do not
-describe a model-followed gate as if a hook enforces it.
-
----
-
-## V. TAGS: Best-Effort Traceability
-
-### Purpose
-
-TAGS exist to make requirement/test/code/doc relationships easy to find with
-`rg`. They are not a substitute for tests, code review, or executable gates.
-
-### Canonical Chain
-
-Use ASCII separators in machine-readable TAG chains:
-
-```text
-@SPEC:TAG-ID -> @TEST:TAG-ID -> @CODE:TAG-ID
-```
-
-`@DOC` anchors are retired (nothing consumed them); tolerate them in legacy
-files, never require or write them.
-
-### Placement
-
-- `@SPEC:TAG-ID`: placed in `tasks.md` (phase header, written by `/ms.tasks`)
-  or `spec.md` near the relevant requirement. Only the `@SPEC` anchor may
-  appear in spec/tasks documents — `@TEST`/`@CODE` anchor forms there would
-  pre-satisfy or collide with the real file anchors.
-- `@TEST:TAG-ID`: placed once at the top of a relevant test file.
-- `@CODE:TAG-ID`: placed once at the top of a relevant implementation file.
-
-### File-Level Only
-
-- Use one file-level anchor line only.
-- Do not add line-level `@TEST` docstrings to every test function.
-- When one test file covers multiple FR groups, use one anchor line per id (or
-  one anchor plus a short `Covers:` line listing the relevant FR/TAG groups).
-
-### Multi-File Work
-
-- Each `@CODE:TAG-ID` anchor lives in exactly **one** file — the primary file
-  for that requirement slice. The pre-commit backstop rejects duplicate `@CODE`
-  ids mechanically. Secondary files restate the chain on a `@CHAIN:` line
-  (ignored by the backstop) instead of declaring a second anchor.
-- Multiple test files may share the same `@TEST:TAG-ID` when they verify the same
-  requirement or Feature slice.
-- `/ms.fix` work uses `FIX-*` ids: no `@SPEC` anchor is required or written,
-  and a purely presentational fix declares
-  `@TEST: (presentational — no test)` in place of a test anchor.
-
-### Anchor Format
-
-```typescript
-// @CODE:AUTH-001
-```
-
-```python
-# @TEST:AUTH-001
-```
-
-One comment line, no metadata. Legacy multi-line TAG blocks (`@SPEC:`/`@TEST:`
-path references, `@CHAIN`, `@STATUS`, `@CREATED`, `@UPDATED`) remain valid in
-already-tagged files — the backstop parses only anchors — but new work writes
-bare anchors and never hand-stamps dates.
-
-### Validation
-
-- Mechanical wiring (`@CODE` -> same-id `@SPEC`/`@TEST` anchors, unique `@CODE`
-  ids, the `FIX-*` exemptions above) is enforced by the pre-commit backstop
-  `scripts/specter/check_tag_chain.py` where installed — it blocks the commit.
-- Semantic issues (coverage fidelity, orphaned TAGs, stale references) are
-  reported by `/ms.review` or TAG tooling and are warnings by default.
-- A project may promote TAG semantic integrity to blocking only through an
-  explicit Section IX rule or user decision.
-
----
-
-## VI. File, Architecture, And Tooling Governance
-
-### File Size And Complexity
-
-- Production code: <=700 SLOC per file.
-- Test code: no SLOC limit.
-- Function length: <=100 LOC target.
-- Cyclomatic complexity: <=10 target.
-- Documentation, specs, command prompts, and generated reference docs have no
-  SLOC limit unless Section IX adds one.
-
-Exceeding a target requires either a planned split task, an explicit rationale, or
-a project-specific exception.
-
-### Simplicity And External Tools
-
-Prefer mature existing tools over custom implementations:
-
-- use `rg` for code search
-- use project linters for style and complexity
-- use type checkers for static typing
-- use existing test runners for verification
-- use git for history instead of custom state tracking
-
-### AST Parser Policy
-
-AST tooling is allowed when it follows one of these safety models:
-
-1. Read-only analysis.
-2. Sandboxed transformation where original files remain reviewable.
-3. Sandboxed execution with no filesystem/network escape.
-4. AST diffing for structural comparison.
-
-Do not build custom parsers when a mature parser already exists for the language
-or framework.
-
----
-
-## VII. Security Governance
-
-Security findings must be turned into verifiable behavior requirements or review
-findings, not vague TODOs.
-
-Required security posture for `/ms.*` work:
-
-- validate external input and file uploads
-- bind authorization to the authenticated principal and resource owner
-- prevent IDOR/BOLA and tenant-boundary leaks
-- avoid mass assignment by whitelisting writable fields
-- parameterize database access
-- avoid plaintext passwords and weak crypto
-- keep secrets out of source code and logs
-- run configured dependency or static security checks during `/ms.review` or CI
-
-If a security requirement is ambiguous, express it as GEARS and clarify it before
-implementation.
-
----
-
-## VIII. Documentation As Code
-
-Documentation should update when behavior, APIs, setup, architecture, or workflow
-contracts change.
-
-- Keep documentation concise and current-state oriented.
-- Document why decisions exist, not every line of what code does.
-- Use `/ms.up-docs` or manual updates for docs affected by implementation.
-- Documentation sync is fail-open by default unless Section IX makes it blocking.
-
----
-
-## IX. Project-Specific Constraints
-
-This section is empty by default.
-
-`/ms.constitution` may populate it only with durable project-wide constraints
-proven by the checked PRD Feature Map or an explicit user decision. Do not invent
-constraints to fill categories.
-
-If no durable project-specific constraints exist, keep exactly:
-
-```text
-_No project-specific constraints established yet._
-```
-
-When durable constraints exist:
-
-- cite the source PRD, product-principles section, or Feature Map section for
-  each rule
-- include only headings that contain actual rules
-- omit empty Technology, Dependency, Architecture, Security, Performance, or
-  Workflow sections
-- keep temporary Feature decisions in the Feature spec, not in this Constitution
-- promote TAG, documentation, coverage, or security findings to blocking only
-  when this section explicitly says so
-
-Suggested headings, when applicable:
-
-- Source Artifacts
-- Product-Wide Rules
-- Architecture And Integration Constraints
-- Security And Data Rules
-- Quality Gates
-- Workflow Overrides
-
----
-
-## X. Amendment Process
-
-Amend the Constitution only when the current rule set is inadequate for a durable
-project constraint.
-
-1. Identify the rule gap.
-2. Draft the amendment with rationale.
-3. Assess impact on existing specs, plans, tasks, code, and commands.
-4. Get explicit user approval.
-5. Update version metadata and Section IX if project-specific.
-
-Version semantics:
-
-- MAJOR: removes or redefines a principle.
-- MINOR: adds a new durable rule.
-- PATCH: clarifies wording without changing behavior.
-
-### Amendment History
-
-| Version | Date | Change | Rationale |
-| --- | --- | --- | --- |
-| 2.0.0 | {DATE} | Split AGENTS baseline from workflow governance | Reduce ceremony and drift |
-
----
-
-## XI. Delivery Standards
-
-A Feature is ready for user review when:
-
-- acceptance criteria are satisfied or explicitly amended
-- relevant tests or verification cases pass
-- `/ms.analyze` has no blocking document consistency failures before
-  implementation
-- `/ms.review` has run post-implementation gates where tooling exists
-- security-sensitive paths have been reviewed
-- docs are updated or intentionally deferred
-- unresolved warnings are reported honestly
-
-Do not describe a Feature as production-ready unless the relevant executable
-checks have actually passed.
-
----
-
-## XII. Priority And Conflict Resolution
-
-When rules conflict, use this priority order:
-
-| Priority | Principle | Default |
-| --- | --- | --- |
-| P0 | User safety and data integrity | Never override |
-| P1 | Security | Override only with explicit risk acceptance |
-| P2 | Agentic safety and permissions | Follow `AGENTS.md` |
-| P3 | Tests and executable verification | Do not skip silently |
-| P4 | Requirements clarity | Clarify before implementing ambiguous behavior |
-| P5 | Simplicity and maintainability | Prefer the simpler sufficient design |
-| P6 | Traceability and documentation | Best effort unless promoted |
-
-If the conflict cannot be resolved from these priorities, stop and ask the user.
-
----
-
-_This Constitution is a living workflow document. It evolves deliberately, with
-user approval, and sits on top of the always-on `AGENTS.md` baseline._

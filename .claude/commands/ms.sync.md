@@ -10,11 +10,10 @@ scripts, doc templates, `AGENTS.md`/`CLAUDE.md`) from **this SPECTER checkout** 
 every project repo registered in the machine-local registry. Run it from the
 SPECTER repo after committing workflow changes.
 
-The verification-v2 gate and its config are one versioned capability. The
-manifest must distribute both `docs/templates/scripts/specter-gate.sh` and
-`docs/templates/verification-v2.json`; receiving only one is a partial sync
-that v2 commands reject (version probe) rather than degrading to a lighter
-gate.
+The manifest distributes `specter-gate.sh` as one self-contained capability.
+After sync, targets probe `specter-gate.sh version` once and require
+`lean-verification-v1`; there is no companion policy file or partial profile
+state.
 
 > **Recommended pre-step for discipline-skill edits**: an edit to a
 > discipline-enforcing skill (gates, TDD rules, surgical-scope, parallel/worktree
@@ -104,11 +103,9 @@ conflict resurfaces every sync until resolved.
   cleanly and the baseline advances.
 - A file that should stay diverged forever → add it to that target's `exclude`
   list in the registry instead of resolving repeatedly.
-- If either verification-v2 capability file (`specter-gate.sh` /
-  `verification-v2.json`) is `CONFLICT`, excluded, or absent while the other
-  is present, report `PARTIAL-SYNC` prominently. Do not claim the target is
-  v2-capable until both land and the gate `version` probe reports
-  `"contract": "verification-v2"`.
+- If `specter-gate.sh` is conflicted, excluded, or missing, report
+  `PARTIAL-SYNC` prominently. Do not claim the target is ready until the
+  version probe reports `lean-verification-v1`.
 
 ### Step 3: Report to the user
 

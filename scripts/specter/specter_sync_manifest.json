@@ -4,6 +4,7 @@
     ".claude/commands/ms.*.md",
     ".claude/agents/*.md",
     ".claude/skills/*",
+    "docs/design/refinement-first.md",
     "docs/templates/*",
     "scripts/specter/check_feature_map_gate.py",
     "scripts/specter/check_tag_chain.py",

@@ -31,8 +31,7 @@ creation to the **Google Antigravity CLI**.
 ### Step 0: WIP-Publish Preflight (host, blocking)
 
 First, self-heal the deterministic release helper and verify its contract
-(three-layer principle applied to the release track — semver and end-state
-facts are computed by script, never re-derived by an LLM):
+(semver and end-state facts are computed by script, never re-derived by an LLM):
 
 ```bash
 # self-heal: the runtime copy is project-local (never synced); refresh it from the synced template
@@ -53,10 +52,9 @@ cat .specify/.ms-wip-publish 2>/dev/null
 ```
 
 If either file exists, this branch was published with unresolved CRITICAL/HIGH review findings
-or via `/ms.fin --no-ci` (explicit WIP publish). **STOP and show the contents; proceed only
-after the user explicitly confirms merging a WIP branch.** `/ms.merglease`'s
-invocation-approval does NOT cover this case — the WIP state is information the user may not
-have had when invoking. After end-state verification (Step 1.5) completes, delete
+or via `/ms.fin --no-ci` (explicit WIP publish). **FAIL and show the contents.**
+Acknowledgment cannot merge a WIP branch; fresh CI/review evidence must clear
+the marker first. After end-state verification (Step 1.5) completes, delete
 `.specify/.ms-wip-publish`; `review-state.txt` stays owned by `/ms.review`'s own lifecycle.
 
 ### Step 1: 🚀 Delegate Merge & Release Pipeline to Antigravity

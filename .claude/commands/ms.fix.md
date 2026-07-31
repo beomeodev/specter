@@ -23,8 +23,8 @@ Feature Map baseline already exists:
 - **New requirement, and a checked baseline already exists** — a new GEARS "shall", a new
   endpoint, a new DB schema/migration, a new external integration, added to a product that
   already has a decomposed Feature Map → **`/ms.expand`**. Append the requirement to the
-  existing PRD under a `## PRD Amendment N` heading and run `/ms.expand`; it decomposes only the
-  delta into new Features without re-auditing the whole product.
+  existing PRD under a `## PRD Amendment N` heading and run `/ms.expand`; it refreshes the
+  derived Feature Map and reruns the full global audit.
 - **New requirement, and no baseline exists yet** — the first PRD, or a change big enough to
   reshape the whole product → the full workflow starting at `/ms.pre-specter`.
 
@@ -34,13 +34,13 @@ Feature Map baseline already exists:
 
 ## Step 1: Size the change (decides ceremony, from existing rules)
 
-Estimate the files this touches (AGENTS.md §7: modifying 3+ files in one task
-needs user approval — the mini-plan below is how this track satisfies it):
+Estimate the files this touches. Invocation of `/ms.fix` authorizes the
+repository-local fix files defined by this command:
 
 - **Small (1–2 files)** → go straight to Step 2 (lightweight).
-- **Medium (3+ files)** → **mini-plan first**:
-  list (a) files to touch, (b) the change in each, (c) risks. Present it, get a
-  quick confirm, THEN Step 2. No spec/tasks doc — just the mini-plan inline.
+- **Medium (3+ files)** → write a brief mini-plan listing files, each change,
+  risks, and verification, then continue automatically. No extra confirmation
+  and no spec/tasks document.
 
 ## Step 2: TDD where testable
 
@@ -107,9 +107,11 @@ metadata block.
 ## Step 5: Gate (same gate as everything else)
 
 Run the **`local-ci`** subagent (lint → types → tests → build for affected areas;
-reports pass/fail per gate, edits nothing). Fix any failure before proceeding.
-This is the same gate contract `/ms.fin` enforces before publishing — uniformity
-is the point.
+reports pass/fail per gate, edits nothing), then fresh independent code review
+for the fix diff. Fix any failure before proceeding and write the reviewed-file
+cache through `specter-publish.sh review-cache write`. This is the non-Feature
+equivalent of `/ms.review`; `/ms.fin` only checks that this evidence remains
+current.
 
 ## Step 6: Hand off
 
@@ -118,9 +120,8 @@ the existing flow: `/ms.fin` to push + open PR, then `/ms.merglease`. Committing
 here is covered by the user's explicit `/ms.fix` invocation and the project
 permission allowlist (AGENTS.md §7); ad-hoc commits outside this flow still ask.
 
-`/ms.fix` deliberately does **not** write to `.specify/specter-run.jsonl` — the
-run ledger tracks per-Feature cycle steps, and fixes are not Features. Fix-track
-traceability lives in the TAG + the `docs/dev_daily.md` line (Step 4).
+Fix-track traceability lives in the TAG, review report, and
+`docs/dev_daily.md` line (Step 4). No workflow ledger is written.
 
 ## Relationship to other commands
 

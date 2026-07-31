@@ -106,22 +106,15 @@ Write each requirement in **GEARS** canonical form: `[Where <static>] [While <ru
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
 
-### Audit-Relevant Behavior *(mandatory when applicable)*
+### Safety-Relevant Behavior *(mandatory when applicable)*
 
-<!--
-  Record concrete behavior discovered while specifying that may affect the
-  Feature Map's Verification signals (the closed 8-signal schema:
-  authorization, secrets, data-migration, destructive-data,
-  irreversible-operation, public-contract, financial-or-regulated,
-  gate-or-policy-change).
+Record concrete behavior that requires executable final-review evidence:
+authorization, secrets, migrations, destructive operations, public contracts,
+financial/regulatory behavior, or gate/hook changes. Cite the originating
+requirement. Do not assign a profile; every applicable class receives its named
+check in `/ms.review`.
 
-  Cite the originating FR or PRD reference. Do NOT assign a risk profile
-  here; if a signal's declared value is now wrong, update the Feature Map
-  table with this evidence. The gate reads declared signals and diff facts
-  only — never this prose.
--->
-
-- **[FR/PRD reference]**: [audit-relevant behavior and affected boundary]
+- **[FR/PRD reference]**: [safety-relevant behavior and affected boundary]
 
 ## Success Criteria *(mandatory)*
 

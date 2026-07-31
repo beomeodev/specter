@@ -180,13 +180,11 @@ GATE=$(cat <<'GATE'
 > 2. `docs/prd/feature-map.checklist.md` exists, is `**Mode**: global`, records `/ms.pre-verify`, and its result is PASS or WARN.
 > 3. docs/prd/checklists/feature-NNN.checklist.md exists for the selected Feature, is
 >    `**Mode**: per-feature`, and its result is PASS or WARN.
-> 4. The verify-station receipt `.specify/verification-v2/verify-NNN.json` exists with verdict PASS or WARN and a current input digest (`specter-gate.sh NNN` reports `verify_receipt_verdict_ok` and `verify_receipt_fresh` true).
+> 4. The two fixed per-Feature verification reports exist and `specter-gate.sh reduce verify NNN` returns PASS or WARN for the current input hash.
 > 5. The global and per-Feature checklist audits' Feature Map SHA256 values match the current `docs/prd/feature-map.md`.
 > 6. `.specify/memory/constitution.md` has an established Section IX baseline from `/ms.constitution`
 >    or explicitly records that no durable project-specific constraints were found.
-> 7. The verification-v2 capability is complete (`specter-gate.sh version`
->    reports contract verification-v2 and the config is installed). A partial
->    sync is a refusal, never a lighter gate.
+> 7. `specter-gate.sh version` reports `lean-verification-v1`. A partial sync is a refusal.
 > REFUSE if: no Feature Map file exists (`docs/prd/feature-map*.md`), OR either checklist
 > is missing/failed/stale, OR Section IX is not established, OR the per-Feature checklist is for
 > a different Feature, OR the input is freeform / inline ad-hoc text / derived from an existing `spec.md`.
@@ -269,23 +267,14 @@ fidelity, boundary discipline, severity) stays with the model.
 -   This indicates a repository structure issue
 -   Exit with error
 
-#### 2.5a Install The Verification-v2 Config
-
-Install the synced config next to the gate script — the two move as one
-capability:
+#### 2.5a Probe The Lean Gate Contract
 
 ```bash
-mkdir -p .specify/policies
-cp docs/templates/verification-v2.json .specify/policies/verification-v2.json
-.specify/scripts/bash/specter-gate.sh version | grep -q '"contract": "verification-v2"'
+.specify/scripts/bash/specter-gate.sh version | grep -q '"contract":"lean-verification-v1"'
 ```
 
-If the probe fails, stop initialization with an incomplete-install error. A
-partially synced project must fail clearly; it must never fall back to a
-lighter gate.
-
-The runtime files are project-local copies. Commands self-heal both from their
-synced sources before running.
+If the probe fails, stop initialization with an incomplete-install error.
+The gate script is the whole capability; there is no companion config or state store.
 
 #### 2.6 Install The Direct-Call Bypass Hook (speckit-specify)
 
@@ -609,7 +598,7 @@ jq '.hooks.PreToolUse' .claude/settings.json 2>/dev/null
 - ✅ Spec-Kit (latest version from upstream)
 - ✅ SPECTER Constitution: .specify/memory/constitution.md
 - ✅ Deterministic gate checker: .specify/scripts/bash/specter-gate.sh
-- ✅ Verification-v2 config: .specify/policies/verification-v2.json
+- ✅ Lean gate contract: lean-verification-v1
 - ✅ Direct-call bypass hook: .specify/scripts/bash/speckit-specify-gate-hook.sh (+ .claude/settings.json PreToolUse entry)
 - ✅ SessionStart status hook: .specify/scripts/bash/specter-session-status.sh (+ .claude/settings.json SessionStart entry)
 - ✅ Graphify code graph: graphify-out/graph.json (+ post-commit/post-checkout rebuild hooks, graphify-out/ gitignored)
@@ -635,7 +624,7 @@ jq '.hooks.PreToolUse' .claude/settings.json 2>/dev/null
 
 0. (Write your PRD first, e.g. docs/prd/PRD.md)
 1. /ms.featuremap @docs/prd/PRD.md [@docs/prd/another.md] - Decompose the PRD set into a Feature Map
-2. /ms.featuremap-checklist - Author the PRD-only baseline checklist (isolated subagent)
+2. /ms.featuremap-checklist - Create the PRD-only baseline checklist with a fresh independent reviewer
 3. /ms.pre-verify - Validate Feature Map against PRDs and the baseline checklist
 4. /ms.constitution - Establish project baseline once from the checked PRD Feature Map
 5. /ms.checklist - Validate the next Feature against its Source PRDs and PRD references

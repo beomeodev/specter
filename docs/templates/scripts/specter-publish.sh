@@ -3,7 +3,7 @@
 #
 # Owns operational facts only: the publish end-state (tree clean, branch
 # pushed, PR open). It never mutates the repo and never implies a gate
-# verdict — PASS/WARN/FAIL receipts belong to specter-gate.sh.
+# verdict — PASS/WARN/FAIL verification belongs to specter-gate.sh.
 #
 # Usage:
 #   specter-publish.sh version

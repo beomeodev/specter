@@ -100,7 +100,13 @@ SPECTER는 모든 산출물을 서로 경쟁하는 단일 진실 공급원으로
 | 테스트와 실행 증거 | 관찰된 구현 동작 |
 | `implementation-notes.md` | 구현 중 발견된 범위 내 편차 |
 
-하위 산출물은 자신에게 할당된 권위 범위 안에서 상위 산출물을 구체화할 수 있지만, 제품 의도를 조용히 재정의할 수는 없습니다. 요구사항 변경은 `/ms.expand`로 되돌아갑니다.
+하위 산출물은 상위 문서에 문자 그대로 없더라도 자기 도메인의 필요한
+세부사항을 추가할 수 있습니다. `refinement`와 저장소 근거가 있는
+`reality-correction`은 근거로 해소할 수 있습니다. 새 actor/journey, integration,
+보존 데이터 범주, permission boundary, 유료 capability, 명시적
+exclusion/cost/policy 충돌은 `boundary-change`/`conflict`로 분류합니다.
+`/ms.clarify`에서는 상위 패치 제안과 함께 사용자에게 묻고, 그 유일한 사람
+경계 밖에서는 범위를 조용히 넓히지 않고 FAIL합니다. 입력 hash는 무엇을 검토했는지 증명할 뿐 제품 권위를 부여하거나 추상 문서를 잠그지 않습니다.
 
 ### GEARS와 인수 시나리오
 
@@ -118,32 +124,18 @@ SPECTER는 schema, scope 선언, 보존 제약, implementation note에 GEARS를 
 
 현재 GEARS 준수는 템플릿, 워크플로우 규칙, 구조 검사, 의미 리뷰어를 통해 강제됩니다. 완전한 형식 언어 파서라고 주장하지 않습니다.
 
-### 검증 위험 프로파일 (verification-v2)
+### 상태 없는 간결한 검증
 
-SPECTER는 harness를 생략하지 않고 Feature 위험에 따라 감사 강도를
-결정론적으로 조정합니다.
+의미 검증 station은 fresh 독립 reviewer 두 명을 사용합니다. 각 reviewer는 현재
+입력 SHA256에 결속된 고정 경로 report를 쓰고, `specter-gate.sh reduce`가 report마다
+정확히 하나의 PASS/WARN/FAIL을 검증해 최악 결과를 반환합니다. reviewer 한 명이
+없고 남은 결과가 비-FAIL이면 WARN, 둘 다 없으면 FAIL입니다. 입력이 실제로 바뀐
+경우에만 한 번 재검증합니다.
 
-| Profile | gate가 제어하는 감사 강도 |
-| --- | --- |
-| ordinary | 표준 범위, 고정 reviewer effort, 자동 fresh round 2회. 기본값입니다. |
-| high-risk | 명명된 검사(trust boundary, 데이터 무결성, rollback, 실제 entrypoint/E2E 등)와 review의 인접 seam 범위, typed 명명-종류 사람 확인(migration/destructive/irreversible/gate-policy)이 추가됩니다. reviewer 수·effort·round 예산은 동일합니다. |
-
-두 프로파일 모두 L1 구조 검사, 독립 fresh reviewer 2명, station 고정 입력의
-L3 최악 결과 집계, input-digest 신선도, 실행형 gate, Done Criteria Execution,
-hook, CI, TAG wiring, migration 분석은 그대로 유지됩니다. Feature Map
-작성자는 근거에 묶인 닫힌 8신호 `### Verification signals` 표만 기록하고
-profile을 정하지 않습니다. gate가 각 station의 집계 안에서 profile을
-계산합니다 — verify/analyze는 선언 신호, review는 선언 신호 + 결정론적 변경
-파일 사실. 산문 스캔과 단계 간 바닥(floor)은 없습니다. 신호 표가 없는 legacy
-Feature는 표를 얻을 때까지 high-risk로 돌고, config가 잘못되면 fail-safe로
-정지합니다.
-
-실행 가능한 단일 원본은
-[`verification-v2.json`](./docs/templates/verification-v2.json)이며 규범
-설계는 [`docs/design/verification-v2.md`](./docs/design/verification-v2.md),
-report·budget·reviewer 규칙은
-[`specter-agent-protocols`](./.claude/skills/specter-agent-protocols/SKILL.md)에
-있습니다. 전역 Feature Map gate는 항상 full-strength입니다.
+위험 profile, signal 표, receipt, round state, acknowledgment gate는 없습니다.
+최종 review는 migration, destructive operation, authorization, secrets, public
+contract, gate/hook 변경에 해당하는 실행 증거를 항상 적용합니다.
+[`refinement-first.md`](./docs/design/refinement-first.md)를 참고하세요.
 
 ---
 
@@ -155,7 +147,7 @@ report·budget·reviewer 규칙은
 /ms.specter 001
 ```
 
-`/ms.pre-specter`는 제품 전체 Feature Map을 준비하고 검증합니다. `/ms.specter 001`은 Feature 001을 준비 상태 확인부터 코드 리뷰까지 실행합니다. 제품 의사결정이 필요하면 `/ms.clarify`에서 사이클이 멈춥니다.
+`/ms.pre-specter`는 제품 전체 Feature Map을 준비하고 검증합니다. `/ms.specter 001`은 Feature 001을 준비 상태 확인부터 코드 리뷰까지 실행합니다. `/ms.clarify`는 사이클의 유일한 필수 사람 정지입니다. 근거로 확정되는 항목을 먼저 해소한 뒤, 그 내역의 검토와 남은 제품 의도 결정을 위해 반드시 사용자에게 제어권을 넘깁니다.
 
 디버깅이나 수동 제어가 필요할 때는 각 하위 `/ms.*` 단계를 개별 실행할 수도 있습니다.
 
@@ -207,25 +199,29 @@ report·budget·reviewer 규칙은
  🛰️  Per-Feature 사이클   ·  N회  ·  묶음 실행: /ms.specter
 ════════════════════════════════════════════════════════════════════
   ┌─▶  6. /ms.checklist      이번 Feature 검증 (PRD 반영도)
-  │    7. /ms.verify         Tier-bound Codex + Antigravity 검증
+  │    7. /ms.verify         현재 hash Codex + Antigravity 검증
   │    8. /ms.specify        사양 작성 (Feature 섹션 입력)
-  │    9. /ms.clarify        🔴 항상 사람 입력 필요
+  │    9. /ms.clarify        🔴 필수 사람 정지 (근거 우선 Q&A)
   │   10. /ms.plan           구현 계획 + reality 검증
   │   11. /ms.tasks          TAG 기반 태스크 생성
   │   12. /ms.analyze        spec ↔ plan ↔ tasks 정합성
   │   13. /ms.implement      TDD 구현 + TAG 삽입
-  │   14. /ms.review         🟠 migration 시 조건부 사람 확인 + 실행 게이트
+  │   14. /ms.review         자동 고위험 증거 + 실행 게이트
   └──── 다음 Feature가 남으면 6번으로 되돌아가 반복
                             │   모든 Feature 완료
                             ▼
 ────────────────────────────────────────────────────────────────────
  🚀  발행 / 릴리즈 (Publish / Release)
 ────────────────────────────────────────────────────────────────────
-    15. /ms.fin              🟠 high-stakes diff 조건부 확인 → commit · push · PR
+    15. /ms.fin              high-stakes diff 자동 증거 게이트 → commit · push · PR
     16. /ms.merglease        PR 머지 → tag → GitHub Release
 ```
 
-정상적인 Per-Feature 사이클에서 조건 없이 멈추는 지점은 `/ms.clarify` 하나입니다. schema/data migration, high-stakes publish diff, destructive change, unresolved release risk처럼 명시적으로 고위험이거나 비가역적인 작업에만 추가적인 사람 확인이 필요합니다.
+정상적인 Per-Feature 사이클의 필수 사람 정지는 `/ms.clarify` 하나뿐입니다.
+여기서는 근거로 확정되는 답을 먼저 정리한 뒤 반드시 사용자에게 제어권을
+넘깁니다. migration, destructive, irreversible, reviewer availability,
+round limit, gate-policy 판단은 계속 실행 가능한 증거 게이트로 처리하며 별도
+승인 확인 정지를 만들지 않습니다.
 
 **권장 형태는 bare 호출**입니다 — PRD와 Feature Map은 관례 경로(`docs/prd/*.md`,
 `docs/prd/feature-map.md`)에서 자동으로 찾습니다. PRD 전체를 `@`로 첨부하면 conductor가
@@ -247,34 +243,21 @@ report·budget·reviewer 규칙은
 
 ## 게이트
 
-각 단계는 프롬프트가 아니라 산출물 파일과 결정론적 체커로 판정됩니다.
-
-게이트 스테이션은 세 종류입니다.
-
-| 스테이션 유형 | 역할 | 예시 |
-| --- | --- | --- |
-| Authoring station | 격리된 에이전트가 산출물을 작성하며 자체 판정은 권위가 없습니다. | Feature Map, checklist |
-| Verification station | L1 구조 검사 → L2 독립 의미 감사 → L3 기계 집계. | pre-verify, verify, analyze, review |
-| Executable backstop | 모델 판단 없이 실제 저장소 상태를 강제합니다. | hook, pre-commit, CI, test/build |
-
-모든 verification station은 **3계층 계약**(`specter-agent-protocols` §7)을 따릅니다. L1은 결정론적 구조 검사(`specter-gate.sh structural`), L2는 Codex와 Antigravity가 독립적인 fresh-context 감사와 각자의 판정을 수행하고, L3는 station에 고정된 입력과 SHA freshness를 확인해 판정을 기계적으로 집계합니다(`specter-gate.sh aggregate`). 호스트는 산출물을 작성하거나 조립할 수 있지만 집계된 verification station을 채점하지 않습니다. 권위 있는 결과는 Layer-3 receipt입니다. Authoring station 산출물은 격리된 fresh subagent가 작성하므로 작성 세션의 기억이 감사에 섞이지 않습니다.
+산출물 작성은 호스트가 맡고, 의미 판정은 fresh 독립 reviewer 두 명이 맡습니다.
+기계 gate는 현재 hash, 고정 report 경로, 정확한 verdict 필드, worst-of만 검사하며
+워크플로우 상태를 저장하지 않습니다.
 
 | 게이트 | 시점 | 검증 내용 |
 | --- | --- | --- |
-| 전역 Feature Map (`/ms.pre-verify`) | Pre-Feature, 1회 | PRD의 모든 commitment가 정확히 하나의 Feature 소유자를 갖는가, DAG 성립하는가. L1 구조검사 + Codex·Antigravity 이중 전역 감사 + 기계 집계 (PRD-only baseline 체크리스트는 독립 대조 입력) |
-| Per-Feature (`/ms.checklist` + `/ms.verify`) | 매 Feature 시작 | 이번 Feature가 소유한 commitment의 반영도, 타 Feature 침범 여부, user-facing exposure, 미해결 placeholder |
-| 문서 정합성 (`/ms.analyze`) | 구현 직전 | spec ↔ plan ↔ tasks 드리프트, orphan task, Constitution 반영 여부 |
-| 코드 (`/ms.review`) | 구현 직후 | lint·type·test·build + TAG 무결성 + **Done Criteria Execution** — 실행 가능한 완료 기준은 실제로 구동해 검증 (웹 UI는 Playwright로 실제 렌더 확인) |
+| 전역 Feature Map (`/ms.pre-verify`) | Pre-Feature | 전체 PRD coverage, ownership, DAG, exclusion, E2E journey |
+| Per-Feature (`/ms.checklist` + `/ms.verify`) | Feature 시작 | scope, dependency, Done criteria, 경계 밖 추가 |
+| 문서 (`/ms.analyze`) | 구현 직전 | spec ↔ plan ↔ tasks와 저장소 현실 |
+| 코드 (`/ms.review`) | 구현 직후 | lint/type/test/build 1회, 실제 entrypoint Done Criteria, E2E와 안전 검사 |
 
-프롬프트 게이트 아래에는 기계 강제 계층이 있습니다: `/ms.specify`를 거치지 않은 직접
-`/speckit-specify` 호출은 PreToolUse 훅이 거부하고, `/ms.implement`·`/ms.review` 구간에서
-코드가 변경됐는데 게이트 실행 증거가 없으면 Stop 훅이 턴 종료를 차단하며(최대 연속 3회,
-증거가 있으면 verdict가 FAIL이어도 통과 — 게이트는 실행을 강제하지 성공을 강제하지 않음),
-Feature Map·TAG 체인 무결성은
-pre-commit과 CI(ruff·mypy·pytest·bandit)가 백스톱으로 잡습니다. 에이전트 하나가 환경
-문제로 죽어도 게이트를 조용히 약화하지 않습니다 — 고정된 두 report 중 하나에
-명시적 `WARN` placeholder를 기록하고 남은 독립 reviewer로 실행합니다. T3에서는
-사람 확인이 필요하며, 독립 reviewer가 하나도 없으면 station을 중단합니다.
+직접 `/speckit-specify` 우회는 PreToolUse hook이 거부합니다. bounded Stop hook은
+코드 변경 후 fresh 실행 증거를 요구하되 정직한 FAIL 증거도 허용합니다.
+pre-commit/CI는 Feature Map hash와 TAG chain을 백스톱합니다. `/ms.clarify`만
+사이클의 필수 사람 정지입니다.
 
 ---
 
@@ -282,29 +265,28 @@ pre-commit과 CI(ruff·mypy·pytest·bandit)가 백스톱으로 잡습니다. �
 
 | 명령어 | 역할 |
 | --- | --- |
-| `/ms.init` | Spec-Kit 설치 + SPECTER 오버레이·훅·백스톱·verification-v2 config·Graphify 코드 그래프 주입 |
+| `/ms.init` | Spec-Kit 설치 + SPECTER 오버레이·훅·백스톱·간결 gate·Graphify 주입 |
 | `/ms.prd` | PRD 공동 작성 인터뷰 (사이클 밖) |
 | `/ms.pre-specter` | Pre-Feature 사이클(featuremap→constitution) 묶음 실행 |
 | `/ms.featuremap` | PRD를 Feature DAG로 분해, Feature별 프롬프트 작성 |
-| `/ms.featuremap-checklist` | PRD-only 독립 baseline 체크리스트 (featuremap-checklist-author 서브에이전트) |
+| `/ms.featuremap-checklist` | fresh PRD-only 독립 baseline 체크리스트 |
 | `/ms.pre-verify` | PRD + 양 에이전트 체크리스트 + Feature Map 대조 → 전역 게이트 |
 | `/ms.constitution` | Constitution Section IX 프로젝트 baseline 확정 (보통 1회) |
-| `/ms.specter` | Per-Feature 사이클(checklist→review) 묶음 실행, clarify는 항상 사람 입력, 고위험 작업은 조건부 확인 |
+| `/ms.specter` | Per-Feature 사이클(checklist→review) 묶음 실행, clarify에서 한 번 사람 정지하고 나머지는 자동 증거 판정 |
 | `/ms.checklist` / `/ms.verify` | 이번 Feature의 PRD 반영도 검증 (호스트 + Codex/Antigravity) |
 | `/ms.specify` / `/ms.clarify` / `/ms.plan` / `/ms.tasks` | GEARS spec → 명확화 → 계획 → TAG 태스크 |
 | `/ms.analyze` | 구현 전 문서 정합성 + 양 에이전트 문서 검증 |
 | `/ms.implement` | TDD 구현 + TAG 삽입 (`--to-end`, `--mode tdd\|refactor`, `--task TNNN`, `--pbt` GEARS 기반 속성 테스트) |
 | `/ms.review` | 코드 리뷰 + adversarial 에이전트 리뷰 + 실행 게이트 |
 | `/ms.fix` / `/ms.expand` / `/ms.audit` | 곁가지 트랙 (위 표 참조) |
-| `/ms.fin` | 문서 동기화 → 조건부 CI → commit·push·PR |
+| `/ms.fin` | 문서 동기화 → review freshness 확인 → commit·push·PR |
 | `/ms.merglease` | PR 머지 → semver 자동 계산 → tag → GitHub Release |
 | `/ms.up-docs` | Living docs 동기화 |
 | `/ms.sync` | 워크플로우 파일을 등록된 프로젝트 레포들에 브로드캐스트 (3-way 충돌 보호) |
 
-검증 커맨드는 위험 프로파일·round 예산·report 유효성을 gate에서 기계적으로
-읽습니다. 위험 override는 상승 전용 `--raise-risk`뿐이며 reviewer skip,
-effort 하향, profile 하향 플래그는 거부합니다. 나머지 커맨드별 제어는
-[커맨드 파일](./.claude/commands/)에 문서화되어 있습니다.
+검증 커맨드는 현재 입력 hash, 고정 report 경로, verdict 유효성, worst-of를
+기계적으로 읽습니다. profile이나 수동 override는 없습니다. 나머지 커맨드별
+제어는 [커맨드 파일](./.claude/commands/)에 문서화되어 있습니다.
 
 ### Constitution 두 단계
 
@@ -465,7 +447,7 @@ SPECTER는 현재 Claude Code 전용이지만, **Codex CLI에서도 동등하게
 - Codex CLI (인증 완료) + Codex plugin for Claude Code
 - Google Antigravity CLI `agy` (인증 완료) + Antigravity plugin
 
-리뷰어 하나를 사용할 수 없으면 해당 스테이션은 `WARN`으로 저하됩니다. 독립 리뷰어가 하나도 남지 않으면 호스트 단독 판정으로 대체하지 않고 스테이션을 중단합니다.
+리뷰어 하나를 사용할 수 없으면 남은 FAIL은 그대로 FAIL이고, 그 외 결과는 WARN으로 제한됩니다. 독립 리뷰어가 하나도 남지 않으면 호스트 단독 판정으로 대체하지 않고 FAIL합니다.
 
 ### 탐색 가속기
 
@@ -477,11 +459,11 @@ SPECTER는 현재 Claude Code 전용이지만, **Codex CLI에서도 동등하게
 
 ## 검증 상태
 
-워크플로우에는 verification-v2 gate의 round 예산·위험 프로파일·receipt
-불변식을 포함한 자동화 fixture 및 gate-contract 테스트가 있습니다(심은 결함
-코퍼스: `tests/specter/test_specter_gate_v2.py`). 최신 verification-v2 계약과
-Graphify 통합은 실제 consuming project의 전체 end-to-end 실행을 통해 아직
-검증 중입니다.
+워크플로우에는 현재 입력 hash, 정확한 verdict parsing, reviewer unavailable,
+worst-of 축약, hook, sync, publish/release helper를 검증하는 자동화 fixture와
+contract test가 있습니다. 간결한 gate 계약은
+`tests/specter/test_specter_gate.py`가 다루며 consuming project의 end-to-end가
+최종 통합 검증입니다.
 
 현재 확인된 불변식과 알려진 공백은 [docs/SYSTEM_MAP.md](./docs/SYSTEM_MAP.md)를 참고하세요.
 

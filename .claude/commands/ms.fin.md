@@ -1,287 +1,61 @@
 ---
-description: "Finish: sync docs → conditional CI → commit → push → PR auto-create (Delegated to Antigravity)"
+description: "Publish reviewed changes: docs → commit → push → draft PR"
 argument-hint: "[--no-ci]"
 ---
 
-# /ms.fin - Finish Workflow (Delegated)
+# /ms.fin
 
-Sync living docs and update the daily log locally, decide whether a CI re-run is
-needed, then delegate CI (when needed), staging, committing, pushing, and GitHub
-PR creation to the **Google Antigravity CLI**.
+Invocation authorizes the git actions defined here. It does not authorize merge,
+release, force-push, production mutations, or unrelated changes.
 
-This is SPECTER's single finish command. It runs the local CI gate before
-publishing, but skips that gate when it would only re-validate code a clean
-`/ms.review` already checked.
+## 1. Sync living docs
 
-## CI Policy (conditional)
+Run `/ms.up-docs --docs=dev`. Documentation-only edits do not invalidate code
+review.
 
-The local CI gate is `lint → types → tests → build` — the same gate `/ms.review`
-runs. `/ms.fin` decides whether to re-run it:
+## 2. Require current review evidence
 
-- **SKIP** when the last `/ms.review` finished clean (no `.specify/review-state.txt`)
-  **and** the CI-relevant file set is unchanged since that review (hashes match
-  `.specify/review-hash.cache`; pure documentation — `*.md`, `docs/`,
-  `.specify/` — never invalidates the baseline). Re-running CI on
-  byte-identical code adds nothing.
-- **RUN** when anything changed since the last review, the review left unresolved
-  CRITICAL/HIGH findings (`.specify/review-state.txt` present), or no review hash
-  cache exists. This is exactly where review's CI is stale — fixes applied after
-  review, the `/ms.fix` track, or a direct commit. Any uncertainty errs toward RUN.
-- `--no-ci` forces SKIP regardless. This is an explicit WIP/backup publish; the
-  user is responsible for validating before merge. The skip is reported loudly.
-
-Default (no flag) is safe: CI runs whenever the committed state differs from a
-passed review.
-
-## Usage
+Install and probe the deterministic helper:
 
 ```bash
-/ms.fin
-/ms.fin --no-ci
+install -D -m 0755 docs/templates/scripts/specter-publish.sh \
+  .specify/scripts/bash/specter-publish.sh
+.specify/scripts/bash/specter-publish.sh version
+.specify/scripts/bash/specter-publish.sh ci-mode
 ```
 
-## Execution Steps
+Use its JSON verbatim.
 
-### Step 1: 📄 Sync Living Documents (/ms.up-docs)
+- If code is unchanged since a clean `/ms.review`, do not rerun tests, lint,
+  typecheck, build, Done Criteria, or semantic review.
+- If code changed, the cache is missing/legacy, review-state exists, or the
+  comparison cannot be proved, stop and run `/ms.review`. Do not substitute a
+  smaller CI rerun here. After review, rerun `/ms.fin`.
+- `--no-ci` is an explicit WIP/backup publish. Create
+  `.specify/.ms-wip-publish`, report the skipped review loudly, and allow
+  publishing; `/ms.merglease` must refuse until fresh review clears it.
 
-Claude Code runs the document synchronization locally to ensure staged
-documentation is up to date:
+Universal migration/auth/destructive/secret/public-contract/gate evidence belongs
+to `/ms.review`; do not repeat its diff audit here.
 
-```bash
-/ms.up-docs --docs=dev
-```
+## 3. Publish
 
-This updates `docs/dev_daily.md` from the outgoing work (staged + uncommitted +
-unpushed changes). API-doc regeneration is not part of `--docs=dev`; run
-`/ms.up-docs --docs=api` separately when API surfaces changed.
+Delegate one fresh Antigravity run to:
 
----
+1. inspect the outgoing diff and build an explicit staging list
+2. split commits by logical concern (feature + tests + docs together)
+3. never use `git add .`, force push, destructive reset, or bypass hooks
+4. push the current feature branch to its configured remote
+5. create or update a draft PR with summary, tests from the current review, and
+   residual warnings
+6. stop on any commit, push, hook, or PR failure
 
-### Step 1.5: 👁️ High-Stakes Diff Digest (conditional, human-ack gate)
+The host does not poll CI or repeat semantic review.
 
-This is `/ms.fin`'s one deliberate human gate. Machines can review code, but only
-the human can *own* what the product is allowed to destroy or expose — and because
-`/ms.fin` sits on every track (feature AND fix), this net catches changes that never
-passed `/ms.review`.
+## 4. Verify end state
 
-1. **Detect high-stakes hunks** in the full outgoing set — everything that
-   would be published, not just what is uncommitted. Compute it as the unpushed
-   range **plus** the working tree **plus untracked files** (2026-07-19 sol
-   finding: a newly created migration or credential-handling file appears in
-   neither diff, yet Step 3's explicit staging list can publish it):
-   ```bash
-   # branch upstream first, remote default second — never a hardcoded origin/master.
-   BASE=$(git rev-parse --abbrev-ref --symbolic-full-name @{upstream} 2>/dev/null \
-     || git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
-   # if BASE is still empty (no upstream, no origin/HEAD): STOP and ask the user
-   # which base branch the publish diff should be computed against.
-   git diff "$BASE"...HEAD   # commits not yet pushed (this is what catches the /ms.fix track,
-                             # which commits in its own Step 6 before reaching /ms.fin)
-   git diff HEAD             # uncommitted + staged work
-   git ls-files --others --exclude-standard   # untracked files — read each one's CONTENT
-                                              # and scan it with the same criteria below;
-                                              # binary/oversized untracked files are reported
-                                              # as "수동 확인 필요", never silently skipped
-   ```
-   A hunk is high-stakes if it touches any of:
-   - **auth/credentials**: session, token, password, OTP/2FA, crypto keys, permission checks
-   - **money/value**: prices, balances, orders, payments, quantities that map to money
-   - **destructive operations**: `DELETE FROM`, `DROP`, `TRUNCATE`, `.delete(`, `rm -r`,
-     `unlink`, overwriting writes to user data, cascade rules
-   - **schema/migrations**: anything under the migrations dir, `ALTER/CREATE/DROP TABLE`
-   - **user-content handling**: code that serializes, exports, or transmits user data
-2. **If nothing matches → continue silently to Step 2.** Zero friction on ordinary diffs;
-   this gate must never become ceremony.
-3. **If matched → present the digest and STOP.** Show ONLY the matched hunks (not the whole
-   diff), grouped by file, each introduced by one line answering the reader's question:
-   ```text
-   👁️ 정독 필요 — 이 변경이 지우거나·덮어쓰거나·노출하는 것:
-   ── backend/auth/session.py (auth)
-      <hunk>  ← 세션 토큰 검증 조건이 X에서 Y로 바뀜
-   ── db/migrations/0007_xxx.sql (migration/destructive)
-      <hunk>  ← 기존 rows의 컬럼 Z를 NOT NULL로 좁힘 (기존 NULL 행 존재 시?)
-   ```
-   Keep the digest tight (aim ≤ 60 lines of hunk content — curate, don't dump). Then wait
-   for the user's explicit acknowledgement before Step 2. Any affirmative reply after
-   actually presenting the digest counts as the ack; proceeding without presenting it does
-   not.
-4. On a re-run in the same session (e.g. after a CI fix), re-digest only hunks that
-   changed since the last ack — don't make the user re-read what they already read.
-   The same rule covers `/ms.review` Step 6.6b: migration hunks the user already
-   acked in this session's migration-rollback analysis are skipped here unless
-   they changed since that ack.
+Run `specter-publish.sh verify-endstate`. Report the observed tree, upstream,
+push, and PR URL/status. A delegated success message is not evidence. If any
+required end-state check is false or unknown, report failure.
 
----
-
-### Step 2: 🧭 Decide CI Mode
-
-The decision is script-owned (2026-07-24 phase-2 extraction — the old inline
-recipe used a different hash and file set than `/ms.review`'s cache, so it
-re-ran CI on byte-identical code). Self-heal the helper FIRST; if the template
-is missing or the probe's `contract` is not `publish-helpers-v1`, **STOP** and
-tell the user to run `/ms.sync` — never fall back to an LLM-judged CI decision:
-
-```bash
-install -D -m 0755 docs/templates/scripts/specter-publish.sh .specify/scripts/bash/specter-publish.sh
-.specify/scripts/bash/specter-publish.sh version   # contract probe
-
-if [ "$1" = "--no-ci" ]; then
-  # Merge-blocking WIP marker (2026-07-18 audit #13): a --no-ci publish must
-  # not reach /ms.merglease looking as if gates had passed — merglease's
-  # Step 0 preflight surfaces this marker and requires explicit user ack.
-  mkdir -p .specify
-  printf 'reason=--no-ci publish\nts=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .specify/.ms-wip-publish
-  # CI_MODE=SKIP, CI_REASON="--no-ci (explicit WIP publish)" — reported loudly.
-else
-  .specify/scripts/bash/specter-publish.sh ci-mode
-fi
-```
-
-Use the `ci-mode` JSON **verbatim**: `ci` → `CI_MODE`, `reason` → `CI_REASON`.
-The script already encodes the policy — every cached file must still
-hash-match, every outgoing CI-relevant file must have been in the reviewed
-set, and pure documentation (`*.md`, `docs/`, `.specify/`) never invalidates
-the baseline (so `/ms.up-docs`'s Step-1 edits no longer force a spurious
-RUN). Missing cache, legacy cache, unresolved outgoing range, or
-`review-state.txt` all fall through to `RUN`. Carry the resolved `CI_MODE`
-and `CI_REASON` into the Antigravity delegation in Step 3.
-
----
-
-### Step 3: 🚀 Delegate Publish & PR Pipeline to Antigravity
-
-Invoke Google Antigravity to run the CI gate (only when `CI_MODE=RUN`), stage
-files, commit with conventional messages, push the branch, and manage the GitHub
-pull request:
-
-```text
-/antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <Prompt>
-```
-
-#### Antigravity Prompt:
-```text
-You are running the SPECTER /ms.fin publish pipeline.
-CI_MODE=<RUN|SKIP>  REASON=<reason from Step 2>
-
-Tasks to execute:
-1. CI gate:
-   - If CI_MODE is SKIP: do NOT run CI. Print the skip reason. If
-     .specify/review-state.txt exists, print its contents as a warning before
-     continuing (with --no-ci, publishing proceeds even with warnings).
-   - If CI_MODE is RUN: run locally-runnable gates (lint -> types -> tests ->
-     build) using the project's default runner (e.g. 'make ci' or test commands).
-     If any check fails, STOP immediately and report the failure. Do not commit
-     or push.
-2. Stage and Commit (split by logical unit — DEFAULT):
-   - Review changed files and build an explicit staging list (do not run 'git add .').
-   - Group the changes by logical concern, NOT by file type. Each commit must be
-     one coherent, self-consistent change (e.g. a feature + its tests + its docs
-     belong together; an unrelated refactor or config bump is a separate commit).
-   - DEFAULT to multiple commits when the diff spans more than one concern. Stage
-     each concern's files selectively (use 'git add -p' / pathspecs) and commit it
-     before staging the next. Order commits so each one leaves the tree buildable.
-   - Collapse to a SINGLE commit only when the whole diff is one cohesive change;
-     never split a single concern into noise commits just to inflate the count.
-   - Format staged files using pre-commit hooks (if configured) before each commit.
-   - Give every commit a meaningful conventional message (feat/fix/chore/docs/test)
-     that describes that commit's concern specifically.
-3. Push:
-   - Push the committed branch to its configured remote
-     ('git config branch.<current-branch>.remote', falling back to 'origin'
-     only when none is configured).
-4. PR Auto-create:
-   - Compose the PR body from the latest review report in docs/review/ (if any)
-     plus this run's commit messages: summary, key changes by concern, gate
-     results, outstanding warnings from .specify/review-state.txt.
-   - Use 'gh' CLI to create a new PR or edit the body if one already exists.
-   - Output the PR URL.
-5. Self-review stamp (fail-open — this step must NEVER fail the pipeline):
-   - Purpose: record the workflow's already-computed review verdict as an
-     official GitHub PullRequestReview so it registers as a review contribution
-     on the author's profile. This is NOT a new review — do not re-review code.
-   - Compose a short stamp (verdict + gate results, a few lines, not the full
-     report) from the latest review report in docs/review/; if none exists,
-     summarize this run's CI gate outcome instead.
-   - Submit it via the deterministic helper — pipe the stamp body on stdin,
-     never interpolate it into a command line:
-     '.specify/scripts/bash/specter-publish.sh self-review-stamp <PR-number>'
-     (the helper enforces COMMENT-only — GitHub forbids approving your own
-     PR — dedupes by content marker, and is fail-open: every outcome is a
-     JSON status, exit 0).
-   - Report the helper's JSON 'status' verbatim (submitted | duplicate_skipped
-     | skipped_* | failed). If it is not 'submitted', report and continue;
-     never block publish on this step.
-
-Do not edit code files except staging and formatting. Write your results, the PR URL, and the self-review stamp status clearly in your final report.
-```
-
----
-
-### Step 3.5: 🔎 Verify Delegated End-State (silent-stall net)
-
-Antigravity's self-report is not completion evidence — delegated runs have stalled
-silently mid-pipeline (observed 2026-07: stopped before committing). Before
-reporting success, verify the end state with the deterministic helper (it
-resolves the branch's real upstream / the remote default — no hardcoded
-origin/master):
-
-```bash
-# self-heal: the runtime copy is project-local (never synced); refresh it from the synced template
-install -D -m 0755 docs/templates/scripts/specter-publish.sh .specify/scripts/bash/specter-publish.sh
-.specify/scripts/bash/specter-publish.sh version        # contract probe — must report publish-helpers-v1
-.specify/scripts/bash/specter-publish.sh verify-endstate
-```
-
-If the template is missing **or the probe's `contract` is not `publish-helpers-v1`**,
-**STOP** and tell the user to run `/ms.sync` first —
-never substitute LLM-judged end-state checks (silent fallback recreates the
-failure class this helper removes). Read the JSON `checks`
-(`tree_clean` / `pushed` / `pr_open`): each is
-`true | false | not_applicable | unknown` with evidence. `unknown` means the
-fact could not be observed (gh/network) — never treat it as "absent"; re-check
-or verify manually. The host adds no judgment: the JSON *is* the verification.
-
-The self-review stamp (prompt task 5) is fail-open by design — report its status
-as delegated, never repair or block on it.
-
-Interpretation (**hard rule: while any applicable check is still `false`, the
-run may NOT be reported as success — 2026-07-21 evidence showed a detected
-`false` sailing into a completion claim. Fix it or report the failure; never
-"완료" over a standing `false`**):
-
-- **Every applicable check is `true`** → report `위임 완주` in Step 4.
-- **Something is missing AND the delegation report gives no reason for stopping**
-  (silent stall) → complete ONLY the missing items yourself, idempotently — never
-  re-run the whole pipeline or redo completed steps. Follow the same rules the
-  prompt gave Antigravity, including `CI_MODE`: if the stall happened before the
-  CI gate ran and `CI_MODE=RUN`, run the gate first, and a real failure stops the
-  publish exactly as it would have in the delegation. Report
-  `부분 정지 → <항목> 직접 완결` in Step 4.
-- **Something is missing AND the report states why it stopped** (e.g. the CI gate
-  failed — an intentional stop): do NOT fill the gap. Report the failure per the
-  existing rules; the stop was correct. This verification exists for *silent*
-  stalls only.
-
-This step is read-only checks plus missing-item completion — it is not a new gate
-and produces no verdict.
-
----
-
-### Step 4: Report Success
-
-Claude summarizes the work:
-
-```text
-✅ /ms.fin 완료! (Antigravity 위임 완료)
-
-📄 Living Documents 동기화 완료 (/ms.up-docs)
-🧭 CI 모드: <RUN: CI 실행 | SKIP: review 후 변경 없음 → 생략 | SKIP: --no-ci>
-🚀 Git 커밋, Push 및 PR 자동 생성이 Antigravity CLI를 통해 처리되었습니다.
-🔎 위임 종상태 검증: <위임 완주 | 부분 정지 → <항목> 직접 완결>
-🔖 셀프 리뷰 스탬프: <제출됨 (COMMENT review — contribution graph 반영) | 실패 → 무시하고 진행>
-
-
-📋 다음 단계:
-  1. 제공된 PR URL에서 결과 검토 (수동)
-  2. (feature 브랜치에서) /ms.merglease  (PR 머지 + tag + release 발행)
-```
+Next: `/ms.merglease` after the draft PR is ready.

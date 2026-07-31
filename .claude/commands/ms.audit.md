@@ -27,7 +27,7 @@ conductor and never will be.
 ## Evidence rule (applies to every module)
 
 **No claims without evidence.** Every finding must cite the artifact that proves it — a file,
-a command output, a commitment-index row, a ledger entry. A hunch without a probe is not a
+a command output, a commitment-index row, or a current report. A hunch without a probe is not a
 finding; run the probe or drop it. Reports that pad severity with vibes are worse than
 silence because they train the reader to skim.
 
@@ -36,7 +36,7 @@ silence because they train the reader to skim.
 ### Step 0: Scope
 
 Parse `--modules` (default: every module applicable to this project — skip `perf` when there
-is no web UI, skip `gates` when there is no `.specify/specter-run.jsonl`, skip `exposure`
+is no web UI, skip `gates` when there are no checklists/review reports, skip `exposure`
 when there is no Commitment Index). Read `docs/prd/feature-map.md`'s Commitment Index and
 `feature-map.progress.md` if present. Non-SPECTER projects can still run
 `coldstart`/`threat`/`perf`.
@@ -57,7 +57,7 @@ user actually reach this?**
 
 ### Module B: Cold-Start E2E — "새 기계에서 이 제품은 살아나는가"
 
-Per-Feature runtime checks (`/ms.review` Step 6.6) run in a warm dev environment. This
+Per-Feature runtime checks in `/ms.review` run in a warm dev environment. This
 module asks the question that environment can never answer: from nothing, does it boot?
 
 1. Simulate the coldest start feasible in this environment: fresh clone to a temp dir,
@@ -72,10 +72,9 @@ module asks the question that environment can never answer: from nothing, does i
 
 Repo-grounded, not generic:
 
-1. **Stake questions to the human first** (the only part that cannot be delegated —
-   Korean, one at a time, with recommended framings): what data here would actually hurt to
-   lose/leak? what loss is acceptable? who plausibly attacks this (opportunist scanner vs
-   targeted)?
+1. Derive stakes from PRDs, data models, privacy/security text, and deployment
+   config. Mark a stake `UNVERIFIED` when evidence cannot determine it; do not
+   pause the audit to ask for acknowledgment or risk acceptance.
 2. Derive **trust boundaries from actual config** (proxy config, tunnel setup, auth
    middleware, CORS, exposed ports — cite files): every edge gets protocol/auth/validation
    noted. The `Runtime Paths` section of `docs/SYSTEM_MAP.md` is the starting map if present.
@@ -83,9 +82,10 @@ Repo-grounded, not generic:
    check each against an existing defense — including standing conveniences (debug bypasses,
    OTP/auth shortcuts, `--admin` habits) which are findings unless consciously re-accepted
    by the user *in this audit*.
-4. Code-level OWASP checks belong to `/ms.review`'s inline TRUST code gate (Step 6.5B) —
-   but only when it actually ran: verify via the run-state ledger's `review` entries for the
-   audited Features, and include the code-level security surface of any Feature without one.
+4. Code-level OWASP checks belong to `/ms.review`'s executable gate — but only
+   when it actually ran: verify the fixed review reports and current review hash
+   for the audited Features, and include the code-level security surface of any
+   Feature without current evidence.
    Never assume the standalone `trust-validation` skill ran — no workflow command invokes it
    (2026-07-18 audit #26). This module otherwise owns the product-level surface only.
 
@@ -102,8 +102,8 @@ Repo-grounded, not generic:
 
 The workflow itself is a product; audit it with the same evidence rule:
 
-1. From `.specify/specter-run.jsonl`, the review reports in `docs/review/`, and the
-   checklists: for the last N Feature runs, which gates produced FAIL/WARN findings, and
+1. From review reports in `docs/review/`, checklists, and git history: for the
+   last N Features, which gates produced FAIL/WARN findings, and
    which produced none, ever?
 2. A gate with zero catches across many runs is a **sunset candidate — report only**. This
    module NEVER weakens, skips, or edits a gate; changes go through the normal SPECTER-repo

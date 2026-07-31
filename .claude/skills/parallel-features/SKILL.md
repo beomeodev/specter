@@ -29,17 +29,15 @@ If either test fails: run serially. Do not rationalize ("the lines don't actuall
 conflict") — the point of isolation is uncommitted-state separation and reviewable
 scope, not just merge conflicts.
 
-## 2. One-time setup: union merge for append-shaped files
+## 2. One-time setup: union merge for the daily log
 
-Two workflow files are appended to by every cycle and WILL collide at merge time.
-They are order-insensitive logs, so git's union driver is safe for them. Run once per
-project (idempotent):
+`docs/dev_daily.md` is the only shared append-shaped workflow file. Configure
+the union driver once (idempotent):
 
 ```bash
-grep -q "specter-run.jsonl merge=union" .gitattributes 2>/dev/null || cat >> .gitattributes << 'EOF'
+grep -q "docs/dev_daily.md merge=union" .gitattributes 2>/dev/null || cat >> .gitattributes << 'EOF'
 
 # SPECTER parallel-features: append-shaped workflow logs merge by union
-.specify/specter-run.jsonl merge=union
 docs/dev_daily.md merge=union
 EOF
 ```
@@ -59,7 +57,7 @@ conflict loudly.
 |---|---|
 | `specs/<NNN>-*`, `docs/prd/checklists/feature-<NNN>.*` | Per-Feature — disjoint by construction, no conflict |
 | Source code | Per-worktree — guaranteed disjoint by Test B |
-| `.specify/specter-run.jsonl`, `dev_daily.md` | Append-shaped — union merge (Section 2) |
+| `dev_daily.md` | Append-shaped — union merge (Section 2) |
 | `feature-map.progress.md` | Derived cache — NEVER union; recompute after rebase (Section 2) |
 | `docs/prd/feature-map.md` (normative) | **Must not change during a cycle.** Cycles only read it. If a cycle needs to edit it, STOP the parallel run — that's `/ms.expand` or amend territory, and it invalidates the other worktree's gate SHA |
 
@@ -72,9 +70,9 @@ conflict loudly.
    uncommitted implementation).
 3. Concurrency form is your choice: two interactive sessions side by side, or
    sequential-in-time but isolated-in-space.
-4. **Verify before trusting**: a conductor's success claim ≠ a usable branch. Check
-   the worktree's run ledger shows `review` PASS/WARN and the branch has commits
-   (`git rev-parse HEAD != master`).
+4. **Verify before trusting**: a conductor's success claim ≠ a usable branch.
+   Check the fixed review reports and current review hash, then confirm the
+   branch has commits (`git rev-parse HEAD != master`).
 
 ## 5. Merge-back sequencing (the part that protects the gates)
 

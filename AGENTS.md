@@ -82,8 +82,8 @@ regardless of agent judgment.
 - This applies to workflow artifacts too (`feature-map.md`, checklists,
   constitution, spec/plan/tasks): when a command step tells the host to read
   one, reuse the in-context copy unless something actually changed it since —
-  an edit this session, a fix round that touched it, or a gate receipt
-  reporting a new hash. A station boundary alone is not a reason to re-read.
+  an edit this session, a fix round that touched it, or a gate report
+  bound to a new input hash. A station boundary alone is not a reason to re-read.
   This governs only the host's main thread; fresh subagents at isolated
   stations still read their inputs from disk by design.
 
@@ -164,6 +164,24 @@ Ask for user approval before:
 - starting local servers
 - committing, amending commits, pushing, merging, or creating releases
 
+Invocation of `/ms.specter` is scoped approval for repository-local changes
+required by the clarified Feature: modifying 3 or more files, required
+creates/moves/deletes, plan-recorded dependency changes, disposable/local test
+migrations, and bounded review server boots. It does **not** approve
+production/staging database migrations, environment or secret changes, external
+destructive operations, git publishing, or force operations. Those still need
+their own explicit authority.
+
+Invocation of `/ms.pre-specter` or `/ms.expand` likewise approves the
+3-or-more-file generated workflow artifacts and Feature Map corrections those
+commands define. It does not approve dependency changes, runtime migrations,
+secrets/environment changes, external destructive operations, or git actions.
+
+Invocation of `/ms.fix` approves the repository-local files required by the
+bounded fix and its mini-plan. Package changes, runtime migrations,
+secrets/environment changes, external destructive operations, and git actions
+retain their command-specific rules below.
+
 The same approval-by-invocation rule covers command-defined runtime checks:
 running `/ms.review` or `/ms.audit` **is** the user's approval for the server/
 entrypoint boots and tool installs those commands' steps explicitly define
@@ -227,101 +245,65 @@ commits).
 
 ## 10. SPECTER Command / Skill / Agent Layout
 
-SPECTER is a command-driven workflow wrapper over GitHub Spec-Kit. Respect the
-intended hybrid structure; do not migrate it to a different shape on a whim.
+SPECTER is a command-driven wrapper over GitHub Spec-Kit.
 
-- `.claude/commands/` holds the `/ms.*` files. These are **explicit user-invoked
-  workflow entrypoints** and must stay commands. Do not convert `/ms.*` commands
-  into skills, and do not remove `.claude/commands`.
-- Conductors and tracks (behavior details live in each command file; all of these stay
-  commands, never skills):
-  - `/ms.specter` — per-Feature cycle conductor (checklist → … → review, one human stop at
-    clarify). It never weakens or bypasses the gates it invokes: it only reads verdicts,
-    advances on PASS/WARN, stops on FAIL, and is bound by the same Feature-Map /
-    direct-call-bypass gates as the steps it drives.
-  - `/ms.pre-specter` — one-time PRD-setup conductor (featuremap → featuremap-checklist →
-    pre-verify → constitution), same conductor discipline; hands the first Feature to
-    `/ms.specter`.
-  - `/ms.prd` — pre-workflow PRD co-authoring; sits before `/ms.pre-specter`, never invoked
-    by any conductor, runs no gates; output feeds `/ms.pre-specter` or `/ms.expand`.
-  - `/ms.expand` — incremental-PRD track between `/ms.fix` and `/ms.pre-specter`; consumes
-    an appended `## PRD Amendment N`, extends the Feature Map append-only (refusing edits
-    to existing PRD text or Feature sections), and hands the new Feature to `/ms.specter`.
-  - `/ms.audit` — advisory product-level audit, in no conductor, blocks nothing; findings
-    route to `/ms.fix` / `/ms.expand` / todo. It reports gate-value evidence but never
-    weakens or edits a gate itself.
-- `.claude/skills/` holds **reusable capabilities** — validators, rules, rubrics,
-  and checklists. Put reusable logic here, not new top-level commands.
-- `.claude/agents/` holds **specialist subagents** (role-based reasoning/execution).
-- **Three-layer gates (2026-07-19)**: every verification station separates
-  (1) deterministic structural checks (`specter-gate.sh structural`),
-  (2) independent dual-agent semantics (external agents, always `--fresh`), and
-  (3) mechanical verdict aggregation (`specter-gate.sh aggregate` — station-fixed
-  inputs the host can never choose, mechanical ledger emission). The host authors
-  and assembles but never grades: no unilateral downgrade of an external verdict
-  (disputes go to fresh scoped re-rounds), no hand-written ledger line for an
-  aggregated station's agent verdict (a composite line — e.g. `/ms.review`'s
-  final result — embeds the receipt's verdict verbatim and may only worsen it),
-  and the generative artifacts of `/ms.featuremap` and `/ms.checklist` are
-  authored by fresh subagents whose self-grade is never authoritative.
-  Canonical contract: `.claude/skills/specter-agent-protocols/SKILL.md` §7.
-- **Verification-v2 risk profiles (2026-07-30)**: the executable authority is
-  `docs/templates/verification-v2.json` as read by `specter-gate.sh`; shared
-  reviewer rules live in `specter-agent-protocols` §8; the normative design is
-  `docs/design/verification-v2.md`. Feature Map authors record the
-  evidence-bound closed 8-signal `### Verification signals` table but never
-  select a profile. The gate computes `ordinary`/`high-risk` inside each
-  station's aggregation — declared signals at verify/analyze, plus
-  deterministic changed-file facts at review; never prose scanning, never a
-  cross-phase floor. A manual override may raise only (`--raise-risk`). Both
-  profiles retain L1, two independent reviewers at dual stations,
-  station-fixed L3 worst aggregation, fresh rounds, input-digest freshness,
-  executable gates, Done Criteria, direct-call and Stop hooks, pre-commit/CI,
-  TAG wiring, and migration/destructive checks. The automatic round budget is
-  2, gate-enforced; human decisions are typed ledger events
-  (`specter-gate.sh decide`) from the closed §8 stop list. Legacy Features
-  without a signals table run high-risk until they gain one; malformed
-  config, partial sync, or lowering attempts fail safe.
-- **Provenance & Authority Lattice (2026-07-22)**: the canonical definition of
-  which artifact may authorize what lives in `specter-agent-protocols` §10.
-  Product behavior is added ONLY by PRD text (C-IDs) and appended PRD
-  Amendments. The Feature Map MAY carry an `## Implementation Obligations`
-  table (D-IDs, Layer-1 shape-validated); its rows are references, never
-  product authority — a D-ID used to justify NEW observable scope is an
-  ordinary blocking finding routed to a PRD Amendment (2026-07-30 D3: the
-  formal entailment test is retired from the gate). Clarify decisions are
-  typed `interpretation` (in-envelope, recorded with cited C-/D-ID) or
-  `scope-addition` (refused; routes to a PRD Amendment). Unpromised ideas
-  live in `docs/prd/opportunities.md`, which no gate, spec prompt, or
-  reviewer ever loads; promotion is Amendment-only via `/ms.expand`.
-  Journey-shaped commitments are owned by the Feature where the whole journey
-  first becomes verifiable. Untagged additions remain blocking invention
-  findings at every station. `/ms.pre-verify` tightens §4: its accepted
-  verdict always comes from a final full-scope dual audit.
-- Upstream Spec-Kit may emit its Claude integration as either
-  `.claude/commands/speckit.*.md` (command layout) or
-  `.claude/skills/speckit-*/SKILL.md` (native-skill layout), or both. `/ms.init`
-  patches every candidate file that exists; do not hardcode a single upstream path.
-- Keep the direct-call bypass guard intact: `/ms.init` injects the Feature Map +
-  checklist + Constitution gate (marker `MS_FEATUREMAP_GATE_START`) into the
-  upstream `speckit specify` file. Direct `/speckit.specify` must never bypass
-  `/ms.specify`'s gates, and `/ms.specify` must never accept freeform feature input.
-- Use `--integration claude` for Spec-Kit installs; the legacy `--ai` flags are
-  removed upstream.
-- **Loose coupling**: `/ms.init` pins upstream via `SPEC_KIT_REF` (default a verified
-  release) so upstream churn cannot silently break the wrappers. The `/ms.*` wrappers
-  delegate to upstream skills **by name** (current form is hyphenated: `/speckit-specify`,
-  `/speckit-plan`, `/speckit-tasks`, `/speckit-clarify`, `/speckit-analyze`,
-  `/speckit-implement`). These delegation names are the single coupling surface — if the pin
-  moves or upstream renames again, update the wrappers and the table in README
-  "Spec Kit 호환성 → 위임 지점". Do not reimplement the upstream engines unless a full
-  divorce from Spec-Kit is explicitly decided.
-- **Identity is non-negotiable**: when adapting to upstream, conform on *names, paths,
-  versions, and flags* only. Never weaken SPECTER's gates to fit Spec-Kit: the Feature-Map /
-  freeform-refusal / direct-call-bypass guard, GEARS reaching new specs, TAG chains,
-  Constitution Section IX, Codex verification, and SPECTER owning its own gates (not
-  delegating them to Spec-Kit's CLI flags). If keeping a gate intact would require giving up
-  one of these, that is the **divorce tripwire** — see README "Spec Kit 호환성 → 결별 기준".
+- `.claude/commands/` holds explicit `/ms.*` entrypoints; do not convert them
+  into skills.
+- `.claude/skills/` holds reusable rules and validators.
+- `.claude/agents/` holds specialist roles; author-only workflow agents are not
+  required.
+- `/ms.pre-specter` runs `featuremap → featuremap-checklist → pre-verify →
+  constitution`.
+- `/ms.specter` runs `checklist → verify → specify → clarify → plan → tasks →
+  analyze → implement → review`.
+- `/ms.prd` co-authors PRDs before the conductors. `/ms.expand` consumes an
+  appended PRD Amendment and refreshes the derived Feature Map. `/ms.audit`
+  remains advisory.
+
+### Lean verification contract
+
+Verification is state-free. `specter-gate.sh` checks structural prerequisites
+and reduces two station-fixed reviewer reports against the current input bundle
+hash. It writes no receipts, round state, risk profiles, typed decisions, or
+approval records. Both reviewers available means worst-of; one unavailable caps
+a non-FAIL result at WARN; both unavailable is FAIL. A station may rerun once,
+only after its inputs change.
+
+Legacy Verification-v2 receipts, round reports, signal tables, D-IDs, and
+profiles are tolerated but ignored. An in-flight station gets one lean recheck.
+Only `/ms.clarify` is a mandatory human stop inside the Feature cycle. Other
+commands return PASS/WARN/FAIL; WARN advances and FAIL terminates without asking
+for acknowledgment.
+
+### Progressive authority
+
+PRD and Amendments own product intent and explicit boundaries. The Feature Map
+is a mutable derived index that owns decomposition, ownership, order, and DAG;
+spec owns observable behavior; plan owns technical design; tasks own execution
+partition; code and tests own observed reality. Legitimate downstream refinement
+and reality correction do not require literal upstream wording. A new actor or
+journey, external integration, retained-data category, permission boundary, paid
+capability, or explicit boundary conflict routes to `/ms.clarify` with a
+proposed upstream patch.
+
+Unpromised ideas live in `docs/prd/opportunities.md`, which gates and reviewers
+do not load. Promotion requires a PRD Amendment via `/ms.expand`.
+
+### Integration invariants
+
+- Spec-Kit may emit command or native-skill layouts. `/ms.init` patches every
+  existing specify candidate.
+- Keep the `MS_FEATUREMAP_GATE_START` prompt guard and the direct-call hook.
+  Direct `/speckit-specify` cannot bypass the Feature Map, checklist,
+  Constitution, and per-Feature verification gates; `/ms.specify` refuses
+  freeform input.
+- Use `--integration claude`; legacy `--ai` flags are unsupported.
+- `/ms.init` pins `SPEC_KIT_REF`. Wrappers delegate to the hyphenated
+  upstream skills by name. If the pin or names change, update wrappers and the
+  README compatibility table together.
+- Adapt names, paths, versions, and flags only. Never weaken GEARS, TAG chains,
+  Constitution Section IX, direct-call protection, or SPECTER-owned gates to
+  accommodate upstream. That is the divorce tripwire.
 
 ---
 

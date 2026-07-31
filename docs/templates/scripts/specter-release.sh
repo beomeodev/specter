@@ -5,7 +5,7 @@
 # and merge/tag/release end-state verification. Strictly read-only: it never
 # mutates the repo, including remote-tracking refs — remote facts come from
 # `git ls-remote` (network read), never from `git fetch`. It never implies a
-# gate verdict — PASS/WARN/FAIL receipts belong to specter-gate.sh.
+# gate verdict — PASS/WARN/FAIL verification belongs to specter-gate.sh.
 #
 # Usage:
 #   specter-release.sh version
