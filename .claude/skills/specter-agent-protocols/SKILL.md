@@ -18,6 +18,15 @@ paths; this file defines only reusable mechanics.
 - A reviewer that implemented the Feature is recused from that Feature's review.
 - Check availability once per session. Retry an unavailable reviewer once.
 
+Antigravity dispatch is headless only: `agy -p "<prompt>" --print-timeout 10m`
+with stdout redirected to the lane's fixed report path. Never launch the
+interactive TUI from a session and never pass `--dangerously-skip-permissions`.
+Print mode auto-denies any command missing from `permissions.allow` in
+`~/.gemini/antigravity-cli/settings.json`; an auto-denied or empty response is
+an availability failure — fix the allowlist or record the lane UNAVAILABLE
+after the one retry. A workspace absent from `trustedWorkspaces` in the same
+file also blocks headless runs.
+
 ## 2. State-free report contract
 
 Before dispatch, run:
@@ -47,8 +56,10 @@ After both attempts, run the state-free reducer:
 ```
 
 The reducer reads the two fixed paths, requires one valid Result and the current
-hash, and returns the worst verdict. It writes no receipt, round state, ledger,
-profile, or approval token.
+hash, and returns the worst verdict. It writes no receipt, risk profile, or
+approval token; its only state is the append-only round log
+(`.specify/gate-rounds.log`) that enforces the rerun budget and records owner
+overrides. No verdict is ever read back from that log.
 
 Availability is mechanical:
 
@@ -67,6 +78,20 @@ There is one automatic rerun, and only after the finding caused an artifact or
 code change. The rerun is scoped to the finding and changed diff. Do not rerun
 unchanged inputs, add review rounds, or ask the human to acknowledge WARN/FAIL.
 PASS and WARN return to the conductor; FAIL terminates the command.
+
+The gate enforces this budget mechanically: after two FAIL reductions for a
+station and scope, further `reduce` calls are refused. Check
+`specter-gate.sh rounds <station> <scope>` before dispatching a rerun so no
+reviewer run is spent on a reduction that will be refused. Exceeding the budget
+requires the owner's explicit authorization recorded in the station's dispute
+file first, then `reduce <station> <scope> --override "<owner reason>"`; the
+reason is appended to the round log. Structural failures (missing report, stale
+hash, unavailable lanes) never consume budget — fix them and reduce again.
+
+At `/ms.analyze`, a finding closable only by code or runtime that
+`/ms.implement` has not yet produced is `UNVERIFIED — carried to review` and
+grades at worst WARN; FAIL is reserved for contradictory, incomplete, or
+out-of-bounds design artifacts. `/ms.review` grades every carried finding.
 
 ## 4. Progressive authority
 

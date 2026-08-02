@@ -27,7 +27,10 @@ product boundary changes or conflicts back to clarify.
 
 Do not run the full suite, full build, repeated entrypoint smoke, dual code
 review, or per-phase audit here. `/ms.review` owns them once. Do not create
-receipts, round files, coverage manifests, or approval stops.
+receipts, round files, coverage manifests, or approval stops. Do not pause
+between tasks to checkpoint progress or ask whether to continue — narrate
+into `implementation-notes.md` and keep executing until the task list is done
+or an actual blocker stops you.
 
 Invocation of `/ms.specter` authorizes repository-local changes required by
 the clarified Feature, including 3+ files, required creates/moves/deletes,

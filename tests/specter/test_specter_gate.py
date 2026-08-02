@@ -89,12 +89,14 @@ def write_reports(
         )
 
 
-def test_version_is_lean_and_state_free(repo: Path) -> None:
+def test_version_is_lean_with_round_log(repo: Path) -> None:
     data = output(run_gate(repo, "version"))
     assert data == {
         "contract": "lean-verification-v1",
-        "subcommands": ["hash", "reduce"],
+        "rev": 2,
+        "subcommands": ["hash", "reduce", "rounds"],
         "stateful": False,
+        "round_log": ".specify/gate-rounds.log",
     }
 
 
@@ -197,6 +199,164 @@ def test_legacy_gate_rejects_stale_feature_map_binding(repo: Path) -> None:
     result = run_gate(repo, "006")
     assert result.returncode != 0
     assert output(result)["overall"] == "FAIL"
+
+
+def touch_inputs(repo: Path) -> None:
+    checklist = repo / "docs/prd/checklists/feature-006.checklist.md"
+    checklist.write_text(checklist.read_text() + "touched\n")
+
+
+def fail_round(repo: Path) -> subprocess.CompletedProcess[str]:
+    write_reports(repo, digest(repo), "FAIL", "PASS")
+    return run_gate(repo, "reduce", "verify", "006")
+
+
+def test_round_cap_refuses_third_fail_round(repo: Path) -> None:
+    assert output(fail_round(repo))["verdict"] == "FAIL"
+    touch_inputs(repo)
+    assert output(fail_round(repo))["verdict"] == "FAIL"
+    touch_inputs(repo)
+    result = fail_round(repo)
+    assert result.returncode != 0
+    assert "round cap reached" in result.stdout
+    rounds = output(run_gate(repo, "rounds", "verify", "006"))
+    assert rounds["fail_rounds"] == 2
+    assert rounds["blocked"] is True
+
+
+def test_same_hash_reread_is_not_a_new_round(repo: Path) -> None:
+    fail_round(repo)
+    fail_round(repo)
+    assert output(run_gate(repo, "rounds", "verify", "006"))["fail_rounds"] == 1
+
+
+def test_override_runs_reduction_and_records_reason(repo: Path) -> None:
+    fail_round(repo)
+    touch_inputs(repo)
+    fail_round(repo)
+    touch_inputs(repo)
+    write_reports(repo, digest(repo), "PASS", "PASS")
+    result = run_gate(
+        repo, "reduce", "verify", "006", "--override", "owner authorized round 3"
+    )
+    assert result.returncode == 0
+    assert output(result)["verdict"] == "PASS"
+    assert output(result)["override"] == "owner authorized round 3"
+    log = (repo / ".specify/gate-rounds.log").read_text()
+    assert "owner authorized round 3" in log
+    assert output(run_gate(repo, "rounds", "verify", "006"))["blocked"] is False
+
+
+def test_override_requires_reason(repo: Path) -> None:
+    result = run_gate(repo, "reduce", "verify", "006", "--override", "")
+    assert result.returncode == 2
+
+
+def test_structural_failure_consumes_no_budget(repo: Path) -> None:
+    write_reports(repo, "0" * 64)
+    for _ in range(3):
+        result = run_gate(repo, "reduce", "verify", "006")
+        assert output(result)["verdict"] == "FAIL"
+        assert "stale" in result.stdout
+    assert output(run_gate(repo, "rounds", "verify", "006"))["fail_rounds"] == 0
+
+
+def test_pass_resets_the_streak(repo: Path) -> None:
+    fail_round(repo)
+    touch_inputs(repo)
+    write_reports(repo, digest(repo), "PASS", "PASS")
+    assert run_gate(repo, "reduce", "verify", "006").returncode == 0
+    assert output(run_gate(repo, "rounds", "verify", "006"))["fail_rounds"] == 0
+
+
+def test_composite_gate_does_not_log_or_block(repo: Path) -> None:
+    fail_round(repo)
+    touch_inputs(repo)
+    fail_round(repo)
+    write_reports(repo, digest(repo), "PASS", "PASS")
+    result = run_gate(repo, "006")
+    assert result.returncode == 0
+    log_lines = (repo / ".specify/gate-rounds.log").read_text().splitlines()
+    assert len(log_lines) == 2
+
+
+def write_global_override(repo: Path, reason: str = "owner accepts standing findings") -> None:
+    checklist_sha = hashlib.sha256(
+        (repo / "docs/prd/feature-map.checklist.md").read_bytes()
+    ).hexdigest()
+    (repo / "docs/prd/feature-map.checklist.override.md").write_text(
+        "**Mode**: global-override\n"
+        f"**Global Checklist SHA256**: {checklist_sha}\n"
+        f"**Reason**: {reason}\n"
+    )
+
+
+def test_global_override_downgrades_standing_fail_to_warn(repo: Path) -> None:
+    checklist = repo / "docs/prd/feature-map.checklist.md"
+    checklist.write_text(checklist.read_text().replace("**Result**: PASS", "**Result**: FAIL"))
+    write_global_override(repo)
+    write_reports(repo, digest(repo))
+    result = run_gate(repo, "006")
+    assert result.returncode == 0
+    data = output(result)
+    assert data["overall"] == "WARN"
+    assert any("overridden to WARN" in str(r) for r in data["reasons"])
+
+
+def test_global_override_invalidated_by_checklist_change(repo: Path) -> None:
+    checklist = repo / "docs/prd/feature-map.checklist.md"
+    checklist.write_text(checklist.read_text().replace("**Result**: PASS", "**Result**: FAIL"))
+    write_global_override(repo)
+    checklist.write_text(checklist.read_text() + "regenerated\n")
+    write_reports(repo, digest(repo))
+    result = run_gate(repo, "006")
+    assert result.returncode != 0
+    assert output(result)["overall"] == "FAIL"
+
+
+def test_global_override_requires_reason(repo: Path) -> None:
+    checklist = repo / "docs/prd/feature-map.checklist.md"
+    checklist.write_text(checklist.read_text().replace("**Result**: PASS", "**Result**: FAIL"))
+    write_global_override(repo, reason="")
+    write_reports(repo, digest(repo))
+    assert run_gate(repo, "006").returncode != 0
+
+
+def test_replay_shakedown_round_sequences(repo: Path) -> None:
+    """Replay the 2026-08 shakedown drift sequences (suseonglm 089/090/091).
+
+    Observed under rev 1: analyze ran 3 rounds in Features 090 and 091 and
+    review ran 4 rounds in Feature 089 against a prose cap of 2, while clean
+    stations (090 verify: WARN/WARN) never exceeded budget. rev 2 must block
+    the third FAIL round and leave the clean path untouched.
+    """
+    # 090/091 analyze drift shape: FAIL, FAIL, then round 3 must be refused.
+    fail_round(repo)
+    touch_inputs(repo)
+    fail_round(repo)
+    touch_inputs(repo)
+    blocked = fail_round(repo)
+    assert blocked.returncode != 0 and "round cap reached" in blocked.stdout
+    # Owner override (as recorded in the 090 dispute file) still works once.
+    write_reports(repo, digest(repo), "FAIL", "PASS")
+    overridden = run_gate(
+        repo, "reduce", "verify", "006", "--override", "dispute: owner authorized"
+    )
+    assert output(overridden)["verdict"] == "FAIL"
+    # A failed override round does not reopen the budget: round 4 needs its
+    # own authorization (089 review round 4 was individually user-authorized).
+    touch_inputs(repo)
+    write_reports(repo, digest(repo), "WARN", "WARN")
+    blocked_again = run_gate(repo, "reduce", "verify", "006")
+    assert blocked_again.returncode != 0
+    assert "round cap reached" in blocked_again.stdout
+    clean = run_gate(
+        repo, "reduce", "verify", "006", "--override", "dispute: owner authorized r4"
+    )
+    assert clean.returncode == 0
+    assert output(clean)["verdict"] == "WARN"
+    # The advancing verdict resets the streak: the next station visit is clean.
+    assert output(run_gate(repo, "rounds", "verify", "006"))["blocked"] is False
 
 
 def test_review_hash_tracks_code_but_ignores_review_outputs(repo: Path) -> None:

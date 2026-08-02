@@ -41,12 +41,19 @@ reality. Only boundary changes route to the one mandatory human stop,
 
 `docs/templates/scripts/specter-gate.sh` is a state-free mechanical checker.
 
-- `version`: capability probe (`lean-verification-v1`)
+- `version`: capability probe (`lean-verification-v1`, `rev` 2)
 - `hash <station> <scope>`: current input bundle hash
-- `reduce <station> <scope>`: validates two fixed reports and returns worst-of
-- `[NNN]`: global and optional per-Feature structural gate
+- `reduce <station> <scope> [--override <reason>]`: validates two fixed
+  reports and returns worst-of; refuses a third FAIL round without an owner
+  override reason
+- `rounds <station> <scope>`: current FAIL-round streak vs the cap of 2
+- `[NNN]`: global and optional per-Feature structural gate; a standing global
+  certification failure downgrades to WARN when
+  `docs/prd/feature-map.checklist.override.md` binds the current checklist SHA
 
-It writes no receipts, ledgers, rounds, profiles, signals, or approval events.
+It writes no receipts, ledgers, profiles, signals, or approval events. Its
+only state is the append-only round log `.specify/gate-rounds.log`, which
+enforces the rerun budget and records overrides but never supplies a verdict.
 Semantic judgment comes from fresh independent Codex and Antigravity reports.
 The shared contract is
 `.claude/skills/specter-agent-protocols/SKILL.md`.

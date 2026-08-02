@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
 # Lean deterministic SPECTER gate.
 # Mechanical only: required artifacts, exact verdict fields, current hashes,
-# fixed reviewer paths, and worst-of reduction. No receipts or workflow state.
+# fixed reviewer paths, and worst-of reduction. No receipts and no state that
+# shapes a verdict; the single append-only round log exists only to enforce
+# the rerun budget and record owner overrides.
 
 set -euo pipefail
 
 FEATURE_MAP="docs/prd/feature-map.md"
 GLOBAL_CHECKLIST="docs/prd/feature-map.checklist.md"
+GLOBAL_OVERRIDE="docs/prd/feature-map.checklist.override.md"
 CONSTITUTION=".specify/memory/constitution.md"
+ROUND_LOG=".specify/gate-rounds.log"
+ROUND_CAP=2
 
 json_escape() {
   local value="${1:-}"
@@ -35,6 +40,43 @@ field_value() {
   local file="$1" field="$2"
   grep -m1 "^[*][*]${field}[*][*]:" "$file" 2>/dev/null |
     sed -E "s/^[*][*]${field}[*][*]:[[:space:]]*//" || true
+}
+
+# Trailing consecutive FAIL judgment rounds for a station+scope. Only reduce
+# calls that evaluated actual reviewer judgment are logged, so structural
+# failures (missing report, stale hash, both lanes down) never burn budget.
+fail_streak() {
+  local station="$1" scope="$2"
+  [ -f "$ROUND_LOG" ] || { printf '0'; return; }
+  awk -F'|' -v st="$station" -v sc="$scope" '
+    $2 == st && $3 == sc { if ($5 == "FAIL") streak++; else streak = 0 }
+    END { print streak + 0 }
+  ' "$ROUND_LOG"
+}
+
+append_round() {
+  local station="$1" scope="$2" digest="$3" verdict="$4" override="$5" last
+  if [ -z "$override" ] && [ -f "$ROUND_LOG" ]; then
+    last="$(awk -F'|' -v st="$station" -v sc="$scope" \
+      '$2 == st && $3 == sc { line = $4 "|" $5 } END { print line }' "$ROUND_LOG")"
+    [ "$last" = "${digest}|${verdict}" ] && return 0
+  fi
+  mkdir -p "$(dirname "$ROUND_LOG")"
+  printf '%s|%s|%s|%s|%s|%s\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$station" "$scope" "$digest" "$verdict" \
+    "$override" >>"$ROUND_LOG"
+}
+
+# The owner override binds to the exact content of the global checklist it
+# accepts; any regeneration of the checklist invalidates it automatically.
+global_override_valid() {
+  [ -f "$GLOBAL_OVERRIDE" ] && [ -f "$GLOBAL_CHECKLIST" ] || return 1
+  [ "$(field_value "$GLOBAL_OVERRIDE" "Mode")" = "global-override" ] || return 1
+  [ -n "$(field_value "$GLOBAL_OVERRIDE" "Reason")" ] || return 1
+  local recorded current
+  recorded="$(field_value "$GLOBAL_OVERRIDE" "Global Checklist SHA256")"
+  current="$(sha256sum "$GLOBAL_CHECKLIST" | awk '{print $1}')"
+  [ -n "$recorded" ] && [ "$recorded" = "$current" ]
 }
 
 bundle_paths() {
@@ -122,8 +164,15 @@ emit_hash() {
 
 reduce_reports() {
   local station="$1" scope digest paths path result recorded availability
+  local log_rounds="${3:-1}" override="${4:-}"
   local unavailable=0 worst=0 errors=()
   scope="$(normalize_scope "$2")"
+  if [ "$log_rounds" -eq 1 ] && [ -z "$override" ] &&
+     [ "$(fail_streak "$station" "$scope")" -ge "$ROUND_CAP" ]; then
+    printf '{"contract":"lean-verification-v1","station":"%s","scope":"%s","verdict":"FAIL","reasons":["round cap reached: %s FAIL rounds recorded for this station and scope; record the owner authorization in the station dispute file and rerun with --override"]}\n' \
+      "$(json_escape "$station")" "$(json_escape "$scope")" "$ROUND_CAP"
+    return 1
+  fi
   if ! digest="$(bundle_hash "$station" "$scope")"; then
     errors+=("missing input artifact")
     digest=""
@@ -188,7 +237,12 @@ reduce_reports() {
   elif [ "$unavailable" -eq 1 ]; then
     reasons='["single reviewer unavailable; verdict capped at WARN"]'
   fi
-  printf '{"contract":"lean-verification-v1","station":"%s","scope":"%s","input_sha256":"%s","verdict":"%s","reasons":%s}\n'     "$(json_escape "$station")" "$(json_escape "$scope")" "$digest" "$verdict" "$reasons"
+  if [ "$log_rounds" -eq 1 ] && [ "${#errors[@]}" -eq 0 ] && [ "$unavailable" -le 1 ]; then
+    append_round "$station" "$scope" "$digest" "$verdict" "$override"
+  fi
+  local override_json=""
+  [ -n "$override" ] && override_json=",\"override\":\"$(json_escape "$override")\""
+  printf '{"contract":"lean-verification-v1","station":"%s","scope":"%s","input_sha256":"%s","verdict":"%s","reasons":%s%s}\n'     "$(json_escape "$station")" "$(json_escape "$scope")" "$digest" "$verdict" "$reasons" "$override_json"
   [ "$verdict" != "FAIL" ]
 }
 
@@ -201,17 +255,38 @@ legacy_gate() {
     [ -f "$path" ] || { reasons+=("missing: $path"); any_missing=true; }
   done
   if [ -f "$GLOBAL_CHECKLIST" ]; then
+    local override_ok=false
+    global_override_valid && override_ok=true
     [ "$(field_count "$GLOBAL_CHECKLIST" "Mode")" -eq 1 ] &&
       [ "$(field_value "$GLOBAL_CHECKLIST" "Mode")" = "global" ] ||
       { reasons+=("global checklist Mode is invalid"); any_fail=true; }
     [ "$(field_count "$GLOBAL_CHECKLIST" "Result")" -eq 1 ] ||
       { reasons+=("global checklist must contain exactly one Result"); any_fail=true; }
     result="$(field_value "$GLOBAL_CHECKLIST" "Result")"
-    case "$result" in PASS) ;; WARN) any_warn=true ;; *) reasons+=("global checklist Result is invalid"); any_fail=true ;; esac
+    case "$result" in
+      PASS) ;;
+      WARN) any_warn=true ;;
+      *)
+        if $override_ok; then
+          reasons+=("global checklist Result overridden to WARN by owner record")
+          any_warn=true
+        else
+          reasons+=("global checklist Result is invalid")
+          any_fail=true
+        fi
+        ;;
+    esac
     recorded="$(field_value "$GLOBAL_CHECKLIST" "Feature Map SHA256")"
     [ -f "$FEATURE_MAP" ] && current="$(sha256sum "$FEATURE_MAP" | awk '{print $1}')" || current=""
-    [ -n "$recorded" ] && [ "$recorded" = "$current" ] ||
-      { reasons+=("global checklist Feature Map SHA256 is stale"); any_fail=true; }
+    if [ -z "$recorded" ] || [ "$recorded" != "$current" ]; then
+      if $override_ok; then
+        reasons+=("global checklist Feature Map SHA256 staleness overridden to WARN by owner record")
+        any_warn=true
+      else
+        reasons+=("global checklist Feature Map SHA256 is stale")
+        any_fail=true
+      fi
+    fi
   fi
   if [ -f "$CONSTITUTION" ]; then
     grep -q '^## IX[.] Project-Specific Constraints' "$CONSTITUTION" ||
@@ -247,7 +322,7 @@ legacy_gate() {
       case "$result" in PASS) ;; WARN) any_warn=true ;; *) reasons+=("feature checklist Result is invalid"); any_fail=true ;; esac
     fi
     local reduced
-    if reduced="$(reduce_reports verify "$feature")"; then
+    if reduced="$(reduce_reports verify "$feature" 0 "")"; then
       [[ "$reduced" == *'"verdict":"WARN"'* ]] && any_warn=true
     else
       reasons+=("per-Feature verification reducer failed")
@@ -274,18 +349,33 @@ legacy_gate() {
 
 case "${1:-}" in
   version)
-    printf '{"contract":"lean-verification-v1","subcommands":["hash","reduce"],"stateful":false}\n'
+    printf '{"contract":"lean-verification-v1","rev":2,"subcommands":["hash","reduce","rounds"],"stateful":false,"round_log":"%s"}\n' "$ROUND_LOG"
     ;;
   hash)
     [ "$#" -eq 3 ] || { echo "usage: $0 hash <pre-verify|verify|analyze|review> <scope>" >&2; exit 2; }
     emit_hash "$2" "$3"
     ;;
   reduce)
-    [ "$#" -eq 3 ] || { echo "usage: $0 reduce <pre-verify|verify|analyze|review> <scope>" >&2; exit 2; }
-    reduce_reports "$2" "$3"
+    if [ "$#" -eq 3 ]; then
+      reduce_reports "$2" "$3" 1 ""
+    elif [ "$#" -eq 5 ] && [ "$4" = "--override" ] && [ -n "$5" ]; then
+      reduce_reports "$2" "$3" 1 "$5"
+    else
+      echo "usage: $0 reduce <pre-verify|verify|analyze|review> <scope> [--override <owner reason>]" >&2
+      exit 2
+    fi
+    ;;
+  rounds)
+    [ "$#" -eq 3 ] || { echo "usage: $0 rounds <pre-verify|verify|analyze|review> <scope>" >&2; exit 2; }
+    scope="$(normalize_scope "$3")"
+    streak="$(fail_streak "$2" "$scope")"
+    blocked=false
+    [ "$streak" -ge "$ROUND_CAP" ] && blocked=true
+    printf '{"contract":"lean-verification-v1","station":"%s","scope":"%s","fail_rounds":%s,"cap":%s,"blocked":%s}\n' \
+      "$(json_escape "$2")" "$(json_escape "$scope")" "$streak" "$ROUND_CAP" "$blocked"
     ;;
   *)
-    [ "$#" -le 1 ] || { echo "usage: $0 [feature] | version | hash <station> <scope> | reduce <station> <scope>" >&2; exit 2; }
+    [ "$#" -le 1 ] || { echo "usage: $0 [feature] | version | hash <station> <scope> | reduce <station> <scope> [--override <reason>] | rounds <station> <scope>" >&2; exit 2; }
     legacy_gate "${1:-}"
     ;;
 esac

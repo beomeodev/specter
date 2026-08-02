@@ -24,9 +24,17 @@ Write:
 - `specs/NNN-*/analyze.codex.md`
 - `specs/NNN-*/analyze.antigravity.md`
 
+Grade design consistency, not future runtime. A finding whose only remaining
+closure is code, tests, or runtime behavior that `/ms.implement` has not yet
+produced is recorded as `UNVERIFIED — carried to review` and grades at worst
+WARN. FAIL is reserved for spec, plan, or tasks that are themselves
+contradictory, incomplete, or outside product boundaries. `/ms.review` must
+grade every carried finding against the implemented code.
+
 Each follows the shared state-free report contract. Run
 `specter-gate.sh reduce analyze NNN`. One scoped rerun is allowed only after
-the artifacts change.
+the artifacts change; the gate refuses further rounds without a recorded
+owner override.
 
 PASS/WARN continues immediately. FAIL terminates with findings. Do not request
 acknowledgment, confirmation, delegation permission, or a review-round decision.

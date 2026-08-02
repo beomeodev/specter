@@ -5,6 +5,26 @@ All notable changes to this repository are documented in this file.
 ## [Unreleased]
 
 ### Changed
+- **lean 게이트 rev 2: 3피쳐 셰이크다운(089/090/091) 후속 보강 (2026-08-03)**:
+  산문 재실행 상한이 3/3 피쳐에서 초과된 실측을 근거로, 상한을 게이트가 강제.
+  - `specter-gate.sh`에 append-only 라운드 로그(`.specify/gate-rounds.log`)
+    추가: 같은 station·scope에서 FAIL 2라운드 후 `reduce` 거부,
+    `--override "<owner reason>"`로만 통과하며 사유가 로그에 남음. 구조적
+    실패(리포트 누락·stale hash·레인 부재)는 예산을 소모하지 않음.
+    `rounds` 서브커맨드로 사전 조회. verdict는 로그에서 절대 읽지 않음.
+  - 전역 인증 상시 FAIL의 사이클 입구 재질문 제거:
+    `docs/prd/feature-map.checklist.override.md`(체크리스트 내용 SHA 결속,
+    Reason 필수)가 유효하면 Result invalid/맵 SHA stale을 WARN으로 강등.
+    체크리스트가 재생성되면 오버라이드는 자동 무효.
+  - `/ms.analyze` 채점 규칙 수정: 코드·런타임에서만 닫히는 소견은
+    `UNVERIFIED — carried to review`로 WARN 상한, FAIL은 설계 산출물 자체의
+    모순·불완전·경계 이탈에만. review가 carried 소견을 의무 채점.
+  - `/ms.specter`·`/ms.implement`에 체크포인트 정지 금지 명문화(역 사이
+    같은 턴 진행, 중간보고는 산출물로), conductor에 설치본 게이트 자가 치유
+    (템플릿 rev 비교 후 복사·재프로브) 추가.
+  - Antigravity 디스패치 계약 명문화(protocols): headless `-p` 전용,
+    `--print-timeout`, stdout→레인 경로, `--dangerously-skip-permissions`
+    금지, 자동 거부는 가용성 실패로 처리.
 - **철거 후 재건축: refinement-first + lean verification (2026-07-31)**:
   7월 19일 이후 도입된 3층 검증 state machine을 제거하고
   `docs/design/refinement-first.md`를 정본으로 채택.
