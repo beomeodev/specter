@@ -52,9 +52,13 @@ field_value() {
 map_filtered() {
   local keep="$1" map_path="$2"
   awk -v keep="$keep" '
-    BEGIN { cur = -1 }
-    /^## Feature [0-9]+:/ { num = $3; sub(/:.*$/, "", num); cur = num + 0; print; next }
-    /^## / { cur = -1; print; next }
+    BEGIN { cur = -1; fence = 0 }
+    # A fenced block holds sample text, not structure. Without this guard a
+    # "## ..." line inside a Feature body ends the section, so the rest of that
+    # body leaks into the global skeleton and re-stales every other Feature.
+    /^[ \t]*(```|~~~)/ { fence = !fence; if (cur == -1 || (keep != "" && cur == keep + 0)) print; next }
+    !fence && /^## Feature [0-9]+:/ { num = $3; sub(/:.*$/, "", num); cur = num + 0; print; next }
+    !fence && /^## / { cur = -1; print; next }
     { if (cur == -1) print; else if (keep != "" && cur == keep + 0) print }
   ' "$map_path"
 }

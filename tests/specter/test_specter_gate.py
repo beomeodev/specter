@@ -34,16 +34,23 @@ FEATURE_HEADING = re.compile(r"^## Feature (\d+):")
 
 def _tagged_lines(text: str):
     """Yield (owning feature or None, line). A Feature heading is global: it
-    belongs to the map's decomposition, not to the section body it opens."""
+    belongs to the map's decomposition, not to the section body it opens.
+    Text inside a fenced block is content, never structure."""
     current: str | None = None
+    fence = False
     for line in text.splitlines(keepends=True):
-        match = FEATURE_HEADING.match(line)
-        if match:
-            current = str(int(match.group(1)))
-            yield None, line
+        if line.lstrip(" \t").startswith(("```", "~~~")):
+            fence = not fence
+            yield current, line
             continue
-        if line.startswith("## "):
-            current = None
+        if not fence:
+            match = FEATURE_HEADING.match(line)
+            if match:
+                current = str(int(match.group(1)))
+                yield None, line
+                continue
+            if line.startswith("## "):
+                current = None
         yield current, line
 
 
@@ -424,6 +431,33 @@ def test_adding_a_feature_still_stales_the_global_checklist(repo: Path) -> None:
     result = run_gate(repo, "006")
     assert result.returncode != 0
     assert output(result)["overall"] == "FAIL"
+
+
+def test_fenced_heading_does_not_leak_a_feature_body_into_the_skeleton(
+    repo: Path,
+) -> None:
+    """A "## ..." line inside a fenced block is sample text, not a section end.
+
+    Treating it as structure pushes the rest of that Feature's body into the
+    global skeleton, so editing that Feature re-stales every other Feature —
+    exactly the coupling this scoping removes.
+    """
+    path = repo / "docs/prd/feature-map.md"
+    path.write_text(
+        path.read_text().replace(
+            "### In scope\n- Store items\n",
+            "### In scope\n```bash\n## not a heading\n```\n- Store items\n",
+        )
+    )
+    rebind_checklists(repo)
+    write_reports(repo, digest(repo))
+    before_global = run_gate(repo, "map-sha", "006")
+    path.write_text(path.read_text().replace("- Store items\n", "- Store items fast\n"))
+    after_global = run_gate(repo, "map-sha", "006")
+    assert (
+        output(before_global)["global_sha256"] == output(after_global)["global_sha256"]
+    )
+    assert output(before_global)["scope_sha256"] != output(after_global)["scope_sha256"]
 
 
 def test_legacy_whole_map_binding_is_still_accepted(repo: Path) -> None:
