@@ -409,9 +409,14 @@ legacy_gate() {
       feature_field="$(field_value "$checklist" "Feature")"
       [[ "$feature_field" == *"Feature $feature"* ]] ||
         { reasons+=("feature checklist does not match Feature $feature"); any_fail=true; }
+      # The station bundle always hashes the canonical map, so a checklist that
+      # binds a different file proves nothing: an untouched copy would satisfy
+      # the binding while the real map's edit went unnoticed.
       map_path="$(field_value "$checklist" "Feature Map")"
       map_path="${map_path%% *}"
-      [ -n "$map_path" ] || map_path="$FEATURE_MAP"
+      [ -z "$map_path" ] || [ "$map_path" = "$FEATURE_MAP" ] ||
+        { reasons+=("feature checklist binds $map_path, not $FEATURE_MAP"); any_fail=true; }
+      map_path="$FEATURE_MAP"
       if [ -f "$map_path" ]; then
         map_has_feature "$feature" "$map_path" ||
           { reasons+=("Feature $feature has no section in $map_path"); any_fail=true; }

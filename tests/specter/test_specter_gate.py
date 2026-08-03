@@ -48,7 +48,9 @@ DEPENDENCY_MAP_TEXT = (
     "### In scope\n- Report items\n"
 )
 
-FEATURE_HEADING = re.compile(r"^## Feature (\d+):")
+# ASCII digits only, matching awk's [0-9]; `\d` would also accept other Unicode
+# decimal digits and silently disagree with the shell partition.
+FEATURE_HEADING = re.compile(r"^## Feature ([0-9]+):")
 
 
 def _tagged_lines(text: str):
@@ -588,6 +590,10 @@ PARITY_MAPS = [
     pytest.param(MAP_TEXT.replace("\n", "\r\n"), id="crlf"),
     pytest.param(MAP_TEXT.rstrip("\n"), id="no-trailing-newline"),
     pytest.param(DEPENDENCY_MAP_TEXT, id="dependencies"),
+    pytest.param(
+        MAP_TEXT.replace("## Feature 012: Reporting", "## Feature ١٢٣: Unicode"),
+        id="unicode-digits",
+    ),
 ]
 
 
@@ -663,6 +669,34 @@ def test_a_fenced_feature_heading_is_not_a_real_feature(repo: Path) -> None:
     result = run_gate(repo, "map-sha", "999")
     assert result.returncode != 0
     assert "no such Feature" in result.stderr
+
+
+def test_a_checklist_binding_a_different_map_is_rejected(repo: Path) -> None:
+    """The station hashes the canonical map, so binding a copy proves nothing.
+
+    An untouched duplicate would keep the binding current while the real map's
+    edit went unnoticed, defeating the invalidation the scoping exists for.
+    """
+    decoy = repo / "docs/prd/other-map.md"
+    decoy.write_text(MAP_TEXT)
+    checklist = repo / "docs/prd/checklists/feature-006.checklist.md"
+    checklist.write_text(
+        checklist.read_text()
+        .replace(
+            "**Feature Map**: docs/prd/feature-map.md",
+            "**Feature Map**: docs/prd/other-map.md",
+        )
+        .replace(
+            "**Feature Map SHA256**: ",
+            f"**Feature Map SHA256**: {expected_scope_sha(MAP_TEXT, '006')} #",
+        )
+    )
+    write_reports(repo, digest(repo))
+    result = run_gate(repo, "006")
+    assert result.returncode != 0
+    assert any(
+        "not docs/prd/feature-map.md" in str(r) for r in output(result)["reasons"]
+    )
 
 
 def test_map_sha_rejects_a_feature_absent_from_the_map(repo: Path) -> None:

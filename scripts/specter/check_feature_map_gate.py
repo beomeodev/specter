@@ -29,7 +29,9 @@ import sys
 FEATURE_MAP = "docs/prd/feature-map.md"
 CHECKLIST = "docs/prd/feature-map.checklist.md"
 SHA_FIELD_RE = re.compile(r"^\*\*Feature Map SHA256\*\*:\s*(\S+)", re.MULTILINE)
-FEATURE_HEADING_RE = re.compile(r"^## Feature (\d+):")
+# ASCII digits only: awk's [0-9] does not match other Unicode decimal digits, and
+# `\d` would, so the two parsers must not disagree about what a Feature heading is.
+FEATURE_HEADING_RE = re.compile(r"^## Feature [0-9]+:")
 FENCES = ("```", "~~~")
 
 
