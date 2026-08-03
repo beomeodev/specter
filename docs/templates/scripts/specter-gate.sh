@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# @CODE:FIX-GATE-SCOPE-001
 # Lean deterministic SPECTER gate.
 # Mechanical only: required artifacts, exact verdict fields, current hashes,
 # fixed reviewer paths, and worst-of reduction. No receipts and no state that
@@ -40,6 +41,96 @@ field_value() {
   local file="$1" field="$2"
   grep -m1 "^[*][*]${field}[*][*]:" "$file" 2>/dev/null |
     sed -E "s/^[*][*]${field}[*][*]:[[:space:]]*//" || true
+}
+
+# Feature Map staleness is scoped, not whole-file. A `## Feature NNN:` heading
+# is global content — it carries the map's decomposition — while the body under
+# it belongs to that Feature alone. So refining one Feature's section leaves
+# every other Feature's binding intact, while adding, removing, or reordering a
+# Feature, or editing the commitment index, still binds globally.
+#
+# `### Dependencies` is the exception: /ms.featuremap requires every Feature
+# section to carry one, so the dependency DAG lives inside the bodies even
+# though it is shared state. Those subsections stay global, otherwise rewriting
+# one Feature's edges would silently leave every affected dependent bound to a
+# DAG that no longer exists.
+#
+# The shared parser rules, which the Python backstop in
+# scripts/specter/check_feature_map_gate.py must reproduce byte for byte:
+#   - records split on \n; every emitted record is printed with a trailing \n
+#   - a fenced block holds sample text, never structure, and closes only on the
+#     same delimiter character repeated at least as many times as the opener
+# $1 = Feature to keep ("" keeps only the global skeleton), $2 = map path.
+map_filtered() {
+  local keep="$1" map_path="$2"
+  awk -v keep="$keep" '
+    function isglob() { return (cur == -1 || dep) }
+    function emit() { if (isglob() || (keep != "" && cur == keep + 0)) print }
+    BEGIN { cur = -1; dep = 0; fence = 0; fchar = ""; flen = 0 }
+    /^[ \t]*(```|~~~)/ {
+      l = $0; sub(/^[ \t]+/, "", l); ch = substr(l, 1, 1); n = 0
+      while (substr(l, n + 1, 1) == ch) n++
+      if (!fence) { fence = 1; fchar = ch; flen = n }
+      else if (ch == fchar && n >= flen) fence = 0
+      emit(); next
+    }
+    !fence && /^## Feature [0-9]+:/ { num = $3; sub(/:.*$/, "", num); cur = num + 0; dep = 0; print; next }
+    !fence && /^## / { cur = -1; dep = 0; print; next }
+    !fence && /^### / { dep = (cur != -1 && $0 ~ /^### Dependencies/); emit(); next }
+    { emit() }
+  ' "$map_path"
+}
+
+map_global_sha() {
+  map_filtered "" "$1" | sha256sum | awk '{print $1}'
+}
+
+# A Feature with no section in the map has no slice of its own, so its scoped
+# digest would silently equal the global skeleton and let a checklist for a
+# nonexistent Feature satisfy the gate. Fence state is tracked exactly as in
+# map_filtered: a heading that only appears inside a sample block is not a
+# section, so existence and partitioning cannot disagree.
+map_has_feature() {
+  local feature="$1" map_path="$2"
+  awk -v want="$feature" '
+    BEGIN { fence = 0; fchar = ""; flen = 0 }
+    /^[ \t]*(```|~~~)/ {
+      l = $0; sub(/^[ \t]+/, "", l); ch = substr(l, 1, 1); n = 0
+      while (substr(l, n + 1, 1) == ch) n++
+      if (!fence) { fence = 1; fchar = ch; flen = n }
+      else if (ch == fchar && n >= flen) fence = 0
+      next
+    }
+    !fence && /^## Feature [0-9]+:/ { num = $3; sub(/:.*$/, "", num); if (num + 0 == want + 0) { found = 1; exit } }
+    END { exit !found }
+  ' "$map_path"
+}
+
+map_scope_sha() {
+  map_filtered "$1" "$2" | sha256sum | awk '{print $1}'
+}
+
+# A recorded binding is current when it matches the scope it was written for.
+# The whole-file digest is accepted too so checklists written before scoping
+# keep working until they are next regenerated.
+map_binding_current() {
+  local recorded="$1" scoped="$2" map_path="$3"
+  [ -n "$recorded" ] || return 1
+  [ "$recorded" = "$scoped" ] && return 0
+  [ "$recorded" = "$(sha256sum "$map_path" | awk '{print $1}')" ]
+}
+
+feature_override_valid() {
+  local feature="$1"
+  local override="docs/prd/checklists/feature-${feature}.checklist.override.md"
+  local checklist="docs/prd/checklists/feature-${feature}.checklist.md"
+  [ -f "$override" ] && [ -f "$checklist" ] || return 1
+  [ "$(field_value "$override" "Mode")" = "feature-override" ] || return 1
+  [ -n "$(field_value "$override" "Reason")" ] || return 1
+  local recorded current
+  recorded="$(field_value "$override" "Feature Checklist SHA256")"
+  current="$(sha256sum "$checklist" | awk '{print $1}')"
+  [ -n "$recorded" ] && [ "$recorded" = "$current" ]
 }
 
 # Trailing consecutive FAIL judgment rounds for a station+scope. Only reduce
@@ -121,7 +212,17 @@ bundle_hash() {
   done <<<"$paths"
   {
     while IFS= read -r path; do
-      sha256sum "$path"
+      # Each station hashes the map at the scope it actually owns, matching the
+      # binding its checklist records. Otherwise the checklist reads current
+      # while the station's reports read stale, and the cycle stalls anyway.
+      if [ "$path" = "$FEATURE_MAP" ] &&
+        { [ "$station" = "verify" ] || [ "$station" = "analyze" ]; }; then
+        printf '%s  %s\n' "$(map_scope_sha "$scope" "$path")" "$path"
+      elif [ "$path" = "$FEATURE_MAP" ] && [ "$station" = "pre-verify" ]; then
+        printf '%s  %s\n' "$(map_global_sha "$path")" "$path"
+      else
+        sha256sum "$path"
+      fi
     done <<<"$paths"
     if [ "$station" = "review" ]; then
       git diff --binary HEAD -- . \
@@ -277,8 +378,10 @@ legacy_gate() {
         ;;
     esac
     recorded="$(field_value "$GLOBAL_CHECKLIST" "Feature Map SHA256")"
-    [ -f "$FEATURE_MAP" ] && current="$(sha256sum "$FEATURE_MAP" | awk '{print $1}')" || current=""
-    if [ -z "$recorded" ] || [ "$recorded" != "$current" ]; then
+    if [ -f "$FEATURE_MAP" ] &&
+      map_binding_current "$recorded" "$(map_global_sha "$FEATURE_MAP")" "$FEATURE_MAP"; then
+      :
+    else
       if $override_ok; then
         reasons+=("global checklist Feature Map SHA256 staleness overridden to WARN by owner record")
         any_warn=true
@@ -302,18 +405,32 @@ legacy_gate() {
       [ "$(field_count "$checklist" "Mode")" -eq 1 ] &&
         [ "$(field_value "$checklist" "Mode")" = "per-feature" ] ||
         { reasons+=("feature checklist Mode is invalid"); any_fail=true; }
-      local feature_field map_path recorded_map_sha current_map_sha
+      local feature_field map_path recorded_map_sha
       feature_field="$(field_value "$checklist" "Feature")"
       [[ "$feature_field" == *"Feature $feature"* ]] ||
         { reasons+=("feature checklist does not match Feature $feature"); any_fail=true; }
+      # The station bundle always hashes the canonical map, so a checklist that
+      # binds a different file proves nothing: an untouched copy would satisfy
+      # the binding while the real map's edit went unnoticed.
       map_path="$(field_value "$checklist" "Feature Map")"
       map_path="${map_path%% *}"
-      [ -n "$map_path" ] || map_path="$FEATURE_MAP"
+      [ -z "$map_path" ] || [ "$map_path" = "$FEATURE_MAP" ] ||
+        { reasons+=("feature checklist binds $map_path, not $FEATURE_MAP"); any_fail=true; }
+      map_path="$FEATURE_MAP"
       if [ -f "$map_path" ]; then
+        map_has_feature "$feature" "$map_path" ||
+          { reasons+=("Feature $feature has no section in $map_path"); any_fail=true; }
         recorded_map_sha="$(field_value "$checklist" "Feature Map SHA256")"
-        current_map_sha="$(sha256sum "$map_path" | awk '{print $1}')"
-        [ -n "$recorded_map_sha" ] && [ "$recorded_map_sha" = "$current_map_sha" ] ||
-          { reasons+=("feature checklist Feature Map SHA256 is stale"); any_fail=true; }
+        if map_binding_current "$recorded_map_sha" \
+          "$(map_scope_sha "$feature" "$map_path")" "$map_path"; then
+          :
+        elif feature_override_valid "$feature"; then
+          reasons+=("feature checklist Feature Map SHA256 staleness overridden to WARN by owner record")
+          any_warn=true
+        else
+          reasons+=("feature checklist Feature Map SHA256 is stale")
+          any_fail=true
+        fi
       else
         reasons+=("missing: $map_path")
         any_missing=true
@@ -349,7 +466,17 @@ legacy_gate() {
 
 case "${1:-}" in
   version)
-    printf '{"contract":"lean-verification-v1","rev":2,"subcommands":["hash","reduce","rounds"],"stateful":false,"round_log":"%s"}\n' "$ROUND_LOG"
+    printf '{"contract":"lean-verification-v1","rev":3,"subcommands":["hash","reduce","rounds","map-sha"],"stateful":false,"round_log":"%s"}\n' "$ROUND_LOG"
+    ;;
+  map-sha)
+    [ "$#" -eq 2 ] || { echo "usage: $0 map-sha <feature>" >&2; exit 2; }
+    [[ "$2" =~ ^[0-9]+$ ]] || { echo "map-sha requires a Feature number" >&2; exit 2; }
+    map_scope="$(normalize_scope "$2")"
+    [ -f "$FEATURE_MAP" ] || { echo "missing: $FEATURE_MAP" >&2; exit 1; }
+    map_has_feature "$map_scope" "$FEATURE_MAP" ||
+      { echo "no such Feature in $FEATURE_MAP: $map_scope" >&2; exit 1; }
+    printf '{"contract":"lean-verification-v1","feature":"%s","scope_sha256":"%s","global_sha256":"%s"}\n' \
+      "$map_scope" "$(map_scope_sha "$map_scope" "$FEATURE_MAP")" "$(map_global_sha "$FEATURE_MAP")"
     ;;
   hash)
     [ "$#" -eq 3 ] || { echo "usage: $0 hash <pre-verify|verify|analyze|review> <scope>" >&2; exit 2; }

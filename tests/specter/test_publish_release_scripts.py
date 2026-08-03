@@ -432,7 +432,9 @@ class TestCiMode:
         (repo / "g.py").write_text("w = 1\n")
         data = run_script(PUBLISH, repo, "ci-mode")
         assert data["ci"] == "RUN"
-        assert any("g.py" in m and "not in review cache" in m for m in data["mismatches"])
+        assert any(
+            "g.py" in m and "not in review cache" in m for m in data["mismatches"]
+        )
 
     def test_committed_unpushed_source_is_run(self, repo: Path) -> None:
         self._reviewed_repo(repo)
@@ -521,9 +523,7 @@ class TestSelfReviewStamp:
         assert result.returncode == 0, result.stderr
         return json.loads(result.stdout)
 
-    def test_submitted_and_duplicate_skipped(
-        self, repo: Path, tmp_path: Path
-    ) -> None:
+    def test_submitted_and_duplicate_skipped(self, repo: Path, tmp_path: Path) -> None:
         env = self._env_with_gh(tmp_path, GH_SHIM_OK)
         data = self._stamp(repo, env, "READY: gates green")
         assert data["status"] == "submitted"
@@ -602,9 +602,7 @@ class TestClassifyCi:
         env = make_gh_classify_shim(
             tmp_path,
             r"FAILURE\x1fci\x1fhttps://x/actions/runs/9/job/1\n",
-            '  case "$path" in\n'
-            '    */runs/9) echo "startup_failure";;\n'
-            "  esac\n",
+            '  case "$path" in\n    */runs/9) echo "startup_failure";;\n  esac\n',
         )
         data = self._classify(repo, env)
         assert data["overall"] == "billing_infra_only"
@@ -640,9 +638,7 @@ class TestClassifyCi:
     def test_external_check_without_run_link_needs_human(
         self, repo: Path, tmp_path: Path
     ) -> None:
-        env = make_gh_classify_shim(
-            tmp_path, r"FAILURE\x1fexternal-scan\x1f\n", ""
-        )
+        env = make_gh_classify_shim(tmp_path, r"FAILURE\x1fexternal-scan\x1f\n", "")
         data = self._classify(repo, env)
         assert data["overall"] == "needs_human"
         assert "external" in data["failures"][0]["evidence"]
@@ -652,9 +648,7 @@ class TestClassifyCi:
             tmp_path,
             r"PENDING\x1fbuild\x1fhttps://x/actions/runs/3/job/1\n"
             r"FAILURE\x1fci\x1fhttps://x/actions/runs/9/job/1\n",
-            '  case "$path" in\n'
-            '    */runs/9) echo "startup_failure";;\n'
-            "  esac\n",
+            '  case "$path" in\n    */runs/9) echo "startup_failure";;\n  esac\n',
         )
         data = self._classify(repo, env)
         assert data["overall"] == "pending"

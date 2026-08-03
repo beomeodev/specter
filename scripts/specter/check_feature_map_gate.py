@@ -29,6 +29,70 @@ import sys
 FEATURE_MAP = "docs/prd/feature-map.md"
 CHECKLIST = "docs/prd/feature-map.checklist.md"
 SHA_FIELD_RE = re.compile(r"^\*\*Feature Map SHA256\*\*:\s*(\S+)", re.MULTILINE)
+# ASCII digits only: awk's [0-9] does not match other Unicode decimal digits, and
+# `\d` would, so the two parsers must not disagree about what a Feature heading is.
+FEATURE_HEADING_RE = re.compile(r"^## Feature [0-9]+:")
+FENCES = ("```", "~~~")
+
+
+def global_skeleton(text: str) -> str:
+    """The map with every Feature section body removed.
+
+    Must stay byte-identical to ``map_filtered ""`` in
+    ``docs/templates/scripts/specter-gate.sh``; the parity matrix in
+    ``tests/specter/test_specter_gate.py`` pins the two implementations
+    together. A Feature heading is global content — it carries the map's
+    decomposition — while the body under it belongs to that Feature, except for
+    the ``### Dependencies`` subsection that ``/ms.featuremap`` requires in
+    every Feature: the DAG is shared state and stays global.
+
+    Two parser details exist to match awk rather than idiomatic Python:
+    records split on ``\\n`` only (never on other Unicode line boundaries), and
+    every emitted record is written with a trailing newline, because ``print``
+    appends ORS whether or not the file ended with one.
+    """
+    parts = text.split("\n")
+    if parts and parts[-1] == "":
+        parts.pop()
+
+    kept: list[str] = []
+    in_feature = False
+    in_dependencies = False
+    fence_char = ""
+    fence_len = 0
+
+    def emit(record: str) -> None:
+        if not in_feature or in_dependencies:
+            kept.append(record + "\n")
+
+    for record in parts:
+        stripped = record.lstrip(" \t")
+        if stripped.startswith(FENCES):
+            char = stripped[0]
+            length = len(stripped) - len(stripped.lstrip(char))
+            if not fence_char:
+                fence_char, fence_len = char, length
+            elif char == fence_char and length >= fence_len:
+                fence_char, fence_len = "", 0
+            emit(record)
+            continue
+        if not fence_char:
+            if FEATURE_HEADING_RE.match(record):
+                in_feature = True
+                in_dependencies = False
+                kept.append(record + "\n")
+                continue
+            if record.startswith("## "):
+                in_feature = False
+                in_dependencies = False
+                kept.append(record + "\n")
+                continue
+            if record.startswith("### "):
+                in_dependencies = in_feature and record.startswith("### Dependencies")
+                emit(record)
+                continue
+        emit(record)
+    return "".join(kept)
 
 
 def staged_files() -> set[str]:
@@ -42,15 +106,17 @@ def staged_files() -> set[str]:
 
 
 def git_show(ref: str, path: str) -> str | None:
+    # Bytes, not text mode: universal-newline translation would fold CRLF to LF
+    # here while awk keeps the carriage return, so a CRLF map would hash
+    # differently in the two implementations and reject its own checklist.
     result = subprocess.run(
         ["git", "show", f"{ref}:{path}"],
         capture_output=True,
-        text=True,
         check=False,
     )
     if result.returncode != 0:
         return None
-    return result.stdout
+    return result.stdout.decode("utf-8")
 
 
 def main() -> int:
@@ -74,7 +140,13 @@ def main() -> int:
         )
         return 1
 
-    current_sha = hashlib.sha256(staged_map.encode("utf-8")).hexdigest()
+    # The global checklist binds to the map's shared content, not to every
+    # byte, so refining one Feature's section must not block the commit. The
+    # whole-file digest stays accepted for checklists written before scoping.
+    skeleton_sha = hashlib.sha256(
+        global_skeleton(staged_map).encode("utf-8")
+    ).hexdigest()
+    whole_sha = hashlib.sha256(staged_map.encode("utf-8")).hexdigest()
 
     checklist_text = (
         git_show("", CHECKLIST) if CHECKLIST in changed else git_show("HEAD", CHECKLIST)
@@ -93,11 +165,11 @@ def main() -> int:
     match = SHA_FIELD_RE.search(checklist_text)
     recorded_sha = match.group(1) if match else None
 
-    if recorded_sha != current_sha:
+    if recorded_sha not in (skeleton_sha, whole_sha):
         print(
             "Feature Map gate coherence check failed:\n"
-            f"  {FEATURE_MAP} staged SHA256:   {current_sha}\n"
-            f"  {CHECKLIST} recorded SHA256: {recorded_sha or '(missing)'}\n\n"
+            f"  {FEATURE_MAP} staged global SHA256: {skeleton_sha}\n"
+            f"  {CHECKLIST} recorded SHA256:        {recorded_sha or '(missing)'}\n\n"
             "Feature Map changed without a matching gate. Run /ms.pre-verify or /ms.expand first.\n"
             "(Deliberate override: git commit --no-verify.)",
             file=sys.stderr,

@@ -37,9 +37,15 @@ Finally write `docs/prd/feature-map.checklist.md` with:
 
 ```markdown
 **Mode**: global
-**Feature Map SHA256**: <current map sha256>
+**Feature Map SHA256**: <global_sha256 from specter-gate.sh map-sha>
 **Result**: PASS | WARN | FAIL
 ```
+
+Record `global_sha256`, not a digest of the whole file. The global audit binds
+to the map's shared content and its set of Feature headings, so refining one
+Feature's section no longer stales this checklist and forces the whole
+pre-specter chain again; adding, removing, or reordering a Feature, or editing
+the commitment index, still does.
 
 Include compact findings and both report paths. The Result must equal the
 reducer verdict. PASS/WARN returns immediately; FAIL terminates. No acknowledgment
