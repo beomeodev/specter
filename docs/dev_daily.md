@@ -38,3 +38,17 @@
 - 문서: /ms.checklist·/ms.pre-verify가 map-sha 결과를 기록하도록 지시 변경.
 - 검증: tests/specter 150개 통과(신규 11개 — 무관 섹션 수정 통과, 자기 섹션·공용부·
   Feature 추가는 FAIL 유지, override 3종, 레거시 바인딩 호환).
+- 독립 리뷰(Codex gpt-5.6-luna/high, Antigravity gemini-3.6-flash) 반영: 양측 FAIL →
+  확정 결함 5건 수정. (1) 커밋 시점 백스톱 check_feature_map_gate.py가 여전히 파일
+  전체 해시를 요구해 새 계약대로 기록하면 커밋이 막히던 문제 — 동일 분할을 파이썬으로
+  포팅하고 쉘/파이썬 패리티 테스트로 묶었다. (2) pre-verify 입력 묶음이 전체 해시를
+  써서 증상이 절반만 고쳐지던 문제. (3) 코드블록 안 '## '가 섹션을 끊던 문제와
+  (4) 서로 다른 펜스 기호 중첩. (5) 지도에 없는 Feature 번호가 전역 뼈대 해시로
+  조용히 통과하던 구멍 — map-sha와 게이트 양쪽에서 거부.
+  반려 2건: Feature 본문 내 '## ' 하위제목(지도 형식은 '###'를 쓰며 구 게이트도 동일
+  규약), override 필드 중복 검사(기존 global_override_valid와 동일 수준이며 위조에
+  이미 저장소 쓰기 권한이 필요).
+- 잔여 위험(설계상 의도): Feature 간 의존/계약을 특정 Feature 본문 안에만 적어두면
+  그 수정이 의존 Feature를 stale 처리하지 않는다. 공유 계약은 지도의 공용 영역
+  (첫 Feature 제목 이전 또는 별도 최상위 섹션)에 두어야 한다.
+- 검증: make ci 전체 통과, tests/specter 162개.

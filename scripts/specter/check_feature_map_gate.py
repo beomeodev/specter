@@ -29,6 +29,45 @@ import sys
 FEATURE_MAP = "docs/prd/feature-map.md"
 CHECKLIST = "docs/prd/feature-map.checklist.md"
 SHA_FIELD_RE = re.compile(r"^\*\*Feature Map SHA256\*\*:\s*(\S+)", re.MULTILINE)
+FEATURE_HEADING_RE = re.compile(r"^## Feature (\d+):")
+FENCES = ("```", "~~~")
+
+
+def global_skeleton(text: str) -> str:
+    """The map with every Feature section body removed.
+
+    Must stay byte-identical to ``map_filtered ""`` in
+    ``docs/templates/scripts/specter-gate.sh``; the parity test in
+    ``tests/specter/test_specter_gate.py`` pins the two implementations
+    together. A Feature heading is global content — it carries the map's
+    decomposition — while the body under it belongs to that Feature. Lines
+    inside a fenced block are sample text, never structure, and only a matching
+    delimiter closes the block.
+    """
+    kept: list[str] = []
+    in_feature = False
+    fence = ""
+    for line in text.splitlines(keepends=True):
+        stripped = line.lstrip(" \t")
+        opener = next((d for d in FENCES if stripped.startswith(d)), None)
+        if opener:
+            if not fence:
+                fence = opener
+            elif fence == opener:
+                fence = ""
+            if not in_feature:
+                kept.append(line)
+            continue
+        if not fence:
+            if FEATURE_HEADING_RE.match(line):
+                in_feature = True
+                kept.append(line)
+                continue
+            if line.startswith("## "):
+                in_feature = False
+        if not in_feature:
+            kept.append(line)
+    return "".join(kept)
 
 
 def staged_files() -> set[str]:
@@ -74,7 +113,13 @@ def main() -> int:
         )
         return 1
 
-    current_sha = hashlib.sha256(staged_map.encode("utf-8")).hexdigest()
+    # The global checklist binds to the map's shared content, not to every
+    # byte, so refining one Feature's section must not block the commit. The
+    # whole-file digest stays accepted for checklists written before scoping.
+    skeleton_sha = hashlib.sha256(
+        global_skeleton(staged_map).encode("utf-8")
+    ).hexdigest()
+    whole_sha = hashlib.sha256(staged_map.encode("utf-8")).hexdigest()
 
     checklist_text = (
         git_show("", CHECKLIST) if CHECKLIST in changed else git_show("HEAD", CHECKLIST)
@@ -93,11 +138,11 @@ def main() -> int:
     match = SHA_FIELD_RE.search(checklist_text)
     recorded_sha = match.group(1) if match else None
 
-    if recorded_sha != current_sha:
+    if recorded_sha not in (skeleton_sha, whole_sha):
         print(
             "Feature Map gate coherence check failed:\n"
-            f"  {FEATURE_MAP} staged SHA256:   {current_sha}\n"
-            f"  {CHECKLIST} recorded SHA256: {recorded_sha or '(missing)'}\n\n"
+            f"  {FEATURE_MAP} staged global SHA256: {skeleton_sha}\n"
+            f"  {CHECKLIST} recorded SHA256:        {recorded_sha or '(missing)'}\n\n"
             "Feature Map changed without a matching gate. Run /ms.pre-verify or /ms.expand first.\n"
             "(Deliberate override: git commit --no-verify.)",
             file=sys.stderr,

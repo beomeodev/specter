@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import re
 import subprocess
@@ -14,6 +15,14 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPT = ROOT / "docs" / "templates" / "scripts" / "specter-gate.sh"
+
+# The commit-time backstop reimplements the gate's map partition in Python;
+# load it by path so the parity test runs under any rootdir configuration.
+_BACKSTOP_PATH = ROOT / "scripts" / "specter" / "check_feature_map_gate.py"
+_spec = importlib.util.spec_from_file_location("check_feature_map_gate", _BACKSTOP_PATH)
+assert _spec and _spec.loader
+backstop = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(backstop)
 
 MAP_TEXT = (
     "# Feature Map\n\n"
@@ -37,10 +46,15 @@ def _tagged_lines(text: str):
     belongs to the map's decomposition, not to the section body it opens.
     Text inside a fenced block is content, never structure."""
     current: str | None = None
-    fence = False
+    fence = ""
     for line in text.splitlines(keepends=True):
-        if line.lstrip(" \t").startswith(("```", "~~~")):
-            fence = not fence
+        stripped = line.lstrip(" \t")
+        opener = next((d for d in ("```", "~~~") if stripped.startswith(d)), None)
+        if opener:
+            if not fence:
+                fence = opener
+            elif fence == opener:
+                fence = ""
             yield current, line
             continue
         if not fence:
@@ -458,6 +472,123 @@ def test_fenced_heading_does_not_leak_a_feature_body_into_the_skeleton(
         output(before_global)["global_sha256"] == output(after_global)["global_sha256"]
     )
     assert output(before_global)["scope_sha256"] != output(after_global)["scope_sha256"]
+
+
+def seed_pre_verify_inputs(repo: Path) -> None:
+    """`/ms.featuremap-checklist` writes this before pre-verify ever runs."""
+    (repo / "docs/prd/codex").mkdir(parents=True, exist_ok=True)
+    (repo / "docs/prd/codex/checklist.md").write_text("# Global checklist\n\n- C001\n")
+
+
+def test_pre_verify_station_digest_survives_an_unrelated_section_edit(
+    repo: Path,
+) -> None:
+    """The global audit binds to the skeleton, so its bundle must too.
+
+    Scoping only the checklist field leaves the pre-verify reports stale on any
+    Feature body edit, which still drags the whole pre-specter chain back.
+    """
+    seed_pre_verify_inputs(repo)
+    before = digest(repo, station="pre-verify", scope="")
+    edit_feature_body(repo, "012")
+    assert digest(repo, station="pre-verify", scope="") == before
+
+
+def test_pre_verify_station_digest_tracks_shared_map_content(repo: Path) -> None:
+    seed_pre_verify_inputs(repo)
+    before = digest(repo, station="pre-verify", scope="")
+    path = repo / "docs/prd/feature-map.md"
+    path.write_text(
+        path.read_text().replace("| C002 | Report items", "| C002 | Render items")
+    )
+    assert digest(repo, station="pre-verify", scope="") != before
+
+
+def test_a_mismatched_inner_fence_does_not_reopen_the_parser(repo: Path) -> None:
+    """A markdown sample documenting the other fence style stays inert."""
+    path = repo / "docs/prd/feature-map.md"
+    path.write_text(
+        path.read_text().replace(
+            "### In scope\n- Store items\n",
+            "### In scope\n```markdown\n~~~bash\n## not a heading\n~~~\n```\n- Store items\n",
+        )
+    )
+    before = output(run_gate(repo, "map-sha", "006"))
+    path.write_text(path.read_text().replace("- Store items\n", "- Store items fast\n"))
+    after = output(run_gate(repo, "map-sha", "006"))
+    assert before["global_sha256"] == after["global_sha256"]
+    assert before["scope_sha256"] != after["scope_sha256"]
+
+
+PARITY_MAPS = [
+    pytest.param(MAP_TEXT, id="plain"),
+    pytest.param(
+        MAP_TEXT.replace(
+            "### In scope\n- Store items\n",
+            "### In scope\n```bash\n## not a heading\n```\n- Store items\n",
+        ),
+        id="fenced-heading",
+    ),
+    pytest.param(
+        MAP_TEXT.replace(
+            "### In scope\n- Store items\n",
+            "### In scope\n```markdown\n~~~bash\n## not a heading\n~~~\n```\n- Store items\n",
+        ),
+        id="mismatched-inner-fence",
+    ),
+    pytest.param(
+        MAP_TEXT + "\n## Implementation Obligations\n\n- C001 -> Feature 006\n",
+        id="trailing-global-section",
+    ),
+    pytest.param(MAP_TEXT.replace("## Feature 006:", "## Feature 6:"), id="unpadded"),
+]
+
+
+@pytest.mark.parametrize("text", PARITY_MAPS)
+def test_backstop_skeleton_matches_the_gate(repo: Path, text: str) -> None:
+    """The commit-time backstop and the gate must partition the map identically.
+
+    They are separate implementations in different languages; if they drift, a
+    checklist the gate accepts is rejected at commit time (or the reverse).
+    """
+    (repo / "docs/prd/feature-map.md").write_text(text)
+    shell_global = output(run_gate(repo, "map-sha", "006"))["global_sha256"]
+    python_global = hashlib.sha256(backstop.global_skeleton(text).encode()).hexdigest()
+    assert python_global == shell_global
+    assert python_global == expected_global_sha(text)
+
+
+def test_map_sha_rejects_a_feature_absent_from_the_map(repo: Path) -> None:
+    """A missing section would otherwise hand back the global skeleton digest."""
+    result = run_gate(repo, "map-sha", "999")
+    assert result.returncode != 0
+    assert "no such Feature" in result.stderr
+
+
+def test_gate_rejects_a_checklist_for_a_feature_absent_from_the_map(
+    repo: Path,
+) -> None:
+    checklist = repo / "docs/prd/checklists/feature-006.checklist.md"
+    path = repo / "docs/prd/feature-map.md"
+    path.write_text(
+        path.read_text().replace("## Feature 006: Storage", "## Feature 013: Storage")
+    )
+    checklist.write_text(
+        checklist.read_text().replace(
+            "**Feature Map SHA256**: ",
+            f"**Feature Map SHA256**: {expected_global_sha(path.read_text())} #",
+        )
+    )
+    write_reports(repo, digest(repo))
+    result = run_gate(repo, "006")
+    assert result.returncode != 0
+    assert any("has no section" in str(r) for r in output(result)["reasons"])
+
+
+def test_map_sha_rejects_a_non_numeric_argument(repo: Path) -> None:
+    result = run_gate(repo, "map-sha", '6"x')
+    assert result.returncode == 2
+    assert result.stdout == ""
 
 
 def test_legacy_whole_map_binding_is_still_accepted(repo: Path) -> None:

@@ -52,19 +52,34 @@ field_value() {
 map_filtered() {
   local keep="$1" map_path="$2"
   awk -v keep="$keep" '
-    BEGIN { cur = -1; fence = 0 }
+    function emit() { if (cur == -1 || (keep != "" && cur == keep + 0)) print }
+    BEGIN { cur = -1; fence = 0; fchar = "" }
     # A fenced block holds sample text, not structure. Without this guard a
     # "## ..." line inside a Feature body ends the section, so the rest of that
     # body leaks into the global skeleton and re-stales every other Feature.
-    /^[ \t]*(```|~~~)/ { fence = !fence; if (cur == -1 || (keep != "" && cur == keep + 0)) print; next }
+    # Only a matching delimiter closes the block, so a markdown sample that
+    # documents the other fence style does not reopen the parser mid-body.
+    /^[ \t]*```/ { if (!fence) { fence = 1; fchar = "b" } else if (fchar == "b") fence = 0; emit(); next }
+    /^[ \t]*~~~/ { if (!fence) { fence = 1; fchar = "t" } else if (fchar == "t") fence = 0; emit(); next }
     !fence && /^## Feature [0-9]+:/ { num = $3; sub(/:.*$/, "", num); cur = num + 0; print; next }
     !fence && /^## / { cur = -1; print; next }
-    { if (cur == -1) print; else if (keep != "" && cur == keep + 0) print }
+    { emit() }
   ' "$map_path"
 }
 
 map_global_sha() {
   map_filtered "" "$1" | sha256sum | awk '{print $1}'
+}
+
+# A Feature with no section in the map has no slice of its own, so its scoped
+# digest would silently equal the global skeleton and let a checklist for a
+# nonexistent Feature satisfy the gate.
+map_has_feature() {
+  local feature="$1" map_path="$2"
+  awk -v want="$feature" '
+    /^## Feature [0-9]+:/ { num = $3; sub(/:.*$/, "", num); if (num + 0 == want + 0) { found = 1; exit } }
+    END { exit !found }
+  ' "$map_path"
 }
 
 map_scope_sha() {
@@ -173,11 +188,14 @@ bundle_hash() {
   done <<<"$paths"
   {
     while IFS= read -r path; do
-      # Per-Feature stations depend on their own slice of the map, so an
-      # unrelated Feature's refinement must not invalidate their reports.
+      # Each station hashes the map at the scope it actually owns, matching the
+      # binding its checklist records. Otherwise the checklist reads current
+      # while the station's reports read stale, and the cycle stalls anyway.
       if [ "$path" = "$FEATURE_MAP" ] &&
         { [ "$station" = "verify" ] || [ "$station" = "analyze" ]; }; then
         printf '%s  %s\n' "$(map_scope_sha "$scope" "$path")" "$path"
+      elif [ "$path" = "$FEATURE_MAP" ] && [ "$station" = "pre-verify" ]; then
+        printf '%s  %s\n' "$(map_global_sha "$path")" "$path"
       else
         sha256sum "$path"
       fi
@@ -371,6 +389,8 @@ legacy_gate() {
       map_path="${map_path%% *}"
       [ -n "$map_path" ] || map_path="$FEATURE_MAP"
       if [ -f "$map_path" ]; then
+        map_has_feature "$feature" "$map_path" ||
+          { reasons+=("Feature $feature has no section in $map_path"); any_fail=true; }
         recorded_map_sha="$(field_value "$checklist" "Feature Map SHA256")"
         if map_binding_current "$recorded_map_sha" \
           "$(map_scope_sha "$feature" "$map_path")" "$map_path"; then
@@ -421,8 +441,11 @@ case "${1:-}" in
     ;;
   map-sha)
     [ "$#" -eq 2 ] || { echo "usage: $0 map-sha <feature>" >&2; exit 2; }
+    [[ "$2" =~ ^[0-9]+$ ]] || { echo "map-sha requires a Feature number" >&2; exit 2; }
     map_scope="$(normalize_scope "$2")"
     [ -f "$FEATURE_MAP" ] || { echo "missing: $FEATURE_MAP" >&2; exit 1; }
+    map_has_feature "$map_scope" "$FEATURE_MAP" ||
+      { echo "no such Feature in $FEATURE_MAP: $map_scope" >&2; exit 1; }
     printf '{"contract":"lean-verification-v1","feature":"%s","scope_sha256":"%s","global_sha256":"%s"}\n' \
       "$map_scope" "$(map_scope_sha "$map_scope" "$FEATURE_MAP")" "$(map_global_sha "$FEATURE_MAP")"
     ;;
