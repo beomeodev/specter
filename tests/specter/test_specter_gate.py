@@ -1,9 +1,12 @@
 """Tests for the lean, state-free SPECTER gate."""
 
+# @TEST:FIX-GATE-SCOPE-001
+
 from __future__ import annotations
 
 import hashlib
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -11,6 +14,65 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 SCRIPT = ROOT / "docs" / "templates" / "scripts" / "specter-gate.sh"
+
+MAP_TEXT = (
+    "# Feature Map\n\n"
+    "| C-ID | Commitment | Owning Feature |\n"
+    "|---|---|---|\n"
+    "| C001 | Store items | Feature 006 |\n"
+    "| C002 | Report items | Feature 012 |\n\n"
+    "## Feature 006: Storage\n\n"
+    "### In scope\n- Store items\n\n"
+    "### Done criteria\n- Items persist\n- CI passes green\n\n"
+    "## Feature 012: Reporting\n\n"
+    "### In scope\n- Report items\n\n"
+    "### Done criteria\n- Reports render\n- CI passes green\n"
+)
+
+FEATURE_HEADING = re.compile(r"^## Feature (\d+):")
+
+
+def _tagged_lines(text: str):
+    """Yield (owning feature or None, line). A Feature heading is global: it
+    belongs to the map's decomposition, not to the section body it opens."""
+    current: str | None = None
+    for line in text.splitlines(keepends=True):
+        match = FEATURE_HEADING.match(line)
+        if match:
+            current = str(int(match.group(1)))
+            yield None, line
+            continue
+        if line.startswith("## "):
+            current = None
+        yield current, line
+
+
+def expected_global_sha(text: str) -> str:
+    """Oracle: everything except Feature section bodies."""
+    kept = "".join(line for owner, line in _tagged_lines(text) if owner is None)
+    return hashlib.sha256(kept.encode()).hexdigest()
+
+
+def expected_scope_sha(text: str, feature: str) -> str:
+    """Oracle: the global skeleton plus this Feature's own body."""
+    want = str(int(feature))
+    kept = "".join(
+        line for owner, line in _tagged_lines(text) if owner is None or owner == want
+    )
+    return hashlib.sha256(kept.encode()).hexdigest()
+
+
+def edit_feature_body(
+    repo: Path, feature: str, marker: str = "- refined detail\n"
+) -> None:
+    """Append a line inside one Feature's section, leaving every other byte alone."""
+    path = repo / "docs/prd/feature-map.md"
+    out = []
+    for owner, line in _tagged_lines(path.read_text()):
+        out.append(line)
+        if owner == str(int(feature)) and line.startswith("### In scope"):
+            out.append(marker)
+    path.write_text("".join(out))
 
 
 def run_gate(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -34,17 +96,10 @@ def repo(tmp_path: Path) -> Path:
     (tmp_path / ".specify/memory").mkdir(parents=True)
     (tmp_path / "docs/prd/PRD.md").write_text("# PRD\n\nStore items.\n")
     feature_map = tmp_path / "docs/prd/feature-map.md"
-    feature_map.write_text(
-        "# Feature Map\n\n"
-        "## Feature 006: Storage\n\n"
-        "### In scope\n- Store items\n\n"
-        "### Done criteria\n- Items persist\n- CI passes green\n"
-    )
+    feature_map.write_text(MAP_TEXT)
     map_sha = hashlib.sha256(feature_map.read_bytes()).hexdigest()
     (tmp_path / "docs/prd/feature-map.checklist.md").write_text(
-        "**Mode**: global\n"
-        f"**Feature Map SHA256**: {map_sha}\n"
-        "**Result**: PASS\n"
+        f"**Mode**: global\n**Feature Map SHA256**: {map_sha}\n**Result**: PASS\n"
     )
     (tmp_path / ".specify/memory/constitution.md").write_text(
         "## IX. Project-Specific Constraints\n\nNone.\n"
@@ -93,8 +148,8 @@ def test_version_is_lean_with_round_log(repo: Path) -> None:
     data = output(run_gate(repo, "version"))
     assert data == {
         "contract": "lean-verification-v1",
-        "rev": 2,
-        "subcommands": ["hash", "reduce", "rounds"],
+        "rev": 3,
+        "subcommands": ["hash", "reduce", "rounds", "map-sha"],
         "stateful": False,
         "round_log": ".specify/gate-rounds.log",
     }
@@ -280,7 +335,149 @@ def test_composite_gate_does_not_log_or_block(repo: Path) -> None:
     assert len(log_lines) == 2
 
 
-def write_global_override(repo: Path, reason: str = "owner accepts standing findings") -> None:
+def rebind_checklists(repo: Path) -> None:
+    """Rebind both checklists to the scoped digests the gate now records."""
+    text = (repo / "docs/prd/feature-map.md").read_text()
+    global_checklist = repo / "docs/prd/feature-map.checklist.md"
+    global_checklist.write_text(
+        re.sub(
+            r"\*\*Feature Map SHA256\*\*: \S+",
+            f"**Feature Map SHA256**: {expected_global_sha(text)}",
+            global_checklist.read_text(),
+        )
+    )
+    feature_checklist = repo / "docs/prd/checklists/feature-006.checklist.md"
+    feature_checklist.write_text(
+        re.sub(
+            r"\*\*Feature Map SHA256\*\*: \S+",
+            f"**Feature Map SHA256**: {expected_scope_sha(text, '006')}",
+            feature_checklist.read_text(),
+        )
+    )
+
+
+def test_map_sha_subcommand_reports_both_scoped_digests(repo: Path) -> None:
+    text = (repo / "docs/prd/feature-map.md").read_text()
+    data = output(run_gate(repo, "map-sha", "006"))
+    assert data["scope_sha256"] == expected_scope_sha(text, "006")
+    assert data["global_sha256"] == expected_global_sha(text)
+
+
+def test_unrelated_feature_section_edit_keeps_the_cycle_alive(repo: Path) -> None:
+    """The reported symptom: refining Feature 012 must not stall Feature 006."""
+    rebind_checklists(repo)
+    write_reports(repo, digest(repo))
+    edit_feature_body(repo, "012")
+    result = run_gate(repo, "006")
+    assert result.returncode == 0, result.stdout
+    assert output(result)["overall"] == "PASS"
+
+
+def test_unrelated_feature_section_edit_preserves_the_station_digest(
+    repo: Path,
+) -> None:
+    rebind_checklists(repo)
+    before = digest(repo)
+    edit_feature_body(repo, "012")
+    assert digest(repo) == before
+
+
+def test_own_feature_section_edit_still_stales_the_checklist(repo: Path) -> None:
+    rebind_checklists(repo)
+    write_reports(repo, digest(repo))
+    edit_feature_body(repo, "006")
+    result = run_gate(repo, "006")
+    assert result.returncode != 0
+    assert output(result)["overall"] == "FAIL"
+    assert any(
+        "Feature Map SHA256 is stale" in str(r) for r in output(result)["reasons"]
+    )
+
+
+def test_own_feature_section_edit_changes_the_station_digest(repo: Path) -> None:
+    rebind_checklists(repo)
+    before = digest(repo)
+    edit_feature_body(repo, "006")
+    assert digest(repo) != before
+
+
+def test_shared_map_content_edit_still_stales_every_checklist(repo: Path) -> None:
+    """Commitment rows, ordering, and the DAG stay globally binding."""
+    rebind_checklists(repo)
+    write_reports(repo, digest(repo))
+    path = repo / "docs/prd/feature-map.md"
+    path.write_text(
+        path.read_text().replace("| C002 | Report items", "| C002 | Render items")
+    )
+    result = run_gate(repo, "006")
+    assert result.returncode != 0
+    assert output(result)["overall"] == "FAIL"
+
+
+def test_adding_a_feature_still_stales_the_global_checklist(repo: Path) -> None:
+    rebind_checklists(repo)
+    write_reports(repo, digest(repo))
+    path = repo / "docs/prd/feature-map.md"
+    path.write_text(
+        path.read_text() + "\n## Feature 020: Exporting\n\n### In scope\n- Export\n"
+    )
+    result = run_gate(repo, "006")
+    assert result.returncode != 0
+    assert output(result)["overall"] == "FAIL"
+
+
+def test_legacy_whole_map_binding_is_still_accepted(repo: Path) -> None:
+    """Checklists written before scoping keep working until regenerated."""
+    write_reports(repo, digest(repo))
+    result = run_gate(repo, "006")
+    assert result.returncode == 0, result.stdout
+    assert output(result)["overall"] == "PASS"
+
+
+def write_feature_override(
+    repo: Path, reason: str = "owner accepts the refinement", feature: str = "006"
+) -> None:
+    checklist = repo / f"docs/prd/checklists/feature-{feature}.checklist.md"
+    (repo / f"docs/prd/checklists/feature-{feature}.checklist.override.md").write_text(
+        "**Mode**: feature-override\n"
+        f"**Feature Checklist SHA256**: {hashlib.sha256(checklist.read_bytes()).hexdigest()}\n"
+        f"**Reason**: {reason}\n"
+    )
+
+
+def test_feature_override_downgrades_stale_map_binding_to_warn(repo: Path) -> None:
+    rebind_checklists(repo)
+    edit_feature_body(repo, "006")
+    write_feature_override(repo)
+    write_reports(repo, digest(repo))
+    result = run_gate(repo, "006")
+    assert result.returncode == 0, result.stdout
+    data = output(result)
+    assert data["overall"] == "WARN"
+    assert any("overridden to WARN" in str(r) for r in data["reasons"])
+
+
+def test_feature_override_invalidated_by_checklist_change(repo: Path) -> None:
+    rebind_checklists(repo)
+    edit_feature_body(repo, "006")
+    write_feature_override(repo)
+    checklist = repo / "docs/prd/checklists/feature-006.checklist.md"
+    checklist.write_text(checklist.read_text() + "regenerated\n")
+    write_reports(repo, digest(repo))
+    assert run_gate(repo, "006").returncode != 0
+
+
+def test_feature_override_requires_reason(repo: Path) -> None:
+    rebind_checklists(repo)
+    edit_feature_body(repo, "006")
+    write_feature_override(repo, reason="")
+    write_reports(repo, digest(repo))
+    assert run_gate(repo, "006").returncode != 0
+
+
+def write_global_override(
+    repo: Path, reason: str = "owner accepts standing findings"
+) -> None:
     checklist_sha = hashlib.sha256(
         (repo / "docs/prd/feature-map.checklist.md").read_bytes()
     ).hexdigest()
@@ -293,7 +490,9 @@ def write_global_override(repo: Path, reason: str = "owner accepts standing find
 
 def test_global_override_downgrades_standing_fail_to_warn(repo: Path) -> None:
     checklist = repo / "docs/prd/feature-map.checklist.md"
-    checklist.write_text(checklist.read_text().replace("**Result**: PASS", "**Result**: FAIL"))
+    checklist.write_text(
+        checklist.read_text().replace("**Result**: PASS", "**Result**: FAIL")
+    )
     write_global_override(repo)
     write_reports(repo, digest(repo))
     result = run_gate(repo, "006")
@@ -305,7 +504,9 @@ def test_global_override_downgrades_standing_fail_to_warn(repo: Path) -> None:
 
 def test_global_override_invalidated_by_checklist_change(repo: Path) -> None:
     checklist = repo / "docs/prd/feature-map.checklist.md"
-    checklist.write_text(checklist.read_text().replace("**Result**: PASS", "**Result**: FAIL"))
+    checklist.write_text(
+        checklist.read_text().replace("**Result**: PASS", "**Result**: FAIL")
+    )
     write_global_override(repo)
     checklist.write_text(checklist.read_text() + "regenerated\n")
     write_reports(repo, digest(repo))
@@ -316,7 +517,9 @@ def test_global_override_invalidated_by_checklist_change(repo: Path) -> None:
 
 def test_global_override_requires_reason(repo: Path) -> None:
     checklist = repo / "docs/prd/feature-map.checklist.md"
-    checklist.write_text(checklist.read_text().replace("**Result**: PASS", "**Result**: FAIL"))
+    checklist.write_text(
+        checklist.read_text().replace("**Result**: PASS", "**Result**: FAIL")
+    )
     write_global_override(repo, reason="")
     write_reports(repo, digest(repo))
     assert run_gate(repo, "006").returncode != 0

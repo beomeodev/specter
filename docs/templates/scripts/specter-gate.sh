@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# @CODE:FIX-GATE-SCOPE-001
 # Lean deterministic SPECTER gate.
 # Mechanical only: required artifacts, exact verdict fields, current hashes,
 # fixed reviewer paths, and worst-of reduction. No receipts and no state that
@@ -40,6 +41,53 @@ field_value() {
   local file="$1" field="$2"
   grep -m1 "^[*][*]${field}[*][*]:" "$file" 2>/dev/null |
     sed -E "s/^[*][*]${field}[*][*]:[[:space:]]*//" || true
+}
+
+# Feature Map staleness is scoped, not whole-file. A `## Feature NNN:` heading
+# is global content — it carries the map's decomposition — while the body under
+# it belongs to that Feature alone. So refining one Feature's section leaves
+# every other Feature's binding intact, while adding, removing, or reordering a
+# Feature, or editing the commitment index, still binds globally.
+# $1 = Feature to keep ("" keeps only the global skeleton), $2 = map path.
+map_filtered() {
+  local keep="$1" map_path="$2"
+  awk -v keep="$keep" '
+    BEGIN { cur = -1 }
+    /^## Feature [0-9]+:/ { num = $3; sub(/:.*$/, "", num); cur = num + 0; print; next }
+    /^## / { cur = -1; print; next }
+    { if (cur == -1) print; else if (keep != "" && cur == keep + 0) print }
+  ' "$map_path"
+}
+
+map_global_sha() {
+  map_filtered "" "$1" | sha256sum | awk '{print $1}'
+}
+
+map_scope_sha() {
+  map_filtered "$1" "$2" | sha256sum | awk '{print $1}'
+}
+
+# A recorded binding is current when it matches the scope it was written for.
+# The whole-file digest is accepted too so checklists written before scoping
+# keep working until they are next regenerated.
+map_binding_current() {
+  local recorded="$1" scoped="$2" map_path="$3"
+  [ -n "$recorded" ] || return 1
+  [ "$recorded" = "$scoped" ] && return 0
+  [ "$recorded" = "$(sha256sum "$map_path" | awk '{print $1}')" ]
+}
+
+feature_override_valid() {
+  local feature="$1"
+  local override="docs/prd/checklists/feature-${feature}.checklist.override.md"
+  local checklist="docs/prd/checklists/feature-${feature}.checklist.md"
+  [ -f "$override" ] && [ -f "$checklist" ] || return 1
+  [ "$(field_value "$override" "Mode")" = "feature-override" ] || return 1
+  [ -n "$(field_value "$override" "Reason")" ] || return 1
+  local recorded current
+  recorded="$(field_value "$override" "Feature Checklist SHA256")"
+  current="$(sha256sum "$checklist" | awk '{print $1}')"
+  [ -n "$recorded" ] && [ "$recorded" = "$current" ]
 }
 
 # Trailing consecutive FAIL judgment rounds for a station+scope. Only reduce
@@ -121,7 +169,14 @@ bundle_hash() {
   done <<<"$paths"
   {
     while IFS= read -r path; do
-      sha256sum "$path"
+      # Per-Feature stations depend on their own slice of the map, so an
+      # unrelated Feature's refinement must not invalidate their reports.
+      if [ "$path" = "$FEATURE_MAP" ] &&
+        { [ "$station" = "verify" ] || [ "$station" = "analyze" ]; }; then
+        printf '%s  %s\n' "$(map_scope_sha "$scope" "$path")" "$path"
+      else
+        sha256sum "$path"
+      fi
     done <<<"$paths"
     if [ "$station" = "review" ]; then
       git diff --binary HEAD -- . \
@@ -277,8 +332,10 @@ legacy_gate() {
         ;;
     esac
     recorded="$(field_value "$GLOBAL_CHECKLIST" "Feature Map SHA256")"
-    [ -f "$FEATURE_MAP" ] && current="$(sha256sum "$FEATURE_MAP" | awk '{print $1}')" || current=""
-    if [ -z "$recorded" ] || [ "$recorded" != "$current" ]; then
+    if [ -f "$FEATURE_MAP" ] &&
+      map_binding_current "$recorded" "$(map_global_sha "$FEATURE_MAP")" "$FEATURE_MAP"; then
+      :
+    else
       if $override_ok; then
         reasons+=("global checklist Feature Map SHA256 staleness overridden to WARN by owner record")
         any_warn=true
@@ -302,7 +359,7 @@ legacy_gate() {
       [ "$(field_count "$checklist" "Mode")" -eq 1 ] &&
         [ "$(field_value "$checklist" "Mode")" = "per-feature" ] ||
         { reasons+=("feature checklist Mode is invalid"); any_fail=true; }
-      local feature_field map_path recorded_map_sha current_map_sha
+      local feature_field map_path recorded_map_sha
       feature_field="$(field_value "$checklist" "Feature")"
       [[ "$feature_field" == *"Feature $feature"* ]] ||
         { reasons+=("feature checklist does not match Feature $feature"); any_fail=true; }
@@ -311,9 +368,16 @@ legacy_gate() {
       [ -n "$map_path" ] || map_path="$FEATURE_MAP"
       if [ -f "$map_path" ]; then
         recorded_map_sha="$(field_value "$checklist" "Feature Map SHA256")"
-        current_map_sha="$(sha256sum "$map_path" | awk '{print $1}')"
-        [ -n "$recorded_map_sha" ] && [ "$recorded_map_sha" = "$current_map_sha" ] ||
-          { reasons+=("feature checklist Feature Map SHA256 is stale"); any_fail=true; }
+        if map_binding_current "$recorded_map_sha" \
+          "$(map_scope_sha "$feature" "$map_path")" "$map_path"; then
+          :
+        elif feature_override_valid "$feature"; then
+          reasons+=("feature checklist Feature Map SHA256 staleness overridden to WARN by owner record")
+          any_warn=true
+        else
+          reasons+=("feature checklist Feature Map SHA256 is stale")
+          any_fail=true
+        fi
       else
         reasons+=("missing: $map_path")
         any_missing=true
@@ -349,7 +413,14 @@ legacy_gate() {
 
 case "${1:-}" in
   version)
-    printf '{"contract":"lean-verification-v1","rev":2,"subcommands":["hash","reduce","rounds"],"stateful":false,"round_log":"%s"}\n' "$ROUND_LOG"
+    printf '{"contract":"lean-verification-v1","rev":3,"subcommands":["hash","reduce","rounds","map-sha"],"stateful":false,"round_log":"%s"}\n' "$ROUND_LOG"
+    ;;
+  map-sha)
+    [ "$#" -eq 2 ] || { echo "usage: $0 map-sha <feature>" >&2; exit 2; }
+    map_scope="$(normalize_scope "$2")"
+    [ -f "$FEATURE_MAP" ] || { echo "missing: $FEATURE_MAP" >&2; exit 1; }
+    printf '{"contract":"lean-verification-v1","feature":"%s","scope_sha256":"%s","global_sha256":"%s"}\n' \
+      "$map_scope" "$(map_scope_sha "$map_scope" "$FEATURE_MAP")" "$(map_global_sha "$FEATURE_MAP")"
     ;;
   hash)
     [ "$#" -eq 3 ] || { echo "usage: $0 hash <pre-verify|verify|analyze|review> <scope>" >&2; exit 2; }

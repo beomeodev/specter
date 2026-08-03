@@ -21,3 +21,20 @@
   needs_human 정지(fail-closed). 테스트 7개.
 - 검증: 전체 스위트 243개 통과. 잔여: 5차(고위험 diff 하이브리드)는 안정
   확인 후, sync 전파는 사용자 결정 대기.
+
+## 2026-08-03 — Feature Map staleness 범위 축소 (@CODE:FIX-GATE-SCOPE-001)
+
+- 증상: Feature 사이클 도중 PRD/Feature Map을 수정하면 전역·per-Feature 체크리스트가
+  동시에 stale 판정되어 pre-specter 체인을 다시 돌아야 했다. 원인은 두 바인딩 모두
+  feature-map.md 파일 전체 해시를 보고 있었던 것.
+- 수정(specter-gate.sh): 해시를 세 갈래로 분리했다. Feature 제목줄과 공용 내용은
+  전역 뼈대(global_sha256), 각 Feature 본문은 해당 Feature 전용(scope_sha256).
+  전역 체크리스트는 전역 뼈대에, per-Feature 체크리스트는 자기 섹션에 바인딩한다.
+  verify/analyze 역의 입력 묶음도 같은 기준으로 좁혔다. `map-sha` 서브커맨드 신설,
+  rev 2 → 3.
+- 부수 수정: per-Feature staleness에만 없던 owner override 경로를 추가했다
+  (feature-NNN.checklist.override.md, Mode=feature-override).
+- 하위호환: 기존 체크리스트의 파일 전체 해시도 계속 인정한다(재생성 전까지).
+- 문서: /ms.checklist·/ms.pre-verify가 map-sha 결과를 기록하도록 지시 변경.
+- 검증: tests/specter 150개 통과(신규 11개 — 무관 섹션 수정 통과, 자기 섹션·공용부·
+  Feature 추가는 FAIL 유지, override 3종, 레거시 바인딩 호환).

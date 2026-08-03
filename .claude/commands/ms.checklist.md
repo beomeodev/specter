@@ -20,9 +20,17 @@ and Constitution. Include:
 **Mode**: per-feature
 **Feature**: Feature NNN
 **Feature Map**: docs/prd/feature-map.md
-**Feature Map SHA256**: <current sha256>
+**Feature Map SHA256**: <scope_sha256 from the command below>
 **Result**: PASS | WARN | FAIL
 ```
+
+Take the binding from `specter-gate.sh map-sha NNN` and record its
+`scope_sha256`, never a digest of the whole file. The binding covers this
+Feature's own section plus the map's shared content, so another Feature's
+refinement no longer stales this checklist while a change to this Feature's
+section, to the commitment index, or to the set of Features still does. A
+whole-file digest is still accepted from checklists written before scoping,
+but it re-stales on every unrelated edit — regenerate rather than keep it.
 
 Check scope, exclusions, dependencies, observable Done criteria, acceptance/NFR
 coverage, and boundary questions that must reach clarify. Downstream refinements
