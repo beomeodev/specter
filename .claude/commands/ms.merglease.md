@@ -68,12 +68,13 @@ Prompt below to a file, then call the binary directly — the `/antigravity:resc
 plugin wrapper discards `--model`, so the pin would not take effect:
 
 ```bash
-agy --model gemini-3.6-flash --effort medium --add-dir <ABS_REPO_ROOT> \
-    --print-timeout 60m -p "$(cat <ABS_PROMPT_FILE>)"
+agy --model gemini-3.6-flash --effort medium --mode accept-edits \
+    --add-dir <ABS_REPO_ROOT> --print-timeout 60m -p "$(cat <ABS_PROMPT_FILE>)"
 ```
 
-This run waits for CI, so it takes the long `--print-timeout`; the 10m default in
-the contract is sized for review lanes.
+This is a publish lane, so it carries `--mode accept-edits`, and it waits for CI,
+so it takes the long `--print-timeout`; the contract's 10m default is sized for
+read-only review lanes.
 
 #### Antigravity Prompt:
 ```text

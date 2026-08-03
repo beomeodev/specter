@@ -40,8 +40,14 @@ inside the prompt — must be absolute. Call the binary directly; the
 `/antigravity:rescue` plugin wrapper accepts `--model` and discards it
 (logged-and-ignored), so the pin above would not take effect.
 
+Review lanes only read, so they take no write flag. A lane that must mutate the
+repo — the `/ms.fin` and `/ms.merglease` publish runs — adds `--mode
+accept-edits`, which auto-approves file edits only. That is not a substitute for
+the allowlist: shell commands stay governed by `permissions.allow`.
+
 Never launch the interactive TUI from a session and never pass
-`--dangerously-skip-permissions`. Print mode auto-denies any command missing
+`--dangerously-skip-permissions`, which blanket-approves every tool request
+rather than just edits. Print mode auto-denies any command missing
 from `permissions.allow` in `~/.gemini/antigravity-cli/settings.json`; an
 auto-denied or empty response is an availability failure — fix the allowlist or
 record the lane UNAVAILABLE after the one retry. A workspace absent from
