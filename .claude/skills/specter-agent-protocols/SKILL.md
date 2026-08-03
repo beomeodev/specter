@@ -7,7 +7,9 @@ description: Lean, state-free protocol for SPECTER's independent verification st
 
 This skill is the shared contract for `/ms.pre-verify`, `/ms.verify`,
 `/ms.analyze`, and `/ms.review`. Commands define their scope and fixed report
-paths; this file defines only reusable mechanics.
+paths; this file defines only reusable mechanics. The dispatch contract in
+section 1 additionally governs every external-agent invocation in SPECTER,
+including the delegated publish runs in `/ms.fin` and `/ms.merglease`.
 
 ## 1. Independent review
 
@@ -18,14 +20,32 @@ paths; this file defines only reusable mechanics.
 - A reviewer that implemented the Feature is recused from that Feature's review.
 - Check availability once per session. Retry an unavailable reviewer once.
 
-Antigravity dispatch is headless only: `agy -p "<prompt>" --print-timeout 10m`
-with stdout redirected to the lane's fixed report path. Never launch the
-interactive TUI from a session and never pass `--dangerously-skip-permissions`.
-Print mode auto-denies any command missing from `permissions.allow` in
-`~/.gemini/antigravity-cli/settings.json`; an auto-denied or empty response is
-an availability failure — fix the allowlist or record the lane UNAVAILABLE
-after the one retry. A workspace absent from `trustedWorkspaces` in the same
-file also blocks headless runs.
+Both lanes pin their model explicitly; an unpinned lane silently inherits a CLI
+default and makes reviews incomparable across runs.
+
+Codex dispatch pins `--model gpt-5.6-luna --effort high`. Do not raise the
+effort to `xhigh`: that tier stalls and dies mid-run on these stations.
+
+Antigravity dispatch is headless only:
+
+```bash
+agy --model gemini-3.6-flash --effort medium --add-dir <ABS_REPO_ROOT> \
+    --print-timeout 10m -p "<prompt>"
+```
+
+with stdout redirected to the lane's fixed report path. Flag rules: `-p` /
+`--print` must come last because it consumes the following value, `--add-dir` is
+required or the repo files read as nonexistent, and every path — including paths
+inside the prompt — must be absolute. Call the binary directly; the
+`/antigravity:rescue` plugin wrapper accepts `--model` and discards it
+(logged-and-ignored), so the pin above would not take effect.
+
+Never launch the interactive TUI from a session and never pass
+`--dangerously-skip-permissions`. Print mode auto-denies any command missing
+from `permissions.allow` in `~/.gemini/antigravity-cli/settings.json`; an
+auto-denied or empty response is an availability failure — fix the allowlist or
+record the lane UNAVAILABLE after the one retry. A workspace absent from
+`trustedWorkspaces` in the same file also blocks headless runs.
 
 ## 2. State-free report contract
 

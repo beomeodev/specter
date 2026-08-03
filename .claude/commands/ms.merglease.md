@@ -63,9 +63,17 @@ Invoke Google Antigravity to perform the entire merge, checkout, tagging, and re
 process in one delegated run — this single invocation is what waits for CI and the version/merge
 logic below, so the host issues no follow-up polling commands after it starts:
 
-```text
-/antigravity:rescue --fresh --model gemini-3.5-flash --effort medium <Prompt>
+Dispatch follows the contract in the `specter-agent-protocols` skill. Write the
+Prompt below to a file, then call the binary directly — the `/antigravity:rescue`
+plugin wrapper discards `--model`, so the pin would not take effect:
+
+```bash
+agy --model gemini-3.6-flash --effort medium --add-dir <ABS_REPO_ROOT> \
+    --print-timeout 60m -p "$(cat <ABS_PROMPT_FILE>)"
 ```
+
+This run waits for CI, so it takes the long `--print-timeout`; the 10m default in
+the contract is sized for review lanes.
 
 #### Antigravity Prompt:
 ```text
