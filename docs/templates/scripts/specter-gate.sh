@@ -48,21 +48,35 @@ field_value() {
 # it belongs to that Feature alone. So refining one Feature's section leaves
 # every other Feature's binding intact, while adding, removing, or reordering a
 # Feature, or editing the commitment index, still binds globally.
+#
+# `### Dependencies` is the exception: /ms.featuremap requires every Feature
+# section to carry one, so the dependency DAG lives inside the bodies even
+# though it is shared state. Those subsections stay global, otherwise rewriting
+# one Feature's edges would silently leave every affected dependent bound to a
+# DAG that no longer exists.
+#
+# The shared parser rules, which the Python backstop in
+# scripts/specter/check_feature_map_gate.py must reproduce byte for byte:
+#   - records split on \n; every emitted record is printed with a trailing \n
+#   - a fenced block holds sample text, never structure, and closes only on the
+#     same delimiter character repeated at least as many times as the opener
 # $1 = Feature to keep ("" keeps only the global skeleton), $2 = map path.
 map_filtered() {
   local keep="$1" map_path="$2"
   awk -v keep="$keep" '
-    function emit() { if (cur == -1 || (keep != "" && cur == keep + 0)) print }
-    BEGIN { cur = -1; fence = 0; fchar = "" }
-    # A fenced block holds sample text, not structure. Without this guard a
-    # "## ..." line inside a Feature body ends the section, so the rest of that
-    # body leaks into the global skeleton and re-stales every other Feature.
-    # Only a matching delimiter closes the block, so a markdown sample that
-    # documents the other fence style does not reopen the parser mid-body.
-    /^[ \t]*```/ { if (!fence) { fence = 1; fchar = "b" } else if (fchar == "b") fence = 0; emit(); next }
-    /^[ \t]*~~~/ { if (!fence) { fence = 1; fchar = "t" } else if (fchar == "t") fence = 0; emit(); next }
-    !fence && /^## Feature [0-9]+:/ { num = $3; sub(/:.*$/, "", num); cur = num + 0; print; next }
-    !fence && /^## / { cur = -1; print; next }
+    function isglob() { return (cur == -1 || dep) }
+    function emit() { if (isglob() || (keep != "" && cur == keep + 0)) print }
+    BEGIN { cur = -1; dep = 0; fence = 0; fchar = ""; flen = 0 }
+    /^[ \t]*(```|~~~)/ {
+      l = $0; sub(/^[ \t]+/, "", l); ch = substr(l, 1, 1); n = 0
+      while (substr(l, n + 1, 1) == ch) n++
+      if (!fence) { fence = 1; fchar = ch; flen = n }
+      else if (ch == fchar && n >= flen) fence = 0
+      emit(); next
+    }
+    !fence && /^## Feature [0-9]+:/ { num = $3; sub(/:.*$/, "", num); cur = num + 0; dep = 0; print; next }
+    !fence && /^## / { cur = -1; dep = 0; print; next }
+    !fence && /^### / { dep = (cur != -1 && $0 ~ /^### Dependencies/); emit(); next }
     { emit() }
   ' "$map_path"
 }
@@ -73,11 +87,21 @@ map_global_sha() {
 
 # A Feature with no section in the map has no slice of its own, so its scoped
 # digest would silently equal the global skeleton and let a checklist for a
-# nonexistent Feature satisfy the gate.
+# nonexistent Feature satisfy the gate. Fence state is tracked exactly as in
+# map_filtered: a heading that only appears inside a sample block is not a
+# section, so existence and partitioning cannot disagree.
 map_has_feature() {
   local feature="$1" map_path="$2"
   awk -v want="$feature" '
-    /^## Feature [0-9]+:/ { num = $3; sub(/:.*$/, "", num); if (num + 0 == want + 0) { found = 1; exit } }
+    BEGIN { fence = 0; fchar = ""; flen = 0 }
+    /^[ \t]*(```|~~~)/ {
+      l = $0; sub(/^[ \t]+/, "", l); ch = substr(l, 1, 1); n = 0
+      while (substr(l, n + 1, 1) == ch) n++
+      if (!fence) { fence = 1; fchar = ch; flen = n }
+      else if (ch == fchar && n >= flen) fence = 0
+      next
+    }
+    !fence && /^## Feature [0-9]+:/ { num = $3; sub(/:.*$/, "", num); if (num + 0 == want + 0) { found = 1; exit } }
     END { exit !found }
   ' "$map_path"
 }

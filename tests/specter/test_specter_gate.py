@@ -38,34 +38,64 @@ MAP_TEXT = (
     "### Done criteria\n- Reports render\n- CI passes green\n"
 )
 
+DEPENDENCY_MAP_TEXT = (
+    "# Feature Map\n\n"
+    "## Feature 006: Storage\n\n"
+    "### Dependencies\n- Feature 012 depends on Feature 006\n\n"
+    "### In scope\n- Store items\n\n"
+    "## Feature 012: Reporting\n\n"
+    "### Dependencies\n- none\n\n"
+    "### In scope\n- Report items\n"
+)
+
 FEATURE_HEADING = re.compile(r"^## Feature (\d+):")
 
 
 def _tagged_lines(text: str):
-    """Yield (owning feature or None, line). A Feature heading is global: it
-    belongs to the map's decomposition, not to the section body it opens.
-    Text inside a fenced block is content, never structure."""
+    """Yield (owning feature or None, record-with-newline).
+
+    Independent oracle for the partition. A Feature heading is global — it
+    carries decomposition — as is the `### Dependencies` subsection every
+    Feature must carry, because the DAG is shared state. Fenced text is never
+    structure, and a fence closes only on the same character repeated at least
+    as many times as the opener. Records split on \\n and always end with one,
+    matching awk.
+    """
+    parts = text.split("\n")
+    if parts and parts[-1] == "":
+        parts.pop()
     current: str | None = None
-    fence = ""
-    for line in text.splitlines(keepends=True):
-        stripped = line.lstrip(" \t")
-        opener = next((d for d in ("```", "~~~") if stripped.startswith(d)), None)
-        if opener:
-            if not fence:
-                fence = opener
-            elif fence == opener:
-                fence = ""
-            yield current, line
+    in_dependencies = False
+    fence_char = ""
+    fence_len = 0
+    for record in parts:
+        line = record + "\n"
+        stripped = record.lstrip(" \t")
+        if stripped.startswith(("```", "~~~")):
+            char = stripped[0]
+            length = len(stripped) - len(stripped.lstrip(char))
+            if not fence_char:
+                fence_char, fence_len = char, length
+            elif char == fence_char and length >= fence_len:
+                fence_char, fence_len = "", 0
+            yield (None if in_dependencies else current), line
             continue
-        if not fence:
-            match = FEATURE_HEADING.match(line)
-            if match:
-                current = str(int(match.group(1)))
+        if not fence_char:
+            if FEATURE_HEADING.match(record):
+                current = str(int(FEATURE_HEADING.match(record).group(1)))
+                in_dependencies = False
                 yield None, line
                 continue
-            if line.startswith("## "):
+            if record.startswith("## "):
                 current = None
-        yield current, line
+                in_dependencies = False
+                yield None, line
+                continue
+            if record.startswith("### "):
+                in_dependencies = current is not None and record.startswith(
+                    "### Dependencies"
+                )
+        yield (None if in_dependencies else current), line
 
 
 def expected_global_sha(text: str) -> str:
@@ -537,10 +567,27 @@ PARITY_MAPS = [
         id="mismatched-inner-fence",
     ),
     pytest.param(
+        MAP_TEXT.replace(
+            "### In scope\n- Store items\n",
+            "### In scope\n````markdown\n```\n## not a heading\n```\n````\n- Store items\n",
+        ),
+        id="four-backtick-fence",
+    ),
+    pytest.param(
+        MAP_TEXT.replace(
+            "### In scope\n- Store items\n",
+            "### In scope\n```text\n## Feature 999: Fake\n```\n- Store items\n",
+        ),
+        id="fenced-fake-feature",
+    ),
+    pytest.param(
         MAP_TEXT + "\n## Implementation Obligations\n\n- C001 -> Feature 006\n",
         id="trailing-global-section",
     ),
     pytest.param(MAP_TEXT.replace("## Feature 006:", "## Feature 6:"), id="unpadded"),
+    pytest.param(MAP_TEXT.replace("\n", "\r\n"), id="crlf"),
+    pytest.param(MAP_TEXT.rstrip("\n"), id="no-trailing-newline"),
+    pytest.param(DEPENDENCY_MAP_TEXT, id="dependencies"),
 ]
 
 
@@ -556,6 +603,66 @@ def test_backstop_skeleton_matches_the_gate(repo: Path, text: str) -> None:
     python_global = hashlib.sha256(backstop.global_skeleton(text).encode()).hexdigest()
     assert python_global == shell_global
     assert python_global == expected_global_sha(text)
+
+
+def test_a_dependency_edit_binds_globally(repo: Path) -> None:
+    """The DAG lives inside Feature bodies but is shared state.
+
+    Rewriting Feature 006's edges must invalidate Feature 012's binding too,
+    otherwise a dependent stays bound to a DAG that no longer exists.
+    """
+    path = repo / "docs/prd/feature-map.md"
+    path.write_text(DEPENDENCY_MAP_TEXT)
+    before_global = output(run_gate(repo, "map-sha", "012"))
+    path.write_text(
+        DEPENDENCY_MAP_TEXT.replace(
+            "- Feature 012 depends on Feature 006",
+            "- Feature 012 depends on Feature 013",
+        )
+    )
+    after_global = output(run_gate(repo, "map-sha", "012"))
+    assert before_global["global_sha256"] != after_global["global_sha256"]
+    assert before_global["scope_sha256"] != after_global["scope_sha256"]
+
+
+def test_a_non_dependency_body_edit_stays_scoped(repo: Path) -> None:
+    """The dependency exception must not re-couple ordinary refinement."""
+    path = repo / "docs/prd/feature-map.md"
+    path.write_text(DEPENDENCY_MAP_TEXT)
+    before = output(run_gate(repo, "map-sha", "012"))
+    path.write_text(DEPENDENCY_MAP_TEXT.replace("- Store items", "- Store items fast"))
+    after = output(run_gate(repo, "map-sha", "012"))
+    assert before["global_sha256"] == after["global_sha256"]
+    assert before["scope_sha256"] == after["scope_sha256"]
+
+
+def test_a_four_backtick_fence_is_not_closed_by_a_shorter_one(repo: Path) -> None:
+    path = repo / "docs/prd/feature-map.md"
+    path.write_text(
+        MAP_TEXT.replace(
+            "### In scope\n- Store items\n",
+            "### In scope\n````markdown\n```\n## not a heading\n```\n````\n- Store items\n",
+        )
+    )
+    before = output(run_gate(repo, "map-sha", "006"))
+    path.write_text(path.read_text().replace("- Store items\n", "- Store items fast\n"))
+    after = output(run_gate(repo, "map-sha", "006"))
+    assert before["global_sha256"] == after["global_sha256"]
+    assert before["scope_sha256"] != after["scope_sha256"]
+
+
+def test_a_fenced_feature_heading_is_not_a_real_feature(repo: Path) -> None:
+    """Existence and partitioning must not disagree about what a section is."""
+    path = repo / "docs/prd/feature-map.md"
+    path.write_text(
+        MAP_TEXT.replace(
+            "### In scope\n- Store items\n",
+            "### In scope\n```text\n## Feature 999: Fake\n```\n- Store items\n",
+        )
+    )
+    result = run_gate(repo, "map-sha", "999")
+    assert result.returncode != 0
+    assert "no such Feature" in result.stderr
 
 
 def test_map_sha_rejects_a_feature_absent_from_the_map(repo: Path) -> None:
